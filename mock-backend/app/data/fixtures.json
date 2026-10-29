@@ -1,0 +1,1855 @@
+{
+  "seed": {
+    "projects": [],
+    "humanTasks": [
+      {
+        "id": "ht-seed1",
+        "projectId": "seed-bike",
+        "projectName": "Bike Light v2",
+        "capability": "human.functional_test",
+        "title": "Functional test: bike light driver board",
+        "publicDescription": "Power a prepared LED driver board from a bench supply, run a 3-step test script, record current draw.",
+        "trigger": "Simulator does not model LED thermal behaviour (UNKNOWN)",
+        "platform": "Hosted portal",
+        "state": "IN_PROGRESS",
+        "fee": 35,
+        "deadline": "in 2 days",
+        "requirements": [
+          "Bench power supply",
+          "Multimeter",
+          "Basic electronics experience"
+        ],
+        "evidenceSchema": [
+          "Board serial photo",
+          "Current draw at 3 modes (mA)",
+          "Pass/fail statement"
+        ],
+        "applicants": [
+          {
+            "id": "a1",
+            "name": "Ravi K.",
+            "rating": 4.9,
+            "jobs": 58,
+            "skills": [
+              "Bench supply",
+              "Multimeter"
+            ],
+            "meets": true
+          }
+        ],
+        "assigneeId": "a1",
+        "filesShared": true,
+        "revisionCount": 0,
+        "history": []
+      },
+      {
+        "id": "ht-seed2",
+        "projectId": "seed-plant",
+        "projectName": "Plant Sensor",
+        "capability": "human.assembly_check",
+        "title": "Assembly trial: plant sensor kit",
+        "publicDescription": "Assemble a small sensor kit following a printed guide, photograph each step, note anything confusing.",
+        "trigger": "Workflow requires a human assembly trial before kit release",
+        "platform": "Hosted portal",
+        "state": "ACCEPTED",
+        "fee": 25,
+        "deadline": "completed",
+        "requirements": [
+          "No prior experience needed",
+          "Smartphone camera"
+        ],
+        "evidenceSchema": [
+          "Photo per step",
+          "Time taken",
+          "Confusing steps",
+          "Pass/fail statement"
+        ],
+        "applicants": [],
+        "filesShared": true,
+        "revisionCount": 0,
+        "history": []
+      },
+      {
+        "id": "ht-seed3",
+        "projectId": "seed-plant",
+        "projectName": "Plant Sensor",
+        "capability": "human.physical_verify",
+        "title": "Verify received sensor boards",
+        "publicDescription": "Inspect 3 received boards against a checklist and photograph labels.",
+        "trigger": "No automated connector for incoming inspection",
+        "platform": null,
+        "state": "WAITING_FOR_CONNECTOR",
+        "fee": 15,
+        "deadline": "in 3 days",
+        "requirements": [
+          "Magnifier or phone macro camera"
+        ],
+        "evidenceSchema": [
+          "Photo of each board",
+          "Checklist results",
+          "Pass/fail statement"
+        ],
+        "applicants": [],
+        "filesShared": false,
+        "revisionCount": 0,
+        "history": []
+      }
+    ],
+    "connectors": [
+      {
+        "id": "portal",
+        "kind": "service",
+        "name": "Kleos9 Hosted Portal",
+        "category": "Human tasks",
+        "integration": "Built-in",
+        "description": "Built-in portal for workers and shops without an API. Same operations as any human-task connector.",
+        "capabilities": [
+          "human.*",
+          "fab.*",
+          "kit.pack"
+        ],
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "2 min ago",
+        "spendingScope": 100,
+        "metrics": {
+          "onTime": 91,
+          "quality": 88,
+          "quoteHrs": 6,
+          "jobs": 412
+        }
+      },
+      {
+        "id": "rentahuman",
+        "kind": "service",
+        "name": "RentAHuman",
+        "category": "Human tasks",
+        "integration": "MCP",
+        "description": "Marketplace where AI agents post bounties for physical tasks. Jobs are posted here when linked.",
+        "capabilities": [
+          "human.assembly_check",
+          "human.fit_check",
+          "human.physical_verify",
+          "human.functional_test",
+          "human.kit_pack"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "taskhands",
+        "kind": "service",
+        "name": "TaskHands (example)",
+        "category": "Human tasks",
+        "integration": "REST",
+        "description": "Example of a similar human-task platform using the same connector interface.",
+        "capabilities": [
+          "human.physical_verify",
+          "human.functional_test"
+        ],
+        "level": "Listed",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "northside",
+        "kind": "service",
+        "name": "Northside Print Lab",
+        "category": "Fabrication",
+        "integration": "MCP",
+        "description": "FDM and SLA printing, small batches, measured tolerance profiles.",
+        "capabilities": [
+          "fab.print.fdm",
+          "fab.print.sla",
+          "fab.post.sanding"
+        ],
+        "level": "Qualified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "5 min ago",
+        "spendingScope": 120,
+        "metrics": {
+          "onTime": 96,
+          "quality": 94,
+          "quoteHrs": 2,
+          "jobs": 188
+        }
+      },
+      {
+        "id": "layerforge",
+        "kind": "service",
+        "name": "LayerForge Farm",
+        "category": "Fabrication",
+        "integration": "REST",
+        "description": "Large print farm, PETG/ASA/TPU, multi-material.",
+        "capabilities": [
+          "fab.print.fdm",
+          "fab.print.tpu_flex",
+          "fab.print.multimaterial"
+        ],
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "5 min ago",
+        "spendingScope": 120,
+        "metrics": {
+          "onTime": 92,
+          "quality": 90,
+          "quoteHrs": 1,
+          "jobs": 960
+        }
+      },
+      {
+        "id": "printhive",
+        "kind": "service",
+        "name": "PrintHive Collective",
+        "category": "Fabrication",
+        "integration": "Hosted portal",
+        "description": "Network of independent makers. Quote-only until qualification job completes.",
+        "capabilities": [
+          "fab.print.fdm"
+        ],
+        "level": "Schema-verified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "1 h ago",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 84,
+          "quality": 81,
+          "quoteHrs": 9,
+          "jobs": 31
+        }
+      },
+      {
+        "id": "circuitworks",
+        "kind": "service",
+        "name": "CircuitWorks Assembly",
+        "category": "PCB",
+        "integration": "REST",
+        "description": "PCB fabrication and assembly, small runs, flying-probe test.",
+        "capabilities": [
+          "pcb.fab",
+          "pcb.assemble",
+          "pcb.test.flying_probe"
+        ],
+        "level": "Qualified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "12 min ago",
+        "spendingScope": 150,
+        "metrics": {
+          "onTime": 89,
+          "quality": 95,
+          "quoteHrs": 4,
+          "jobs": 240
+        }
+      },
+      {
+        "id": "boardbridge",
+        "kind": "service",
+        "name": "BoardBridge PCBA",
+        "category": "PCB",
+        "integration": "MCP",
+        "description": "Newly listed PCB assembler. Conformance not yet run.",
+        "capabilities": [
+          "pcb.fab",
+          "pcb.assemble"
+        ],
+        "level": "Listed",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "partsdirect",
+        "kind": "service",
+        "name": "PartsDirect Distribution",
+        "category": "Components",
+        "integration": "REST",
+        "description": "Authorized component distributor with live stock and reservations.",
+        "capabilities": [
+          "parts.search",
+          "parts.reserve",
+          "orders.commit",
+          "orders.track"
+        ],
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "3 min ago",
+        "spendingScope": 120,
+        "metrics": {
+          "onTime": 97,
+          "quality": 98,
+          "quoteHrs": 0,
+          "jobs": 2100
+        }
+      },
+      {
+        "id": "browser",
+        "kind": "service",
+        "name": "Procurement Browser",
+        "category": "Components",
+        "integration": "Procurement browser",
+        "description": "Isolated browser for supplier storefronts with no API. Carts re-read before checkout.",
+        "capabilities": [
+          "parts.prepare_cart",
+          "orders.commit",
+          "orders.track"
+        ],
+        "level": "Qualified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "degraded",
+        "lastCheck": "40 min ago",
+        "spendingScope": 50,
+        "metrics": {
+          "onTime": 80,
+          "quality": 90,
+          "quoteHrs": 0,
+          "jobs": 57
+        }
+      },
+      {
+        "id": "k9-mech",
+        "name": "Kleos9 Mechanical",
+        "domain": "Mechanical",
+        "description": "Default parametric CAD generator (build123d). Writes code-defined parts from the interface spec.",
+        "capabilities": [
+          "cad.generate.parametric",
+          "cad.export.step"
+        ],
+        "kind": "tool",
+        "builtIn": true,
+        "author": "Kleos9",
+        "category": "Engineering tools",
+        "integration": "Built-in",
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "built in",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 100,
+          "quality": 92,
+          "quoteHrs": 0,
+          "jobs": 12800
+        }
+      },
+      {
+        "id": "k9-elec",
+        "name": "Kleos9 Electronics",
+        "domain": "Electronics",
+        "description": "Default schematic and basic layout generator (atopile to KiCad).",
+        "capabilities": [
+          "pcb.schematic.generate",
+          "pcb.layout.basic"
+        ],
+        "kind": "tool",
+        "builtIn": true,
+        "author": "Kleos9",
+        "category": "Engineering tools",
+        "integration": "Built-in",
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "built in",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 100,
+          "quality": 92,
+          "quoteHrs": 0,
+          "jobs": 12800
+        }
+      },
+      {
+        "id": "k9-fw",
+        "name": "Kleos9 Firmware",
+        "domain": "Firmware",
+        "description": "Default Zephyr firmware generator with Renode simulation.",
+        "capabilities": [
+          "firmware.generate",
+          "firmware.simulate"
+        ],
+        "kind": "tool",
+        "builtIn": true,
+        "author": "Kleos9",
+        "category": "Engineering tools",
+        "integration": "Built-in",
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "built in",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 100,
+          "quality": 92,
+          "quoteHrs": 0,
+          "jobs": 12800
+        }
+      },
+      {
+        "id": "k9-verify",
+        "name": "Kleos9 Validators",
+        "domain": "Verification",
+        "description": "Default independent checks: DRC, ERC, fit, power budget, guide coverage.",
+        "capabilities": [
+          "verify.drc",
+          "verify.fit",
+          "verify.power"
+        ],
+        "kind": "tool",
+        "builtIn": true,
+        "author": "Kleos9",
+        "category": "Engineering tools",
+        "integration": "Built-in",
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "built in",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 100,
+          "quality": 92,
+          "quoteHrs": 0,
+          "jobs": 12800
+        }
+      },
+      {
+        "id": "autolayout",
+        "kind": "tool",
+        "author": "Volta Labs",
+        "domain": "Electronics",
+        "name": "AutoLayout PCB AI",
+        "category": "Engineering tools",
+        "integration": "MCP",
+        "description": "Autonomous PCB placement and routing. Submits candidates only; never approves.",
+        "capabilities": [
+          "pcb.layout.autonomous"
+        ],
+        "level": "Qualified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "8 min ago",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 99,
+          "quality": 86,
+          "quoteHrs": 0,
+          "jobs": 74
+        }
+      },
+      {
+        "id": "textcad",
+        "kind": "tool",
+        "author": "Facet Studio",
+        "domain": "Mechanical",
+        "name": "Facet Text-to-CAD",
+        "category": "Engineering tools",
+        "integration": "MCP",
+        "description": "Parametric part generation from text. Good at organic shapes; single parts only.",
+        "capabilities": [
+          "cad.generate.parametric"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "fea",
+        "kind": "tool",
+        "author": "Ines Moreau",
+        "domain": "Verification",
+        "name": "FEA Quickcheck",
+        "category": "Engineering tools",
+        "integration": "MCP",
+        "description": "Static stress check for printed parts (snap-fits, lugs). Community tool.",
+        "capabilities": [
+          "sim.fea.static"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "octoprint",
+        "name": "OctoPrint",
+        "kind": "printer",
+        "category": "Printers",
+        "integration": "OctoPrint",
+        "description": "Any printer running OctoPrint on your network.",
+        "capabilities": [
+          "fab.print.fdm.home"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "moonraker",
+        "name": "Klipper (Moonraker)",
+        "kind": "printer",
+        "category": "Printers",
+        "integration": "Moonraker",
+        "description": "Klipper printers through the Moonraker API.",
+        "capabilities": [
+          "fab.print.fdm.home"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "bambu",
+        "name": "Bambu Lab (LAN mode)",
+        "kind": "printer",
+        "category": "Printers",
+        "integration": "Bambu LAN",
+        "description": "Bambu Lab printers in LAN mode.",
+        "capabilities": [
+          "fab.print.fdm.home"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "prusa",
+        "name": "Prusa Connect",
+        "kind": "printer",
+        "category": "Printers",
+        "integration": "Prusa Connect",
+        "description": "Prusa printers linked to Prusa Connect.",
+        "capabilities": [
+          "fab.print.fdm.home"
+        ],
+        "level": "Schema-verified",
+        "linked": false,
+        "enabled": false,
+        "mode": "demo",
+        "health": "unchecked",
+        "lastCheck": "never",
+        "spendingScope": 0,
+        "metrics": {
+          "onTime": 0,
+          "quality": 0,
+          "quoteHrs": 0,
+          "jobs": 0
+        }
+      },
+      {
+        "id": "kitpack",
+        "kind": "service",
+        "name": "KitPack Studio",
+        "category": "Logistics",
+        "integration": "Hosted portal",
+        "description": "Kit preparation partner: receiving, subassembly prep, labeled packing.",
+        "capabilities": [
+          "kit.receive",
+          "kit.prepare",
+          "kit.pack"
+        ],
+        "level": "Qualified",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "20 min ago",
+        "spendingScope": 60,
+        "metrics": {
+          "onTime": 94,
+          "quality": 93,
+          "quoteHrs": 5,
+          "jobs": 133
+        }
+      },
+      {
+        "id": "parcellink",
+        "kind": "service",
+        "name": "ParcelLink Shipping",
+        "category": "Logistics",
+        "integration": "REST",
+        "description": "Labels, pickup and tracking.",
+        "capabilities": [
+          "shipping.label",
+          "shipping.track"
+        ],
+        "level": "Preferred",
+        "linked": true,
+        "enabled": true,
+        "mode": "demo",
+        "health": "healthy",
+        "lastCheck": "4 min ago",
+        "spendingScope": 40,
+        "metrics": {
+          "onTime": 95,
+          "quality": 97,
+          "quoteHrs": 0,
+          "jobs": 5400
+        }
+      }
+    ],
+    "providerJobs": [
+      {
+        "id": "job-1",
+        "capability": "fab.print.fdm",
+        "title": "Monitor shells, top and bottom",
+        "projectRef": "Customer build #4821",
+        "qty": 1,
+        "files": [
+          "case_top.step",
+          "case_bottom.step",
+          "print_profile.json"
+        ],
+        "acceptance": [
+          "Wall ≥ 1.2 mm",
+          "Hole fit Ø2.0 +0.1/-0",
+          "PETG, matte black"
+        ],
+        "due": "in 4 days",
+        "why": [
+          "Qualified for fab.print.fdm",
+          "Measured tolerance profile for PETG",
+          "On-time 96%"
+        ],
+        "state": "new"
+      },
+      {
+        "id": "job-2",
+        "capability": "fab.print.sla",
+        "title": "Clear light pipe, 4 pcs",
+        "projectRef": "Customer build #4830",
+        "qty": 4,
+        "files": [
+          "light_pipe.step"
+        ],
+        "acceptance": [
+          "Clear resin",
+          "Polished top face"
+        ],
+        "due": "in 6 days",
+        "why": [
+          "Qualified for fab.print.sla",
+          "Customer marked you as preferred"
+        ],
+        "state": "new"
+      },
+      {
+        "id": "job-3",
+        "capability": "fab.print.fdm",
+        "title": "Handlebar mount bracket",
+        "projectRef": "Customer build #4799",
+        "qty": 2,
+        "files": [
+          "mount.step"
+        ],
+        "acceptance": [
+          "ASA",
+          "Infill ≥ 40%"
+        ],
+        "due": "in 3 days",
+        "why": [
+          "Qualified for fab.print.fdm"
+        ],
+        "state": "lost",
+        "quote": 28,
+        "lossReason": "Lead time: another qualified provider quoted 2 days vs your 5"
+      },
+      {
+        "id": "job-4",
+        "capability": "fab.print.fdm",
+        "title": "Sensor enclosure, 3 parts",
+        "projectRef": "Customer build #4810",
+        "qty": 1,
+        "files": [
+          "enclosure.step",
+          "lid.step",
+          "clip.step"
+        ],
+        "acceptance": [
+          "PETG",
+          "Snap-fit clip engages"
+        ],
+        "due": "in 2 days",
+        "why": [
+          "Qualified for fab.print.fdm",
+          "Best total landed cost"
+        ],
+        "state": "in_progress",
+        "quote": 22
+      }
+    ],
+    "providerLevel": "Qualified",
+    "demand": [
+      {
+        "kind": "tool",
+        "capability": "sim.thermal",
+        "description": "Thermal simulation for sealed enclosures",
+        "requests": 33,
+        "qualified": 0,
+        "trend": 11
+      },
+      {
+        "kind": "tool",
+        "capability": "cad.generate.vents",
+        "description": "Generator for vented enclosures with airflow channels",
+        "requests": 21,
+        "qualified": 0,
+        "trend": 7
+      },
+      {
+        "kind": "printer",
+        "capability": "printer.driver.snapmaker",
+        "description": "Home printing on Snapmaker machines",
+        "requests": 14,
+        "qualified": 0,
+        "trend": 5
+      },
+      {
+        "kind": "service",
+        "capability": "fab.print.tpu_flex",
+        "description": "Flexible TPU feet and gaskets, shore 95A",
+        "requests": 41,
+        "qualified": 0,
+        "trend": 18
+      },
+      {
+        "kind": "service",
+        "capability": "human.solder_rework",
+        "description": "Fine-pitch solder rework on returned boards",
+        "requests": 23,
+        "qualified": 1,
+        "trend": 6
+      },
+      {
+        "kind": "service",
+        "capability": "test.ble_range",
+        "description": "BLE range and pairing test with logged RSSI",
+        "requests": 19,
+        "qualified": 0,
+        "trend": 9
+      },
+      {
+        "kind": "service",
+        "capability": "fab.print.resin_clear",
+        "description": "Optically clear resin parts (light pipes, lenses)",
+        "requests": 16,
+        "qualified": 1,
+        "trend": 4
+      },
+      {
+        "kind": "service",
+        "capability": "pcb.flex",
+        "description": "Small flex PCBs for wearable interconnects",
+        "requests": 12,
+        "qualified": 0,
+        "trend": 3
+      },
+      {
+        "kind": "service",
+        "capability": "human.engineering_review.rf",
+        "description": "Qualified RF engineer review of antenna keep-out",
+        "requests": 9,
+        "qualified": 1,
+        "trend": 2
+      }
+    ],
+    "dev": {
+      "kind": "service",
+      "manifest": "{\n  \"manifest_version\": \"0.2\",\n  \"mcp_protocol_version\": \"2026-07-28\",\n  \"provider_slug\": \"my-flex-print-shop\",\n  \"display_name\": \"My Flex Print Shop\",\n  \"services\": [\n    {\n      \"service_id\": \"tpu-gaskets\",\n      \"capabilities\": [\"fab.print.tpu_flex\"],\n      \"constraints\": { \"min_quantity\": 1, \"max_quantity\": 50, \"materials\": [\"TPU 95A\"] },\n      \"integration\": { \"type\": \"mcp\", \"endpoint\": \"https://example.invalid/mcp\" },\n      \"operations\": {\n        \"request_quote\": \"supported\",\n        \"submit_order\": \"supported\",\n        \"get_order\": \"supported\",\n        \"cancel_order\": \"request_only\",\n        \"submit_evidence\": \"supported\"\n      },\n      \"evidence_types\": [\"photo\", \"dimension_report\"]\n    }\n  ]\n}",
+      "terminal": [],
+      "steps": {
+        "init": "idle",
+        "fixtures": "idle",
+        "conformance": "idle",
+        "submit": "idle",
+        "qualify": "idle"
+      },
+      "fixApplied": false,
+      "level": "Draft"
+    }
+  },
+  "project": {
+    "id": "prj-2ui3q",
+    "name": "New Device",
+    "brief": "",
+    "createdAt": "10/29/2026",
+    "stage": 0,
+    "done": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "answers": {},
+    "requirements": [],
+    "assumptions": [],
+    "unknowns": [],
+    "feasibility": "idle",
+    "research": {},
+    "features": [],
+    "confirmed": false,
+    "interfaces": [],
+    "interfacesAgreed": false,
+    "generation": "idle",
+    "genProgress": {},
+    "genLog": [],
+    "artifacts": [],
+    "checks": [],
+    "verifyRun": "idle",
+    "batteryMah": 2000,
+    "tools": {
+      "Mechanical": "k9-mech",
+      "Electronics": "k9-elec",
+      "Firmware": "k9-fw"
+    },
+    "casePrint": "order",
+    "homePrint": null,
+    "quotes": [],
+    "mandate": {
+      "limit": 250,
+      "reserved": 0,
+      "spent": 0
+    },
+    "orders": [],
+    "procurement": "idle",
+    "physicalTaskIds": [],
+    "kitTaskIds": [],
+    "kitAccepted": false,
+    "shipment": null,
+    "guideStep": 0,
+    "assemblyDone": false,
+    "activation": "idle",
+    "selfTest": [],
+    "activity": [
+      {
+        "t": "11:23:44 PM",
+        "text": "Project created from your request",
+        "kind": "system"
+      }
+    ]
+  },
+  "specs": {
+    "human.physical_verify": {
+      "title": "Verify received sensor boards",
+      "publicDescription": "Inspect received boards against the checklist and photograph labels.",
+      "requirements": [
+        "Magnifier or phone macro camera"
+      ],
+      "evidenceSchema": [
+        "Photo of each board",
+        "Checklist results",
+        "Pass/fail statement"
+      ],
+      "fee": 15,
+      "evidence": {
+        "photos": [
+          "Board 1 label",
+          "Board 2 label",
+          "Board 3 label"
+        ],
+        "readings": [
+          {
+            "label": "Incoming inspection",
+            "value": "3 / 3 boards match checklist",
+            "ok": true
+          }
+        ],
+        "statement": "PASS: received boards match the checklist.",
+        "notes": ""
+      }
+    },
+    "human.engineering_review": {
+      "title": "Engineering review of concept",
+      "publicDescription": "Review a small wearable concept (parts list and power budget) and flag risks. Files shared after assignment.",
+      "requirements": [
+        "Electronics engineering background",
+        "Wearables or low-power experience"
+      ],
+      "evidenceSchema": [
+        "Written review",
+        "Risk list with severity",
+        "Pass/fail statement"
+      ],
+      "fee": 60,
+      "evidence": {
+        "photos": [],
+        "readings": [
+          {
+            "label": "Power budget reviewed",
+            "value": "Yes, 3.1 days plausible",
+            "ok": true
+          },
+          {
+            "label": "Risks found",
+            "value": "2 (low)",
+            "ok": true
+          }
+        ],
+        "statement": "Concept is feasible as scoped. Keep the vent slots clear of the CO2 sensor inlet.",
+        "notes": "Consider a slightly larger battery if Wi-Fi alerts are frequent."
+      }
+    },
+    "human.fit_check": {
+      "title": "Fit check: printed shells vs components",
+      "publicDescription": "Fit purchased components into the printed shells, check the buttons and the USB-C notch, measure with calipers.",
+      "requirements": [
+        "Digital calipers",
+        "Steady hands",
+        "Smartphone camera"
+      ],
+      "evidenceSchema": [
+        "Photo: core module seated",
+        "Photo: buttons through case",
+        "Button travel (mm)",
+        "USB-C notch clearance (mm)",
+        "Pass/fail statement"
+      ],
+      "fee": 30,
+      "firstEvidence": {
+        "photos": [
+          "Core module seated in case",
+          "Buttons through case"
+        ],
+        "readings": [
+          {
+            "label": "Button travel",
+            "value": "0.45 mm",
+            "ok": true
+          }
+        ],
+        "statement": "Everything fits.",
+        "notes": ""
+      },
+      "evidence": {
+        "photos": [
+          "Core module seated in case",
+          "Buttons through case",
+          "USB-C notch with calipers"
+        ],
+        "readings": [
+          {
+            "label": "Button travel",
+            "value": "0.45 mm",
+            "ok": true
+          },
+          {
+            "label": "USB-C notch clearance",
+            "value": "0.22 mm",
+            "ok": true
+          }
+        ],
+        "statement": "PASS: all parts fit, buttons click cleanly.",
+        "notes": "Top shell needed light pressure to close; acceptable."
+      }
+    },
+    "human.functional_test": {
+      "title": "Functional test: CO2 sensor",
+      "publicDescription": "Power a prepared monitor board, run the on-screen test, compare the CO2 reading to a reference meter.",
+      "requirements": [
+        "A reference CO2 meter, or fresh outdoor air",
+        "Smartphone camera"
+      ],
+      "evidenceSchema": [
+        "Photo: device serial + revision",
+        "CO2 reading vs reference (ppm)",
+        "Firmware hash readback",
+        "Pass/fail statement"
+      ],
+      "fee": 35,
+      "evidence": {
+        "photos": [
+          "Serial + revision label",
+          "Test screen showing CO2"
+        ],
+        "readings": [
+          {
+            "label": "Monitor / reference",
+            "value": "612 / 618 ppm",
+            "ok": true
+          },
+          {
+            "label": "Firmware hash",
+            "value": "fw-9c41e2 (matches)",
+            "ok": true
+          }
+        ],
+        "statement": "PASS: CO2 within ±40 ppm over 3 readings.",
+        "notes": ""
+      }
+    },
+    "human.kit_pack": {
+      "title": "Pack kit against manifest",
+      "publicDescription": "Pack labeled bags A to F against a checklist, photograph each bag and the closed box.",
+      "requirements": [
+        "Kit prep partner or trained packer"
+      ],
+      "evidenceSchema": [
+        "Photo per bag",
+        "Checklist with counts",
+        "Pass/fail statement"
+      ],
+      "fee": 15,
+      "evidence": {
+        "photos": [
+          "Bag A",
+          "Bag B",
+          "Bag C",
+          "Bag D",
+          "Bag E",
+          "Bag F",
+          "Closed box"
+        ],
+        "readings": [
+          {
+            "label": "Parts counted",
+            "value": "38 / 38",
+            "ok": true
+          }
+        ],
+        "statement": "PASS: all bags match manifest.",
+        "notes": ""
+      }
+    },
+    "human.assembly_check": {
+      "title": "Assembly trial by a first-time builder",
+      "publicDescription": "Assemble a monitor kit following the guide, photo per step, note anything confusing. No experience needed.",
+      "requirements": [
+        "No prior experience needed",
+        "Smartphone camera",
+        "Small screwdriver (provided)"
+      ],
+      "evidenceSchema": [
+        "Photo per step",
+        "Total time (min)",
+        "Confusing steps",
+        "Pass/fail statement"
+      ],
+      "fee": 25,
+      "evidence": {
+        "photos": [
+          "Step 1",
+          "Step 2",
+          "Step 3",
+          "Step 4",
+          "Step 5",
+          "Finished monitor"
+        ],
+        "readings": [
+          {
+            "label": "Total time",
+            "value": "38 min",
+            "ok": true
+          },
+          {
+            "label": "Confusing steps",
+            "value": "Step 4 (sensor card direction)",
+            "ok": true
+          }
+        ],
+        "statement": "PASS: monitor assembled and powered on.",
+        "notes": "Suggest a clearer arrow on the sensor card step."
+      }
+    }
+  },
+  "printers": {
+    "octoprint": {
+      "model": "Prusa MK3S+",
+      "buildVolume": "250 × 210 × 210 mm",
+      "nozzle": "0.4 mm",
+      "material": "PETG, black",
+      "tolerance": "",
+      "status": "idle",
+      "host": "octopi.local"
+    },
+    "moonraker": {
+      "model": "Voron 2.4 350",
+      "buildVolume": "350 × 350 × 340 mm",
+      "nozzle": "0.4 mm",
+      "material": "ASA, black",
+      "tolerance": "",
+      "status": "idle",
+      "host": "voron.local:7125"
+    },
+    "bambu": {
+      "model": "Bambu Lab P1S",
+      "buildVolume": "256 × 256 × 256 mm",
+      "nozzle": "0.4 mm",
+      "material": "PETG HF, black",
+      "tolerance": "",
+      "status": "idle",
+      "host": "192.168.1.48"
+    },
+    "prusa": {
+      "model": "Prusa MK4S",
+      "buildVolume": "250 × 210 × 220 mm",
+      "nozzle": "0.4 mm",
+      "material": "PETG, black",
+      "tolerance": "",
+      "status": "idle",
+      "host": "connect.prusa3d.com"
+    }
+  },
+  "templates": {
+    "service": "{\n  \"manifest_version\": \"0.2\",\n  \"mcp_protocol_version\": \"2026-07-28\",\n  \"provider_slug\": \"my-flex-print-shop\",\n  \"display_name\": \"My Flex Print Shop\",\n  \"services\": [\n    {\n      \"service_id\": \"tpu-gaskets\",\n      \"capabilities\": [\"fab.print.tpu_flex\"],\n      \"constraints\": { \"min_quantity\": 1, \"max_quantity\": 50, \"materials\": [\"TPU 95A\"] },\n      \"integration\": { \"type\": \"mcp\", \"endpoint\": \"https://example.invalid/mcp\" },\n      \"operations\": {\n        \"request_quote\": \"supported\",\n        \"submit_order\": \"supported\",\n        \"get_order\": \"supported\",\n        \"cancel_order\": \"request_only\",\n        \"submit_evidence\": \"supported\"\n      },\n      \"evidence_types\": [\"photo\", \"dimension_report\"]\n    }\n  ]\n}",
+    "tool": "{\n  \"manifest_version\": \"0.2\",\n  \"mcp_protocol_version\": \"2026-07-28\",\n  \"kind\": \"engineering_tool\",\n  \"provider_slug\": \"vent-forge\",\n  \"display_name\": \"Vent Forge\",\n  \"tool\": {\n    \"lane\": \"Mechanical\",\n    \"capabilities\": [\"cad.generate.vents\"],\n    \"inputs\": [\"interface_spec\", \"requirements\"],\n    \"outputs\": [\"step\", \"build123d_source\"],\n    \"operations\": {\n      \"generate\": \"supported\",\n      \"explain\": \"supported\",\n      \"approve\": \"unsupported\"\n    },\n    \"deterministic\": true,\n    \"network\": \"none\"\n  }\n}",
+    "printer": "{\n  \"manifest_version\": \"0.2\",\n  \"kind\": \"printer_driver\",\n  \"provider_slug\": \"snapmaker-driver\",\n  \"display_name\": \"Snapmaker Driver\",\n  \"driver\": {\n    \"printers\": [\"Snapmaker J1\", \"Snapmaker Artisan\"],\n    \"transport\": \"local_network\",\n    \"operations\": {\n      \"discover\": \"supported\",\n      \"send_job\": \"supported\",\n      \"status\": \"supported\",\n      \"cancel\": \"supported\",\n      \"camera_snapshot\": \"supported\"\n    },\n    \"telemetry\": [\"layer\", \"nozzle_temp\", \"bed_temp\"]\n  }\n}"
+  },
+  "fixHints": {
+    "service": [
+      "Duplicate webhook created two status updates.",
+      "Store webhook event IDs and skip duplicates before processing."
+    ],
+    "tool": [
+      "Two runs on the same inputs produced different STEP hashes.",
+      "Seed the generator and sort exported faces so output is reproducible."
+    ],
+    "printer": [
+      "Driver reported 'done' after the printer dropped off the network.",
+      "Return OFFLINE when the printer stops responding; never infer completion."
+    ]
+  },
+  "fixtures": {
+    "service": [
+      {
+        "name": "quote: valid request returns priced quote with expiry"
+      },
+      {
+        "name": "quote: wrong units (inches) rejected with typed error"
+      },
+      {
+        "name": "quote: expired quote cannot be ordered"
+      },
+      {
+        "name": "order: idempotency key returns same order on retry"
+      },
+      {
+        "name": "order: lost acknowledgement resolvable via get_order"
+      },
+      {
+        "name": "webhook: duplicate delivery processed once",
+        "fails": true
+      },
+      {
+        "name": "webhook: out-of-order status events tolerated"
+      },
+      {
+        "name": "evidence: photo and dimension report match schema"
+      }
+    ],
+    "tool": [
+      {
+        "name": "generate: returns candidate files with hashes"
+      },
+      {
+        "name": "generate: never marks its own output accepted"
+      },
+      {
+        "name": "inputs: rejects a stale interface spec revision"
+      },
+      {
+        "name": "determinism: same inputs give the same hash",
+        "fails": true
+      },
+      {
+        "name": "units: every dimension declares units"
+      },
+      {
+        "name": "long jobs: uses the MCP Tasks extension"
+      },
+      {
+        "name": "sandbox: no network egress"
+      },
+      {
+        "name": "unsupported input returns UNKNOWN, not a guess"
+      }
+    ],
+    "printer": [
+      {
+        "name": "discover: returns build volume, nozzle and loaded material"
+      },
+      {
+        "name": "send_job: accepts a sliced file with checksum"
+      },
+      {
+        "name": "status: reports layer and temperatures"
+      },
+      {
+        "name": "offline: reports offline, never fakes completion",
+        "fails": true
+      },
+      {
+        "name": "cancel: stops the job and cools the heaters"
+      },
+      {
+        "name": "camera: snapshot links expire"
+      },
+      {
+        "name": "calibration: reports measured offsets"
+      },
+      {
+        "name": "evidence: final photo attached to the job"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "key": "features",
+      "ask": "What should it do day to day? Pick all that apply.",
+      "options": [
+        "CO2 level",
+        "Temperature and humidity",
+        "Fine dust (PM2.5)",
+        "Alerts on your phone",
+        "Hourly history"
+      ],
+      "multi": true
+    },
+    {
+      "key": "display",
+      "ask": "Which screen suits you?",
+      "options": [
+        "Small OLED (simple, sips power)",
+        "2-inch color screen (richer)",
+        "E-paper (calm, slow refresh)"
+      ]
+    },
+    {
+      "key": "size",
+      "ask": "Roughly what case size?",
+      "options": [
+        "Pocket (90 mm)",
+        "Desk (140 mm)",
+        "Wall (180 mm)"
+      ]
+    },
+    {
+      "key": "battery",
+      "ask": "How should it be powered?",
+      "options": [
+        "USB powered",
+        "3 days on battery",
+        "2 weeks on battery"
+      ]
+    },
+    {
+      "key": "finish",
+      "ask": "Look and finish?",
+      "options": [
+        "Matte black",
+        "Sand",
+        "White"
+      ]
+    },
+    {
+      "key": "assembly",
+      "ask": "How comfortable are you assembling electronics?",
+      "options": [
+        "First-timer: snap-fit, no soldering",
+        "Some experience: screws are fine",
+        "Happy to solder"
+      ]
+    },
+    {
+      "key": "budget",
+      "ask": "What budget range should I design for?",
+      "options": [
+        "Under $80",
+        "$80-150",
+        "$150+"
+      ]
+    }
+  ],
+  "stages": [
+    "Capture intent",
+    "Research feasibility",
+    "Review & confirm",
+    "Establish interfaces",
+    "Generate in parallel",
+    "Verify & revise",
+    "Procure prototype",
+    "Test physically",
+    "Prepare DIY kit",
+    "Deliver & activate"
+  ],
+  "bags": [
+    {
+      "bag": "A",
+      "contents": "Base shell with four rubber feet",
+      "count": 5
+    },
+    {
+      "bag": "B",
+      "contents": "Battery pack with its lead",
+      "count": 1
+    },
+    {
+      "bag": "C",
+      "contents": "Main board, pre-tested and flashed, with 4 screws",
+      "count": 5
+    },
+    {
+      "bag": "D",
+      "contents": "CO2 sensor card",
+      "count": 1
+    },
+    {
+      "bag": "E",
+      "contents": "Display module on its ribbon",
+      "count": 1
+    },
+    {
+      "bag": "F",
+      "contents": "Top shell, two button caps, light pipe",
+      "count": 4
+    }
+  ],
+  "homeBags": [
+    "A",
+    "F"
+  ],
+  "shipSteps": [
+    "Label created",
+    "Picked up",
+    "In transit",
+    "Out for delivery",
+    "Delivered"
+  ],
+  "guide": [
+    {
+      "title": "Base shell",
+      "text": "Set the base shell (bag A) on the table with the battery cradle on the left."
+    },
+    {
+      "title": "Battery",
+      "text": "Lay the battery (bag B) in the cradle and tuck its lead toward the middle."
+    },
+    {
+      "title": "Main board",
+      "text": "Lower the main board (bag C) onto the four posts, USB-C port on the right, and fit the four screws."
+    },
+    {
+      "title": "Sensor card",
+      "text": "Press the sensor card (bag D) into the header near the front edge. It only fits one way."
+    },
+    {
+      "title": "Display",
+      "text": "Rest the display (bag E) on the four pillars and seat its ribbon in the connector."
+    },
+    {
+      "title": "Top shell",
+      "text": "Fit the top shell (bag F) over everything and press the edges until it clicks."
+    }
+  ],
+  "selfTests": [
+    "Display",
+    "Buttons",
+    "CO2 sensor",
+    "Temperature and humidity",
+    "Wi-Fi",
+    "Battery health"
+  ],
+  "exchange": [
+    {
+      "who": "assistant",
+      "text": "tools/call start_build_request { brief: \"a classroom CO2 meter that kids can assemble\" }"
+    },
+    {
+      "who": "kleos",
+      "text": "→ { project_id: \"prj-7f3\", status: \"needs_customer_confirmation\", confirm_url: \"…\" } (long job: poll via tasks/get)"
+    },
+    {
+      "who": "assistant",
+      "text": "tools/call get_build_status { project_id: \"prj-7f3\" }"
+    },
+    {
+      "who": "kleos",
+      "text": "→ { stage: \"Research feasibility\", progress: 0.6 }"
+    }
+  ],
+  "providerSummary": {
+    "name": "Northside Print Lab",
+    "stats": [
+      {
+        "label": "Routed jobs, last 30 days",
+        "value": "47",
+        "sub": "12 more than the 30 days before"
+      },
+      {
+        "label": "Win rate",
+        "value": "58%",
+        "sub": "Most losses: lead time"
+      },
+      {
+        "label": "On-time",
+        "value": "96%"
+      },
+      {
+        "label": "Quality score",
+        "value": "94",
+        "sub": "From validated evidence"
+      }
+    ],
+    "sources": [
+      {
+        "label": "Routed by the agent from customer builds",
+        "pct": 62
+      },
+      {
+        "label": "Customers who marked you as preferred",
+        "pct": 18
+      },
+      {
+        "label": "External AI assistants via the Kleos9 MCP server",
+        "pct": 12
+      },
+      {
+        "label": "Open quote requests",
+        "pct": 8
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "mech.case",
+      "domain": "Mechanical",
+      "name": "Case top & bottom",
+      "file": "case.py → case_top.step, case_bottom.step",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "battery",
+        "if.core",
+        "if.buttons"
+      ]
+    },
+    {
+      "id": "mech.print",
+      "domain": "Mechanical",
+      "name": "Drawings & print profile",
+      "file": "case_drawing.pdf, print_profile.json",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "mech.case"
+      ]
+    },
+    {
+      "id": "elec.sch",
+      "domain": "Electronics",
+      "name": "Schematic",
+      "file": "monitor.ato → monitor.kicad_sch",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "if.power",
+        "if.pins"
+      ]
+    },
+    {
+      "id": "elec.pcb",
+      "domain": "Electronics",
+      "name": "PCB layout",
+      "file": "monitor.kicad_pcb, gerbers.zip",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "elec.sch",
+        "mech.case"
+      ]
+    },
+    {
+      "id": "elec.bom",
+      "domain": "Electronics",
+      "name": "Bill of materials",
+      "file": "bom.csv",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "elec.sch",
+        "battery"
+      ]
+    },
+    {
+      "id": "fw.build",
+      "domain": "Firmware",
+      "name": "Firmware build",
+      "file": "monitor_fw.hex (Zephyr)",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "if.pins",
+        "battery"
+      ]
+    },
+    {
+      "id": "app.build",
+      "domain": "App",
+      "name": "Companion app",
+      "file": "monitor-app.apk / .ipa",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "if.protocol"
+      ]
+    },
+    {
+      "id": "guide",
+      "domain": "Guide",
+      "name": "Assembly guide draft",
+      "file": "guide.json (from CAD assembly graph)",
+      "version": 1,
+      "hash": "",
+      "status": "none",
+      "deps": [
+        "mech.case",
+        "elec.pcb"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c.wall",
+      "domain": "Mechanical",
+      "name": "Wall thickness ≥ 1.2 mm",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "mech.case"
+      ]
+    },
+    {
+      "id": "c.battfit",
+      "domain": "Mechanical",
+      "name": "Battery pocket fit (solver)",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "mech.case",
+        "battery"
+      ]
+    },
+    {
+      "id": "c.strap",
+      "domain": "Mechanical",
+      "name": "USB-C notch clearance",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "mech.case"
+      ]
+    },
+    {
+      "id": "c.erc",
+      "domain": "Electronics",
+      "name": "Electrical rules check",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "elec.sch"
+      ]
+    },
+    {
+      "id": "c.drc",
+      "domain": "Electronics",
+      "name": "Design rules check",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "elec.pcb"
+      ]
+    },
+    {
+      "id": "c.power",
+      "domain": "Electronics",
+      "name": "Power budget vs battery target (solver)",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "elec.bom",
+        "battery"
+      ]
+    },
+    {
+      "id": "c.fwbuild",
+      "domain": "Firmware",
+      "name": "Firmware builds reproducibly",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "fw.build"
+      ]
+    },
+    {
+      "id": "c.fwdisplay",
+      "domain": "Firmware",
+      "name": "Renode sim: display driver",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "fw.build"
+      ]
+    },
+    {
+      "id": "c.fwhr",
+      "domain": "Firmware",
+      "name": "Renode sim: CO2 sensor",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "fw.build"
+      ],
+      "resolveBy": "physical"
+    },
+    {
+      "id": "c.pinmap",
+      "domain": "Cross-domain",
+      "name": "Firmware pin map matches schematic",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "fw.build",
+        "elec.sch"
+      ]
+    },
+    {
+      "id": "c.pcbfit",
+      "domain": "Cross-domain",
+      "name": "PCB outline fits case",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "elec.pcb",
+        "mech.case"
+      ]
+    },
+    {
+      "id": "c.buttons",
+      "domain": "Cross-domain",
+      "name": "Button feel through the printed deck",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "mech.case"
+      ],
+      "resolveBy": "physical"
+    },
+    {
+      "id": "c.guide",
+      "domain": "Guide",
+      "name": "Every part has an assembly step",
+      "state": "PENDING",
+      "detail": "",
+      "inputs": [
+        "guide"
+      ]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "Main board outline",
+      "value": "84 × 84 mm, 4 × M2 mounts",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "Battery envelope",
+      "value": "2000 mAh pack: 42 × 64 × 6 mm, JST-SH 2-pin",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "Display",
+      "value": "Active area centred, FPC 12-pin to board, glass 0.8 mm",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "Buttons",
+      "value": "2 × tactile on the deck, 0.4-0.6 mm travel through caps",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "Power rail",
+      "value": "3.3 V regulated, peak ≤ 320 mA, sleep ≤ 40 µA",
+      "owner": "Electronics",
+      "state": "PENDING"
+    },
+    {
+      "name": "Pin map",
+      "value": "SPI display, I²C sensors, 2 GPIO buttons, 1 PWM buzzer",
+      "owner": "Electronics",
+      "state": "PENDING"
+    },
+    {
+      "name": "Air path",
+      "value": "6 vent slots 14 × 3 mm, 1.5 mm wall",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "USB-C notch",
+      "value": "9 × 5.4 mm in the wall, 1.5 mm side clearance",
+      "owner": "Mechanical",
+      "state": "PENDING"
+    },
+    {
+      "name": "Wi-Fi protocol",
+      "value": "MQTT topics v1: co2, temperature, humidity",
+      "owner": "Firmware",
+      "state": "PENDING"
+    }
+  ],
+  "generatedSource": {
+    "Mechanical": "# case.py: build123d (generated)\nfrom build123d import *\nBATTERY = (30, 25, 4.0)      # 2000 mAh pack, from interface spec\nCORE    = (33, 22, 4.2)\nWALL    = 1.4\n\nwith BuildPart() as bottom:\n    Box(44, 38, 11.5)\n    fillet(bottom.edges().filter_by(Axis.Z), radius=9)\n    offset(amount=-WALL, openings=bottom.faces().sort_by(Axis.Z)[-1])\n    with Locations((0, 0, -2)):\n        Box(*BATTERY, mode=Mode.SUBTRACT)       # battery pocket\n    with Locations((0, 0, -5.5)):\n        Cylinder(3, WALL, mode=Mode.SUBTRACT)   # USB-C notch",
+    "Electronics": "// monitor.ato: atopile (generated)\nimport NRF52840Module from \"parts/nrf52840.ato\"\nimport Display from \"parts/display.ato\"   // 1.3\" OLED, 128×64\nimport LiPoPack from \"parts/lipo.ato\"\n\nmodule Monitor:\n    mcu = new NRF52840Module\n    disp = new Display\n    batt = new LiPoPack\n    batt.capacity = 2000mAh\n    mcu.spi ~ disp.spi\n    mcu.vdd ~ power.v3v0     # 3.0 V rail, peak <= 45 mA\n    assert power.v3v0.current_peak <= 45mA",
+    "Firmware": "/* monitor.overlay: Zephyr devicetree (generated) */\n&spi1 { display: display@0 { compatible = \"sitronix,st7789v\"; }; };\n&i2c0 { co2: scd41@62 { compatible = \"sensirion,scd4x\"; reg = <0x62>; }; };\n/ { battery { compatible = \"voltage-divider\"; capacity-mah = <2000>; }; };",
+    "App": "// wifi/topics.ts: companion app (generated)\nexport const TOPICS = { co2: \"kleos9/co2\", temperature: \"kleos9/temp\", humidity: \"kleos9/rh\" };"
+  },
+  "items": [
+    {
+      "item": "Shells print (PETG, 2 parts)",
+      "capability": "fab.print.fdm",
+      "base": 18
+    },
+    {
+      "item": "PCB fab + assembly (1 pc)",
+      "capability": "pcb.assemble",
+      "base": 62
+    },
+    {
+      "item": "Components (core, display, battery, sensors)",
+      "capability": "parts.reserve",
+      "base": 41
+    },
+    {
+      "item": "Buzzer, USB-C cable and feet (storefront)",
+      "capability": "parts.prepare_cart",
+      "base": 9
+    },
+    {
+      "item": "Kit prep: receive, test, pack",
+      "capability": "kit.prepare",
+      "base": 22
+    }
+  ]
+}

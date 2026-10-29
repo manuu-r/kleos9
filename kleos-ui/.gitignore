@@ -1,0 +1,14 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins*
+coverage/
+# Local editors and machine configuration
+.idea/
+*.iml
+.DS_Store
+node_modules/
+dist/

@@ -1,0 +1,14 @@
+node_modules/
+**/dist/
+**/.env.local
+**/.env.*.local
+**/.dart_tool/
+**/build/
+**/.flutter-plugins*
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+*.pyc
+.DS_Store

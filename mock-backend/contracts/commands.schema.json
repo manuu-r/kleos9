@@ -1,0 +1,1310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Kleos simulated backend command",
+  "description": "All commands manipulate in-memory mock state and simulated jobs only.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "agent.nextMessage"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {},
+          "title": "agent_nextMessagePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.authorize"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            },
+            "apiKey": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Apikey"
+            }
+          },
+          "required": [
+            "connectorId"
+          ],
+          "title": "connector_authorizePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.calibrate"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "connectorId"
+          ],
+          "title": "connector_calibratePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.disconnect"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "connectorId"
+          ],
+          "title": "connector_disconnectPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.discover"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            },
+            "host": {
+              "title": "Host",
+              "type": "string"
+            }
+          },
+          "required": [
+            "connectorId",
+            "host"
+          ],
+          "title": "connector_discoverPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.save"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            },
+            "capabilities": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Capabilities",
+              "type": "array"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": "number"
+            }
+          },
+          "required": [
+            "connectorId",
+            "capabilities",
+            "scope"
+          ],
+          "title": "connector_savePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.savePrinter"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            },
+            "host": {
+              "title": "Host",
+              "type": "string"
+            },
+            "confirmEach": {
+              "title": "Confirmeach",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "connectorId",
+            "host",
+            "confirmEach"
+          ],
+          "title": "connector_savePrinterPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.setEnabled"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "connectorId",
+            "enabled"
+          ],
+          "title": "connector_setEnabledPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "connector.test"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "connectorId": {
+              "title": "Connectorid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "connectorId"
+          ],
+          "title": "connector_testPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "developer.applyFix"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {},
+          "title": "developer_applyFixPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "developer.configure"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "service",
+                    "tool",
+                    "printer"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Kind"
+            },
+            "capability": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Capability"
+            }
+          },
+          "title": "developer_configurePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "developer.manifest"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "manifest": {
+              "title": "Manifest",
+              "type": "string"
+            }
+          },
+          "required": [
+            "manifest"
+          ],
+          "title": "developer_manifestPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "developer.run"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "step": {
+              "enum": [
+                "init",
+                "fixtures",
+                "conformance",
+                "submit",
+                "qualify"
+              ],
+              "title": "Step",
+              "type": "string"
+            }
+          },
+          "required": [
+            "step"
+          ],
+          "title": "developer_runPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.acceptKit"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_acceptKitPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.acceptPhysical"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_acceptPhysicalPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.acceptRelease"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_acceptReleasePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.activate"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_activatePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.answer"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            },
+            "questionKey": {
+              "title": "Questionkey",
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Values",
+              "type": "array"
+            }
+          },
+          "required": [
+            "projectId",
+            "questionKey",
+            "values"
+          ],
+          "title": "project_answerPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.assemblyStep"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            },
+            "step": {
+              "title": "Step",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "projectId",
+            "step"
+          ],
+          "title": "project_assemblyStepPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.confirm"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_confirmPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.create"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "brief": {
+              "title": "Brief",
+              "type": "string"
+            }
+          },
+          "required": [
+            "brief"
+          ],
+          "title": "project_createPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.createPhysicalTasks"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_createPhysicalTasksPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.generate"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_generatePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.placeOrders"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_placeOrdersPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.prepareKit"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_prepareKitPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.repair"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_repairPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.requestQuotes"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_requestQuotesPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.requestReview"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_requestReviewPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.research"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_researchPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.selectPrint"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "home",
+                "order"
+              ],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId",
+            "mode"
+          ],
+          "title": "project_selectPrintPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.selectTool"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            },
+            "lane": {
+              "title": "Lane",
+              "type": "string"
+            },
+            "toolId": {
+              "title": "Toolid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId",
+            "lane",
+            "toolId"
+          ],
+          "title": "project_selectToolPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.ship"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_shipPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.solveInterfaces"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_solveInterfacesPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.swapBattery"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_swapBatteryPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.toggleFeature"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId",
+            "name"
+          ],
+          "title": "project_toggleFeaturePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "project.verify"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_verifyPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "provider.decline"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "title": "Jobid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "title": "provider_declinePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "provider.quote"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "title": "Jobid",
+              "type": "string"
+            },
+            "price": {
+              "title": "Price",
+              "type": "number"
+            },
+            "lead": {
+              "title": "Lead",
+              "type": "number"
+            }
+          },
+          "required": [
+            "jobId",
+            "price",
+            "lead"
+          ],
+          "title": "provider_quotePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "provider.uploadEvidence"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "title": "Jobid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "title": "provider_uploadEvidencePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "task.accept"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "taskId": {
+              "title": "Taskid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "title": "task_acceptPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "task.assign"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "taskId": {
+              "title": "Taskid",
+              "type": "string"
+            },
+            "applicantId": {
+              "title": "Applicantid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId",
+            "applicantId"
+          ],
+          "title": "task_assignPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "task.requestRevision"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "taskId": {
+              "title": "Taskid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "title": "task_requestRevisionPayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "task.submitEvidence"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "taskId": {
+              "title": "Taskid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "title": "task_submitEvidencePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "task.usePortal"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "taskId": {
+              "title": "Taskid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "title": "task_usePortalPayload",
+          "type": "object"
+        }
+      }
+    }
+  ]
+}

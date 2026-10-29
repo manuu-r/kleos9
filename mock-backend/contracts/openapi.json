@@ -1,0 +1,1551 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kleos Mock Backend",
+    "description": "All engineering, purchasing, printing, worker and connector operations are simulated. No external service is called.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state": {
+      "get": {
+        "summary": "State",
+        "operationId": "state_api_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commands": {
+      "post": {
+        "summary": "Command",
+        "operationId": "command_api_commands_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/reset": {
+      "post": {
+        "summary": "Reset",
+        "operationId": "reset_api_demo_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/speed": {
+      "post": {
+        "summary": "Speed",
+        "operationId": "speed_api_demo_speed_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CommandRequest": {
+        "oneOf": [
+          {
+            "properties": {
+              "type": {
+                "const": "project.research"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_researchPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.requestReview"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_requestReviewPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.confirm"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_confirmPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.solveInterfaces"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_solveInterfacesPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.generate"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_generatePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.verify"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_verifyPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.repair"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_repairPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.swapBattery"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_swapBatteryPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.acceptRelease"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_acceptReleasePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.requestQuotes"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_requestQuotesPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.placeOrders"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_placeOrdersPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.createPhysicalTasks"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_createPhysicalTasksPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.acceptPhysical"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_acceptPhysicalPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.prepareKit"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_prepareKitPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.acceptKit"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_acceptKitPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.ship"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_shipPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.activate"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "title": "project_activatePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "task.usePortal"
+              },
+              "payload": {
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "title": "Taskid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "taskId"
+                ],
+                "title": "task_usePortalPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "task.submitEvidence"
+              },
+              "payload": {
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "title": "Taskid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "taskId"
+                ],
+                "title": "task_submitEvidencePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "task.accept"
+              },
+              "payload": {
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "title": "Taskid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "taskId"
+                ],
+                "title": "task_acceptPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "task.requestRevision"
+              },
+              "payload": {
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "title": "Taskid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "taskId"
+                ],
+                "title": "task_requestRevisionPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.test"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId"
+                ],
+                "title": "connector_testPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.calibrate"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId"
+                ],
+                "title": "connector_calibratePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.disconnect"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId"
+                ],
+                "title": "connector_disconnectPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.create"
+              },
+              "payload": {
+                "properties": {
+                  "brief": {
+                    "type": "string",
+                    "title": "Brief"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "brief"
+                ],
+                "title": "project_createPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.answer"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  },
+                  "questionKey": {
+                    "type": "string",
+                    "title": "Questionkey"
+                  },
+                  "values": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "title": "Values"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "questionKey",
+                  "values"
+                ],
+                "title": "project_answerPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.toggleFeature"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "Name"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "name"
+                ],
+                "title": "project_toggleFeaturePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.selectTool"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  },
+                  "lane": {
+                    "type": "string",
+                    "title": "Lane"
+                  },
+                  "toolId": {
+                    "type": "string",
+                    "title": "Toolid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "lane",
+                  "toolId"
+                ],
+                "title": "project_selectToolPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.selectPrint"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "order"
+                    ],
+                    "title": "Mode"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "mode"
+                ],
+                "title": "project_selectPrintPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "project.assemblyStep"
+              },
+              "payload": {
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "title": "Projectid"
+                  },
+                  "step": {
+                    "type": "integer",
+                    "title": "Step"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "step"
+                ],
+                "title": "project_assemblyStepPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "task.assign"
+              },
+              "payload": {
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "title": "Taskid"
+                  },
+                  "applicantId": {
+                    "type": "string",
+                    "title": "Applicantid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "taskId",
+                  "applicantId"
+                ],
+                "title": "task_assignPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.authorize"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  },
+                  "apiKey": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Apikey"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId"
+                ],
+                "title": "connector_authorizePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.discover"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  },
+                  "host": {
+                    "type": "string",
+                    "title": "Host"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId",
+                  "host"
+                ],
+                "title": "connector_discoverPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.save"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  },
+                  "capabilities": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "title": "Capabilities"
+                  },
+                  "scope": {
+                    "type": "number",
+                    "title": "Scope"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId",
+                  "capabilities",
+                  "scope"
+                ],
+                "title": "connector_savePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.savePrinter"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  },
+                  "host": {
+                    "type": "string",
+                    "title": "Host"
+                  },
+                  "confirmEach": {
+                    "type": "boolean",
+                    "title": "Confirmeach"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId",
+                  "host",
+                  "confirmEach"
+                ],
+                "title": "connector_savePrinterPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "connector.setEnabled"
+              },
+              "payload": {
+                "properties": {
+                  "connectorId": {
+                    "type": "string",
+                    "title": "Connectorid"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "title": "Enabled"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "connectorId",
+                  "enabled"
+                ],
+                "title": "connector_setEnabledPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "provider.quote"
+              },
+              "payload": {
+                "properties": {
+                  "jobId": {
+                    "type": "string",
+                    "title": "Jobid"
+                  },
+                  "price": {
+                    "type": "number",
+                    "title": "Price"
+                  },
+                  "lead": {
+                    "type": "number",
+                    "title": "Lead"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "jobId",
+                  "price",
+                  "lead"
+                ],
+                "title": "provider_quotePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "provider.decline"
+              },
+              "payload": {
+                "properties": {
+                  "jobId": {
+                    "type": "string",
+                    "title": "Jobid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "jobId"
+                ],
+                "title": "provider_declinePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "provider.uploadEvidence"
+              },
+              "payload": {
+                "properties": {
+                  "jobId": {
+                    "type": "string",
+                    "title": "Jobid"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "jobId"
+                ],
+                "title": "provider_uploadEvidencePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "developer.configure"
+              },
+              "payload": {
+                "properties": {
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "service",
+                          "tool",
+                          "printer"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Kind"
+                  },
+                  "capability": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Capability"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "title": "developer_configurePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "developer.manifest"
+              },
+              "payload": {
+                "properties": {
+                  "manifest": {
+                    "type": "string",
+                    "title": "Manifest"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "manifest"
+                ],
+                "title": "developer_manifestPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "developer.run"
+              },
+              "payload": {
+                "properties": {
+                  "step": {
+                    "type": "string",
+                    "enum": [
+                      "init",
+                      "fixtures",
+                      "conformance",
+                      "submit",
+                      "qualify"
+                    ],
+                    "title": "Step"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "step"
+                ],
+                "title": "developer_runPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "developer.applyFix"
+              },
+              "payload": {
+                "properties": {},
+                "additionalProperties": false,
+                "type": "object",
+                "title": "developer_applyFixPayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "agent.nextMessage"
+              },
+              "payload": {
+                "properties": {},
+                "additionalProperties": false,
+                "type": "object",
+                "title": "agent_nextMessagePayload"
+              }
+            },
+            "type": "object",
+            "required": [
+              "type",
+              "payload"
+            ]
+          }
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "payload"
+        ],
+        "title": "CommandRequest"
+      },
+      "CommandResponse": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/Snapshot"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot"
+        ],
+        "title": "CommandResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Snapshot": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "state": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "State"
+          },
+          "demo": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Demo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "state",
+          "demo"
+        ],
+        "title": "Snapshot"
+      },
+      "SpeedRequest": {
+        "properties": {
+          "speed": {
+            "type": "number",
+            "maximum": 100.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Speed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "speed"
+        ],
+        "title": "SpeedRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
