@@ -35,6 +35,7 @@ def create_app(*, time_scale: float = 1.0) -> FastAPI:
     app = FastAPI(title="Kleos Mock Backend", version="0.1.0", description="All engineering, purchasing, printing, worker and connector operations are simulated. No external service is called.", lifespan=lifespan)
     ui_port = os.environ.get("KLEOS9_UI_PORT", "5180")
     origins = [f"http://127.0.0.1:{ui_port}", f"http://localhost:{ui_port}"]
+    origins.extend(origin.strip() for origin in os.environ.get("KLEOS9_UI_ORIGINS", "").split(",") if origin.strip())
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Idempotency-Key"])
 
     @app.middleware("http")

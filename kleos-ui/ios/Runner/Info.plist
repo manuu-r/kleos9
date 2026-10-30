@@ -74,6 +74,13 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connect to the simulated Kleos backend running on your computer.</string>
+	<string>Connect to the Kleos backend running on your computer.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array><string>kleos9</string></array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -1,0 +1,35 @@
+{
+  "mode": "control-plane-only; no provider/native workload",
+  "users": 100,
+  "projects": [
+    "482b0874-be91-42ce-b2d5-542efb417f17",
+    "75c2a2ed-12ac-4154-99a1-6d67510f2bb3",
+    "c485efcc-dc68-4ca2-b2f9-7ac7e3a6145e",
+    "0bfb59cc-9413-4eff-b6d5-0c2eb4672bfe",
+    "5bfa404b-575b-4b8e-a7ef-aa4fd0bdc82e",
+    "0998f27d-b334-42fe-8571-0c2dcb02e60a",
+    "025fc7a6-cbd3-4221-ac8c-845f1f7f00d5",
+    "287af0ed-e5d7-4a66-8fbc-56c17211a044",
+    "37f561ff-bb99-49a5-a663-d6e2bacdbd9a",
+    "61125673-0663-43af-90ed-1b6456c1a441"
+  ],
+  "connectedStreams": 100,
+  "readSamples": 1000,
+  "commandSamples": 40,
+  "eventSamples": 300,
+  "errors": [],
+  "p95ReadMs": 370.0985000032233,
+  "p95CommandMs": 20.99933399949805,
+  "p95EventMs": 493.11899999999997,
+  "p95ServerReadMs": 329.13,
+  "eventClockRequirement": "Client/server clocks synchronized; timestamp starts before transaction commit",
+  "passed": true,
+  "configuration": {
+    "apiContainers": 1,
+    "apiProcesses": 2,
+    "otelEnabled": true,
+    "backend": "Docker Compose PostgreSQL/Qdrant",
+    "nativeJobsDuringMeasurement": 0,
+    "unrelatedLocalClusterRunning": true
+  }
+}

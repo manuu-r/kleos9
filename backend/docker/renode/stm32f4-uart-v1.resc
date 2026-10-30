@@ -1,0 +1,7 @@
+mach create "kleos-uart-smoke"
+machine LoadPlatformDescription @platforms/boards/stm32f4_discovery.repl
+sysbus LoadELF @{elf}
+sysbus.usart2 CreateFileBackend @{uart} true
+emulation RunFor "2"
+sysbus.usart2 CloseFileBackend @{uart}
+quit

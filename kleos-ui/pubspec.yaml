@@ -11,7 +11,16 @@ dependencies:
   go_router: ^14.8.1
   cupertino_icons: ^2.0.0
   flutter_riverpod: ^3.4.3
+  flutter_appauth: ^11.0.0
+  flutter_secure_storage: ^11.2.0
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.2
+  share_plus: ^13.3.1
+  crypto: ^3.0.6
+  web: ^1.1.1
 dev_dependencies:
+  flutter_driver:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0

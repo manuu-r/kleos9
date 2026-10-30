@@ -1,0 +1,1321 @@
+[
+  {
+    "id": "watch-01",
+    "brief": "Create a watch enclosure for a 22 × 18 × 4 mm battery, with a declared 170 mA load on a 3.3 V, 300 mA supply.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "PASS",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-02",
+    "brief": "Create a watch enclosure for a 23 × 18 × 4 mm battery, with a declared 170 mA load on a 3.3 V, 300 mA supply.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 23,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "PASS",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-03",
+    "brief": "Create a watch enclosure for a 24 × 18 × 4 mm battery, with a declared 170 mA load on a 3.3 V, 300 mA supply.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 24,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "PASS",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-04",
+    "brief": "Create a watch enclosure for a 25 × 18 × 4 mm battery, with a declared 170 mA load on a 3.3 V, 300 mA supply.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 25,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "PASS",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-05",
+    "brief": "Create a watch enclosure for a 26 × 18 × 4 mm battery, with a declared 170 mA load on a 3.3 V, 300 mA supply.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 26,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "PASS",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-06",
+    "brief": "Investigate a 41 mm wide battery in a 36 mm internal watch enclosure. Preserve the requested battery envelope and report the incompatibility.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 41,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-07",
+    "brief": "Investigate a 42 mm wide battery in a 36 mm internal watch enclosure. Preserve the requested battery envelope and report the incompatibility.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 42,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-08",
+    "brief": "Investigate a 43 mm wide battery in a 36 mm internal watch enclosure. Preserve the requested battery envelope and report the incompatibility.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 43,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-09",
+    "brief": "Investigate a 44 mm wide battery in a 36 mm internal watch enclosure. Preserve the requested battery envelope and report the incompatibility.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 44,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-10",
+    "brief": "Investigate a 45 mm wide battery in a 36 mm internal watch enclosure. Preserve the requested battery envelope and report the incompatibility.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 45,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-11",
+    "brief": "Check a watch board supplied at 5 V with components rated for 3.0–3.6 V. Do not hide the voltage mismatch.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 5,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-12",
+    "brief": "Check a watch board supplied at 5.1 V with components rated for 3.0–3.6 V. Do not hide the voltage mismatch.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 5.1,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-13",
+    "brief": "Check a watch board supplied at 5.2 V with components rated for 3.0–3.6 V. Do not hide the voltage mismatch.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 5.2,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-14",
+    "brief": "Check a watch board supplied at 5.3 V with components rated for 3.0–3.6 V. Do not hide the voltage mismatch.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 5.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-15",
+    "brief": "Check a watch board supplied at 5.4 V with components rated for 3.0–3.6 V. Do not hide the voltage mismatch.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 5.4,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "FAIL",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-16",
+    "brief": "Evaluate a smartwatch brief with missing mechanical information (1). Request measurements and preserve uncertainty.",
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-17",
+    "brief": "Evaluate a smartwatch brief with missing mechanical information (2). Request measurements and preserve uncertainty.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-18",
+    "brief": "Evaluate a smartwatch brief with missing mechanical information (3). Request measurements and preserve uncertainty.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-19",
+    "brief": "Evaluate a smartwatch brief with missing mechanical information (4). Request measurements and preserve uncertainty.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-20",
+    "brief": "Evaluate a smartwatch brief with missing mechanical information (5). Request measurements and preserve uncertainty.",
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 300,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-21",
+    "brief": "Investigate an invalid supply current rating of -1 mA. Correct the specification before claiming electrical verification.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": -1,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-22",
+    "brief": "Investigate an invalid supply current rating of -2 mA. Correct the specification before claiming electrical verification.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": -2,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-23",
+    "brief": "Investigate an invalid supply current rating of -3 mA. Correct the specification before claiming electrical verification.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": -3,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-24",
+    "brief": "Investigate an invalid supply current rating of -4 mA. Correct the specification before claiming electrical verification.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": -4,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  },
+  {
+    "id": "watch-25",
+    "brief": "Investigate an invalid supply current rating of -5 mA. Correct the specification before claiming electrical verification.",
+    "interfaces": {
+      "mechanical": {
+        "internalMm": {
+          "x": 36,
+          "y": 28,
+          "z": 8
+        },
+        "externalMm": {
+          "x": 40,
+          "y": 32,
+          "z": 12
+        },
+        "minimumWallMm": 2,
+        "components": [
+          {
+            "id": "battery",
+            "sizeMm": {
+              "x": 22,
+              "y": 18,
+              "z": 4
+            },
+            "positionMm": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": -5,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 70
+          },
+          {
+            "id": "screen",
+            "minVoltageV": 3.1,
+            "maxVoltageV": 3.5,
+            "currentMa": 100
+          }
+        ]
+      }
+    },
+    "expectedInterfaceStatus": "UNKNOWN",
+    "scope": "Deterministic interface fixture; provider engineering quality must be evaluated separately."
+  }
+]

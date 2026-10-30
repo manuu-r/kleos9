@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/services/command_journal.dart';
+import '../../state/production_store.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
@@ -76,6 +79,7 @@ class ProjectsPage extends StatelessWidget {
                     ])),
             child: const DeviceVisual())
       ]),
+      if (controller.state['production'] == true) const _PendingRequests(),
       if (projects.isNotEmpty)
         kColumn([
           Text('Your builds', style: Theme.of(context).textTheme.headlineSmall),
@@ -94,11 +98,22 @@ class ProjectsPage extends StatelessWidget {
                     const Icon(Icons.arrow_forward,
                         size: 16, color: KColors.faint)
                   ]),
-                  KMuted('${p['brief']}'),
+                  if (p['production'] == true) ...[
+                    Text('${p['brief']}',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: KColors.muted, fontSize: 12)),
+                    KBadge('${p['status'] ?? 'draft'}',
+                        tone: p['status'] == 'blocked' ? 'unknown' : null),
+                  ] else
+                    KMuted('${p['brief']}'),
                   KProgress(done * 10.0),
                   KMuted(
                       done == 10
-                          ? 'Delivered and activated'
+                          ? p['production'] == true
+                              ? 'Simulated delivery and activation'
+                              : 'Delivered and activated'
                           : stageNames[(p['stage'] as num).toInt().clamp(0, 9)],
                       size: 11)
                 ])));
@@ -254,6 +269,7 @@ class _NewBuildPageState extends State<NewBuildPage> {
         widget.controller.isPending('project.create')) {
       return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
     final result = await widget.controller
         .execute('project.create', {'brief': brief.text.trim()});
     if (mounted && result.ok) {
@@ -264,10 +280,11 @@ class _NewBuildPageState extends State<NewBuildPage> {
   @override
   Widget build(BuildContext context) => KResponsive(children: [
         kColumn([
-          const KSectionHeader(
+          KSectionHeader(
               title: 'Describe the device you want to build.',
-              description:
-                  'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together and ships you a kit.'),
+              description: widget.controller.state['production'] == true
+                  ? 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together. Physical fulfillment remains simulated.'
+                  : 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together and ships you a kit.'),
           CallbackShortcuts(
               bindings: {
                 const SingleActivator(LogicalKeyboardKey.enter, meta: true):
@@ -286,8 +303,10 @@ class _NewBuildPageState extends State<NewBuildPage> {
                       hintText:
                           'A desk air-quality monitor with a small screen…'))),
           kRow([
-            const KMuted(
-                'Scripted around an air-quality monitor in this prototype.',
+            KMuted(
+                widget.controller.state['production'] == true
+                    ? 'AI models are configured in Providers.'
+                    : 'Scripted around an air-quality monitor in this prototype.',
                 size: 10),
             KButton(
                 label: 'Start build',
@@ -327,4 +346,61 @@ class _NewBuildPageState extends State<NewBuildPage> {
             ])
         ], gap: 13)
       ]);
+}
+
+class _PendingRequests extends ConsumerStatefulWidget {
+  const _PendingRequests();
+  @override
+  ConsumerState<_PendingRequests> createState() => _PendingRequestsState();
+}
+
+class _PendingRequestsState extends ConsumerState<_PendingRequests> {
+  late Future<List<PendingCommand>> pending =
+      ref.read(productionRepositoryProvider).journal.pending();
+  String? busy;
+  String? error;
+  Future<void> retry(PendingCommand command) async {
+    setState(() {
+      busy = command.key;
+      error = null;
+    });
+    try {
+      final result =
+          await ref.read(productionRepositoryProvider).retry(command);
+      await ref.read(kleosProvider).refresh();
+      if (mounted) {
+        setState(() =>
+            pending = ref.read(productionRepositoryProvider).journal.pending());
+        context.go('/projects/${result.projectId}');
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => busy = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<PendingCommand>>(
+        future: pending,
+        builder: (context, snapshot) {
+          final requests = snapshot.data ?? const <PendingCommand>[];
+          if (requests.isEmpty) return const SizedBox.shrink();
+          return KCard(
+              title: 'Requests awaiting confirmation',
+              child: kColumn([
+                const KMuted(
+                    'A previous request may already have been accepted. Checking reuses its original identifier to avoid creating duplicate work.'),
+                if (error != null) KMuted(error!),
+                for (final command in requests)
+                  kRow([
+                    Text('${command.body['type']}'),
+                    KButton(
+                        label:
+                            busy == command.key ? 'Checking…' : 'Check request',
+                        onPressed: busy == null ? () => retry(command) : null),
+                  ]),
+              ]));
+        },
+      );
 }

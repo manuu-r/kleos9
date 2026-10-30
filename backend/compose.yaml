@@ -1,0 +1,154 @@
+name: kleos9
+x-control: &control
+  image: kleos-control:development
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  env_file:
+    - .env
+  environment: &control-environment
+    KLEOS_ENVIRONMENT: development
+    KLEOS_AUTH_MODE: development
+    KLEOS_DEMO_MODE: "true"
+    KLEOS_STORAGE_BACKEND: local
+    KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
+    KLEOS_DBOS_DATABASE_URL: postgresql://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos_dbos
+    KLEOS_QDRANT_URL: http://qdrant:6333
+    KLEOS_LOCAL_ARTIFACT_DIR: /data/artifacts
+    KLEOS_EXECUTION_BACKEND: docker
+    KLEOS_DOCKER_JOBS_DIR: /native-jobs
+    KLEOS_DOCKER_JOBS_VOLUME: kleos9_native_jobs
+    KLEOS_DOCKER_NATIVE_IMAGES: '{"mechanics":"kleos-mechanics:development","validate":"kleos-validator:development","firmware":"kleos-firmware:development","application":"kleos-application:development","electronics":"kleos-electronics:development"}'
+    KLEOS_CONDUCTOR_URL: ""
+    # Enable with --profile observability and an explicit Docker-network endpoint.
+    KLEOS_OTLP_ENDPOINT: ${KLEOS_DOCKER_OTLP_ENDPOINT:-}
+    PYDANTIC_AI_NO_BANNER: "1"
+  volumes:
+    - ./kleos:/opt/kleos/kleos:ro
+    - ./.data/artifacts:/data/artifacts
+    - native_jobs:/native-jobs
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  initialize:
+    <<: *control
+    profiles: ["backend"]
+    user: "0"
+    command: ["python", "-c", "import os; [os.makedirs(p, exist_ok=True) or os.chown(p, 1000, 1000) for p in ['/data/artifacts', '/native-jobs']]"]
+  migrate:
+    <<: *control
+    profiles: ["backend"]
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      initialize:
+        condition: service_completed_successfully
+  api:
+    <<: *control
+    profiles: ["backend"]
+    command: ["uvicorn", "kleos.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--workers", "${KLEOS_API_PROCESSES:-1}"]
+    ports:
+      - "${KLEOS_API_BIND_ADDRESS:-127.0.0.1}:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    restart: unless-stopped
+  engineering:
+    <<: *control
+    profiles: ["backend"]
+    # Local trusted dispatchers alone can talk to the Docker daemon. Native
+    # containers never receive this socket or any control-plane environment.
+    user: "1000:1000"
+    group_add: ["${DOCKER_SOCKET_GID:-0}"]
+    command: ["python", "-m", "kleos.worker", "--kind", "engineering"]
+    volumes:
+      - ./kleos:/opt/kleos/kleos:ro
+      - ./.data/artifacts:/data/artifacts
+      - native_jobs:/native-jobs
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      api:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+  connectors:
+    <<: *control
+    profiles: ["backend"]
+    user: "1000:1000"
+    group_add: ["${DOCKER_SOCKET_GID:-0}"]
+    command: ["python", "-m", "kleos.worker", "--kind", "connectors"]
+    volumes:
+      - ./kleos:/opt/kleos/kleos:ro
+      - ./.data/artifacts:/data/artifacts
+      - native_jobs:/native-jobs
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      api:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+  postgres:
+    image: postgres:17.6
+    environment:
+      POSTGRES_USER: kleos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+      POSTGRES_DB: kleos
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kleos -d kleos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant:/qdrant/storage
+  conductor:
+    image: ${DBOS_CONDUCTOR_IMAGE:-dbosdev/conductor:latest}
+    profiles: ["conductor"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DBOS__CONDUCTOR_DB_URL: postgres://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/conductor
+      DBOS_CONDUCTOR_LICENSE_KEY: ${DBOS_CONDUCTOR_LICENSE_KEY:-}
+      DBOS_OAUTH_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8090:8090"
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.137.0
+    profiles: ["observability"]
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./docker/otel-local.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "127.0.0.1:4318:4318"
+    mem_limit: 128m
+    cpus: 0.25
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  postgres:
+  qdrant:
+  native_jobs:
+    name: kleos9_native_jobs

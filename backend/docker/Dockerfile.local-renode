@@ -1,0 +1,15 @@
+FROM kleos-validator:development
+# The Mono package aborts under this developer host's amd64 translation. Use the
+# same pinned release's official portable .NET runtime, without global VM changes.
+# Observed release size: 79,795,913 bytes; digest verified before extraction.
+ARG RENODE_ARCHIVE_SHA256=34b032b181e802cfc3d7d6e77aa9d89bc4f5dd7c402f59dcc5bdf4cb1769da93
+RUN apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports curl ca-certificates \
+    && curl --fail --location --proto '=https' --tlsv1.2 \
+        https://github.com/renode/renode/releases/download/v1.15.3/renode-1.15.3.linux-portable-dotnet.tar.gz -o /tmp/renode.tar.gz \
+    && printf '%s  /tmp/renode.tar.gz\n' "$RENODE_ARCHIVE_SHA256" | sha256sum --check --strict \
+    && mkdir /opt/renode && tar -xzf /tmp/renode.tar.gz -C /opt/renode --strip-components=1 \
+    && ln -s /opt/renode/renode /usr/local/bin/renode \
+    && rm -rf /var/lib/apt/lists/* /tmp/renode.tar.gz
+COPY docker/renode /opt/kleos/renode
+COPY kleos /opt/kleos/kleos
+COPY kleos /usr/local/lib/python3.12/site-packages/kleos

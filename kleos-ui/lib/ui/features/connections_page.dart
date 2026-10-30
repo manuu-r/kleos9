@@ -57,8 +57,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<void> _connect() async {
     if (dialogOpen) return;
-    final matches = asMaps(widget.controller.state['connectors'])
-        .where((c) => c['id'] == widget.connectId && c['linked'] != true);
+    final matches = asMaps(widget.controller.state['connectors']).where((c) =>
+        c['id'] == widget.connectId &&
+        c['linked'] != true &&
+        c['production'] != true);
     if (matches.isEmpty) return;
     dialogOpen = true;
     final saved = await showDialog<bool>(
@@ -170,7 +172,14 @@ class _ConnectorTile extends StatelessWidget {
           KMuted(printer.isNotEmpty
               ? '${printer['buildVolume']}, ${printer['material']}. Calibrated.'
               : '${c['description']}'),
-          if (c['linked'] != true)
+          if (c['production'] == true)
+            kRow([
+              KBadge('${c['level'] ?? 'unqualified'}'),
+              KBadge('${c['mode'] ?? 'unavailable'}'),
+              KMuted(c['enabled'] == true ? 'Enabled' : 'Not enabled',
+                  size: 11),
+            ])
+          else if (c['linked'] != true)
             KButton(
                 label: c['kind'] == 'printer'
                     ? 'Connect printer'

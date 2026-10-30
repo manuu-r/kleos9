@@ -1,0 +1,19 @@
+region          = "us-east-1"
+environment     = "staging"
+name            = "kleos9-demo"
+base_domain     = "engineering.example.com"
+public_zone_id  = "Z_REPLACE_ME"
+certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/REPLACE_ME"
+frontend_url    = "https://app.example.com"
+# Replace with the actual digest pushed to ECR. Never use this example as an image.
+control_image   = "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/kleos9-demo/control@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+native_images   = {}
+activate_services  = false
+activate_conductor = false
+project_budget_usd = 0
+daily_budget_usd   = 0
+# Licensed Conductor: provide digest, license secret ARN and operator SSO details.
+conductor_image               = ""
+conductor_license_secret_arn  = ""
+conductor_oauth_issuer         = ""
+conductor_oauth_audience       = ""

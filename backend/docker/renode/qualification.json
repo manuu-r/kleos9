@@ -1,0 +1,7 @@
+{
+  "qualified": false,
+  "profile": "stm32f4-uart-v1",
+  "renodeVersion": "1.15.3",
+  "scenarioSha256": "668eabc7f69589724c626a911cf2cd51a39ddb3dded98bdc981c30708d551b83",
+  "reason": "Actual emulator fixture has not yet been run; never enable based only on mocked tests."
+}

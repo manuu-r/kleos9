@@ -69,7 +69,11 @@ class AppShell extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => ListenableBuilder(
+      listenable: FocusManager.instance,
+      builder: (context, _) => _build(context, ref));
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(kleosProvider);
     final width = MediaQuery.sizeOf(context).width;
     final textScale = MediaQuery.textScalerOf(context).scale(1);
@@ -78,7 +82,10 @@ class AppShell extends ConsumerWidget {
         mobile && width >= 700 && MediaQuery.sizeOf(context).height >= 600;
     final phone = mobile && !rail;
     final detail = !(_nav.any((item) => item.path == uri.path));
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final editing = FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<EditableText>() !=
+        null;
+    final keyboardOpen = editing && MediaQuery.viewInsetsOf(context).bottom > 0;
     final header = Container(
         height: phone ? 60 : 72,
         padding: EdgeInsets.symmetric(horizontal: phone ? 12 : 24),
@@ -187,6 +194,7 @@ class AppShell extends ConsumerWidget {
               if (!didPop) context.go('/');
             },
             child: Scaffold(
+              resizeToAvoidBottomInset: editing,
               bottomNavigationBar:
                   phone && !keyboardOpen ? _bottomNav(context) : null,
               body: SafeArea(
@@ -230,6 +238,7 @@ class AppPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final mobile = MediaQuery.sizeOf(context).width < 1000;
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       key: ValueKey(GoRouterState.of(context).uri.toString()),
       child: Center(
           child: ConstrainedBox(
@@ -245,7 +254,11 @@ class AppPage extends StatelessWidget {
                 const SizedBox(height: 64),
                 const Center(
                     child: KMuted(
-                        'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.',
+                        String.fromEnvironment('KLEOS_BACKEND',
+                                    defaultValue: 'mock') ==
+                                'production'
+                            ? 'Prototype. Simulation examples remain available. New builds use real engineering runs; physical fulfillment remains simulated.'
+                            : 'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.',
                         size: 10)),
               ])),
         ),
@@ -447,6 +460,7 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
         .where((i) => i.label.toLowerCase().contains(q.toLowerCase()))
         .toList();
     Future<void> startBuild() async {
+      FocusManager.instance.primaryFocus?.unfocus();
       final result = await controller.execute('project.create', {'brief': q});
       if (mounted && result.ok) {
         widget.onNavigate('/projects/${result.result['projectId']}');

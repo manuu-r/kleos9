@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-30T02:04:25.761515+00:00",
+  "status": "passed",
+  "scope": "Local Docker PostgreSQL application database and referenced local Artifact-table files",
+  "snapshot": "Exported PostgreSQL REPEATABLE READ READ ONLY snapshot shared with pg_dump",
+  "backupDirectory": "/Users/manu/Dev_stuff/kleos9/backend/.data/recovery_checks/20261030T020425Z_eaa871cd5399",
+  "disposableDatabase": "kleos_restore_verify_100ef99dfbab4f96",
+  "sourceApplicationRowsWritten": 0,
+  "servicesStopped": 0,
+  "restoredWorkersStarted": 0,
+  "paidProviderCalls": 0,
+  "awsOrS3Verified": false,
+  "pgDumpVersion": "pg_dump (PostgreSQL) 17.6 (Debian 17.6-2.pgdg13+1)",
+  "dumpSha256": "6144278434421759221df527987a85f31807dfb691fd454cb847dcf1e64468ba",
+  "dumpBytes": 537509,
+  "referencedArtifactRows": 43,
+  "uniqueArtifactBlobs": 42,
+  "referencedArtifactBytes": 402556,
+  "backupPermissions": {
+    "directory": "0o700",
+    "dump": "0o600",
+    "manifest": "0o600"
+  },
+  "metadata": {
+    "projects": {
+      "rows": 5,
+      "canonicalSha256": "1e03138ac981f7e68916c48e4c24e66266bb4ad91d8367194c03b10e0bb981e3"
+    },
+    "commands": {
+      "rows": 37,
+      "canonicalSha256": "55708535588fccac7563c687c06b2ad3a721ff69cafd8b235aa376bf377617a4"
+    },
+    "events": {
+      "rows": 224,
+      "canonicalSha256": "125a4ec2af99aee19ad2de4ee6cdc96a73d6558d1d362fe1d04ba96447f41adc"
+    },
+    "artifacts": {
+      "rows": 43,
+      "canonicalSha256": "8eabaa8c1e31472de2e47747dd471a27f6b888270369d8dbdf09d21801221e90"
+    },
+    "external_intents": {
+      "rows": 27,
+      "canonicalSha256": "d7ff91d163b0e3ee6e90844f862b5884092783b63e4885318984fced51a0ef05"
+    },
+    "outbox": {
+      "rows": 31,
+      "canonicalSha256": "d9bcb8a913624b786c2219c6704c41e3c8328fd1330d2afb5f4986055862beb9"
+    },
+    "runs": {
+      "rows": 14,
+      "canonicalSha256": "6f381e71c5d2e7a8bd3814dc2ca6b71dd69c11644527fe557d926ae49c40f18f"
+    },
+    "tasks": {
+      "rows": 14,
+      "canonicalSha256": "94232bb2b807d80658c96f2d6ef2bb3575e68ce606b12f27d969ab7fb2fb896f"
+    },
+    "attempts": {
+      "rows": 14,
+      "canonicalSha256": "6388a3d0222db77754c7f177b6b9ab320418727b689b2e7e87a153aeb8957cd3"
+    },
+    "invocations": {
+      "rows": 13,
+      "canonicalSha256": "fb54cba7783a792081ca973530ac8d2c906e78332b9b70d46bb6826a8d275814"
+    },
+    "native_jobs": {
+      "rows": 2,
+      "canonicalSha256": "b56d040b71669de8d0d79af7ebc3f6c8d3e5b8d2321bb405b91c9abe865bb2cd"
+    },
+    "validations": {
+      "rows": 0,
+      "canonicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "releases": {
+      "rows": 0,
+      "canonicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "training_consents": {
+      "rows": 3,
+      "canonicalSha256": "ca868bffe5624b5835f19bc59827a1f052b624e4cf730ee0a82f89d4033b6589"
+    },
+    "sources": {
+      "rows": 11,
+      "canonicalSha256": "26117ba721b3cc83b16deb5c4c3495ab160e1d11e5825a02bcf0d1a5aa735480"
+    },
+    "datasets": {
+      "rows": 0,
+      "canonicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "trained_models": {
+      "rows": 0,
+      "canonicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "metadataMatchesExportedSnapshot": true,
+  "artifactManifestVerifiedAgainstRestoredRows": true,
+  "dispatchQuarantine": {
+    "databaseDefaultReadOnly": true,
+    "writeAttemptRejected": true,
+    "nonterminalExternalIntentsByStatus": {},
+    "pendingOutboxRows": 0,
+    "pendingModelInvocations": 1,
+    "activeNativeJobs": 0,
+    "otherConnectedSessions": 0,
+    "unchangedObservationSeconds": 2,
+    "workersOrDispatchersStarted": false,
+    "reconciliationPerformed": false,
+    "limitation": "Read-only isolation verified; live external outcomes were neither queried nor resumed"
+  },
+  "disposableDatabaseDropped": true,
+  "completedAt": "2026-10-30T02:04:28.961653+00:00",
+  "limitations": [
+    "No workers connected to the restored database and no external commitments were resumed",
+    "This backs up the application database and Artifact-table files, not the separate DBOS database or transcript/log object closure",
+    "Local restore only; no AWS RDS, S3 version recovery, regional disaster recovery, or production restore timing claim",
+    "Qdrant indexing, retrieval and cached-query reuse have separate integration evidence; this check did not restore Qdrant"
+  ]
+}

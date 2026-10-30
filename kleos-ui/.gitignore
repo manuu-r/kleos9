@@ -6,6 +6,7 @@
 build/
 .flutter-plugins*
 coverage/
+flutter_*.log
 # Local editors and machine configuration
 .idea/
 *.iml

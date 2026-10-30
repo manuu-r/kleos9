@@ -4,6 +4,7 @@ import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/human_task_card.dart';
 import '../core/widgets.dart';
+import 'production/provider_models.dart';
 
 class HumanTasksPage extends StatefulWidget {
   const HumanTasksPage({super.key, required this.controller});
@@ -200,14 +201,26 @@ const _ladder = [
 ];
 
 class ProviderPage extends StatefulWidget {
-  const ProviderPage({super.key, required this.controller});
+  const ProviderPage(
+      {super.key, required this.controller, this.tab, this.projectId});
   final KleosController controller;
+  final String? tab, projectId;
   @override
   State<ProviderPage> createState() => _ProviderPageState();
 }
 
 class _ProviderPageState extends State<ProviderPage> {
   String? selected;
+  late bool showModels = widget.tab == 'models';
+  @override
+  void didUpdateWidget(covariant ProviderPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tab != widget.tab ||
+        oldWidget.projectId != widget.projectId) {
+      showModels = widget.tab == 'models';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.controller.state;
@@ -216,7 +229,28 @@ class _ProviderPageState extends State<ProviderPage> {
     selected ??= jobs.firstOrNull?['id'] as String?;
     final job = jobs.where((j) => j['id'] == selected).firstOrNull;
     final level = _ladder.indexWhere((l) => l.$1 == state['providerLevel']);
+    final production = state['production'] == true;
+    final tabs = kRow([
+      ChoiceChip(
+          label: const Text('Services'),
+          selected: !showModels,
+          onSelected: (_) => setState(() => showModels = false)),
+      ChoiceChip(
+          label: const Text('AI models'),
+          selected: showModels,
+          onSelected: (_) => setState(() => showModels = true)),
+    ]);
+    if (production && showModels) {
+      return KPage(children: [
+        tabs,
+        ProviderModels(
+            key: ValueKey(widget.projectId),
+            controller: widget.controller,
+            initialProjectId: widget.projectId)
+      ]);
+    }
     return KPage(children: [
+      if (production) tabs,
       kColumn([
         const KMuted('Provider portal, signed in as', size: 11),
         KSectionHeader(

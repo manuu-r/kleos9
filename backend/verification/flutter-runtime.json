@@ -1,0 +1,98 @@
+{
+  "flutterTestsPassed": 82,
+  "analyzer": "passed",
+  "openApiTransportCheck": "passed",
+  "frontendWebBuild": "passed",
+  "frontendAndroidDebugBuild": "passed",
+  "browserChecks": [
+    {
+      "evidence": "e2e/report.json",
+      "status": "failed",
+      "checks": [
+        "Development sign-in and authorized project list",
+        "Real Gemini research reaches the UI through streamed progress"
+      ]
+    },
+    {
+      "evidence": "e2e-mobile-exact/report.json",
+      "status": "passed",
+      "checks": [
+        "Development sign-in and authorized project list",
+        "Real Gemini research reaches the UI through streamed progress",
+        "Provider settings persist changes and restore Gemini without making an extra call",
+        "Training consent saves both choices and ends opted out",
+        "Artifact download action and authorized content SHA-256 verification",
+        "Run inspector opens actual tasks, attempts, models, usage and blockers",
+        "Authorized redacted AI transcript opens inside the run inspector",
+        "Leaving and reopening the workspace reconnects from its current snapshot",
+        "No Flutter runtime errors during exercised flows"
+      ]
+    },
+    {
+      "evidence": "e2e-main/report.json",
+      "status": "passed",
+      "checks": [
+        "Development sign-in and authorized project list",
+        "Artifact download action and authorized content SHA-256 verification",
+        "Run inspector opens actual tasks, attempts, models, usage and blockers",
+        "Authorized redacted AI transcript opens inside the run inspector",
+        "Authorized native engineering logs open inside the run inspector",
+        "An idle authenticated event stream is shown as connected",
+        "Leaving and reopening the workspace reconnects from its current snapshot",
+        "No Flutter runtime errors during exercised flows"
+      ]
+    },
+    {
+      "evidence": "e2e-battery/report.json",
+      "status": "passed",
+      "checks": [
+        "Development sign-in and authorized project list",
+        "Artifact download action and authorized content SHA-256 verification",
+        "Run inspector opens actual tasks, attempts, models, usage and blockers",
+        "Authorized redacted AI transcript opens inside the run inspector",
+        "An idle authenticated event stream is shown as connected",
+        "Battery change creates a revision and invalidates interfaces and candidate artifacts",
+        "Leaving and reopening the workspace reconnects from its current snapshot",
+        "No Flutter runtime errors during exercised flows"
+      ]
+    }
+  ],
+  "companion": {
+    "artifactId": "fd93471d-db97-4e07-9941-ad2c91b22b07",
+    "status": "passed_with_documented_font_limitation",
+    "desktop": {
+      "controlsPassed": 5,
+      "externalRequests": [],
+      "runtimeOrPolicyErrors": []
+    },
+    "responsive390px": {
+      "controlsPassed": 5,
+      "externalRequests": [],
+      "visibleTextAndControls": "visually inspected; legible and usable",
+      "browserIdentity": {
+        "platform": "MacIntel",
+        "touchPoints": 1,
+        "userAgent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Mobile Safari/537.36"
+      }
+    },
+    "knownLimitation": {
+      "codepoint": "U+2026 HORIZONTAL ELLIPSIS",
+      "requestedFamily": ".AppleSystemUIFont",
+      "fallback": "Noto Sans Symbols",
+      "impact": "A system-font ellipsis measurement triggers a CSP-blocked fallback request. Current labels fit and all displayed data renders. No external request escapes the preview.",
+      "evidence": "../e2e-companion-fixed/font-diagnostic.json"
+    },
+    "scope": "Fresh headless desktop and 390x844 responsive browser emulation; no physical Android/iOS device or native signed build claim. Artifact and CSP unchanged. No Kleos credentials used on companion origin.",
+    "reports": [
+      "desktop-report.json",
+      "phone-report.json"
+    ],
+    "screenshots": [
+      "desktop-nominal.png",
+      "desktop-invalid.png",
+      "phone-nominal.png",
+      "phone-invalid.png"
+    ]
+  },
+  "scope": "Live Docker/Gemini frontend flows and headless responsive browser checks; no physical Android/iOS or signed iOS build qualification."
+}

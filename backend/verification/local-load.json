@@ -1,0 +1,27 @@
+{
+  "mode": "control-plane-only; no provider/native workload",
+  "users": 100,
+  "projects": [
+    "1d4048d0-cc0a-4ef9-9cd0-3506f88dc341",
+    "89ac11e5-aabd-44b0-9ddd-06d2a40dcd99",
+    "ce1f55d9-fff0-4361-b6f4-d23c17f0eeb1",
+    "c762b8fd-34e9-44dc-a0eb-1e5073dbe53f",
+    "7d452c9b-191e-44d9-a6ca-b3807b4c6471",
+    "3ba6996b-6cf0-4c65-812c-0c9e3a028a9d",
+    "a9fd7cab-d69d-4622-b55d-001f92d773d8",
+    "fde46d53-edcf-4b96-bad6-8a5fad89a85f",
+    "e18d4832-24f0-42ca-8879-cf2ccedf2bc0",
+    "6aa1001c-7f6b-41fb-a72c-5c2188c53f6b"
+  ],
+  "connectedStreams": 100,
+  "readSamples": 1000,
+  "commandSamples": 40,
+  "eventSamples": 300,
+  "errors": [],
+  "p95ReadMs": 260.0063339996268,
+  "p95CommandMs": 22.822041999461362,
+  "p95EventMs": 519.298,
+  "p95ServerReadMs": 253.09,
+  "eventClockRequirement": "Client/server clocks synchronized; timestamp starts before transaction commit",
+  "passed": true
+}

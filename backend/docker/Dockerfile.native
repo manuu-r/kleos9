@@ -1,0 +1,80 @@
+# Build with backend/ as context. All targets execute one scoped job then exit.
+FROM python:3.12.11-slim-bookworm AS base
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 KLEOS_NATIVE_SANDBOX=1
+WORKDIR /opt/kleos
+COPY pyproject.toml ./
+COPY kleos ./kleos
+RUN pip install --no-cache-dir "pydantic==2.14.2" "httpx==0.28.1" \
+    && pip install --no-cache-dir --no-deps . && useradd --uid 10001 --create-home builder \
+    && apt-get update && apt-get install -y --no-install-recommends binutils \
+    && rm -rf /var/lib/apt/lists/*
+# Supervisor needs SETUID/SETGID to launch untrusted subprocesses under a separate UID.
+# It receives only a job-scoped callback token; no AWS task role or database secrets.
+ENTRYPOINT ["python", "-m", "kleos.native_runner"]
+
+FROM base AS mechanics
+RUN pip install --no-cache-dir "build123d==0.10.0" "ocp-gordon==0.1.18"
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglu1-mesa libxrender1 libxext6 libsm6 \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM base AS firmware
+ARG ZEPHYR_VERSION=v4.2.0
+RUN apt-get update && apt-get install -y --no-install-recommends git cmake ninja-build \
+    gperf ccache device-tree-compiler gcc-arm-none-eabi libnewlib-arm-none-eabi make gcc gcc-multilib libc6-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir "west==1.5.0"
+# Starter boards only. A new HAL/toolchain must be baked and qualified explicitly.
+RUN git clone --depth 1 --branch ${ZEPHYR_VERSION} https://github.com/zephyrproject-rtos/zephyr /opt/zephyrproject/zephyr \
+    && west init -l /opt/zephyrproject/zephyr \
+    && cd /opt/zephyrproject && west config zephyr.base zephyr \
+    && cd /opt/zephyrproject && west update --narrow --fetch-opt=--depth=1 cmsis cmsis_6 hal_stm32 \
+    && pip install --no-cache-dir -r zephyr/scripts/requirements-base.txt
+
+FROM base AS application
+ARG FLUTTER_VERSION=3.35.4
+ENV PUB_CACHE=/opt/pub-cache
+RUN pip install --no-cache-dir "PyYAML==6.0.3"
+RUN apt-get update && apt-get install -y --no-install-recommends curl git unzip xz-utils libglu1-mesa \
+    && rm -rf /var/lib/apt/lists/* \
+    && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git /opt/flutter \
+    && /opt/flutter/bin/flutter config --no-analytics --enable-web \
+    && /opt/flutter/bin/flutter precache --web \
+    && mkdir -p /opt/pub-cache
+COPY docker/templates/watch-telemetry-v1/application /opt/qualified-companion
+RUN /opt/flutter/bin/flutter create --platforms web --project-name kleos_watch_companion /tmp/template \
+    && mkdir -p /opt/qualified-companion/web && cp -R /tmp/template/web/. /opt/qualified-companion/web/ \
+    && cd /opt/qualified-companion && /opt/flutter/bin/flutter pub get \
+    && chown -R 10001:10001 /opt/flutter /opt/pub-cache
+# Only dependencies prebaked into this image are supported. Untrusted jobs have no internet egress.
+
+FROM mechanics AS validate
+ARG KICAD_VERSION=9.0.8+dfsg-1~bpo12+1
+RUN echo 'deb https://deb.debian.org/debian bookworm-backports main' > /etc/apt/sources.list.d/backports.list \
+    && apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports "kicad=${KICAD_VERSION}" gcc libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=application /opt/flutter/bin/cache/dart-sdk /opt/dart-sdk
+
+FROM validate AS electronics
+# atopile 0.12.5 requires CPython 3.13. Keep it in an isolated tool environment;
+# the trusted job supervisor and CAD packages remain on Python 3.12.
+ENV UV_PYTHON_INSTALL_DIR=/opt/ato-python UV_TOOL_DIR=/opt/ato-tools UV_TOOL_BIN_DIR=/opt/toolchains/bin
+RUN pip install --no-cache-dir "uv==0.9.8" \
+    && uv python install 3.13.7 \
+    && uv tool install --python 3.13.7 "atopile==0.12.5" \
+    && chmod -R a+rX /opt/ato-python /opt/ato-tools \
+    && rm -rf /root/.cache/uv
+
+# Optional, operator-qualified extension. The checked-in manifest remains disabled.
+# Supply the reviewed checksum of the official pinned release; never accept an
+# unchecked download or enable a profile merely because this image builds.
+FROM validate AS renode-validator
+ARG RENODE_DEB_SHA256
+RUN test "${#RENODE_DEB_SHA256}" -eq 64 \
+    && apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports curl ca-certificates \
+    && curl --fail --location --proto '=https' --tlsv1.2 \
+        https://github.com/renode/renode/releases/download/v1.15.3/renode_1.15.3_amd64.deb \
+        --output /tmp/renode.deb \
+    && printf '%s  /tmp/renode.deb\n' "$RENODE_DEB_SHA256" | sha256sum --check --strict \
+    && apt-get install -y --no-install-recommends /tmp/renode.deb \
+    && rm -rf /var/lib/apt/lists/* /tmp/renode.deb
+COPY docker/renode /opt/kleos/renode

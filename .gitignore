@@ -12,3 +12,12 @@ node_modules/
 **/htmlcov/
 *.pyc
 .DS_Store
+**/.data/
+**/.env
+**/.ruff_cache/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+**/crash.log
+**/terraform.tfvars

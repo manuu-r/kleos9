@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "name": "ngspice qualified RC scenario",
+    "version": "0.1.0",
+    "transport": "rest",
+    "capabilities": ["electronics.simulate"],
+    "mode": "read_only",
+    "endpoint": "https://replace-with-your-isolated-ngspice-adapter.example",
+    "supportsIdempotency": true,
+    "supportsCancellation": false,
+    "disclosure": ["numeric RC circuit parameters only"]
+  },
+  "request": {
+    "schemaVersion": "1",
+    "operationId": "rc-reference-1",
+    "capability": "electronics.simulate",
+    "payload": {
+      "resistanceOhms": 1000,
+      "capacitanceFarads": 0.000001,
+      "voltage": 3.3,
+      "durationSeconds": 0.005,
+      "stepSeconds": 0.00001
+    }
+  },
+  "qualification": {
+    "status": "unqualified",
+    "requiredChecks": [
+      "real ngspice output exists and final voltage matches the analytic RC reference within 0.02 V",
+      "duplicate operation returns the recorded response",
+      "operation ID reuse with changed values returns 409",
+      "netlist, filename and process arguments cannot be supplied by callers",
+      "unavailable executable and timeouts return UNKNOWN",
+      "no physical acceptance or release authority is asserted"
+    ]
+  }
+}

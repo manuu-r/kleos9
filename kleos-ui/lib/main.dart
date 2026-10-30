@@ -12,6 +12,11 @@ import 'ui/features/developer_page.dart';
 import 'ui/features/home_pages.dart';
 import 'ui/features/portal_pages.dart';
 import 'ui/features/project/project_workspace_page.dart';
+import 'ui/features/production/production_app.dart';
+
+const usesProductionBackend =
+    String.fromEnvironment('KLEOS_BACKEND', defaultValue: 'mock') ==
+        'production';
 
 SemanticsHandle? semanticsHandle;
 void main() {
@@ -49,8 +54,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
       routes: [
         ShellRoute(
-            builder: (context, state, child) =>
-                AppShell(uri: state.uri, child: child),
+            builder: (context, state, child) => usesProductionBackend
+                ? ProductionAccessGate(
+                    child: _ConnectedRouteScope(
+                        uri: state.uri,
+                        child: AppShell(uri: state.uri, child: child)))
+                : AppShell(uri: state.uri, child: child),
             routes: [
               GoRoute(
                   path: '/',
@@ -69,6 +78,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                           projectId: state.pathParameters['id']!,
                           stage: int.tryParse(
                               state.uri.queryParameters['s'] ?? ''))))),
+              if (usesProductionBackend)
+                GoRoute(
+                    path: '/runs/:id',
+                    builder: (_, state) =>
+                        ProductionRunPage(runId: state.pathParameters['id']!)),
               GoRoute(
                   path: '/human-tasks',
                   pageBuilder: (context, state) => _page(
@@ -85,7 +99,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                   path: '/provider',
                   pageBuilder: (context, state) => _page(
-                      state, _routed((c) => ProviderPage(controller: c)))),
+                      state,
+                      _routed((c) => ProviderPage(
+                          controller: c,
+                          tab: state.uri.queryParameters['tab'],
+                          projectId: state.uri.queryParameters['projectId'])))),
               GoRoute(
                   path: '/demand',
                   pageBuilder: (context, state) =>
@@ -130,4 +148,24 @@ class KleosApp extends ConsumerWidget {
             child: child!,
           ),
       routerConfig: ref.watch(routerProvider));
+}
+
+/// The original screens keep one active workspace subscription while summaries
+/// remain lightweight. Authentication scopes the underlying repository.
+class _ConnectedRouteScope extends ConsumerWidget {
+  const _ConnectedRouteScope({required this.uri, required this.child});
+  final Uri uri;
+  final Widget child;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(apiServiceProvider);
+    final parts = uri.pathSegments;
+    final id = parts.length > 1 && parts.first == 'projects' ? parts[1] : null;
+    Future.microtask(() {
+      if (context.mounted) {
+        ref.read(kleosProvider.notifier).setActiveProject(id);
+      }
+    });
+    return child;
+  }
 }

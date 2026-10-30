@@ -1,8 +1,72 @@
 # Kleos UI
 
-Native Flutter frontend for the Kleos9 simulated hardware workbench. It preserves the dark workbench design, routed screens, ten project stages, connector flows, provider portal, human tasks, connector kit and external-assistant example.
+Flutter frontend for the Kleos9 engineering workbench, with separate production and simulation modes.
 
-The app contains no backend implementation and makes no real engineering, purchasing, printing, auth or marketplace calls. All operations go to the sibling FastAPI `mock-backend` over HTTP. Its state is rendered through an immutable snapshot repository and an injected `ChangeNotifier` view model.
+The default mock mode preserves the existing design fixtures and simulated journey against `mock-backend`. Production mode connects to the sibling `backend` service and uses scoped Riverpod state, authenticated REST commands, and reconnectable project events. Physical fulfillment remains explicitly simulated in both modes.
+
+## Production backend
+
+Start `backend` using its README, then run:
+
+```bash
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5180 \
+  --dart-define=KLEOS_BACKEND=production \
+  --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+```
+
+Use the development access token configured on the backend when its sign-in screen requests one. No credentials are compiled into Flutter. Native development tokens are stored in secure device storage; browser development tokens remain in memory. Production web sign-in uses the backend's Cognito authorization-code/PKCE flow and HttpOnly session cookies. Deploy the web app and API on the same HTTPS origin. Native sign-in uses AppAuth with PKCE, secure token storage, and the registered `kleos9://auth` callback. Register that callback in Cognito before testing iOS/Android sign-in.
+
+For a production web bundle:
+
+```bash
+flutter build web --no-web-resources-cdn --dart-define=KLEOS_BACKEND=production
+```
+
+On HTTPS web the API defaults to `/api/v1` on the same origin. Set `API_BASE_URL=https://your-api.example/api/v1` for native release builds. Local Android development defaults to `http://10.0.2.2:8000/api/v1`; iOS defaults to localhost. Configure the API's allowed origin for local web development. Native transport settings currently allow local HTTP development; use HTTPS for hosted deployments.
+
+Production includes project creation, per-lane Muse/Claude/Gemini settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
+
+Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse/Claude) shortcut. It changes the editable choices only; creating the project or saving settings persists them. There is no automatic provider fallback.
+
+The organization menu switches between invited memberships. Its remembered choice is scoped to the signed-in account; revoking that choice requires explicit reselection. In-flight commands remain pinned to their original organization. Accepted release ZIPs can be downloaded from the workspace, including a previous accepted baseline after revisions. The run inspector includes native job inputs, tool versions, limitations, and administrator-only redacted engineering logs.
+
+Completed native build jobs offer project writers “Rebuild saved sources.” This uses compute allowance without new AI generation, reads the latest project revision, journals the command before submission, and opens the resulting run. Uncertain submissions reuse their original receipt. The backend enforces source freshness and rebuild limits; validation jobs and running jobs cannot be rebuilt from this action.
+
+Commands are journaled before dispatch in app-support storage (native, flushed temporary file then rename) or browser local storage. Uncertain requests keep their original key, payload, and expected revision across restarts. The project list offers “Check request” to reconcile them. Storage failure prevents dispatch. Clearing browser/app data removes that local journal. Event streams deduplicate sequence numbers, reconnect from the last cursor, and reload the workspace on expired cursors or gaps. Opening generated artifacts downloads/shares bytes; generated application code is never rendered in the authenticated workspace.
+
+Production code lives in `data/models/production.dart`, `data/repositories/production_repository.dart`, the `production_*` services, `state/production_store.dart`, and `ui/features/production`. The repository validates responses with generated transport DTOs before adapting them to immutable UI models; free-form engineering evidence stays JSON. Cognito account access, provider credits, and signed native release builds require environment setup and are not implied by local tests.
+
+The transport models in `lib/data/models/api.generated.dart` are generated from `backend/contracts/openapi.json`. After exporting an API schema change, run these commands from `kleos-ui` (Python 3 and the Flutter/Dart SDK are required; no generator package download is needed):
+
+```bash
+python3 tool/generate_transport.py
+python3 tool/generate_transport.py --check
+```
+
+The deterministic generator follows response component references, retains typed nested models, lists and maps, and fails on unsupported schema shapes. The check detects drift against the exported contract. Artifact downloads verify their SHA-256 digest before sharing or saving.
+
+## Live production UI check
+
+`test_driver/production_live_test.dart` drives the real production application in headless Chrome against the running backend. It does not mock HTTP, authentication, command handling, or model responses. Use it only with a disposable local test project and an authorized model allowance: the create flow can make up to three Gemini calls for research, clarification, and interfaces. All seven lanes are explicitly assigned to Gemini. Training consent is switched on and back off on the test project only.
+
+Run a ChromeDriver matching the installed Chrome release on local port 4444, then stop any Flutter preview using port 5180 and run:
+
+```bash
+KLEOS_E2E_TOKEN_FILE=/absolute/path/to/local-dev-token \
+flutter drive --driver=test_driver/production_live_test.dart \
+  --target=test_driver/production_app.dart -d web-server \
+  --web-hostname=127.0.0.1 --web-port=5180 --driver-port=4444 --headless \
+  --dart-define=KLEOS_BACKEND=production \
+  --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1 --timeout=600
+```
+
+The host process reads the development token at runtime and enters it through the real sign-in form. Driver command/file logging is disabled; the token is never a Dart define or application asset. The test-only entry point enables FlutterDriver; normal builds do not. Screenshots are captured only after sign-in, alongside a result report in ignored `build/e2e/`.
+
+Set `KLEOS_E2E_PROJECT_ID` to resume an existing smoke project without creating another. Add `KLEOS_E2E_INSPECT_ONLY=1` to inspect an existing engineering run without making hosted model calls. `KLEOS_E2E_OUTPUT_DIR` selects a separate evidence folder, and `--browser-dimension=390x844@1` enables Chrome device emulation at that exact viewport (the explicit pixel ratio avoids desktop Chrome's minimum window width). Restart the ordinary production preview afterward using the command above in the production-mode section.
+
+`KLEOS_E2E_RUN_ID` chooses a particular historical run and `KLEOS_E2E_ARTIFACT_NAME` chooses its exact artifact name (for example `native/outputs/model.step`). The check verifies both the authorized response and the file saved by the test browser against the artifact hash. Downloads stay in a unique folder inside the evidence directory. It also opens available, authorized redacted AI records and native execution logs.
+
+On a disposable smoke project only, `KLEOS_E2E_BATTERY_CHANGE=1` submits a battery revision through the UI and checks that prior interfaces and candidate artifacts become stale. This changes the fixture and does not start new inference.
 
 ## Run on web
 
@@ -47,7 +111,7 @@ Tests cover immutable state, pending-request deduplication, stale response order
 
 ## iOS and Android
 
-The `ios` and `android` folders contain native Flutter targets. Both run the same UI and HTTP repository as web; every backend operation is still simulated.
+The `ios` and `android` folders contain native Flutter targets. Select production mode with the same `KLEOS_BACKEND` flag, or omit it to keep the simulation fixtures.
 
 Start the backend in another terminal, then choose a simulator or emulator from `flutter devices`:
 
@@ -90,3 +154,33 @@ The Android APK uses a development signing key for local installation. The unsig
 Phones use a compact header, bottom destinations, readable stacked tables and a project-stage picker. Tablets use side navigation when there is enough vertical space; short landscape windows keep bottom navigation. Large windows retain the desktop header. Navigation also adapts when system text is enlarged. Forms remain scrollable above the keyboard, and native safe areas and system bars are respected.
 
 Tests cover all routed screens and all ten project stages from 320 to 1280 logical pixels, phone landscape, enlarged text, safe areas, touch navigation, the on-screen keyboard, and platform-specific API defaults.
+
+### Original interface with backend features and simulations
+
+The original dashboard, connectors, human tasks, provider portal, developer kit,
+and simulation controls remain in place. New builds use the real backend;
+existing simulated records keep their original interactions. Simulation reset
+and speed controls never reset or speed up real backend projects. Failed real
+commands never fall back to fabricated results.
+
+AI models are under **Providers → AI models**, alongside the original Services
+portal. Set per-lane defaults for new builds or change an existing real project's
+policy there. Defaults are saved per browser/device, user, organization, and API.
+
+For the local network preview, run the original simulation service separately:
+
+```sh
+# From mock-backend, using an environment with its requirements installed:
+KLEOS9_UI_ORIGINS=http://YOUR_LAN_IP:5180 python -m uvicorn app.main:app \
+  --host 0.0.0.0 --port 8002
+# From kleos-ui:
+flutter build web --release --dart-define=KLEOS_BACKEND=production \
+  --dart-define=API_BASE_URL=http://YOUR_LAN_IP:8000/api/v1 \
+  --dart-define=KLEOS_SIMULATION_API_BASE_URL=http://YOUR_LAN_IP:8002/api
+python3 tool/serve_web.py --port 5180
+```
+
+Use the same UI origin in the backend CORS configuration. The preview server
+sends `Cache-Control: no-store`. Development no-login is controlled by the backend
+setting `KLEOS_DEVELOPMENT_NO_LOGIN=true`; no credentials are bundled into Flutter.
+The simulation server keeps its original in-memory state and resets on restart.

@@ -5,11 +5,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/app_snapshot.dart';
 import '../data/models/json.dart';
 import '../data/services/api_service.dart';
+import '../data/services/production_legacy_api_service.dart';
+import 'production_store.dart';
+import 'model_defaults.dart';
 export '../data/models/app_snapshot.dart' show CommandResult;
 
 /// Overridden in tests with a client that points at fixtures.
 final apiServiceProvider = Provider<ApiService>((ref) {
-  final service = ApiService();
+  final ApiService service =
+      const String.fromEnvironment('KLEOS_BACKEND', defaultValue: 'mock') ==
+              'production'
+          ? ProductionLegacyApiService(ref.watch(productionRepositoryProvider),
+              simulationService:
+                  const String.fromEnvironment('KLEOS_SIMULATION_API_BASE_URL')
+                          .isEmpty
+                      ? null
+                      : ApiService(
+                          baseUrl: const String.fromEnvironment(
+                              'KLEOS_SIMULATION_API_BASE_URL')))
+          : ApiService();
   ref.onDispose(service.close);
   return service;
 });
@@ -63,20 +77,37 @@ final kleosProvider =
 class KleosStore extends Notifier<KleosController> {
   static const _fast = Duration(milliseconds: 750);
   static const _slow = Duration(seconds: 3);
-  late final ApiService _service;
+  late ApiService _service;
+  StreamSubscription<JsonMap>? _updates;
   final Map<String, Future<CommandResult>> _requests = {};
   Timer? _timer;
   bool _refreshing = false;
   bool _foreground = true;
   int _quietPolls = 0;
   int _failures = 0;
+  int _generation = 0;
   AppLifecycleListener? _lifecycle;
 
   @override
   KleosController build() {
+    final generation = ++_generation;
     _service = ref.watch(apiServiceProvider);
+    _refreshing = false;
+    _quietPolls = 0;
+    _failures = 0;
+    _requests.clear();
+    final service = _service;
+    if (service is ProductionLegacyApiService) {
+      _updates = service.updates.listen((snapshot) {
+        if (generation == _generation && ref.mounted) _accept(snapshot);
+      }, onError: (Object error) {
+        if (generation == _generation && ref.mounted) _fail(error);
+      });
+    }
     ref.onDispose(() {
+      _generation++;
       _timer?.cancel();
+      _updates?.cancel();
       _lifecycle?.dispose();
     });
     if (ref.read(pollingEnabledProvider)) {
@@ -95,11 +126,28 @@ class KleosStore extends Notifier<KleosController> {
   }
 
   Future<void> start() async {
+    final generation = _generation;
     await refresh();
-    _schedule(_fast);
+    if (generation == _generation && ref.mounted) _schedule(_fast);
+  }
+
+  Future<void> setActiveProject(String? id) async {
+    final service = _service;
+    if (service is ProductionLegacyApiService) {
+      try {
+        await service.setActiveProject(id);
+      } catch (error) {
+        _fail(error);
+      }
+    }
   }
 
   void _schedule(Duration delay) {
+    if (_service is ProductionLegacyApiService &&
+        const String.fromEnvironment('KLEOS_SIMULATION_API_BASE_URL').isEmpty &&
+        delay != Duration.zero) {
+      delay = const Duration(seconds: 15);
+    }
     _timer?.cancel();
     if (!ref.mounted || !_foreground) return;
     _timer = Timer(delay, () async {
@@ -141,15 +189,20 @@ class KleosStore extends Notifier<KleosController> {
   Future<void> refresh() async {
     if (!ref.mounted || _refreshing) return;
     _refreshing = true;
+    final generation = _generation;
+    final service = _service;
     try {
-      final changed = _accept(await _service.load());
+      final snapshot = await service.load();
+      if (generation != _generation || !ref.mounted) return;
+      final changed = _accept(snapshot);
       _quietPolls = changed ? 0 : _quietPolls + 1;
       _failures = 0;
     } catch (e) {
+      if (generation != _generation || !ref.mounted) return;
       _failures++;
       _fail(e);
     } finally {
-      _refreshing = false;
+      if (generation == _generation) _refreshing = false;
     }
   }
 
@@ -162,17 +215,36 @@ class KleosStore extends Notifier<KleosController> {
     ]);
     final inflight = _requests[key];
     if (inflight != null) return inflight;
+    final generation = _generation;
+    final service = _service;
     final request = Future<CommandResult>(() async {
       try {
-        final response = await _service.command(type, payload);
+        final effectivePayload = service is ProductionLegacyApiService &&
+                type == 'project.create' &&
+                !payload.containsKey('modelPolicy')
+            ? {
+                ...payload,
+                'modelPolicy':
+                    (await ref.read(newBuildModelPolicyProvider.future))
+                        .map((lane, model) => MapEntry(lane, model.toJson()))
+              }
+            : payload;
+        if (generation != _generation || !ref.mounted) {
+          return const CommandResult(ok: false);
+        }
+        final response = await service.command(type, effectivePayload);
+        if (generation != _generation || !ref.mounted) {
+          return const CommandResult(ok: false);
+        }
         _accept(asMap(response['snapshot']));
         _quietPolls = 0;
         return CommandResult(ok: true, result: asMap(response['result']));
       } catch (e) {
-        _fail(e);
+        if (generation == _generation && ref.mounted) _fail(e);
         return const CommandResult(ok: false);
       }
     }).whenComplete(() {
+      if (generation != _generation || !ref.mounted) return;
       _requests.remove(key);
       if (ref.mounted) state = state._copy(pendingTypes: _pendingTypes());
     });

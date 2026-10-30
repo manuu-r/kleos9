@@ -7,6 +7,7 @@ import '../../core/device_visual.dart';
 import '../../core/human_task_card.dart';
 import '../../core/widgets.dart';
 import 'common.dart';
+import 'production_stages.dart';
 
 const _questions = <JsonMap>[
   {
@@ -164,18 +165,24 @@ class _ProjectStageState extends State<ProjectStage> {
       allTasks.where((t) => asList(p[field]).contains(t['id'])).toList();
 
   @override
-  Widget build(BuildContext context) => switch (widget.stage) {
-        0 => _intent(),
-        1 => _feasibility(),
-        2 => _confirm(),
-        3 => _interfaces(),
-        4 => _generate(),
-        5 => _verify(),
-        6 => _procure(),
-        7 => _physical(),
-        8 => _kit(),
-        _ => _deliver(),
-      };
+  Widget build(BuildContext context) => p['production'] == true
+      ? ProductionStage(
+          controller: controller,
+          project: p,
+          stage: widget.stage,
+          onNext: widget.onNext)
+      : switch (widget.stage) {
+          0 => _intent(),
+          1 => _feasibility(),
+          2 => _confirm(),
+          3 => _interfaces(),
+          4 => _generate(),
+          5 => _verify(),
+          6 => _procure(),
+          7 => _physical(),
+          8 => _kit(),
+          _ => _deliver(),
+        };
 
   Widget _chat(String text, {bool user = false}) => Align(
         alignment: user ? Alignment.centerRight : Alignment.centerLeft,
