@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .contracts import EngineeringToolDefinition
+from .contracts import EngineeringToolDefinition, Lane
 
 
 class Settings(BaseSettings):
@@ -39,8 +39,23 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = Field(default=None,
         validation_alias=AliasChoices("KLEOS_GEMINI_API_KEY", "GEMINI_API_KEY"))
     meta_model: str = "muse-spark-1.3"
+    meta_wonder_model: str = "muse-wonder-1.0"
     gemini_model: str = "gemini-3.8-flash"
-    default_model_provider: Literal["meta", "google"] | None = None
+    default_model_provider: Literal["meta", "modal", "google"] | None = None
+    # Modal Shared Endpoint (OpenAI-compatible). The key is the combined proxy token "wk-<id>.ws-<secret>".
+    modal_llm_url: str | None = None
+    modal_llm_key: SecretStr | None = None
+    modal_llm_model: str = "meta-models/Muse-Spark-Open-816B-A42B"
+    # Lanes that default to Modal once it is configured; research needs Model API web search.
+    modal_default_lanes: list[Lane] = [Lane.mechanics, Lane.electronics, Lane.coordination, Lane.review]
+    modal_rate_limit_retries: int = Field(default=4, ge=0, le=8)
+    # When Modal stays rate limited, answer that one call on the Model API and record the switch.
+    modal_fallback_to_meta: bool = True
+    # Per-million-token rates for models genai-prices cannot price.
+    modal_input_usd_per_mtok: float = Field(default=1.25, ge=0, allow_inf_nan=False)
+    modal_cached_input_usd_per_mtok: float = Field(default=0.15, ge=0, allow_inf_nan=False)
+    modal_output_usd_per_mtok: float = Field(default=4.25, ge=0, allow_inf_nan=False)
+    web_search_usd_per_1k: float = Field(default=2.50, ge=0, allow_inf_nan=False)
     development_unlimited_usage: bool = False
     # Limits are operator allowances, never claims about provider credit balances.
     project_budget_usd: float = Field(default=0, ge=0, allow_inf_nan=False)
@@ -106,6 +121,11 @@ class Settings(BaseSettings):
                 origin = (target.scheme, target.hostname, target.port or (443 if target.scheme == 'https' else 80))
                 if preview_origin == origin:
                     raise ValueError('Companion previews must use an origin separate from the control UI and API')
+        if self.modal_llm_url:
+            endpoint = urlsplit(self.modal_llm_url)
+            if (endpoint.scheme != "https" or not endpoint.hostname or endpoint.username
+                    or endpoint.password or endpoint.query or endpoint.fragment):
+                raise ValueError("The Modal endpoint must be an absolute HTTPS URL without credentials")
         if self.development_unlimited_usage and self.environment not in {"development", "test"}:
             raise ValueError("Unlimited development usage is restricted to development/test environments")
         tool_keys = [(tool.id, tool.version) for tool in self.engineering_tools]

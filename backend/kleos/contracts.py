@@ -21,7 +21,7 @@ class Lane(StrEnum):
 
 
 class ModelChoice(WireModel):
-    provider: Literal["meta", "google"]
+    provider: Literal["meta", "modal", "google"]
     model: str = Field(min_length=1, max_length=100)
 
 

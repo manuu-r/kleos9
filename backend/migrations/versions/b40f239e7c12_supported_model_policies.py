@@ -44,9 +44,8 @@ def normalize_policies(connection, gemini_model):
 
 
 def upgrade():
-    from kleos.config import get_settings
-
-    normalize_policies(op.get_bind(), get_settings().gemini_model)
+    # Gemini was removed from the settings later; this historical migration pins its last default.
+    normalize_policies(op.get_bind(), "gemini-3.8-flash")
 
 
 def downgrade():

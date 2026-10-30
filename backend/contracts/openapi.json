@@ -3720,6 +3720,7 @@
             "type": "string",
             "enum": [
               "meta",
+              "modal",
               "google"
             ],
             "title": "Provider"

@@ -450,12 +450,18 @@ class EngineeringEngine:
             self.store.put_json(key, redact({"output": output, "messages": messages}))
             # Until a billing reconciliation is available, retain a conservative allowance debit.
             reserved = invocation.reserved_usd
-            amount = max(reserved, usage.get("estimatedUsd") or 0)
+            # estimatedUsd covers tokens plus search; unpriced models still owe the search fee.
+            amount = max(reserved, usage.get("estimatedUsd") or usage.get("searchUsd") or 0)
             daily = session.get(DailyBudget, invocation.usage["reservationDay"])
             project.reserved_usd = max(0, project.reserved_usd - reserved)
             project.spent_usd += amount
             daily.reserved, daily.spent = max(0, daily.reserved - reserved), daily.spent + amount
             invocation.status, invocation.output, invocation.transcript_key = "succeeded", output, key
+            if usage.get("fallbackFrom"):
+                # Records, artifact provenance and native retries must name the model that actually answered.
+                attempt = session.get(Attempt, invocation.attempt_id)
+                invocation.provider = attempt.provider = usage["provider"]
+                invocation.model = attempt.model = usage["model"]
             invocation.estimated_usd = usage.get("estimatedUsd") if usage.get("estimatedUsd") is not None else amount
             invocation.usage = {**invocation.usage, **usage, "costBasis": "conservative_reservation",
                                 "allowanceDebitUsd": amount}

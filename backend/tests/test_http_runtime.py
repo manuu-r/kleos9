@@ -71,10 +71,9 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             catalog_response = client.get("/api/v1/model-catalog")
             assert catalog_response.status_code == 200
             catalog = catalog_response.json()
-            choices = {entry["provider"]: entry for entry in catalog["models"]}
-            assert choices["google"]["configured"] is True
-            assert choices["meta"]["configured"] is False
-            assert set(choices) == {"meta", "google"}
+            choices = {entry["model"]: entry for entry in catalog["models"]}
+            assert {entry["provider"] for entry in choices.values()} == {"meta", "modal", "google"}
+            assert all(entry["configured"] for entry in choices.values() if entry["provider"] == "meta")
             assert all(entry["creditBalance"] is None for entry in choices.values())
             passed("health_authentication_model_catalog", models=[{
                 "provider": entry["provider"], "model": entry["model"], "configured": entry["configured"]}
@@ -101,7 +100,8 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             passed("command_idempotency_conflict_and_tenant_authorization")
 
             policy = initial["project"]["modelPolicy"]
-            policy["coordination"] = {"provider": "google", "model": choices["google"]["model"]}
+            policy["coordination"] = {"provider": "meta", "model": next(
+                model for model, entry in choices.items() if entry["provider"] == "meta")}
             changed = command("project.setModelPolicy", {"projectId": project_id, "modelPolicy": policy}, initial["revision"])
             assert changed.status_code == 202
             updated = workspace()

@@ -99,7 +99,7 @@ def test_every_engineering_provider_attempt_uses_frozen_scene_once_not_later_dra
         # Even a changed draft must not substitute for the explicitly approved scene.
         update_concept(p, {'conceptScene': scene('box')}, 'refining', 'later', 'unapproved', 0)
     policy = platform.control.workspace(platform.principal, ident)['project']['modelPolicy']
-    policy['mechanics'] = {'provider': 'google', 'model': platform.control.registry.models['google']}
+    policy['mechanics'] = {'provider': 'meta', 'model': platform.control.registry.models['meta'][1]}
     command(platform, ident, 'project.setModelPolicy', {'modelPolicy': policy})
     receipt = command(platform, ident, 'project.generate', {'lane': 'mechanics'})
     worker = engine(platform)
@@ -113,7 +113,7 @@ def test_every_engineering_provider_attempt_uses_frozen_scene_once_not_later_dra
     assert context['requirements']['designIntent']['enclosure']['profile'] == 'circle'
     assert context['manifest']['approvedDesign']['sceneHash'] == frozen['sceneHash']
     with platform.db.transaction() as session:
-        assert session.get(Attempt, attempt).provider == 'google'
+        assert session.get(Attempt, attempt).model == platform.control.registry.models['meta'][1]
         assert session.get(Project, ident).state['approvedDesign'] == frozen
 
 

@@ -38,8 +38,7 @@ def test_same_review_retries_remain_bounded_across_provider_switches_and_recover
         with platform.db.transaction() as session:
             session.get(Attempt, attempt).status = "failed"
         policy = platform.control.workspace(platform.principal, ident)["project"]["modelPolicy"]
-        provider = "google" if index % 2 else "meta"
-        policy["coordination"] = {"provider": provider, "model": platform.control.registry.models[provider]}
+        policy["coordination"] = {"provider": "meta", "model": platform.control.registry.models["meta"][index % 2]}
         command(platform, ident, "project.setModelPolicy", {"modelPolicy": policy})
     assert engine(platform).begin_attempt(task_id) is None
     with platform.db.transaction() as session:

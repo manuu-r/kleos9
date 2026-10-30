@@ -28,6 +28,8 @@ def test_local_native_execution_requires_authentication_and_cannot_enter_cloud()
 
 
 def test_explicit_default_model_provider_environment(monkeypatch):
+    monkeypatch.setenv("KLEOS_DEFAULT_MODEL_PROVIDER", "modal")
+    assert Settings(_env_file=None).default_model_provider == "modal"
     monkeypatch.setenv("KLEOS_DEFAULT_MODEL_PROVIDER", "google")
     assert Settings(_env_file=None).default_model_provider == "google"
     monkeypatch.setenv("KLEOS_DEFAULT_MODEL_PROVIDER", "unknown")

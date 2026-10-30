@@ -75,7 +75,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
       const KSectionHeader(
           title: 'AI model providers',
           description:
-              'Choose Muse or Gemini for new builds or for an existing engineering project.'),
+              'Choose a model for new builds or for an existing engineering project.'),
       catalog.when(
         loading: () => const LinearProgressIndicator(),
         error: (error, _) => KCard(
@@ -86,7 +86,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
               onPressed: () => ref.invalidate(modelCatalogProvider)),
         ])),
         data: (models) => KResponsive(columns: 3, children: [
-          for (final provider in ['meta', 'google'])
+          for (final provider in ['meta', 'modal', 'google'])
             KCard(
                 title: providerLabel(provider),
                 child: kColumn([

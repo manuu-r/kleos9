@@ -97,14 +97,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Muse'), findsWidgets);
-    expect(find.text('Gemini'), findsWidgets);
-    await tester.tap(find.text('Use Gemini for all lanes'));
+    expect(find.text('Muse on Modal'), findsWidgets);
+    await tester.tap(find.text('Use muse-spark-open for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));
     await tester.pumpAndSettle();
     expect(
-        Defaults.saved!.values.every((choice) => choice.provider == 'google'),
+        Defaults.saved!.values.every((choice) => choice.provider == 'modal'),
         true);
     expect(commands, isEmpty);
     await tester.ensureVisible(find.text('Services'));
@@ -126,8 +126,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Real build'), findsOneWidget);
-    await tester.ensureVisible(find.text('Use Gemini for all lanes'));
-    await tester.tap(find.text('Use Gemini for all lanes'));
+    await tester.ensureVisible(find.text('Use muse-spark-open for all lanes'));
+    await tester.tap(find.text('Use muse-spark-open for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));
@@ -137,7 +137,7 @@ void main() {
     expect(
         asMap(asMap(commands.single['payload'])['modelPolicy'])
             .values
-            .every((value) => asMap(value)['provider'] == 'google'),
+            .every((value) => asMap(value)['provider'] == 'modal'),
         true);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

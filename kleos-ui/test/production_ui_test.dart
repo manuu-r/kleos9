@@ -16,7 +16,7 @@ import 'package:kleos_ui/ui/features/production/production_app.dart';
 
 const choices = [
   ModelChoice('meta', 'muse-spark-1.3'),
-  ModelChoice('google', 'gemini-3.8-flash')
+  ModelChoice('modal', 'muse-spark-open')
 ];
 final testCatalog = ModelCatalog([
   for (final choice in choices)
@@ -188,8 +188,8 @@ void main() {
             {
               'number': 1,
               'status': 'succeeded',
-              'provider': 'google',
-              'model': 'gemini-3.8-flash',
+              'provider': 'modal',
+              'model': 'muse-spark-open',
               'calls': [
                 {
                   'operation': 'generate',
@@ -299,8 +299,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(7));
     for (final entry in [
-      (0, 'Gemini · gemini-3.8-flash', 'google'),
-      (1, 'Gemini · gemini-3.8-flash', 'google')
+      (0, 'Muse on Modal · muse-spark-open', 'modal'),
+      (1, 'Muse on Modal · muse-spark-open', 'modal')
     ]) {
       final picker = find.byType(DropdownButtonFormField<String>).at(entry.$1);
       await tester.ensureVisible(picker);
@@ -542,7 +542,7 @@ void main() {
     await tester.scrollUntilVisible(picker, 200);
     await tester.tap(picker);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gemini · gemini-3.8-flash').last);
+    await tester.tap(find.text('Muse on Modal · muse-spark-open').last);
     await tester.pumpAndSettle();
     final save = find.widgetWithText(KButton, 'Save provider choices');
     await tester.scrollUntilVisible(save, 300);
@@ -553,7 +553,7 @@ void main() {
     expect(repository.commands.single['revision'], 9);
     final policy =
         asMap(asMap(repository.commands.single['payload'])['modelPolicy']);
-    expect(asMap(policy['coordination'])['provider'], 'google');
+    expect(asMap(policy['coordination'])['provider'], 'modal');
     expect(asMap(policy['firmware'])['provider'], 'meta');
     await tester.pumpWidget(const SizedBox());
     repository.dispose();
@@ -570,8 +570,8 @@ void main() {
     await tester.tap(settings);
     await tester.pumpAndSettle();
     expect(repository.commands, isEmpty);
-    expect(find.byKey(const ValueKey('provider-preset-meta')), findsNothing);
-    final preset = find.byKey(const ValueKey('provider-preset-google'));
+    expect(find.byKey(const ValueKey('provider-preset-muse-spark-1.3')), findsNothing);
+    final preset = find.byKey(const ValueKey('provider-preset-muse-spark-open'));
     await tester.ensureVisible(preset);
     await tester.tap(preset);
     await tester.pumpAndSettle();
@@ -586,7 +586,7 @@ void main() {
     expect(saved['revision'], 9);
     final policy = asMap(asMap(saved['payload'])['modelPolicy']);
     expect(policy.keys.toSet(), engineeringLanes.keys.toSet());
-    expect(policy.values.every((value) => asMap(value)['provider'] == 'google'),
+    expect(policy.values.every((value) => asMap(value)['provider'] == 'modal'),
         isTrue);
     await tester.pumpWidget(const SizedBox());
     repository.dispose();

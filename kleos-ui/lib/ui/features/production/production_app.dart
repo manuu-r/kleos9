@@ -615,15 +615,15 @@ class ModelPolicyEditor extends StatelessWidget {
         title: 'AI providers by lane',
         child: kColumn([
           const KMuted(
-              'Choose Muse or Gemini for each part of the work. Changes apply to new attempts; active work keeps its selected model.'),
+              'Choose a model for each part of the work. Changes apply to new attempts; active work keeps its selected model.'),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final model in catalog.models.where((model) =>
                 model.configured &&
                 engineeringLanes.keys.every(model.lanes.contains)))
               KButton(
-                  key: ValueKey('provider-preset-${model.choice.provider}'),
+                  key: ValueKey('provider-preset-${model.choice.model}'),
                   label:
-                      'Use ${providerLabel(model.choice.provider)} for all lanes',
+                      'Use ${model.choice.model} for all lanes',
                   compact: true,
                   onPressed: enabled
                       ? () => onChanged({
@@ -660,7 +660,7 @@ class ModelPolicyEditor extends StatelessWidget {
                               child: Text(
                                   '${providerLabel(model.choice.provider)} · ${model.choice.model}',
                                   key: ValueKey(
-                                      'provider-option-${lane.key}-${model.choice.provider}'),
+                                      'provider-option-${lane.key}-${model.choice.model}'),
                                   overflow: TextOverflow.ellipsis))
                       ],
                       onChanged: !enabled
@@ -1044,7 +1044,7 @@ class _ModelSettingsState extends ConsumerState<_ModelSettings> {
         data: (catalog) => ExpansionTile(
           tilePadding: EdgeInsets.zero,
           title: const Text('AI provider settings'),
-          subtitle: const Text('Muse and Gemini by engineering lane'),
+          subtitle: const Text('Muse and Gemini models by engineering lane'),
           children: [
             ModelPolicyEditor(
                 catalog: catalog,
