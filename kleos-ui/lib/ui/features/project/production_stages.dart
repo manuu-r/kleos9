@@ -12,6 +12,9 @@ import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
 import '../../core/concept_preview.dart';
 import 'common.dart';
+import 'engineering_views.dart';
+import 'stage_kit.dart';
+import 'approved_design_reference.dart';
 import 'requirements_interview.dart';
 import 'planning_conversation.dart';
 import 'engineering_preview.dart';
@@ -273,59 +276,155 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
         ], gap: 24);
       });
 
+  String _humanize(String key) {
+    final text = key.replaceAll('_', ' ');
+    return text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
+  }
+
+  /// A short, readable digest of one interface record: its first scalar
+  /// fields, with the full record behind a disclosure.
+  String _digest(Object? value) {
+    if (value is Map) {
+      final lines = <String>[];
+      for (final entry in value.entries) {
+        if (entry.value is Map || entry.value is List) continue;
+        lines.add('${entry.key}: ${entry.value}');
+        if (lines.length == 3) break;
+      }
+      if (lines.isNotEmpty) return lines.join('\n');
+      return '${value.length} fields';
+    }
+    if (value is List) return '${value.length} items';
+    return '$value';
+  }
+
+  Widget approvedReference() => ApprovedDesignReference(
+      projectId: '${project['id']}',
+      approvedDesign: asMap(state['approvedDesign']),
+      designIntent: asMap(asMap(project['requirements'])['designIntent']),
+      check: asMap(state['designIntentCheck']),
+      status: state['approvedDesignStatus']?.toString(),
+      onRequestReview: canWrite &&
+              !active &&
+              !widget.controller.isPending('project.requestReview')
+          ? () async {
+              final result =
+                  await command('project.requestReview', {'autoResume': true});
+              if (!mounted || !result.ok) return;
+              context.go(
+                  '/projects/${Uri.encodeComponent('${project['id']}')}?s=2');
+            }
+          : null);
+
   Widget interfaceRecords() {
     final interfaces = asMap(project['interfaces']);
     return pColumn([
+      if (interfaces.isNotEmpty)
+        SolverBand(
+            passed: interfaces.length,
+            total: interfaces.length,
+            tones: List.filled(interfaces.length, 'pass'),
+            label: 'contracts accepted'),
       EngineeringPreview(
           projectId: '${project['id']}',
           revision: number(project['revision']).toInt(),
           updating: active,
           onReviseCircuit: reviseCircuit,
-          fallbackScene: asMap(asMap(state['concept'])['scene'])),
+          initialView: 'overview',
+          fallbackScene: asMap(asMap(state['approvedDesign'])['scene']),
+          sidebar: (bounded) => ContractExplorer(
+                  title: 'Accepted contracts',
+                  bounded: bounded,
+                  emptyText: 'No interface baseline has been established yet.',
+                  trailing: interfaces.isEmpty
+                      ? null
+                      : KBadge('Revision ${project['engineeringRevision']}',
+                          tone: 'pass'),
+                  items: [
+                    for (final item in interfaces.entries)
+                      (
+                        name: _humanize(item.key),
+                        value: _digest(item.value),
+                        state: 'ACCEPTED',
+                        group: null,
+                        footer: item.value is Map || item.value is List
+                            ? record('Full record', item.value)
+                            : null
+                      )
+                  ])),
+      approvedReference(),
       if (asMap(state['circuitContractCheck']).isNotEmpty)
         CircuitContractNotice(
             check: asMap(state['circuitContractCheck']),
             onRevise: reviseCircuit),
-      pText(
-          'Mechanics, electronics and firmware share the same accepted interface revision. Changes invalidate dependent files and checks.',
-          muted: true),
-      if (interfaces.isEmpty)
-        pText('No interface baseline has been established yet.')
-      else
-        for (final item in interfaces.entries)
-          record(item.key.replaceAll('_', ' '), item.value),
-    ]);
+    ], gap: 32);
   }
 
   Widget generation() {
     final policy = asMap(project['modelPolicy']);
     return pColumn([
+      EngineeringGrid(minWidth: 250, maxColumns: 3, children: [
+        for (final lane in engineeringLanes.entries)
+          Builder(builder: (context) {
+            final count = asMaps(workspace['artifacts'])
+                .where((a) => a['lane'] == lane.key)
+                .length;
+            return KCard(
+                tint: active && count == 0 ? KColors.accent : null,
+                padding: EdgeInsets.all(
+                    MediaQuery.sizeOf(context).width < 600 ? 16 : 18),
+                child: pColumn([
+                  Row(children: [
+                    ProgressRing(
+                        value: count > 0 ? 100 : 0,
+                        size: 52,
+                        running: active && count == 0,
+                        child: Text('$count',
+                            style: const TextStyle(
+                                fontFamily: 'GeistMono',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500))),
+                    const SizedBox(width: 16),
+                    Expanded(
+                        child: pColumn([
+                      Text(lane.value,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      KMuted(
+                          count == 0
+                              ? (active ? 'Working' : 'No artifacts yet')
+                              : '$count recorded artifact${count == 1 ? '' : 's'}',
+                          size: 12),
+                    ], gap: 2)),
+                  ]),
+                  Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                          color: KColors.bg,
+                          borderRadius: BorderRadius.circular(KRadius.control),
+                          border: Border.all(color: KColors.border)),
+                      child: pColumn([
+                        pText(
+                            providerLabel(
+                                '${asMap(policy[lane.key])['provider'] ?? ''}'),
+                            strong: true,
+                            small: true),
+                        pText(asMap(policy[lane.key])['model'],
+                            small: true, muted: true, mono: true),
+                      ], gap: 2)),
+                ], gap: 14));
+          }),
+      ]),
       EngineeringPreview(
           projectId: '${project['id']}',
           revision: number(project['revision']).toInt(),
           updating: active,
           onReviseCircuit: reviseCircuit,
-          fallbackScene: asMap(asMap(state['concept'])['scene'])),
-      pText(
-          'Each lane generates candidate files against the shared interfaces. Only independent checks and release gates can accept them.',
-          muted: true),
-      KResponsive(columns: 3, children: [
-        for (final lane in engineeringLanes.entries)
-          KCard(
-              title: lane.value,
-              child: pColumn([
-                pText(
-                    providerLabel(
-                        '${asMap(policy[lane.key])['provider'] ?? ''}'),
-                    strong: true),
-                pText(asMap(policy[lane.key])['model'],
-                    small: true, muted: true),
-                pText(
-                    '${asMaps(workspace['artifacts']).where((a) => a['lane'] == lane.key).length} recorded artifacts',
-                    small: true),
-              ], gap: 5)),
-      ]),
-    ]);
+          initialView: 'overview',
+          fallbackScene: asMap(asMap(state['approvedDesign'])['scene'])),
+      approvedReference(),
+    ], gap: 32);
   }
 
   Widget validation() => pColumn([
@@ -334,15 +433,26 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             muted: true),
         if (asMaps(workspace['checks']).isEmpty)
           pText('No validation results have been recorded yet.')
-        else
+        else ...[
+          SolverBand(
+              passed: asMaps(workspace['checks'])
+                  .where((c) => c['status'] == 'PASS')
+                  .length,
+              total: asMaps(workspace['checks']).length,
+              label: 'checks passed',
+              tones: [
+                for (final c in asMaps(workspace['checks']))
+                  evidenceTone('${c['status']}')
+              ]),
           for (final check in asMaps(workspace['checks']))
-            KCard(
+            StagePanel(
                 title: '${check['name']}',
                 trailing: evidence(check['status']),
                 child: pColumn([
                   pText(check['evidenceKind'], muted: true, small: true),
                   record('Evidence and limitations', check['details']),
                 ])),
+        ],
       ]);
 
   Widget fulfillment() {
@@ -423,17 +533,44 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           pText(
               'Generated sources, builds, exports, and evidence will appear here.',
               muted: true),
-        for (final artifact in asMaps(workspace['artifacts']))
-          ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: pText(artifact['name']),
-              subtitle: pText('${artifact['lane']} · ${artifact['status']}',
-                  small: true, muted: true),
-              trailing: IconButton(
-                  tooltip: 'Download artifact',
-                  icon: const Icon(Icons.download_outlined),
-                  onPressed:
-                      downloading != null ? null : () => download(artifact))),
+        Column(children: [
+          for (final (i, artifact)
+              in asMaps(workspace['artifacts']).indexed) ...[
+            if (i > 0) const Divider(height: 1, color: KColors.hairline),
+            Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(children: [
+                  Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                          color: KColors.surface2,
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: KColors.border)),
+                      child: Icon(_artifactIcon('${artifact['name']}'),
+                          size: 16, color: KColors.muted)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                      child: pColumn([
+                    Text('${artifact['name']}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'GeistMono',
+                            fontSize: 12.5,
+                            height: 1.4)),
+                    pText('${artifact['lane']} · ${artifact['status']}',
+                        small: true, muted: true),
+                  ], gap: 2)),
+                  IconButton(
+                      tooltip: 'Download artifact',
+                      icon: const Icon(Icons.download_outlined, size: 19),
+                      onPressed: downloading != null
+                          ? null
+                          : () => download(artifact)),
+                ])),
+          ]
+        ]),
         if (project['acceptedReleaseId'] != null)
           KButton(
               label: 'Download accepted release',
@@ -447,6 +584,18 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                         'mediaType': 'application/zip'
                       }, release: true)),
       ]));
+
+  IconData _artifactIcon(String name) {
+    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    if (const {'step', 'stp', 'stl', 'obj', '3mf'}.contains(ext)) {
+      return Icons.view_in_ar_outlined;
+    }
+    if (const {'kicad_pcb', 'kicad_sch', 'gbr'}.contains(ext)) {
+      return Icons.memory_outlined;
+    }
+    if (ext == 'zip') return Icons.folder_zip_outlined;
+    return Icons.description_outlined;
+  }
 
   Widget settings() => KCard(
       title: 'Project settings',
@@ -551,54 +700,75 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
     }
     final latest = runs.firstOrNull;
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: stageNames[widget.stage],
-          description:
-              'Engineering revision ${project['engineeringRevision']}'),
-      KCard(
-          child: pColumn([
-        pActions([
-          evidence(project['status']),
-          KBadge(
-              widget.controller.state['liveConnected'] == true
-                  ? 'Live updates'
-                  : 'Reconnecting updates',
-              tone: widget.controller.state['liveConnected'] == true
-                  ? 'pass'
-                  : 'unknown'),
-          const KBadge('Real engineering'),
-          const KBadge('Physical steps simulated', tone: 'sim')
-        ]),
-        if (liveError != null) connectionError(liveError),
-        if (latest?['blocker'] != null)
-          pCallout(pText(latest!['blocker'], color: KColors.fail)),
-        pActions([
-          ...nextActions(),
-          if (!active &&
-              latest != null &&
-              const {'blocked', 'failed'}.contains(latest['status']))
-            action('project.retry', 'Retry last run',
-                primary: false, data: {'runId': latest['id']}),
-        ]),
-        if (active) const LinearProgressIndicator(minHeight: 3),
-      ])),
-      KCard(
-          title: switch (widget.stage) {
-            0 => 'Shape your device',
-            1 => 'Shape your device',
-            2 => 'Concept review',
-            3 => 'Shared interfaces',
-            4 => 'Engineering lanes',
-            5 => 'Independent validation',
-            _ => 'Stage records',
-          },
-          child: switch (widget.stage) {
-            0 || 1 || 2 => concept(),
-            3 => interfaceRecords(),
-            4 => generation(),
-            5 => validation(),
-            _ => fulfillment(),
+          description: switch (widget.stage) {
+            3 =>
+              'Mechanics, electronics and firmware share one accepted interface revision. Changes invalidate dependent files and checks.',
+            4 =>
+              'Each lane generates candidate files against the shared interfaces. Only independent checks and release gates can accept them.',
+            _ => 'Engineering revision ${project['engineeringRevision']}',
           }),
+      Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+              color: KColors.surface,
+              borderRadius: BorderRadius.circular(KRadius.card),
+              border: Border.all(color: KColors.border)),
+          child: pColumn([
+            LayoutBuilder(builder: (context, c) {
+              final live = widget.controller.state['liveConnected'] == true;
+              final status = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    evidence(project['status']),
+                    KBadge(live ? 'Live updates' : 'Reconnecting updates',
+                        tone: live ? 'pass' : 'unknown'),
+                    const KBadge('Real engineering'),
+                    const KBadge('Physical steps simulated', tone: 'sim'),
+                  ]);
+              final actions = pActions([
+                ...nextActions(),
+                if (!active &&
+                    latest != null &&
+                    const {'blocked', 'failed'}.contains(latest['status']))
+                  action('project.retry', 'Retry last run',
+                      primary: false, data: {'runId': latest['id']}),
+              ]);
+              return c.maxWidth > 820
+                  ? Row(children: [
+                      Expanded(child: status),
+                      const SizedBox(width: 16),
+                      actions
+                    ])
+                  : pColumn([status, actions], gap: 14);
+            }),
+            if (liveError != null) connectionError(liveError),
+            if (latest?['blocker'] != null)
+              pCallout(pText(latest!['blocker'], color: KColors.fail)),
+            if (active)
+              SegmentBar(tones: List.filled(16, 'accent'), sweeping: true),
+          ], gap: 14)),
+      if (widget.stage == 3)
+        interfaceRecords()
+      else if (widget.stage == 4)
+        generation()
+      else
+        KCard(
+            title: switch (widget.stage) {
+              0 => 'Shape your device',
+              1 => 'Shape your device',
+              2 => 'Concept review',
+              5 => 'Independent validation',
+              _ => 'Stage records',
+            },
+            child: switch (widget.stage) {
+              0 || 1 || 2 => concept(),
+              5 => validation(),
+              _ => fulfillment(),
+            }),
       if (widget.stage >= 3 || asMaps(workspace['artifacts']).isNotEmpty)
         artifacts(),
       if (runs.isNotEmpty)

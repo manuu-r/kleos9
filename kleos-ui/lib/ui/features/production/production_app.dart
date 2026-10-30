@@ -10,6 +10,7 @@ import '../../../data/services/command_journal.dart';
 import '../../../data/services/production_auth.dart';
 import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
+import '../admin/admin_page.dart';
 import '../home_pages.dart' show stageNames;
 
 final productionRouterProvider = Provider<GoRouter>((ref) {
@@ -31,6 +32,10 @@ final productionRouterProvider = Provider<GoRouter>((ref) {
                 path: '/runs/:id',
                 builder: (_, state) =>
                     ProductionRunPage(runId: state.pathParameters['id']!)),
+            GoRoute(
+                path: '/admin',
+                builder: (_, __) => const SingleChildScrollView(
+                    padding: EdgeInsets.all(24), child: AdminPage())),
           ],
         ),
       ],
@@ -153,6 +158,11 @@ class _AuthenticatedShell extends ConsumerWidget {
                   const Padding(
                       padding: EdgeInsets.only(right: 12),
                       child: Center(child: KBadge('Private beta'))),
+                  if (const {'owner', 'admin'}.contains(session.role))
+                    IconButton(
+                        tooltip: 'Admin',
+                        onPressed: () => context.go('/admin'),
+                        icon: const Icon(Icons.admin_panel_settings_outlined)),
                   IconButton(
                       tooltip: 'Projects',
                       onPressed: () => context.go('/'),
@@ -185,81 +195,214 @@ class _SignInPage extends ConsumerStatefulWidget {
 
 class _SignInPageState extends ConsumerState<_SignInPage> {
   final token = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final inviteCode = TextEditingController();
+  final name = TextEditingController();
+  final setupToken = TextEditingController();
+  final organization = TextEditingController();
+  bool creating = false;
   late Future<JsonMap> config = ref.read(productionAuthProvider).config();
   @override
   void dispose() {
     token.dispose();
+    email.dispose();
+    password.dispose();
+    inviteCode.dispose();
+    name.dispose();
+    setupToken.dispose();
+    organization.dispose();
     super.dispose();
   }
 
-  Future<void> signIn({required bool development}) {
+  Future<void> signIn({required bool development, bool setup = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
-    return ref
-        .read(accountProvider.notifier)
-        .signIn(developmentToken: development ? token.text : null);
+    final account = ref.read(accountProvider.notifier);
+    if (development) return account.signIn(developmentToken: token.text);
+    if (setup) {
+      return account.setUp(
+          setupToken: setupToken.text,
+          organization: organization.text,
+          email: email.text,
+          password: password.text,
+          name: name.text);
+    }
+    if (creating) {
+      return account.signUp(
+          inviteCode: inviteCode.text,
+          email: email.text,
+          password: password.text,
+          name: name.text);
+    }
+    return account.signIn(email: email.text, password: password.text);
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-          body: SafeArea(
-              child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: KCard(
-                  child: kColumn([
-                const KBadge('Kleos9 private beta'),
-                Text('Your engineering workspace.',
-                    style: Theme.of(context).textTheme.headlineLarge),
-                const KMuted(
-                    'Sign in with your invited account to design, inspect, and revise your builds.'),
-                if (widget.error != null) _Notice(widget.error!, error: true),
-                FutureBuilder<JsonMap>(
-                    future: config,
-                    builder: (context, snapshot) {
-                      if (snapshot.data?['loginRequired'] == false) {
-                        return KButton(
-                            label: 'Retry workspace',
-                            onPressed: () => ref.invalidate(accountProvider));
-                      }
-                      final dev = snapshot.data?['authMode'] == 'development';
-                      return kColumn([
-                        if (dev)
-                          TextField(
-                              key: const ValueKey('production-dev-token'),
-                              controller: token,
-                              obscureText: true,
-                              enableSuggestions: false,
-                              autocorrect: false,
-                              decoration: const InputDecoration(
-                                  labelText: 'Development access token'),
-                              onSubmitted: (_) => signIn(development: true)),
-                        if (snapshot.hasError)
-                          _Notice(snapshot.error.toString(), error: true),
-                        if (snapshot.hasError)
+          body: Stack(children: [
+        const Positioned.fill(child: KAmbient()),
+        SafeArea(
+            child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: KCard(
+                    child: kColumn([
+                  Row(children: [
+                    Container(
+                        width: 34,
+                        height: 34,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0xffffffff), Color(0xffd5d5da)]),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Text('K9',
+                            style: TextStyle(
+                                color: KColors.bg,
+                                fontSize: 12,
+                                letterSpacing: -.2,
+                                fontWeight: FontWeight.w800))),
+                    const SizedBox(width: 12),
+                    const KBadge('Kleos9 private beta'),
+                  ]),
+                  Text('Your engineering workspace.',
+                      style: Theme.of(context).textTheme.headlineLarge),
+                  const KMuted(
+                      'Sign in with your invited account to design, inspect, and revise your builds.'),
+                  if (widget.error != null) _Notice(widget.error!, error: true),
+                  FutureBuilder<JsonMap>(
+                      future: config,
+                      builder: (context, snapshot) {
+                        if (snapshot.data?['loginRequired'] == false) {
+                          return KButton(
+                              label: 'Retry workspace',
+                              onPressed: () => ref.invalidate(accountProvider));
+                        }
+                        final dev = snapshot.data?['authMode'] == 'development';
+                        final setup = snapshot.data?['setupRequired'] == true;
+                        final signup = creating && !setup;
+                        return kColumn([
+                          if (dev)
+                            TextField(
+                                key: const ValueKey('production-dev-token'),
+                                controller: token,
+                                obscureText: true,
+                                enableSuggestions: false,
+                                autocorrect: false,
+                                decoration: const InputDecoration(
+                                    labelText: 'Development access token'),
+                                onSubmitted: (_) => signIn(development: true)),
+                          if (!dev && snapshot.hasData) ...[
+                            if (setup)
+                              const _Notice(
+                                  'No account exists yet. Create the first owner with the setup token from your AWS Secrets Manager.'),
+                            if (setup)
+                              TextField(
+                                  key: const ValueKey('production-setup-token'),
+                                  controller: setupToken,
+                                  obscureText: true,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Setup token')),
+                            if (setup)
+                              TextField(
+                                  key:
+                                      const ValueKey('production-organization'),
+                                  controller: organization,
+                                  textCapitalization: TextCapitalization.words,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Organization name')),
+                            if (signup)
+                              TextField(
+                                  key: const ValueKey('production-invite-code'),
+                                  controller: inviteCode,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Invite code')),
+                            if (creating || setup)
+                              TextField(
+                                  key: const ValueKey('production-name'),
+                                  controller: name,
+                                  textCapitalization: TextCapitalization.words,
+                                  autofillHints: const [AutofillHints.name],
+                                  decoration: const InputDecoration(
+                                      labelText: 'Name (optional)')),
+                            TextField(
+                                key: const ValueKey('production-email'),
+                                controller: email,
+                                keyboardType: TextInputType.emailAddress,
+                                autofillHints: const [AutofillHints.email],
+                                autocorrect: false,
+                                decoration:
+                                    const InputDecoration(labelText: 'Email')),
+                            TextField(
+                                key: const ValueKey('production-password'),
+                                controller: password,
+                                obscureText: true,
+                                enableSuggestions: false,
+                                autocorrect: false,
+                                autofillHints: [
+                                  creating || setup
+                                      ? AutofillHints.newPassword
+                                      : AutofillHints.password
+                                ],
+                                decoration: InputDecoration(
+                                    labelText: creating || setup
+                                        ? 'Choose a password (12+ characters)'
+                                        : 'Password'),
+                                onSubmitted: (_) =>
+                                    signIn(development: false, setup: setup)),
+                          ],
+                          if (snapshot.hasError)
+                            _Notice(snapshot.error.toString(), error: true),
+                          if (snapshot.hasError)
+                            KButton(
+                                label: 'Retry connection',
+                                onPressed: () {
+                                  setState(() => config = ref
+                                      .read(productionAuthProvider)
+                                      .config());
+                                  ref.invalidate(accountProvider);
+                                }),
                           KButton(
-                              label: 'Retry connection',
-                              onPressed: () {
-                                setState(() => config =
-                                    ref.read(productionAuthProvider).config());
-                                ref.invalidate(accountProvider);
-                              }),
-                        KButton(
-                            key: const ValueKey('production-sign-in'),
-                            label: widget.loading ? 'Connecting…' : 'Sign in',
-                            primary: true,
-                            onPressed: widget.loading || !snapshot.hasData
-                                ? null
-                                : () => signIn(development: dev)),
-                      ]);
-                    }),
-                const KMuted(
-                    'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.',
-                    size: 11),
-              ], gap: 20))),
-        ),
-      )));
+                              key: const ValueKey('production-sign-in'),
+                              label: widget.loading
+                                  ? 'Connecting…'
+                                  : setup
+                                      ? 'Create owner account'
+                                      : creating
+                                          ? 'Create account'
+                                          : 'Sign in',
+                              primary: true,
+                              onPressed: widget.loading || !snapshot.hasData
+                                  ? null
+                                  : () =>
+                                      signIn(development: dev, setup: setup)),
+                          if (!dev && snapshot.hasData && !setup)
+                            KButton(
+                                key: const ValueKey('production-toggle-signup'),
+                                label: creating
+                                    ? 'I already have an account'
+                                    : 'I have an invite code',
+                                onPressed: widget.loading
+                                    ? null
+                                    : () =>
+                                        setState(() => creating = !creating)),
+                        ]);
+                      }),
+                  const KMuted(
+                      'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.',
+                      size: 11),
+                ], gap: 20))),
+          ),
+        ))
+      ]));
 }
 
 class ProductionProjectsPage extends ConsumerWidget {

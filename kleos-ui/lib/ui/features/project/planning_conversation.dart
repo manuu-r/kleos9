@@ -135,11 +135,20 @@ class _PlanningConversationState extends State<PlanningConversation> {
       child: Container(
         key: ValueKey('planning-message-${message['id']}'),
         constraints: const BoxConstraints(maxWidth: 580),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: user ? KColors.surface2 : KColors.bg,
-          border: Border.all(color: KColors.border),
-          borderRadius: BorderRadius.circular(12),
+          color: user
+              ? KColors.accent.withValues(alpha: .1)
+              : KColors.surface2.withValues(alpha: .6),
+          border: Border.all(
+              color: user
+                  ? KColors.accent.withValues(alpha: .24)
+                  : KColors.border),
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(user ? 16 : 4),
+              topRight: Radius.circular(user ? 4 : 16),
+              bottomLeft: const Radius.circular(16),
+              bottomRight: const Radius.circular(16)),
         ),
         child: pColumn([
           pText(user ? 'You' : 'Kleos', muted: true, small: true),

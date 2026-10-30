@@ -65,6 +65,24 @@ class ArtifactStore:
             return self.s3.get_object(Bucket=self.settings.artifact_bucket, Key=key)["Body"].read()
         return self._path(key).read_bytes()
 
+    def get_limited(self, key: str, max_bytes: int) -> bytes:
+        """Bound reads before allocating an entire object, including corrupt metadata."""
+        if self.s3:
+            response = self.s3.get_object(Bucket=self.settings.artifact_bucket, Key=key)
+            stream = response['Body']
+            try:
+                if response.get('ContentLength', 0) > max_bytes:
+                    raise ValueError('Stored artifact exceeds its read ceiling')
+                content = stream.read(max_bytes + 1)
+            finally:
+                stream.close()
+        else:
+            with self._path(key).open('rb') as stream:
+                content = stream.read(max_bytes + 1)
+        if len(content) > max_bytes:
+            raise ValueError('Stored artifact exceeds its read ceiling')
+        return content
+
     def delete(self, key: str):
         if self.s3:
             self.s3.delete_object(Bucket=self.settings.artifact_bucket, Key=key)

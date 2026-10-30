@@ -102,6 +102,9 @@ def context_manifest(context):
         selected["engineeringTool"] = {k: v for k, v in context["engineeringTool"].items()
                                        if k in {"id", "version", "definitionHash", "installationHash", "policyVersion",
                                                 "runner", "executionDefinition", "executionBackend", "executionUnavailable"}}
+    if context.get("approvedDesign"):
+        selected["approvedDesign"] = {k: v for k, v in context["approvedDesign"].items() if k in {
+            "schemaVersion", "version", "sceneVersion", "sceneHash", "engineeringRevision"}}
     if concept:
         selected["concept"] = {k: v for k, v in concept.items() if k in {
             "version", "phase", "basedOnAnswerVersion", "basedOnInputVersion", "illustrative", "stale"}}

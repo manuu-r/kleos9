@@ -1,0 +1,104 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:kleos_ui/data/models/json.dart';
+import 'package:kleos_ui/ui/core/widgets.dart';
+import 'package:kleos_ui/ui/features/project/cad_assembly_preview.dart';
+
+JsonMap _part(String id, String label, double z) => {
+      'id': id,
+      'label': label,
+      'quantity': id == 'base' ? 2 : 1,
+      'material': 'PLA',
+      'mesh': {
+        'triangles': [
+          [
+            [0, 0, z],
+            [30, 0, z],
+            [0, 20, z]
+          ],
+          [
+            [30, 0, z],
+            [30, 20, z],
+            [0, 20, z]
+          ],
+        ]
+      },
+      'transform': {
+        'translation': {'x': 0, 'y': 0, 'z': 0}
+      },
+    };
+
+Future<void> _mount(WidgetTester tester, JsonMap assembly) async {
+  tester.view.physicalSize = const Size(320, 700);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(MaterialApp(
+      theme: kTheme(),
+      home: Scaffold(
+          body: Padding(
+              padding: const EdgeInsets.all(16),
+              child: CadAssemblyPreview(
+                  assembly: assembly,
+                  height: 300,
+                  fallback: const Text('Whole mesh fallback'))))));
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets(
+      'explosion separates display parts and never edits source geometry',
+      (tester) async {
+    final assembly = <String, dynamic>{
+      'schemaVersion': 'cad-assembly-v1',
+      'separation': 'named_parts',
+      'parts': [_part('base', 'Base', 0), _part('lid', 'Lid', 12)]
+    };
+    final original = jsonEncode(assembly);
+    await _mount(tester, assembly);
+    expect(find.text('Base ×2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cad-assembly-canvas')), findsOneWidget);
+    final slider = find.byKey(const ValueKey('cad-explosion-slider'));
+    await tester.drag(slider, const Offset(100, 0));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Slider>(slider).value, greaterThan(0));
+    await tester.tap(find.byKey(const ValueKey('cad-part-base')));
+    await tester.pumpAndSettle();
+    expect(find.text('Base · PLA'), findsOneWidget);
+    await tester.drag(find.byKey(const ValueKey('cad-assembly-canvas')),
+        const Offset(50, 20));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Assemble CAD parts'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Slider>(slider).value, 0);
+    expect(jsonEncode(assembly), original);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a monolithic CAD body is never given fabricated separated parts',
+      (tester) async {
+    await _mount(tester, {
+      'separation': 'monolithic',
+      'parts': [_part('body', 'Body', 0)]
+    });
+    expect(find.byKey(const ValueKey('cad-explosion-slider')), findsNothing);
+    expect(find.text('Single CAD body · drag to orbit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('malformed part meshes fall back to the original whole mesh',
+      (tester) async {
+    await _mount(tester, {
+      'parts': [
+        {
+          'id': 'broken',
+          'mesh': {'triangles': <Object>[]}
+        }
+      ]
+    });
+    expect(find.text('Whole mesh fallback'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cad-explosion-slider')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+}

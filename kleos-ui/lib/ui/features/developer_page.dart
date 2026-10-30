@@ -103,7 +103,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
       parseError = e.toString();
     }
     final operations = <String>[];
-    final groups = asMaps(parsed['services']);
+    final groups = [...asMaps(parsed['services'])];
     if (parsed['tool'] is Map) {
       groups.add({
         'service_id': parsed['provider_slug'],
@@ -146,21 +146,20 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                 onPressed: () => context.go('/agent-access')),
             KBadge('${dev['level'] ?? 'Draft'}')
           ])),
-      kRow([
-        for (final entry in {
-          'service': 'Service provider',
-          'tool': 'Engineering tool',
-          'printer': 'Printer driver'
-        }.entries)
-          ChoiceChip(
-              label: Text(entry.value),
-              selected: kind == entry.key,
-              onSelected: running
-                  ? null
-                  : (_) => widget.controller
-                      .execute('developer.configure', {'kind': entry.key}),
-              labelStyle: const TextStyle(fontSize: 12))
-      ]),
+      KSegmented<String>(
+          selected: kind,
+          options: [
+            for (final entry in {
+              'service': 'Service provider',
+              'tool': 'Engineering tool',
+              'printer': 'Printer driver'
+            }.entries)
+              (value: entry.key, label: entry.value, icon: null)
+          ],
+          onSelected: running
+              ? null
+              : (value) => widget.controller
+                  .execute('developer.configure', {'kind': value})),
       KResponsive(children: [
         KCard(
             title: 'kleos.manifest.json',

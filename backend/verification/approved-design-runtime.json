@@ -1,0 +1,397 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-30T15:52:01.250555+00:00",
+  "image": "kleos-validator:development",
+  "imageId": "sha256:20caac6bc1c679d706161bf024330e38a0362b5f3025cd07c532d1f588b41c0e",
+  "sourceOverride": false,
+  "schemaVersion": "approved-design-runtime-v1",
+  "modelCalls": 0,
+  "mechanics": {
+    "interfaces": "PASS",
+    "mechanics": "PASS",
+    "mechanical_parts": "PASS",
+    "approved_design_contract": "PASS",
+    "approved_enclosure_form": "PASS"
+  },
+  "generationSquareRejected": true,
+  "sameBboxSquare": {
+    "name": "approved_enclosure_form",
+    "status": "FAIL",
+    "evidence_kind": "digital",
+    "details": {
+      "required": true,
+      "scopeExcluded": false,
+      "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+      "approvalVersion": 1,
+      "profile": "circle",
+      "coverage": "Frozen approved enclosure form and critical internal region/stack mapping",
+      "sidePreservation": {
+        "targetThreshold": 0.15,
+        "minimumActualPosition": 0.025
+      },
+      "limitations": [
+        "Surface and external features are references; this is not manufacturing approval"
+      ],
+      "outsideApprovedProfileMm3": 1610.6924270023455,
+      "boundaryGuardCoverage": 0.32647271601988903,
+      "minimumBoundaryGuardCoverage": 0.85,
+      "boundaryGuardCoverages": [
+        0.32647271601988903,
+        0.32647271601988903,
+        0.32647271601988903
+      ],
+      "boundaryGuardHeightOffsets": [
+        -0.25,
+        0,
+        0.25
+      ],
+      "profileToleranceMm": 0.1,
+      "portCutoutScope": "At most 15% missing central perimeter guard",
+      "stepSha256": "25521d8c8301b4a03f47b7122252b107f8d8848bb1b7650b7a44587ebd260d0a",
+      "expectedAspect": {
+        "xy": 1.0,
+        "depth": 0.25
+      },
+      "actualAspect": {
+        "xy": 1.0,
+        "depth": 0.25
+      }
+    }
+  },
+  "roundCoverSquareBody": {
+    "name": "approved_enclosure_form",
+    "status": "FAIL",
+    "evidence_kind": "digital",
+    "details": {
+      "required": true,
+      "scopeExcluded": false,
+      "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+      "approvalVersion": 1,
+      "profile": "circle",
+      "coverage": "Frozen approved enclosure form and critical internal region/stack mapping",
+      "sidePreservation": {
+        "targetThreshold": 0.15,
+        "minimumActualPosition": 0.025
+      },
+      "limitations": [
+        "Surface and external features are references; this is not manufacturing approval"
+      ],
+      "outsideApprovedProfileMm3": 0.0,
+      "boundaryGuardCoverage": 0.010386882605726348,
+      "minimumBoundaryGuardCoverage": 0.85,
+      "boundaryGuardCoverages": [
+        0.010386882605726348,
+        0.010386882605726348,
+        0.010386882605726348
+      ],
+      "boundaryGuardHeightOffsets": [
+        -0.25,
+        0,
+        0.25
+      ],
+      "profileToleranceMm": 0.1,
+      "portCutoutScope": "At most 15% missing central perimeter guard",
+      "stepSha256": "2370fe4bdbce969a01763fd4a65a8f3331a66e4778322af5e441d7d9afb5b7a0",
+      "expectedAspect": {
+        "xy": 1.0,
+        "depth": 0.25
+      },
+      "actualAspect": {
+        "xy": 1.0,
+        "depth": 0.25
+      }
+    }
+  },
+  "roundedEnclosure": {
+    "name": "approved_enclosure_form",
+    "status": "PASS",
+    "evidence_kind": "digital",
+    "details": {
+      "required": true,
+      "scopeExcluded": false,
+      "sceneHash": "8c6e3c5c18273623f889b78d647af7967bebf601f619ef10c896e036b68a2dba",
+      "approvalVersion": 1,
+      "profile": "rounded_rectangle",
+      "coverage": "Frozen approved enclosure form and critical internal region/stack mapping",
+      "sidePreservation": {
+        "targetThreshold": 0.15,
+        "minimumActualPosition": 0.025
+      },
+      "limitations": [
+        "Surface and external features are references; this is not manufacturing approval"
+      ],
+      "outsideApprovedProfileMm3": 0.0,
+      "boundaryGuardCoverage": 1.0,
+      "minimumBoundaryGuardCoverage": 0.85,
+      "boundaryGuardCoverages": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "boundaryGuardHeightOffsets": [
+        -0.25,
+        0,
+        0.25
+      ],
+      "profileToleranceMm": 0.1,
+      "portCutoutScope": "At most 15% missing central perimeter guard",
+      "stepSha256": "1a45b8ea7a85af30528b5b55a3810ce7f763e5c0a054848c6438fff53c64006b",
+      "expectedAspect": {
+        "xy": 1.3333333333333333,
+        "depth": 0.25
+      },
+      "actualAspect": {
+        "xy": 1.3333333333333333,
+        "depth": 0.25
+      }
+    }
+  },
+  "sharpRoundedSubstituteRejected": true,
+  "circleMeasurements": {
+    "sizeMm": {
+      "x": 40.0,
+      "y": 40.0,
+      "z": 10.0
+    },
+    "volumeMm3": 3493.451030791873,
+    "solidCount": 2,
+    "valid": true,
+    "internalObstructionMm3": 0.0,
+    "componentIntersections": [
+      {
+        "id": "pcb",
+        "intersectionMm3": 0.0
+      },
+      {
+        "id": "battery",
+        "intersectionMm3": 0.0
+      }
+    ],
+    "componentProfileFailures": [],
+    "approvedDesign": {
+      "name": "approved_design_contract",
+      "status": "PASS",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Frozen approved enclosure form and critical internal region/stack mapping",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Surface and external features are references; this is not manufacturing approval"
+        ],
+        "outsideApprovedProfileMm3": 0.0,
+        "boundaryGuardCoverage": 1.0,
+        "minimumBoundaryGuardCoverage": 0.85,
+        "boundaryGuardCoverages": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "boundaryGuardHeightOffsets": [
+          -0.25,
+          0,
+          0.25
+        ],
+        "profileToleranceMm": 0.1,
+        "portCutoutScope": "At most 15% missing central perimeter guard",
+        "stepSha256": "550c0fe39abfa86c6b60a69d61a76a5054b1207619e7219685ddc928963ea768",
+        "expectedAspect": {
+          "xy": 1.0,
+          "depth": 0.25
+        },
+        "actualAspect": {
+          "xy": 1.0,
+          "depth": 0.25
+        }
+      }
+    }
+  },
+  "pcb": {
+    "rectangle": {
+      "name": "approved_pcb_layout",
+      "status": "PASS",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Actual Edge.Cuts, track capsules and footprint bounds inside the approved enclosure",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Filled-zone containment uses the independent all-severity DRC; footprint height, display modules, straps and physical operation are not established"
+        ],
+        "pcbSha256": "01bce15e7e052e864b8058d299bb1cb8df6633608dd9b22be4c28e2b2d2a4b51",
+        "actualBoardSizeMm": {
+          "x": 20.0,
+          "y": 20.0
+        },
+        "acceptedPlacementMm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.5
+        },
+        "failures": [],
+        "validatedComponentReferences": 0,
+        "coordinateConvention": "KiCad Y-down flipped to approved Y-up, then accepted board rotation/placement"
+      }
+    },
+    "circle": {
+      "name": "approved_pcb_layout",
+      "status": "PASS",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "235bf47466ccca221b2b91f25f450921c96f3aeafa7474745410ef1fa2969475",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Actual Edge.Cuts, track capsules and footprint bounds inside the approved enclosure",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Filled-zone containment uses the independent all-severity DRC; footprint height, display modules, straps and physical operation are not established"
+        ],
+        "pcbSha256": "57d1218ca5ce1f00467ceb420f3e91f34dd1592d947244ba485921d7315666d4",
+        "actualBoardSizeMm": {
+          "x": 36.002511,
+          "y": 36.002511999999996
+        },
+        "acceptedPlacementMm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.5
+        },
+        "failures": [],
+        "validatedComponentReferences": 0,
+        "coordinateConvention": "KiCad Y-down flipped to approved Y-up, then accepted board rotation/placement"
+      }
+    },
+    "sensor": {
+      "name": "approved_pcb_layout",
+      "status": "PASS",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "6252b3a5941f0d3d12b639c19239b25561741f3bca1492c8b27c77a7bcf177df",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Actual Edge.Cuts, track capsules and footprint bounds inside the approved enclosure",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Filled-zone containment uses the independent all-severity DRC; footprint height, display modules, straps and physical operation are not established"
+        ],
+        "pcbSha256": "3b281e016d427330b2c107d02868f4ce1cbc671b019378edf24fce35724479ff",
+        "actualBoardSizeMm": {
+          "x": 20.0,
+          "y": 20.0
+        },
+        "acceptedPlacementMm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.5
+        },
+        "failures": [],
+        "validatedComponentReferences": 1,
+        "coordinateConvention": "KiCad Y-down flipped to approved Y-up, then accepted board rotation/placement"
+      }
+    },
+    "wrong_sensor": {
+      "name": "approved_pcb_layout",
+      "status": "FAIL",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "6252b3a5941f0d3d12b639c19239b25561741f3bca1492c8b27c77a7bcf177df",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Actual Edge.Cuts, track capsules and footprint bounds inside the approved enclosure",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Filled-zone containment uses the independent all-severity DRC; footprint height, display modules, straps and physical operation are not established"
+        ],
+        "pcbSha256": "db82a6e16a0a05237e48ac0aed007140f03bcff887e0079a179400390742eaf5",
+        "actualBoardSizeMm": {
+          "x": 20.0,
+          "y": 20.0
+        },
+        "acceptedPlacementMm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.5
+        },
+        "failures": [
+          "approved component sensor/U1 moved outside its frozen XY region"
+        ],
+        "validatedComponentReferences": 1,
+        "coordinateConvention": "KiCad Y-down flipped to approved Y-up, then accepted board rotation/placement"
+      }
+    },
+    "outside": {
+      "name": "approved_pcb_layout",
+      "status": "FAIL",
+      "evidenceKind": "digital",
+      "details": {
+        "required": true,
+        "scopeExcluded": false,
+        "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+        "approvalVersion": 1,
+        "profile": "circle",
+        "coverage": "Actual Edge.Cuts, track capsules and footprint bounds inside the approved enclosure",
+        "sidePreservation": {
+          "targetThreshold": 0.15,
+          "minimumActualPosition": 0.025
+        },
+        "limitations": [
+          "Filled-zone containment uses the independent all-severity DRC; footprint height, display modules, straps and physical operation are not established"
+        ],
+        "pcbSha256": "82bc6d6ac07a8814ffb5fdb0ee03d41a0ff82e5060c1e891662e21e83cff4f9a",
+        "actualBoardSizeMm": {
+          "x": 20.0,
+          "y": 20.0
+        },
+        "acceptedPlacementMm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.5
+        },
+        "failures": [
+          "copper"
+        ],
+        "validatedComponentReferences": 0,
+        "coordinateConvention": "KiCad Y-down flipped to approved Y-up, then accepted board rotation/placement"
+      }
+    }
+  },
+  "build123dVersion": "0.10.0",
+  "sourceHashes": {
+    "design_validation.py": "7008c1ac0d265a55c72853333636a3b47bf7080130af6c2e4d159dd4d4b09cf3",
+    "cad_parts.py": "49691aad1942a0b74f346746ac736a6268181fc19cb1eec1f69c2659868cdc02",
+    "native_runner.py": "6fe59db19b245f570a152801696da2ce9970c29fcf843e26c4a2c9f588fdad2c",
+    "contracts.py": "03554d40daac07bf671707da8d023a18ce8283a30b95491e906560fc43d4be5d"
+  },
+  "fixtureSha256": "dbf6bcc5b56f08e0a53c73cf2121897150dd00da703a644a70bcf528729fbeba",
+  "frozenReferencesSha256": "28bd773964d2cd242eb45c53e21cf10a84b54228a2d1f6195b2212c62ba846ff",
+  "scope": "Actual STEP body form/clearance and KiCad Edge.Cuts/package/copper extents, not complete manufacturing or physical qualification"
+}

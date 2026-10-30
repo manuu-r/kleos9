@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,15 +18,14 @@ class Settings(BaseSettings):
     conductor_url: str | None = None
     conductor_key: SecretStr | None = None
     demo_mode: bool = True
-    auth_mode: Literal["cognito", "development"] = "cognito"
+    auth_mode: Literal["password", "development"] = "password"
     development_token: SecretStr | None = None
     development_no_login: bool = False
-    cognito_region: str = "us-east-1"
-    cognito_pool_id: str = ""
-    cognito_client_id: str = ""
-    cognito_domain: str = ""
-    auth_callback_url: str = "http://localhost:8000/api/v1/auth/callback"
+    # Lets the operator create the first owner from the sign-in page while no account exists.
+    setup_token: SecretStr | None = Field(default=None, min_length=16)
     frontend_url: str = "http://localhost:5180"
+    companion_preview_base_url: str | None = None
+    companion_preview_signing_key: SecretStr | None = Field(default=None, min_length=32)
     session_key: SecretStr | None = None
     cors_origins: list[str] = ["http://localhost:5180", "http://127.0.0.1:5180"]
     aws_region: str = "us-east-1"
@@ -91,6 +91,21 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def deployment_guards(self):
+        if self.companion_preview_base_url:
+            preview = urlsplit(self.companion_preview_base_url)
+            if (preview.scheme not in {'http', 'https'} or not preview.hostname or preview.username
+                    or preview.password or preview.query or preview.fragment or preview.path not in {'', '/'}):
+                raise ValueError('Companion previews require a dedicated absolute origin without credentials or a path')
+            if self.environment in {'staging', 'production'} and preview.scheme != 'https':
+                raise ValueError('Cloud companion previews require HTTPS')
+            if self.environment in {'staging', 'production'} and not self.companion_preview_signing_key:
+                raise ValueError('Cloud companion previews require a dedicated preview signing key')
+            preview_origin = (preview.scheme, preview.hostname, preview.port or (443 if preview.scheme == 'https' else 80))
+            for address in [self.frontend_url, self.internal_base_url, *self.cors_origins]:
+                target = urlsplit(address)
+                origin = (target.scheme, target.hostname, target.port or (443 if target.scheme == 'https' else 80))
+                if preview_origin == origin:
+                    raise ValueError('Companion previews must use an origin separate from the control UI and API')
         if self.development_unlimited_usage and self.environment not in {"development", "test"}:
             raise ValueError("Unlimited development usage is restricted to development/test environments")
         tool_keys = [(tool.id, tool.version) for tool in self.engineering_tools]
@@ -102,8 +117,8 @@ class Settings(BaseSettings):
         if self.environment in {"staging", "production"}:
             if self.execution_backend == "docker":
                 raise ValueError("Docker execution is restricted to local development")
-            if self.auth_mode != "cognito" or self.storage_backend != "s3":
-                raise ValueError("Cloud deployments require Cognito and S3")
+            if self.auth_mode != "password" or self.storage_backend != "s3":
+                raise ValueError("Cloud deployments require password authentication and S3")
             if not self.database_url.startswith("postgresql"):
                 raise ValueError("Cloud deployments require PostgreSQL")
         if self.development_no_login and (

@@ -30,6 +30,42 @@ void main() {
     'agentExchangeTotal': asList(fixtures['exchange']).length,
     'providerSummary': fixtures['providerSummary']
   };
+  for (final kind in ['tool', 'driver']) {
+    testWidgets('developer renders a $kind manifest', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final controller = TestKleos(ApiService(
+        baseUrl: 'http://local.test/api',
+        client: MockClient((_) async => http.Response(jsonEncode({
+          'revision': 0,
+          'state': {
+            ...state,
+            'dev': {
+              'kind': kind,
+              'manifest': jsonEncode({
+                'provider_slug': 'example',
+                kind: {'operations': {'run': 'supported'}}
+              })
+            }
+          },
+          'demo': {'speed': 1}
+        }), 200, headers: {'content-type': 'application/json'})),
+      ));
+      await controller.refresh();
+      final router = GoRouter(routes: [GoRoute(path: "/", builder: (context, route) => AppShell(uri: route.uri, child: AppPage(child: DeveloperPage(controller: controller.view))))]);
+      await tester.pumpWidget(controller.scope(MaterialApp.router(
+        theme: kTheme(), routerConfig: router,
+      )));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('example.run'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      router.dispose();
+      controller.dispose();
+    });
+  }
   for (final width in [320.0, 390.0, 768.0, 1024.0, 1280.0]) {
     for (final path in [
       '/new',

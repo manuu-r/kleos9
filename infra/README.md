@@ -24,8 +24,7 @@ state with locking; generated Qdrant credentials are sensitive state.
    Set the project and daily allowances; a zero allowance intentionally prevents
    paid generation.
 5. Run the control task once with command ["alembic", "upgrade", "head"] using
-   private subnets and the trusted security group. Review migration logs. Register
-   invited Cognito users and application organization memberships.
+   private subnets and the trusted security group. Review migration logs.
 6. If using Conductor, obtain its production license, set a digest-pinned image
    and operator SSO issuer/audience, and provide its license secret ARN. Set
    activate_conductor=true while leaving activate_services=false. It uses
@@ -38,6 +37,14 @@ state with locking; generated Qdrant credentials are sensitive state.
 7. Enable activate_services only after the above steps. Roll out versioned worker
    deployments while old workflows drain. Measure the documented load targets
    before expanding invite limits.
+8. Create the first owner. Open the app and use the "Set up Kleos9" form that the
+   sign-in page shows while no account exists. Its setup token is the Secrets Manager
+   secret named by the setup_token_secret output; read it in the AWS console. After
+   the owner exists the form disappears and the token no longer works. The owner then
+   uses the Admin page to create invite codes, change roles and reset passwords.
+   Accounts use email and password; there is no external identity provider. The
+   python -m kleos.cli create-invite and reset-password commands remain as a
+   fallback for operators with shell access.
 
 Task definitions reference every runtime secret JSON key at startup. Missing
 keys or a missing secret version cause ECS startup to fail before Python runs;

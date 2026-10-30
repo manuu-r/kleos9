@@ -97,14 +97,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           title: 'Connections',
           description:
               'What the agent can use to design, build and check your device. Only qualified capabilities are routed to.'),
-      kRow([
-        for (final entry in _tabs.entries)
-          ChoiceChip(
-              label: Text(entry.value),
-              selected: tab == entry.key,
-              onSelected: (_) => context.go('/connections?tab=${entry.key}'),
-              labelStyle: const TextStyle(fontSize: 12))
-      ]),
+      KSegmented<String>(
+          selected: tab,
+          options: [
+            for (final entry in _tabs.entries)
+              (value: entry.key, label: entry.value, icon: null)
+          ],
+          onSelected: (value) => context.go('/connections?tab=$value')),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
             child: kColumn([
@@ -158,20 +157,44 @@ class _ConnectorTile extends StatelessWidget {
         opacity: c['linked'] == true && c['enabled'] != true ? .55 : 1,
         child: KCard(
             child: kColumn([
-          Text('${c['name']}', style: Theme.of(context).textTheme.titleMedium),
-          KMuted(
-              [
-                c['domain'],
-                c['builtIn'] == true
-                    ? 'Built in'
-                    : c['kind'] == 'printer'
-                        ? 'Printer driver'
-                        : c['author'] != null
-                            ? 'by ${c['author']}'
-                            : c['integration'],
-                if (c['builtIn'] != true && c['kind'] != 'printer') c['level']
-              ].where((x) => x != null).join(', '),
-              size: 10),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: KColors.surface2,
+                    borderRadius: BorderRadius.circular(KRadius.control),
+                    border: Border.all(color: KColors.border)),
+                child: Icon(
+                    c['kind'] == 'printer'
+                        ? Icons.print_outlined
+                        : c['kind'] == 'tool'
+                            ? Icons.construction_outlined
+                            : Icons.hub_outlined,
+                    size: 17,
+                    color:
+                        c['linked'] == true ? KColors.accent : KColors.muted)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: kColumn([
+              Text('${c['name']}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              KMuted(
+                  [
+                    c['domain'],
+                    c['builtIn'] == true
+                        ? 'Built in'
+                        : c['kind'] == 'printer'
+                            ? 'Printer driver'
+                            : c['author'] != null
+                                ? 'by ${c['author']}'
+                                : c['integration'],
+                    if (c['builtIn'] != true && c['kind'] != 'printer')
+                      c['level']
+                  ].where((x) => x != null).join(', '),
+                  size: 11),
+            ], gap: 2)),
+          ]),
           KMuted(printer.isNotEmpty
               ? '${printer['buildVolume']}, ${printer['material']}. Calibrated.'
               : '${c['description']}'),

@@ -129,7 +129,7 @@ bound to the actual circuit by a qualified template. Independent KiCad XML netli
 export rejects empty components or nets. Passing checks on an irrelevant circuit
 cannot unlock a release.
 
-No hosted inference, AWS RunTask call, Cognito login, Conductor license/SSO setup,
+No hosted inference, AWS RunTask call, production password sign-in, Conductor license/SSO setup,
 backup restoration, paid connector operation, full smartwatch release or
 100-client load target is claimed by this report.
 

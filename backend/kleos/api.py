@@ -1,31 +1,45 @@
 import asyncio
 import base64
 import hashlib
+import hmac
 import json
-import secrets
 import time
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import UTC
 from typing import Literal
-from urllib.parse import urlencode
 
-import httpx
 from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
-from itsdangerous import BadSignature, URLSafeTimedSerializer
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from starlette.concurrency import run_in_threadpool
 
-from .auth import Principal, WorkspaceAccess, authenticate, authenticate_subject, cognito_claims
+from .admin_api import register_admin_routes
+from .auth import (
+    LOCKOUT,
+    MAX_FAILED_LOGINS,
+    WEB_SESSION,
+    Principal,
+    WorkspaceAccess,
+    authenticate,
+    authenticate_subject,
+    check_password,
+    hash_code,
+    hash_password,
+    normalize_email,
+    start_session,
+)
+from .companion_preview import CompanionPreviewRequest, CompanionPreviews, CompanionPreviewView
 from .config import Settings, get_settings
 from .contracts import ArtifactUpload, Command, CommandAccepted, DomainError, JobResult, WireModel
 from .db import (
+    Account,
     Artifact,
     Attempt,
     DailyBudget,
     Database,
+    Invite,
     Invocation,
     Membership,
     NativeJob,
@@ -34,6 +48,7 @@ from .db import (
     SessionRecord,
     Task,
     now,
+    uid,
 )
 from .domain import ControlPlane, emit, get_project, lock_platform
 from .engine import EngineeringEngine
@@ -51,6 +66,29 @@ from .views import (
     RunView,
     WorkspaceView,
 )
+
+
+class SignupRequest(WireModel):
+    invite_code: str = Field(min_length=8, max_length=200)
+    email: str = Field(max_length=320)
+    password: str = Field(min_length=12, max_length=256)
+    name: str = Field(default="", max_length=200)
+    native: bool = False
+
+
+class LoginRequest(WireModel):
+    email: str = Field(max_length=320)
+    password: str = Field(max_length=256)
+    native: bool = False
+
+
+class SetupRequest(WireModel):
+    setup_token: str = Field(min_length=1, max_length=256)
+    organization: str = Field(min_length=1, max_length=200)
+    email: str = Field(max_length=320)
+    password: str = Field(min_length=12, max_length=256)
+    name: str = Field(default="", max_length=200)
+    native: bool = False
 
 
 class InvocationReconciliation(WireModel):
@@ -73,6 +111,7 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     store = storage or ArtifactStore(settings)
     control = ControlPlane(db, settings, store)
     engineering_previews = EngineeringPreview(db, store)
+    companion_previews = CompanionPreviews(db, settings, store)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -90,6 +129,7 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
             http_capture_headers_sanitize_fields=["authorization", "cookie", "set-cookie", "x-api-key", "x-csrf-token"])
         SQLAlchemyInstrumentor().instrument(engine=db.engine)
     app.state.settings, app.state.db, app.state.store, app.state.control = settings, db, store, control
+    app.state.companion_previews = companion_previews
     event_reads = {}
 
     async def shared_events(principal, project_id, cursor):
@@ -104,6 +144,7 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
             event_reads[key] = (time.monotonic(), task)
         return await asyncio.shield(event_reads[key][1])
     register_routes(app, db, settings, store)
+    register_admin_routes(app, db)
 
     @app.exception_handler(DomainError)
     async def domain_error(_request, exc):
@@ -208,6 +249,11 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     @app.get("/api/v1/projects/{project_id}/engineering-preview")
     def engineering_preview(project_id: str, principal: Principal = Depends(authenticate)):
         return engineering_previews.read(principal, project_id)
+
+    @app.post('/api/v1/projects/{project_id}/companion-preview', response_model=CompanionPreviewView)
+    def companion_preview(project_id: str, body: CompanionPreviewRequest,
+                          principal: Principal = Depends(authenticate)):
+        return companion_previews.mint(principal, project_id, body.artifact_id)
 
     @app.get("/api/v1/projects/{project_id}/members")
     def project_members(project_id: str, principal: Principal = Depends(authenticate)):
@@ -434,13 +480,11 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
 
     @app.get("/api/v1/auth/config")
     def auth_config():
-        issuer = (f"https://cognito-idp.{settings.cognito_region}.amazonaws.com/{settings.cognito_pool_id}"
-                  if settings.cognito_pool_id else None)
-        domain = settings.cognito_domain.rstrip("/")
-        return {"authMode": settings.auth_mode, "loginRequired": not settings.development_no_login, "issuer": issuer, "clientId": settings.cognito_client_id,
-                "redirectUrl": settings.auth_callback_url, "nativeRedirectUrl": "kleos9://auth",
-                "authorizationEndpoint": f"{domain}/oauth2/authorize" if domain else None,
-                "tokenEndpoint": f"{domain}/oauth2/token" if domain else None}
+        with db.transaction() as session:
+            setup_required = bool(settings.setup_token and settings.auth_mode == "password"
+                                  and not session.scalar(select(Account.id).limit(1)))
+        return {"authMode": settings.auth_mode, "loginRequired": not settings.development_no_login,
+                "signupRequiresInvite": True, "setupRequired": setup_required}
 
     @app.get("/api/v1/auth/session")
     def auth_session(request: Request, principal: Principal = Depends(authenticate)):
@@ -459,62 +503,83 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
             return {"subject": subject, "organizations": [{"id": org.id, "name": org.name, "role": member.role}
                                       for org, member in rows]}
 
-    def signer():
-        if not settings.session_key:
-            raise DomainError("Web authentication is not configured", 503, "auth_unconfigured")
-        return URLSafeTimedSerializer(settings.session_key.get_secret_value(), salt="kleos-oauth")
-
-    @app.get("/api/v1/auth/login")
-    def login():
-        if not settings.cognito_domain:
-            raise DomainError("Cognito domain is not configured", 503, "auth_unconfigured")
-        state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(64)
-        nonce = secrets.token_urlsafe(32)
-        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
-        response = RedirectResponse(settings.cognito_domain.rstrip("/") + "/oauth2/authorize?" + urlencode({
-            "response_type": "code", "client_id": settings.cognito_client_id,
-            "redirect_uri": settings.auth_callback_url, "scope": "openid email profile",
-            "state": state, "nonce": nonce, "code_challenge": challenge, "code_challenge_method": "S256",
-        }))
-        response.set_cookie("kleos_oauth", signer().dumps({"state": state, "verifier": verifier, "nonce": nonce}),
-                            max_age=600, httponly=True, secure=settings.environment != "development", samesite="lax")
+    def session_response(subject, session, native):
+        sid, csrf, expires = start_session(session, subject, native)
+        body = {"subject": subject, "expiresAt": expires.isoformat(),
+                "token": sid if native else None, "csrfToken": None if native else csrf}
+        response = JSONResponse(body)
+        if not native:
+            secure = settings.environment != "development"
+            max_age = int(WEB_SESSION.total_seconds())
+            response.set_cookie("kleos_session", sid, max_age=max_age, httponly=True, secure=secure, samesite="lax")
+            response.set_cookie("kleos_csrf", csrf, max_age=max_age, secure=secure, samesite="lax")
         return response
 
-    @app.get("/api/v1/auth/callback")
-    async def callback(request: Request, code: str, state: str):
-        try:
-            flow = signer().loads(request.cookies.get("kleos_oauth", ""), max_age=600)
-        except BadSignature as exc:
-            raise DomainError("Sign-in request expired", 401) from exc
-        if not secrets.compare_digest(state, flow["state"]):
-            raise DomainError("Invalid sign-in state", 401)
-        async with httpx.AsyncClient(timeout=20) as client:
-            result = await client.post(settings.cognito_domain.rstrip("/") + "/oauth2/token", data={
-                "grant_type": "authorization_code", "client_id": settings.cognito_client_id,
-                "code": code, "redirect_uri": settings.auth_callback_url, "code_verifier": flow["verifier"],
-            })
-        if result.status_code != 200:
-            raise DomainError("Sign-in exchange failed", 401)
-        claims = await asyncio.to_thread(cognito_claims, result.json()["id_token"], settings, "id")
-        if claims.get("nonce") != flow["nonce"]:
-            raise DomainError("Invalid sign-in nonce", 401)
-        sid, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    @app.post("/api/v1/auth/signup")
+    def signup(body: SignupRequest):
+        email = normalize_email(body.email)
+        digest = hash_password(body.password)
         with db.transaction() as session:
-            if not session.scalar(select(Membership.id).where(Membership.subject == claims["sub"])):
-                raise DomainError("This account has not been invited", 403, "invite_required")
-            session.add(SessionRecord(id=hashlib.sha256(sid.encode()).hexdigest(), subject=claims["sub"],
-                                      csrf_hash=hashlib.sha256(csrf.encode()).hexdigest(),
-                                      expires_at=now() + timedelta(hours=8)))
-        response = RedirectResponse(settings.frontend_url)
-        secure = settings.environment != "development"
-        response.set_cookie("kleos_session", sid, max_age=28800, httponly=True, secure=secure, samesite="lax")
-        response.set_cookie("kleos_csrf", csrf, max_age=28800, secure=secure, samesite="lax")
-        response.delete_cookie("kleos_oauth")
-        return response
+            invite = session.scalar(select(Invite).where(Invite.code_hash == hash_code(body.invite_code)))
+            if (not invite or invite.redeemed_at or invite.expires_at.replace(tzinfo=UTC) <= now()
+                    or (invite.email and invite.email != email)):
+                raise DomainError("This invite code is not valid or has expired", 400, "invite_invalid")
+            if session.scalar(select(Account.id).where(Account.email == email)):
+                raise DomainError("An account with this email already exists. Sign in instead.", 409, "account_exists")
+            account = Account(email=email, name=body.name.strip(), password_hash=digest)
+            session.add(account)
+            session.flush()
+            # The conditional update makes a code single-use even under concurrent redemption.
+            claimed = session.execute(update(Invite).where(Invite.id == invite.id, Invite.redeemed_at.is_(None))
+                                      .values(redeemed_at=now(), redeemed_by=account.id)).rowcount
+            if claimed != 1:
+                raise DomainError("This invite code is not valid or has expired", 400, "invite_invalid")
+            session.add(Membership(subject=account.id, tenant_id=invite.tenant_id, role=invite.role))
+            return session_response(account.id, session, body.native)
+
+    @app.post("/api/v1/auth/login")
+    def login(body: LoginRequest):
+        invalid = DomainError("Invalid email or password", 401, "invalid_credentials")
+        try:
+            email = normalize_email(body.email)
+        except DomainError:
+            raise invalid from None
+        with db.transaction() as session:
+            account = session.scalar(select(Account).where(Account.email == email))
+            locked = bool(account and account.locked_until and account.locked_until.replace(tzinfo=UTC) > now())
+            # A locked account rejects even the right password, without revealing that it is locked.
+            if check_password(account, body.password) and account and not locked:
+                account.failed_logins, account.locked_until = 0, None
+                return session_response(account.id, session, body.native)
+            if account and not locked:
+                account.failed_logins += 1
+                if account.failed_logins >= MAX_FAILED_LOGINS:
+                    account.failed_logins, account.locked_until = 0, now() + LOCKOUT
+        # Raised after the transaction commits so the failure count is kept.
+        raise invalid
+
+    @app.post("/api/v1/auth/setup")
+    def setup(body: SetupRequest):
+        """Create the first owner. Available only with the configured token and while no account exists."""
+        configured = settings.setup_token
+        if not configured or not hmac.compare_digest(body.setup_token.encode(), configured.get_secret_value().encode()):
+            raise DomainError("Setup is not available", 403, "setup_unavailable")
+        email = normalize_email(body.email)
+        digest = hash_password(body.password)
+        with db.transaction() as session:
+            if session.scalar(select(Account.id).limit(1)):
+                raise DomainError("Setup is not available", 403, "setup_unavailable")
+            organization = Organization(id=uid(), name=body.organization.strip())
+            account = Account(email=email, name=body.name.strip(), password_hash=digest)
+            session.add_all([organization, account])
+            session.flush()
+            session.add(Membership(subject=account.id, tenant_id=organization.id, role="owner"))
+            return session_response(account.id, session, body.native)
 
     @app.post("/api/v1/auth/logout")
     def logout(request: Request, subject: str = Depends(authenticate_subject)):
-        sid = request.cookies.get("kleos_session", "")
+        auth = request.headers.get("authorization", "")
+        sid = auth.removeprefix("Bearer ") if auth.startswith("Bearer ") else request.cookies.get("kleos_session", "")
         with db.transaction() as session:
             record = session.get(SessionRecord, hashlib.sha256(sid.encode()).hexdigest()) if sid else None
             if record:

@@ -37,12 +37,12 @@ def test_no_login_does_not_need_a_token():
 @pytest.mark.parametrize('environment', ['staging', 'production'])
 def test_cloud_cannot_disable_login(environment):
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, environment=environment, auth_mode='cognito',
+        Settings(_env_file=None, environment=environment, auth_mode='password',
                  storage_backend='s3', database_url='postgresql+psycopg://localhost/kleos',
                  development_no_login=True)
 
 
-def test_cognito_cannot_disable_login():
+def test_password_auth_cannot_disable_login():
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, environment='development', auth_mode='cognito',
+        Settings(_env_file=None, environment='development', auth_mode='password',
                  development_no_login=True)

@@ -194,45 +194,21 @@ def collect_file(path, base, name=None):
 
 
 MECHANICAL_BUILD = """
-from pathlib import Path
-import runpy
-from build123d import export_step, export_stl
-scope = runpy.run_path('enclosure.py')
-assembly = scope.get('assembly')
-if assembly is None:
-    raise ValueError('enclosure.py must define assembly')
-Path('outputs').mkdir(exist_ok=True)
-export_step(assembly, 'outputs/model.step')
-export_stl(assembly, 'outputs/model.stl')
+from kleos.cad_parts import export_build123d_parts
+export_build123d_parts('enclosure.py', 'outputs')
+"""
+
+MECHANICAL_PARTS_INSPECT = """
+import json, sys
+from kleos.cad_parts import inspect_exported_parts
+print(json.dumps(inspect_exported_parts(sys.argv[1], sys.argv[2]), allow_nan=False))
 """
 
 MECHANICAL_INSPECT = """
 import json, sys
-from build123d import Box, import_step
-shape = import_step(sys.argv[1])
-bounds = shape.bounding_box()
-box = bounds.size
-contract = json.loads(sys.argv[2])
-axes = ('x', 'y', 'z')
-inner = [float(contract['internalMm'][axis]) for axis in axes]
-origin = [value + (outer - inside) / 2 for value, outer, inside in zip(
-    (bounds.min.X, bounds.min.Y, bounds.min.Z), (box.X, box.Y, box.Z), inner)]
-clearance = Box(*inner).translate(tuple(origin[i] + inner[i] / 2 for i in range(3)))
-obstruction = shape & clearance
-collisions = []
-for component in contract['components']:
-    dimensions = [float(component['sizeMm'][axis]) for axis in axes]
-    center = tuple(origin[i] + float(component['positionMm'][axis]) + dimensions[i] / 2
-                   for i, axis in enumerate(axes))
-    intersection = shape & Box(*dimensions).translate(center)
-    collisions.append({'id': component['id'], 'intersectionMm3': intersection.volume if intersection else 0.0})
-valid = shape.is_valid
-if callable(valid):
-    valid = valid()
-print(json.dumps({'sizeMm': {'x': box.X, 'y': box.Y, 'z': box.Z},
-                  'volumeMm3': shape.volume, 'solidCount': len(shape.solids()), 'valid': bool(valid),
-                  'internalObstructionMm3': obstruction.volume if obstruction else 0.0,
-                  'componentIntersections': collisions}))
+from kleos.design_validation import inspect_mechanical_design
+print(json.dumps(inspect_mechanical_design(sys.argv[1], json.loads(sys.argv[2]),
+    json.loads(sys.argv[3]) if len(sys.argv)>3 else {}), allow_nan=False))
 """
 
 
@@ -478,6 +454,7 @@ def build_lane(request, directory, execute=run_command):
     work.mkdir(exist_ok=True)
     outputs, logs, prepared_files = [], [], []
     measurements = {}
+    unsupported_design = None
     selected = request.get("engineeringTool")
     profile = None
     if selected:
@@ -499,6 +476,7 @@ def build_lane(request, directory, execute=run_command):
             raise NativeResourceError(f"{args[0]} was terminated by the compute resource limit", "\n".join(logs))
         if code:
             raise NativeBuildError(f"{args[0]} failed with exit code {code}", "\n".join(logs))
+        return output
 
     if profile and profile.runner == "plugin":
         # This executable belongs to the operator-installed image. It is never
@@ -521,11 +499,34 @@ def build_lane(request, directory, execute=run_command):
         if any(not path.is_file() for path in outputs):
             raise NativeBuildError("The selected tool did not produce its required output files", "\n".join(logs))
         measurements["engineeringTool"] = {"id": profile.id, "version": profile.version}
+        if lane in {"mechanics", "electronics"} and request.get("requirements", {}).get("designIntent"):
+            measurements["provisionalApprovedDesign"] = {"status": "UNKNOWN", "details": {
+                "required": True, "scopeExcluded": False,
+                "reason": "This operator-installed adapter has no qualified generation-time form guard; independent approved-design checks remain mandatory"}}
+            unsupported_design = "Adapter outputs are preserved; independent approved-design validation is required"
     elif lane == "mechanics":
         if not (work / "enclosure.py").is_file():
             raise UnsupportedTool("Mechanical source must provide enclosure.py defining assembly")
         call(["python", "-I", "-c", MECHANICAL_BUILD])
-        outputs = [work / "outputs/model.step", work / "outputs/model.stl"]
+        outputs = [work / "outputs/model.step", work / "outputs/model.stl", work / "outputs/assembly-manifest.json",
+                   *sorted((work / "outputs/parts").glob("*.step")), *sorted((work / "outputs/parts").glob("*.stl"))]
+        if request.get("requirements", {}).get("designIntent"):
+            # The generated process has exited and its descendants were reaped;
+            # this fresh fixed process reads actual STEP geometry only.
+            contract = request.get("interfaces", {}).get("mechanical", {})
+            inspected = json.loads(call(["python", "-I", "-c", MECHANICAL_INSPECT, str(work / "outputs/model.step"),
+                json.dumps(contract), json.dumps(request["requirements"])]).strip().splitlines()[-1])
+            design = inspected.get("approvedDesign", {"status": "UNKNOWN", "details": {}})
+            measurements["provisionalApprovedDesign"] = design
+            expected = contract.get("externalMm", {})
+            if (design["status"] == "FAIL" or design["status"] == "PASS" and (
+                    any(abs(inspected["sizeMm"][axis] - expected[axis]) > .1 for axis in "xyz")
+                    or inspected["internalObstructionMm3"] > 1e-4 or inspected.get("componentProfileFailures")
+                    or any(item["intersectionMm3"] > 1e-4 for item in inspected["componentIntersections"]))):
+                raise NativeBuildError("Generated CAD conflicts with the approved enclosure form/layout: "
+                    + json.dumps(design.get("details", {}), sort_keys=True)[:3000], "\n".join(logs))
+            if design["status"] != "PASS":
+                unsupported_design = "The approved enclosure form/layout requires additional qualified checks"
     elif lane == "electronics":
         from .circuit_validation import UnavailableCircuitData, prepare_kicad_libraries
         try:
@@ -556,6 +557,18 @@ def build_lane(request, directory, execute=run_command):
         call(["kicad-cli", "pcb", "export", "gerbers", "--output", "outputs/gerbers/", str(boards[0])])
         call(["kicad-cli", "pcb", "export", "drill", "--output", "outputs/gerbers/", str(boards[0])])
         outputs = [*boards, *schematics, *[p for p in (work / "outputs").rglob("*") if p.is_file()]]
+        if request.get("requirements", {}).get("designIntent"):
+            from .design_validation import PCB_LAYOUT_SCRIPT, validate_pcb_layout
+            output = call(["/usr/bin/python3", "-I", "-c", PCB_LAYOUT_SCRIPT, str(boards[0])])
+            snapshot = json.loads(output.strip().splitlines()[-1])
+            design = validate_pcb_layout(request["requirements"], request.get("interfaces", {}), snapshot,
+                                         hashlib.sha256(boards[0].read_bytes()).hexdigest())
+            measurements["provisionalApprovedLayout"] = design.model_dump(mode="json", by_alias=True)
+            if design.status == "FAIL":
+                raise NativeBuildError("Generated PCB conflicts with approved component placement/enclosure: "
+                    + json.dumps(design.details, sort_keys=True)[:3000], "\n".join(logs))
+            if design.status != "PASS":
+                unsupported_design = "The approved PCB layout needs qualified checks or explicit component-reference mapping"
     elif lane == "firmware":
         requested_board = request.get("interfaces", {}).get("firmware", {}).get("board")
         board = resolve_zephyr_board(requested_board)
@@ -616,8 +629,9 @@ def build_lane(request, directory, execute=run_command):
         raise RuntimeError("The native tool produced no supported outputs")
     if sum(len(f.content) for f in files) > MAX_TOTAL_BYTES:
         raise ValueError("Native output package exceeds the result transfer limit")
-    return JobResult(status="succeeded", files=files, measurements=measurements, logs="\n".join(logs)[-100000:],
-                     limitations=["Build outputs are candidates until independently validated", *(
+    return JobResult(status="unsupported" if unsupported_design else "succeeded", files=files, measurements=measurements,
+                     logs="\n".join(logs)[-100000:],
+                     limitations=[unsupported_design or "Build outputs are candidates until independently validated", *(
                          ["Board-target compilation does not establish custom PCB compatibility or validate BLE, sensors, displays or physical behavior"]
                          if lane == "firmware" else [])])
 
@@ -631,7 +645,7 @@ def _positive_vector(value):
     return result
 
 
-def validate_interfaces(interfaces):
+def validate_interfaces(interfaces, requirements=None):
     try:
         mechanics, power = interfaces["mechanical"], interfaces["power"]
         inner, outer = _positive_vector(mechanics["internalMm"]), _positive_vector(mechanics["externalMm"])
@@ -640,6 +654,16 @@ def validate_interfaces(interfaces):
         if not math.isfinite(wall) or wall <= 0 or not components or not loads:
             raise ValueError("Walls, component envelopes and power loads must be declared")
         failures = []
+        design = None
+        if requirements is not None:
+            from .design_validation import (
+                _binding,
+                component_corners,
+                inside_profile,
+                validate_design_binding,
+            )
+            if validate_design_binding(requirements, interfaces).status == "PASS":
+                design = _binding(requirements, interfaces)
         for axis in inner:
             if outer[axis] - inner[axis] < 2 * wall:
                 failures.append(f"{axis}: minimum wall allowance is not satisfied")
@@ -650,6 +674,12 @@ def validate_interfaces(interfaces):
                 offset = float(position[axis])
                 if not math.isfinite(offset) or offset < 0 or offset + size[axis] > inner[axis]:
                     failures.append(f"{component['id']}: envelope exceeds internal bounds on {axis}")
+            if design:
+                mapped = next((item for item in design["components"].values()
+                               if item["interfaceComponentId"] == component["id"]), None)
+                if mapped and any(not inside_profile(x, y, inner, design["profile"], design["innerRadius"])
+                                  for x, y, _ in component_corners(mapped, design["centers"][mapped["conceptPartId"]])):
+                    failures.append(f"{component['id']}: component corners exceed the approved interior profile")
         for index, first in enumerate(components):
             for second in components[index + 1:]:
                 overlap = all(
@@ -683,16 +713,22 @@ def validate_interfaces(interfaces):
 
 
 def validate_candidates(request, directory, execute=run_command):
+    from .design_validation import (
+        PCB_LAYOUT_SCRIPT,
+        validate_design_binding,
+        validate_pcb_layout,
+    )
+    requirements = request.get("requirements", {})
     checks = [
-        validate_interfaces(request.get("interfaces", {})),
+        validate_interfaces(request.get("interfaces", {}), requirements),
         CheckResult(name="electronics_correspondence", status="UNKNOWN", details={
             "required": True, "scopeExcluded": False,
             "reason": "Complete accepted circuit contract and independent KiCad correspondence checks are required",
             "coverage": "ERC/DRC alone cannot establish that the requested circuit was implemented",
         }),
+        validate_design_binding(requirements, request.get("interfaces", {})),
     ]
     logs = []
-    requirements = request.get("requirements", {})
     profile = requirements.get("validationProfile")
     for lane in ("mechanics", "electronics", "firmware", "application"):
         work = directory / lane
@@ -700,6 +736,35 @@ def validate_candidates(request, directory, execute=run_command):
         try:
             if lane == "mechanics":
                 files = native_exports(request, directory, lane, ".step")
+                manifests = native_exports(request, directory, lane, "assembly-manifest.json")
+                if len(manifests) > 1:
+                    raise ValueError("CAD assembly manifest closure is ambiguous")
+                if manifests:
+                    from .cad_parts import parse_assembly_manifest, validate_manifest_closure
+                    manifest = parse_assembly_manifest(manifests[0].read_bytes())
+                    qualified = {ref["name"]: ref for ref in request["inputArtifacts"] if ref["lane"] == lane
+                                 and ref.get("provenance", {}).get("nativeJobId")}
+                    closure = {}
+                    for entry in [manifest["assembly"], *manifest["parts"]]:
+                        for kind in ("step", "stl"):
+                            ref = entry[kind]
+                            if ref["path"] not in qualified or qualified[ref["path"]]["sha256"] != ref["sha256"]:
+                                raise ValueError("CAD part manifest references an unqualified or stale artifact")
+                            closure[ref["path"]] = (work / safe_relative(ref["path"])).read_bytes()
+                    verified = validate_manifest_closure(manifest, closure)
+                    files = [work / safe_relative(manifest["assembly"]["step"]["path"])]
+                    code, output = execute(["python", "-I", "-c", MECHANICAL_PARTS_INSPECT,
+                                            str(manifests[0]), str(work)], work, 180)
+                    logs.append(output)
+                    if code:
+                        raise RuntimeError("Independent CAD part coverage/geometry check failed")
+                    measured_parts = json.loads(output.strip().splitlines()[-1])
+                    if measured_parts.get("independentGeometryVerified") is not True:
+                        raise RuntimeError("Independent CAD part coverage was not established")
+                    checks.append(CheckResult(name="mechanical_parts", status="PASS", details={
+                        **verified, **measured_parts, "assemblyManifestSha256": hashlib.sha256(manifests[0].read_bytes()).hexdigest(),
+                        "coverage": "Immutable STEP/STL closure and independent physical-part union versus assembly geometry",
+                    }))
                 if len(files) != 1:
                     raise UnsupportedTool("A single exported STEP assembly is required")
                 contract = request.get("interfaces", {}).get("mechanical", {})
@@ -707,7 +772,7 @@ def validate_candidates(request, directory, execute=run_command):
                     raise UnsupportedTool("Centered internal clearance dimensions and component envelopes are required")
                 _positive_vector(contract["internalMm"])
                 code, output = execute(["python", "-I", "-c", MECHANICAL_INSPECT, str(files[0]),
-                                        json.dumps(contract)], work, 120)
+                                        json.dumps(contract), json.dumps(requirements)], work, 120)
                 logs.append(output)
                 if code:
                     checks.append(CheckResult(name=lane, status="FAIL", details={"reason": "STEP cannot be parsed"}))
@@ -719,10 +784,19 @@ def validate_candidates(request, directory, execute=run_command):
                          and float(measured["volumeMm3"]) > 0)
                 empty = float(measured["internalObstructionMm3"]) <= 1e-4 and all(
                     float(item["intersectionMm3"]) <= 1e-4 for item in measured["componentIntersections"])
-                checks.append(CheckResult(name=lane, status="PASS" if measured["valid"] and matches and solid and empty else "FAIL",
+                approved = measured.get("approvedDesign", {"status": "UNKNOWN", "details": {
+                    "required": bool(requirements.get("designIntent")), "scopeExcluded": not requirements.get("designIntent"),
+                    "reason": "Actual enclosure form/layout measurement is unavailable"}})
+                checks.append(CheckResult(name="approved_enclosure_form", status=approved["status"], details=approved["details"]))
+                geometry_passed = measured["valid"] and matches and solid and empty and not measured.get("componentProfileFailures")
+                mechanic_status = "PASS" if geometry_passed else "FAIL"
+                if requirements.get("designIntent"):
+                    mechanic_status = ("UNKNOWN" if approved["status"] == "UNKNOWN" else
+                                       "PASS" if geometry_passed and approved["status"] == "PASS" else "FAIL")
+                checks.append(CheckResult(name=lane, status=mechanic_status,
                                           details={"measurements": measured, "toleranceMm": 0.1,
                                                    "intersectionToleranceMm3": 1e-4,
-                                                   "coordinateConvention": "Centered internal box; component lower corners measured from internal minimum",
+                                                   "coordinateConvention": "Enclosure bbox centre; approved circle/box/rounded interior; component lower corners from internal minimum",
                                                    "coverage": "STEP solid validity/dimensions and actual solid intersections with declared clearances",
                                                    "limitations": ["Does not qualify insertion paths, actual wall thickness, manufacturing tolerances or physical safety"]}))
             elif lane == "electronics":
@@ -796,8 +870,24 @@ def validate_candidates(request, directory, execute=run_command):
                 correspondence = validate_circuit_correspondence(request.get("interfaces", {}), netlist_bytes,
                     snapshot, requirements, evidence)
                 checks[1] = correspondence
-                checks.append(CheckResult(name=lane, status=correspondence.status, details={
+                layout_snapshot = None
+                if validate_design_binding(requirements, request.get("interfaces", {})).status == "PASS":
+                    code, output = execute(["/usr/bin/python3", "-I", "-c", PCB_LAYOUT_SCRIPT,
+                                            str(inspection / "circuit.kicad_pcb")], inspection, 120)
+                    logs.append(output)
+                    if not code and len(output) <= 1024**2:
+                        try:
+                            layout_snapshot = json.loads(output.strip().splitlines()[-1])
+                        except (ValueError, IndexError):
+                            pass
+                layout_check = validate_pcb_layout(requirements, request.get("interfaces", {}), layout_snapshot, evidence["pcbSha256"])
+                checks.append(layout_check)
+                lane_status = correspondence.status
+                if requirements.get("designIntent") and layout_check.status != "PASS":
+                    lane_status = "FAIL" if "FAIL" in {lane_status, layout_check.status} else "UNKNOWN"
+                checks.append(CheckResult(name=lane, status=lane_status, details={
                     **correspondence.details, "ercDrcPassed": True,
+                    "approvedLayout": layout_check.model_dump(mode="json", by_alias=True),
                 }))
             elif lane == "firmware":
                 files = native_exports(request, directory, lane, ".elf")

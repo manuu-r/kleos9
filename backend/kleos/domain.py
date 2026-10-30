@@ -30,6 +30,7 @@ from .db import (
     now,
     uid,
 )
+from .design_intent import approved_context, freeze_for_confirmation
 from .engineering_tools import DEFAULT_TOOL_POLICY, EngineeringToolRegistry, tool_policy
 from .models import ModelRegistry
 from .planning import (
@@ -316,6 +317,13 @@ class ControlPlane:
                     requirements = ({**project.requirements, **proposal.get("requirements", {})}
                                     if project.state.get("proposalReview") or project.state.get("clarificationReviewedVersion", 0) > 0
                                     else {**proposal.get("requirements", {}), **project.requirements})
+                    # A proposed requirement can never manufacture approval authority.
+                    requirements.pop("designIntent", None)
+                    changed_requirements = requirements != {k: v for k, v in project.requirements.items() if k != "designIntent"}
+                    approval, design_intent = freeze_for_confirmation(project, principal.subject, now().isoformat(),
+                                                                     force_new=changed_requirements)
+                    if design_intent is not None:
+                        requirements["designIntent"] = design_intent
                     if requirements.get("validationProfile") == "watch-telemetry-v1":
                         required = requirements.get("requiredPeripheralCoverage")
                         excluded = requirements.get("excludedCoverage")
@@ -333,6 +341,17 @@ class ControlPlane:
                                              "clarificationReviewedVersion", "proposalReview", "planning", "conversation", "concept", "conceptHistory", "clientMessageIds"}}
                         self._invalidate(session, project, "requirements_reconfirmed")
                         project.state = {**project.state, **retained}
+                    if approval is not None:
+                        previous = project.state.get("approvedDesign")
+                        history = project.state.get("approvedDesignHistory", [])
+                        if not previous or previous.get("version") != approval["version"]:
+                            history = [*history, {key: approval[key] for key in (
+                                "version", "sceneVersion", "sceneHash", "approvedAt", "approvedBy")}][-24:]
+                            approval["engineeringRevision"] = project.engineering_revision
+                        project.state = {**project.state, "approvedDesign": approval, "approvedDesignHistory": history,
+                                         "approvedDesignStatus": "approved", "designIntentCheck": {"status": "UNKNOWN", "details": {
+                                             "sceneHash": approval["sceneHash"], "reasonCode": "awaiting_engineering_checks",
+                                             "reason": "Awaiting engineering dimensions and independent checks"}}}
                     project.state = {**project.state, "proposal": proposal, "confirmed": True}
                     project.requirements = requirements
                     project.stage = max(3, project.stage)
@@ -475,6 +494,8 @@ class ControlPlane:
     def _enqueue(self, session, project, command_id, kind, payload):
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
             raise DomainError("A run is already active for this project", 409, "run_active")
+        if kind not in PLANNING_KINDS:
+            approved_context(project)  # legacy without an approved reference remains compatible
         if kind in {"project.generate", "project.repair", "project.pivot", "project.solveInterfaces"} and not project.state.get("confirmed"):
             raise DomainError("Confirm the concept before detailed generation", 409, "confirmation_required")
         if kind in {"project.generate", "project.repair", "project.pivot"} and not project.interfaces:
@@ -527,6 +548,7 @@ class ControlPlane:
             raise DomainError("Native rebuild requires projectId and either jobId or sourceAttemptId", 422)
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
             raise DomainError("A run is already active for this project", 409, "run_active")
+        approved_context(project)
         if not project.state.get("confirmed") or not project.interfaces:
             raise DomainError("Confirm the current concept and interfaces before rebuilding", 409, "confirmation_required")
         if self.settings.execution_backend == "disabled":
@@ -650,9 +672,14 @@ class ControlPlane:
         # Preserve the old accepted release as a baseline, not a current release authorization.
         project.state = {"previousAcceptedReleaseId": project.accepted_release_id,
                          "toolPolicy": tool_policy(project),
-                         "toolPolicyVersion": project.state.get("toolPolicyVersion", 0)}
+                         "toolPolicyVersion": project.state.get("toolPolicyVersion", 0),
+                         **({"approvedDesign": project.state["approvedDesign"],
+                             "approvedDesignHistory": project.state.get("approvedDesignHistory", []),
+                             "approvedDesignStatus": "approved" if reason == "interfaces_revised" else "superseded"}
+                            if project.state.get("approvedDesign") else {})}
 
     def _accept_release(self, session, project, principal):
+        approved = approved_context(project)
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
             raise DomainError("Wait for current engineering work before accepting a release", 409, "run_active")
         artifacts = session.scalars(select(Artifact).where(
@@ -670,6 +697,8 @@ class ControlPlane:
         applicable = [c for c in checks if c.artifact_hashes == hashes and c.evidence_kind == "digital"
                       and c.details.get("contractHash") == current_contract]
         required = {"interfaces", "mechanics", "electronics", "firmware", "application"}
+        if approved is not None:
+            required |= {"approved_design_contract", "approved_enclosure_form", "approved_pcb_layout"}
         passed = {c.name for c in applicable if c.status == "PASS"}
         blocking = [c for c in applicable if not (c.details.get("required") is False
                                                  and c.details.get("scopeExcluded") is True)]
@@ -680,7 +709,8 @@ class ControlPlane:
                           revision=project.engineering_revision, mode="digital",
                           approved_by=principal.subject,
                           manifest={"artifacts": hashes, "checks": [c.id for c in applicable],
-                                    "requirements": project.requirements, "interfaces": project.interfaces,
+                                    "requirements": deepcopy(project.requirements), "interfaces": deepcopy(project.interfaces),
+                                    **({"approvedDesign": approved} if approved is not None else {}),
                                     "limitations": [{"name": c.name, "status": c.status, "details": c.details}
                                                     for c in applicable if c not in blocking]})
         session.add(release)
@@ -690,6 +720,7 @@ class ControlPlane:
         emit(session, project, "release.accepted", {"releaseId": release.id, "mode": "digital"})
 
     def _simulate(self, session, project, kind):
+        approved_context(project)
         if not self.settings.demo_mode:
             raise DomainError("Live fulfillment is disabled", 403)
         release = session.get(Release, project.accepted_release_id) if project.accepted_release_id else None

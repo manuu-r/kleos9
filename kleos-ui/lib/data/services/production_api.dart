@@ -66,6 +66,11 @@ class ProductionApi {
           {String? organizationId}) =>
       get('/projects/${Uri.encodeComponent(projectId)}/engineering-preview',
           organizationId: organizationId);
+  Future<JsonMap> companionPreview(String projectId,
+          {required String artifactId, String? organizationId}) =>
+      post('/projects/${Uri.encodeComponent(projectId)}/companion-preview',
+          {'artifactId': artifactId},
+          organizationId: organizationId);
   Future<JsonMap> delete(String path, {String? organizationId}) =>
       _request('DELETE', path, organizationId: organizationId);
   Future<JsonMap> post(String path, JsonMap body,

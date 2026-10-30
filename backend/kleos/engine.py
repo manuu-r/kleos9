@@ -28,6 +28,7 @@ from .db import (
     now,
     uid,
 )
+from .design_intent import approved_context, bind_interfaces
 from .domain import (
     ENGINEERING_LANES,
     ControlPlane,
@@ -156,6 +157,13 @@ class EngineeringEngine:
                 "retrieval": {"method": "qdrant" if retrieved and retrieved.get("sources") else "bounded_source_records",
                               "limitation": (retrieved or {}).get("limitation")},
             }
+            if task.kind not in PLANNING_KINDS:
+                approved = approved_context(project)
+                if approved is not None:
+                    # One complete frozen scene, plus compact approval lineage.
+                    context["concept"] = {"version": approved["sceneVersion"], "scene": approved["scene"],
+                                          "phase": "approved", "stale": False, "illustrative": True}
+                    context["approvedDesign"] = {key: value for key, value in approved.items() if key != "scene"}
             engineering_tool = EngineeringToolRegistry(self.settings).snapshot(project, task.lane)
             if (engineering_tool and self.execution and self.settings.execution_backend != "disabled"
                     and hasattr(self.execution, "pin_engineering_tool")):
@@ -186,6 +194,10 @@ class EngineeringEngine:
                 {"attemptId": a.id, "error": a.error,
                  "output": {"summary": a.output.get("summary", "")} if automatic else a.output}
                 for a in prior]
+            if context.get("approvedDesign"):
+                context["proposal"] = {k: v for k, v in context["proposal"].items() if k not in {"conceptScene", "concept_scene"}}
+                for previous in context["repairHistory"]:
+                    previous["output"] = {k: v for k, v in previous["output"].items() if k not in {"conceptScene", "concept_scene"}}
             if automatic:
                 context["proposal"] = {k: v for k, v in context["proposal"].items()
                                        if k in {"summary", "requirements", "sources", "limitations"}}
@@ -233,6 +245,8 @@ class EngineeringEngine:
             task = session.get(Task, attempt.task_id)
             project = get_project(session, task.project_id)
             self._fresh(session, task, attempt, project)
+            if task.kind not in PLANNING_KINDS:
+                approved_context(project)
             existing = session.scalar(select(Invocation).where(
                 Invocation.attempt_id == attempt_id, Invocation.operation == "generate"))
             if existing:
@@ -502,6 +516,8 @@ class EngineeringEngine:
             task = session.get(Task, attempt.task_id)
             project = get_project(session, task.project_id)
             self._fresh(session, task, attempt, project)
+            if task.kind not in PLANNING_KINDS:
+                approved_context(project)
             attempt.status, task.status = "waiting", "waiting"
             emit(session, project, "task.waiting", {"taskId": task.id, "reason": "native_job"})
         self.execution.submit(attempt_id, purpose)
@@ -606,6 +622,8 @@ class EngineeringEngine:
                     return
                 proposal = {**output, "clarificationQuestions": retain_unanswered_questions(output, attempt.context)}
                 proposal.pop("clarification_questions", None)
+                if project.state.get("approvedDesign"):
+                    project.state = {**project.state, "approvedDesignStatus": "superseded"}
                 project.state = {**project.state, "proposal": proposal, "confirmed": False,
                                  "proposalReview": task.kind == "project.requestReview",
                                  "clarificationReviewedVersion": attempt.context.get("clarification", {}).get("version", 0)}
@@ -628,7 +646,17 @@ class EngineeringEngine:
             elif task.kind == "project.solveInterfaces":
                 if not output.get("interfaces"):
                     raise DomainError("The model did not establish interfaces", 409, "interfaces_unknown")
-                project.interfaces = output["interfaces"]
+                try:
+                    interfaces, design_check = bind_interfaces(project, output["interfaces"])
+                except DomainError as exc:
+                    project.state = {**project.state, "designIntentCheck": {"status": "FAIL", "details": {
+                        "reason": exc.message, "sceneHash": project.requirements.get("designIntent", {}).get("sceneHash")}}}
+                    self.block_task(task.id, attempt.id, exc.message, _session=session)
+                    emit(session, project, "designIntent.conflict", project.state["designIntentCheck"])
+                    return
+                project.interfaces = interfaces
+                project.state = {**project.state, "designIntentCheck": design_check}
+                task.result = {**task.result, "designIntentCheck": design_check}
                 from .circuit_validation import validate_circuit_contract
                 circuit_check = validate_circuit_contract(project.interfaces).model_dump(mode="json", by_alias=True)
                 circuit_check["details"] = {**circuit_check["details"], "engineeringRevision": task.revision,

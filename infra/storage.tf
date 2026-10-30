@@ -123,6 +123,21 @@ resource "aws_secretsmanager_secret_version" "qdrant" {
   secret_id     = aws_secretsmanager_secret.qdrant.id
   secret_string = random_password.qdrant.result
 }
+# One-time token for creating the first owner from the sign-in page. It stops working
+# as soon as any account exists. Read it in the Secrets Manager console.
+resource "aws_secretsmanager_secret" "setup" {
+  name_prefix = "${var.name}/setup-token-"
+  kms_key_id  = aws_kms_key.data.arn
+  description = "Paste into the Kleos9 first-run setup form to create the first owner."
+}
+resource "random_password" "setup" {
+  length  = 32
+  special = false
+}
+resource "aws_secretsmanager_secret_version" "setup" {
+  secret_id     = aws_secretsmanager_secret.setup.id
+  secret_string = random_password.setup.result
+}
 resource "aws_security_group" "qdrant" {
   name   = "${var.name}-qdrant"
   vpc_id = aws_vpc.main.id

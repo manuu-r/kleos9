@@ -21,6 +21,8 @@ class ConceptPreview extends StatefulWidget {
     this.updating = false,
     this.onPartSelected,
     this.height,
+    this.caption =
+        'Early visual concept. Shape and arrangement will be refined during engineering.',
   });
 
   final JsonMap scene;
@@ -28,6 +30,7 @@ class ConceptPreview extends StatefulWidget {
   final bool updating;
   final ValueChanged<String?>? onPartSelected;
   final double? height;
+  final String caption;
 
   @override
   State<ConceptPreview> createState() => _ConceptPreviewState();
@@ -352,9 +355,9 @@ class _ConceptPreviewState extends State<ConceptPreview>
           ),
         ],
         const SizedBox(height: 12),
-        const Text(
-            'Early visual concept. Shape and arrangement will be refined during engineering.',
-            style: TextStyle(color: KColors.faint, fontSize: 10, height: 1.5)),
+        Text(widget.caption,
+            style: const TextStyle(
+                color: KColors.faint, fontSize: 10, height: 1.5)),
       ],
     );
   }

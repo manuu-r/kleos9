@@ -47,6 +47,31 @@ class Membership(Record, Base):
     role: Mapped[str] = mapped_column(String(30), default="member")
 
 
+class Account(Record, Base):
+    """A password login. Its id is the subject used by memberships and sessions."""
+
+    __tablename__ = "accounts"
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    password_hash: Mapped[str] = mapped_column(String(300))
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Invite(Record, Base):
+    """A single-use signup code. Only its SHA-256 digest is stored."""
+
+    __tablename__ = "invites"
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), index=True)
+    role: Mapped[str] = mapped_column(String(30), default="member")
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(200), default="cli")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    redeemed_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+
 class Project(Record, Base):
     __tablename__ = "projects"
     tenant_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), index=True)

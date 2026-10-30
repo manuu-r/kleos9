@@ -7,6 +7,7 @@ import 'package:kleos_ui/data/services/api_service.dart';
 import 'package:kleos_ui/state/kleos_store.dart';
 import 'package:kleos_ui/state/production_store.dart';
 import 'package:kleos_ui/ui/core/device_visual.dart';
+import 'package:kleos_ui/ui/core/concept_preview.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/project/stages.dart';
 import 'package:kleos_ui/ui/features/project/engineering_preview.dart';
@@ -134,6 +135,53 @@ Future<ProviderContainer> _mount(
 void main() {
   for (final stage in [3, 4]) {
     testWidgets(
+        'stage $stage uses the frozen approved concept instead of a changed draft',
+        (tester) async {
+      final frozen = <String, dynamic>{
+        'schemaVersion': 'concept-scene-v1',
+        'title': 'Approved round device',
+        'units': 'relative',
+        'parts': [
+          {
+            'id': 'approved-shell',
+            'role': 'shell',
+            'label': 'Approved case',
+            'shape': 'cylinder',
+            'size': {'x': 4, 'y': 4, 'z': 1},
+            'color': '#778899'
+          }
+        ]
+      };
+      final project = _project(stage: stage, state: {
+        'confirmed': true,
+        'concept': {
+          'version': 9,
+          'scene': {'title': 'Unapproved square draft', 'parts': <Object>[]}
+        },
+        'approvedDesign': {
+          'schemaVersion': 'approved-design-v1',
+          'version': 1,
+          'sceneVersion': 5,
+          'sceneHash': 'approved-hash',
+          'scene': frozen
+        },
+      });
+      await _mount(tester, _Service(), project, stage);
+      expect(
+          tester
+              .widget<EngineeringPreview>(find.byType(EngineeringPreview))
+              .fallbackScene,
+          frozen);
+      await tester.ensureVisible(find.text('View approved 3D reference'));
+      await tester.tap(find.text('View approved 3D reference'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<ConceptPreview>(find.byType(ConceptPreview)).scene,
+          frozen);
+      expect(find.text('Unapproved square draft'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
         'stage $stage shows interface preview inside the original workspace',
         (tester) async {
       await _mount(
@@ -146,6 +194,14 @@ void main() {
           stage);
       expect(find.byType(EngineeringPreview), findsOneWidget);
       expect(find.text('Build preview'), findsOneWidget);
+      // The studio opens on its overview: CAD, PCB and app side by side.
+      expect(
+          find.byKey(const ValueKey('preview-tab-overview')), findsOneWidget);
+      expect(find.text('Approximation'), findsNWidgets(3));
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('preview-tab-mechanics')));
+      await tester.tap(find.byKey(const ValueKey('preview-tab-mechanics')));
+      await tester.pumpAndSettle();
       expect(find.text('Shared size envelope'), findsOneWidget);
       expect(find.text('Approximation'), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/json.dart';
 import '../models/production.dart';
 import 'production_api.dart';
@@ -20,23 +18,19 @@ class OrganizationSelectionRequired implements Exception {
 class ProductionAuth {
   ProductionAuth(this.api,
       {FlutterSecureStorage? storage,
-      FlutterAppAuth? oauth,
       Future<String?> Function(String)? readPreference,
       Future<void> Function(String, String)? writePreference})
       : _storage = storage ?? const FlutterSecureStorage(),
-        _oauth = oauth ?? const FlutterAppAuth(),
         _readPreference = readPreference ?? local.readJournal,
         _writePreference = writePreference ?? local.writeJournal {
     api.accessToken = token;
   }
   final ProductionApi api;
   final FlutterSecureStorage _storage;
-  final FlutterAppAuth _oauth;
   final Future<String?> Function(String) _readPreference;
   final Future<void> Function(String, String) _writePreference;
   JsonMap? _config;
   JsonMap? _credentials;
-  Future<String?>? _refreshing;
   String get _storageKey =>
       'kleos.auth.${sha256.convert(utf8.encode(api.baseUrl))}';
 
@@ -98,7 +92,9 @@ class ProductionAuth {
     return session();
   }
 
-  Future<AccountSession?> signIn({String? developmentToken}) async {
+  /// Signs in with a development token or an email and password.
+  Future<AccountSession?> signIn(
+      {String? developmentToken, String? email, String? password}) async {
     final settings = await config();
     if (settings['loginRequired'] == false) return session();
     if (settings['authMode'] == 'development') {
@@ -113,60 +109,55 @@ class ProductionAuth {
       await _persist();
       return session();
     }
-    if (kIsWeb) {
-      await launchUrl(api.uri('/auth/login'), webOnlyWindowName: '_self');
-      return null;
+    if (email == null || email.trim().isEmpty || password == null) {
+      throw const ProductionApiException('Enter your email and password.');
     }
-    final result =
-        await _oauth.authorizeAndExchangeCode(AuthorizationTokenRequest(
-      settings['clientId'] as String,
-      settings['nativeRedirectUrl'] as String? ?? 'kleos9://auth',
-      issuer: settings['issuer'] as String,
-      scopes: const ['openid', 'email', 'profile'],
-    ));
-    _credentials = {
-      'accessToken': result.accessToken,
-      'refreshToken': result.refreshToken,
-      'expiresAt': result.accessTokenExpirationDateTime?.millisecondsSinceEpoch,
-    };
-    await _persist();
+    return _authenticate(
+        '/auth/login', {'email': email.trim(), 'password': password});
+  }
+
+  /// Redeems a single-use invite code and creates the account.
+  Future<AccountSession> signUp(
+      {required String inviteCode,
+      required String email,
+      required String password,
+      String name = ''}) {
+    return _authenticate('/auth/signup', {
+      'inviteCode': inviteCode.trim(),
+      'email': email.trim(),
+      'password': password,
+      'name': name.trim()
+    });
+  }
+
+  /// Creates the first owner while the server has no accounts.
+  Future<AccountSession> setUp(
+      {required String setupToken,
+      required String organization,
+      required String email,
+      required String password,
+      String name = ''}) {
+    return _authenticate('/auth/setup', {
+      'setupToken': setupToken.trim(),
+      'organization': organization.trim(),
+      'email': email.trim(),
+      'password': password,
+      'name': name.trim()
+    });
+  }
+
+  Future<AccountSession> _authenticate(String path, JsonMap body) async {
+    // Browsers keep the session in an HttpOnly cookie. Native apps hold a bearer token.
+    final result = await api.post(path, {...body, 'native': !kIsWeb});
+    final token = result['token'] as String?;
+    if (!kIsWeb && token != null) {
+      _credentials = {'accessToken': token};
+      await _persist();
+    }
     return session();
   }
 
-  Future<String?> token() async {
-    if (_credentials == null) return null;
-    final expiration = _credentials!['expiresAt'] as int?;
-    if (!kIsWeb &&
-        _credentials!['development'] != true &&
-        expiration != null &&
-        expiration <
-            DateTime.now()
-                .add(const Duration(minutes: 1))
-                .millisecondsSinceEpoch) {
-      return _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
-    }
-    return _credentials!['accessToken'] as String?;
-  }
-
-  Future<String?> _refresh() async {
-    // Config requests must not recursively request the expired token.
-    final settings = _config;
-    final refreshToken = _credentials?['refreshToken'] as String?;
-    if (settings == null || refreshToken == null) return null;
-    final result = await _oauth.token(TokenRequest(
-      settings['clientId'] as String,
-      settings['nativeRedirectUrl'] as String? ?? 'kleos9://auth',
-      issuer: settings['issuer'] as String,
-      refreshToken: refreshToken,
-    ));
-    _credentials = {
-      'accessToken': result.accessToken,
-      'refreshToken': result.refreshToken ?? refreshToken,
-      'expiresAt': result.accessTokenExpirationDateTime?.millisecondsSinceEpoch,
-    };
-    await _persist();
-    return result.accessToken;
-  }
+  Future<String?> token() async => _credentials?['accessToken'] as String?;
 
   Future<void> _persist() async {
     // Browser sessions are HttpOnly cookies; development tokens stay in memory on web.

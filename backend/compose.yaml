@@ -13,6 +13,7 @@ x-control: &control
     KLEOS_DEMO_MODE: "true"
     KLEOS_DEVELOPMENT_UNLIMITED_USAGE: ${KLEOS_DEVELOPMENT_UNLIMITED_USAGE:-true}
     KLEOS_STORAGE_BACKEND: local
+    KLEOS_COMPANION_PREVIEW_BASE_URL: ${KLEOS_COMPANION_PREVIEW_BASE_URL:-http://localhost:8004}
     KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
     KLEOS_DBOS_DATABASE_URL: postgresql://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos_dbos
     KLEOS_QDRANT_URL: http://qdrant:6333
@@ -63,6 +64,39 @@ services:
       timeout: 4s
       retries: 20
     restart: unless-stopped
+  companion-preview:
+    image: kleos-control:development
+    profiles: ["backend"]
+    command: ["uvicorn", "kleos.preview_api:app", "--host", "0.0.0.0", "--port", "8004", "--no-access-log", "--log-level", "warning"]
+    environment:
+      KLEOS_ENVIRONMENT: development
+      KLEOS_STORAGE_BACKEND: local
+      KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
+      KLEOS_LOCAL_ARTIFACT_DIR: /data/artifacts
+      KLEOS_COMPANION_PREVIEW_SIGNING_KEY: ${KLEOS_COMPANION_PREVIEW_SIGNING_KEY:-}
+      KLEOS_FRONTEND_URL: ${KLEOS_FRONTEND_URL:-http://localhost:5180}
+      KLEOS_CORS_ORIGINS: ${KLEOS_CORS_ORIGINS:-["http://localhost:5180","http://127.0.0.1:5180"]}
+      KLEOS_COMPANION_PREVIEW_BASE_URL: ${KLEOS_COMPANION_PREVIEW_BASE_URL:-http://localhost:8004}
+    ports:
+      - "${KLEOS_API_BIND_ADDRESS:-127.0.0.1}:8004:8004"
+    volumes:
+      - ./kleos:/opt/kleos/kleos:ro
+      - ./.data/artifacts:/data/artifacts:ro
+    read_only: true
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   engineering:
     <<: *control
     profiles: ["backend"]

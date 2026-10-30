@@ -48,6 +48,13 @@ database pools when increasing it. See the [runtime verification record](verific
 for measured results, actual generated artifacts and remaining release blockers.
 
 Run Flutter from `kleos-ui` with `--dart-define=KLEOS_BACKEND=production` and web port `5180`.
+The App tab runs successful compiled companion builds through the dedicated
+preview service on port 8004. Configure a separate preview signing key and reachable
+origin as described in [compiled app previews](docs/companion-previews.md).
+Actual CAD parts support an exploded view and exact per-part manufacturing files;
+see [physical CAD parts](docs/cad-physical-parts.md).
+Confirmed capture designs are pinned as engineering shape/layout references;
+see [approved design constraints](docs/approved-design-reference.md).
 The development token authenticates the local application only; never use it as a provider key.
 Generation and embedding reservations are separate configured allowances, not account credit balances.
 When unlimited development is off, set `KLEOS_DAILY_BUDGET_USD=unlimited` to disable only the daily ceiling for models, embeddings,
@@ -98,7 +105,7 @@ flutter run -d chrome --web-port 5180 --dart-define=KLEOS_BACKEND=production
 
 Enter the local development token in the sign-in screen. The mock remains the default when
 `KLEOS_BACKEND` is omitted. See [Flutter setup](../kleos-ui/README.md) for mobile host addresses,
-secure storage and Cognito configuration. No provider credential belongs in Flutter.
+secure storage and invite-based password sign-in. No provider credential belongs in Flutter.
 
 To enable hosted AI, configure the Meta and Gemini API keys and, when unlimited development is disabled, positive project/daily allowances.
 New projects copy the configured project allowance. Provider availability is explicit in the
@@ -181,6 +188,31 @@ workers. Accepted release manifests preserve earlier baselines. ZIP downloads in
 files and a placement reference derived from accepted geometry; insertion order, wiring and
 physical assembly validation remain explicit limitations.
 
+## Authentication
+
+Access is invite-only email and password (`KLEOS_AUTH_MODE=password`, the default; staging and
+production require it). An operator creates the first code with
+`python -m kleos.cli create-invite --organization NAME --role owner` (add `--email` to bind it to one
+address and `--hours` to change the 7-day expiry). Owners and admins create more with
+`POST /api/v1/auth/invites`. Codes are single-use and stored only as SHA-256 digests. A person
+redeems one at `POST /api/v1/auth/signup` with an email and a password of at least 12 characters;
+later they use `POST /api/v1/auth/login`. Passwords are hashed with scrypt, and ten consecutive
+failures lock an account for 15 minutes without revealing whether the email exists.
+
+No shell access is needed. While no account exists and `KLEOS_SETUP_TOKEN` is set, the sign-in page
+shows a "Set up Kleos9" form (`POST /api/v1/auth/setup`) that creates the first owner and their
+organization; the form and token stop working once any account exists. Owners and admins then use the
+Admin page (account menu, top right) to create invites, view and revoke them, change roles, remove
+members and issue temporary passwords (`/api/v1/auth/members`, `/api/v1/auth/invites`). Admins manage
+members and viewers; only owners manage owners and admins, and the last owner cannot be demoted or removed.
+
+Browsers get an HttpOnly session cookie plus a CSRF token for unsafe methods. Native clients send
+`"native": true` and receive a 30-day bearer token instead, which `POST /api/v1/auth/logout` revokes.
+There is no email delivery. An admin recovers a forgotten password from the Admin page (or an operator
+with shell access runs `python -m kleos.cli reset-password --email ADDRESS`); either way a temporary
+password is shown once, the account is unlocked and it is signed out everywhere. There is not yet a
+self-service password change.
+
 Organization admins can manage invited project members. Members access projects they own or
 have been assigned; project viewers cannot mutate them. Authorization is rechecked for queries,
 retrieval, artifacts and event streams. Workspace snapshots use repeatable-read transactions and
@@ -231,7 +263,7 @@ uncertainty requires reconciliation before releasing reservations. Set reservati
 cover the qualified prompt/output/search budget; native infrastructure and provider invoices must
 also be reconciled operationally.
 
-AWS deployment, isolated task networking, RDS roles/migrations, Cognito, S3/KMS, Qdrant snapshots,
+AWS deployment, isolated task networking, RDS roles/migrations, password sign-in, S3/KMS, Qdrant snapshots,
 Conductor, dashboards, backups and recovery are in [infra/README.md](../infra/README.md).
 No AWS deployment, live purchase, printer dispatch, shipping action or paid training was run
 during local verification.
@@ -262,14 +294,14 @@ For a measured control-plane load check, set `KLEOS_LOAD_TOKEN` and optionally
 It connects 100 event streams across 10 projects, measures reads, accepts configuration commands
 and verifies event delivery. It makes no model calls. Its thresholds are p95 500 ms / 1 s / 2 s.
 This is distinct from a staging run with ten concurrently active engineering projects and real
-provider/native capacity. Also execute restore, live Cognito, account quota, full engineering
+provider/native capacity. Also execute restore, live password sign-in, account quota, full engineering
 journey and model-quality checks before opening invitations.
 
 For a local preview without a sign-in screen, set
 `KLEOS_AUTH_MODE=development` and `KLEOS_DEVELOPMENT_NO_LOGIN=true`.
 Requests then use the existing `development` user's organization/project
 permissions. This does not create a new organization or replace existing data.
-Staging/production and Cognito configurations reject this setting. Keep it
+Staging/production and password-auth configurations reject this setting. Keep it
 `false` when a development token should be required.
 
 ## Guided requirements and build removal

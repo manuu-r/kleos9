@@ -153,10 +153,21 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                               : constraints.maxWidth,
                           child: pColumn([
                             Text('${project['name'] ?? 'Your build'}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style:
                                     Theme.of(context).textTheme.headlineMedium),
-                            pText(project['brief'], muted: true),
-                          ], gap: 8)),
+                            ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 720),
+                                child: Text('${project['brief'] ?? ''}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: KColors.muted,
+                                        fontSize: 14,
+                                        height: 1.55))),
+                          ], gap: 10)),
                       KButton(
                           label: 'Activity',
                           compact: true,
@@ -202,117 +213,121 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                   ], gap: 12),
                 );
               }
-              return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: compact ? 1030 : constraints.maxWidth,
-                    child: Semantics(
-                        label: 'Project stages',
-                        child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (var i = 0; i < stageNames.length; i++)
-                                Expanded(
-                                    flex: i == view ? 3 : 1,
-                                    child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 8),
-                                        child: InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          onTap:
-                                              i <= latest ? () => _go(i) : null,
-                                          child: Semantics(
-                                              button: true,
-                                              selected: i == view,
-                                              enabled: i <= latest,
-                                              label: stageNames[i],
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 8),
-                                                child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      AnimatedContainer(
-                                                          duration:
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      220),
-                                                          height: 3,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                                  color: i ==
-                                                                          view
-                                                                      ? KColors
-                                                                          .accent
-                                                                      : i <
-                                                                              latest
-                                                                          ? KColors.text.withValues(
-                                                                              alpha:
-                                                                                  .5)
-                                                                          : KColors
-                                                                              .border,
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              3))),
-                                                      const SizedBox(
-                                                          height: 10),
-                                                      Row(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            if (i < done.length &&
-                                                                done[i] == true)
-                                                              const Padding(
-                                                                  padding: EdgeInsets
-                                                                      .only(
-                                                                          right:
-                                                                              4,
-                                                                          top:
-                                                                              2),
-                                                                  child: Icon(
-                                                                      Icons
-                                                                          .check,
-                                                                      size: 12,
-                                                                      color: KColors
-                                                                          .pass)),
-                                                            Expanded(
-                                                                child: Text(
-                                                                    i == view
-                                                                        ? stageNames[
-                                                                            i]
-                                                                        : '${i + 1}',
-                                                                    maxLines: 2,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    style: TextStyle(
-                                                                        fontSize: 12,
-                                                                        height: 1.3,
-                                                                        color: i == view
-                                                                            ? KColors.text
-                                                                            : i <= latest
-                                                                                ? KColors.muted
-                                                                                : KColors.faint))),
-                                                          ]),
-                                                    ]),
-                                              )),
-                                        ))),
-                            ])),
-                  ));
+              return _StageRail(
+                  view: view, latest: latest, done: done, onSelect: _go);
             }),
-            ProjectStage(
-                key: ValueKey('${project['id']}:$view'),
-                controller: widget.controller,
-                project: project,
-                stage: view,
-                onNext: () => _go((view + 1).clamp(0, 9))),
-          ], gap: 30);
+            KReveal(
+                key: ValueKey('reveal-${project['id']}:$view'),
+                child: ProjectStage(
+                    key: ValueKey('${project['id']}:$view'),
+                    controller: widget.controller,
+                    project: project,
+                    stage: view,
+                    onNext: () => _go((view + 1).clamp(0, 9)))),
+          ], gap: 34);
         },
       );
+}
+
+/// Ten stages as one continuous rail. The current stage names itself, finished
+/// stages are quiet and tappable, and stages not yet reached stay dark.
+class _StageRail extends StatelessWidget {
+  const _StageRail(
+      {required this.view,
+      required this.latest,
+      required this.done,
+      required this.onSelect});
+  final int view, latest;
+  final List<Object?> done;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+      label: 'Project stages',
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (var i = 0; i < stageNames.length; i++)
+          Expanded(
+              flex: i == view ? 4 : 1,
+              child: Padding(
+                  padding: EdgeInsets.only(
+                      right: i == stageNames.length - 1 ? 0 : 6),
+                  child: _RailStop(
+                      index: i,
+                      current: i == view,
+                      reached: i <= latest,
+                      finished: i < done.length && done[i] == true,
+                      onTap: i <= latest ? () => onSelect(i) : null))),
+      ]));
+}
+
+class _RailStop extends StatelessWidget {
+  const _RailStop(
+      {required this.index,
+      required this.current,
+      required this.reached,
+      required this.finished,
+      required this.onTap});
+  final int index;
+  final bool current, reached, finished;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => KTap(
+      flat: true,
+      radius: 6,
+      onTap: onTap,
+      builder: (context, hovered) => Semantics(
+          button: true,
+          selected: current,
+          enabled: reached,
+          label: stageNames[index],
+          child: Tooltip(
+              message: stageNames[index],
+              child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AnimatedContainer(
+                            duration: KMotion.base,
+                            curve: KMotion.out,
+                            height: 3,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                color: current
+                                    ? KColors.accent
+                                    : finished || reached
+                                        ? KColors.text.withValues(
+                                            alpha: hovered ? .6 : .38)
+                                        : KColors.border,
+                                boxShadow: current
+                                    ? [
+                                        BoxShadow(
+                                            color: KColors.accent
+                                                .withValues(alpha: .45),
+                                            blurRadius: 10)
+                                      ]
+                                    : const [])),
+                        const SizedBox(height: 11),
+                        Row(children: [
+                          if (finished && !current)
+                            const Padding(
+                                padding: EdgeInsets.only(right: 4),
+                                child: Icon(Icons.check,
+                                    size: 12, color: KColors.pass)),
+                          Expanded(
+                              child: Text(
+                                  current ? stageNames[index] : '${index + 1}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: current
+                                      ? const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: KColors.text)
+                                      : KType.monoSmall.copyWith(
+                                          color: reached
+                                              ? KColors.muted
+                                              : KColors.faint))),
+                        ]),
+                      ])))));
 }

@@ -39,6 +39,7 @@ resource "aws_iam_role_policy" "runtime_secrets" {
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = compact([
       aws_secretsmanager_secret.runtime.arn, aws_secretsmanager_secret.qdrant.arn,
+      aws_secretsmanager_secret.setup.arn,
       var.conductor_license_secret_arn
     ]) },
     { Effect = "Allow", Action = ["kms:Decrypt"], Resource = aws_kms_key.data.arn }
@@ -108,15 +109,10 @@ locals {
   runtime_env = {
     KLEOS_ENVIRONMENT          = var.environment
     KLEOS_DEMO_MODE            = "true"
-    KLEOS_AUTH_MODE            = "cognito"
+    KLEOS_AUTH_MODE            = "password"
     KLEOS_STORAGE_BACKEND      = "s3"
     KLEOS_ARTIFACT_BUCKET      = aws_s3_bucket.artifacts.id
     KLEOS_AWS_REGION           = var.region
-    KLEOS_COGNITO_REGION       = var.region
-    KLEOS_COGNITO_POOL_ID      = aws_cognito_user_pool.main.id
-    KLEOS_COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.main.id
-    KLEOS_COGNITO_DOMAIN       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.region}.amazoncognito.com"
-    KLEOS_AUTH_CALLBACK_URL    = "https://${local.api_hostname}/api/v1/auth/callback"
     KLEOS_FRONTEND_URL         = var.frontend_url
     KLEOS_CORS_ORIGINS         = jsonencode([var.frontend_url])
     KLEOS_QDRANT_URL           = "http://qdrant.${var.base_domain}:6333"
@@ -160,7 +156,9 @@ resource "aws_ecs_task_definition" "control" {
     ["python", "-m", "kleos.worker", "--kind", each.key]),
     portMappings = each.key == "api" ? [{ containerPort = 8000, protocol = "tcp" }] : [],
     environment  = [for key, value in local.runtime_env : { name = key, value = value }],
-    secrets      = local.runtime_secrets,
+    # Only the API serves the sign-in page, so only it receives the first-run setup token.
+    secrets = concat(local.runtime_secrets, each.key == "api" ?
+    [{ name = "KLEOS_SETUP_TOKEN", valueFrom = aws_secretsmanager_secret.setup.arn }] : []),
     logConfiguration = { logDriver = "awslogs", options = merge(local.log_options, {
       "awslogs-stream-prefix" = each.key
     }) }

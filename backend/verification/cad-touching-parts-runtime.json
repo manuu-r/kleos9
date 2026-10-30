@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "cad-touching-parts-runtime-v1",
+  "status": "passed",
+  "checkedAt": "2026-10-30T15:48:22.240788+00:00",
+  "image": "kleos-mechanics:development",
+  "imageId": "sha256:c5e3bca20aa07447c75ed76b31894a51fa273efe430c040fb0ea69e230955f2d",
+  "sourceOverride": true,
+  "namedParts": [
+    "case",
+    "cover"
+  ],
+  "legacyPartIds": [
+    "solid-00c18e4a9b2750bd00d1",
+    "solid-053875d3af658ec72070"
+  ],
+  "independentPartCoverage": {
+    "name": "mechanical_parts",
+    "status": "PASS",
+    "evidence_kind": "digital",
+    "details": {
+      "schemaVersion": "cad-assembly-v1",
+      "fileCount": 6,
+      "partCount": 2,
+      "coordinateFrame": "assembled",
+      "units": "mm",
+      "closureVerified": true,
+      "missingVolumeMm3": 0.0,
+      "extraVolumeMm3": 0.0,
+      "overlapVolumeMm3": 0,
+      "assemblyOverlapVolumeMm3": 0,
+      "toleranceMm3": 0.000308,
+      "independentGeometryVerified": true,
+      "stlBoundsVerified": true,
+      "printability": "UNKNOWN",
+      "assemblyManifestSha256": "65bcd9571322cbd2a2c202cee1b87d1aaf66e177452ac06ce5048f009f3916c2",
+      "coverage": "Immutable STEP/STL closure and independent physical-part union versus assembly geometry"
+    }
+  },
+  "sourcePreserved": true,
+  "manufacturingCoordinates": "assembled_mm",
+  "modelCalls": 0,
+  "missingExportedPartRejected": true,
+  "monolithicPreserved": true,
+  "touchingCircularParts": {
+    "name": "mechanical_parts",
+    "status": "PASS",
+    "evidence_kind": "digital",
+    "details": {
+      "schemaVersion": "cad-assembly-v1",
+      "fileCount": 6,
+      "partCount": 2,
+      "coordinateFrame": "assembled",
+      "units": "mm",
+      "closureVerified": true,
+      "missingVolumeMm3": 0.0,
+      "extraVolumeMm3": 0.0,
+      "overlapVolumeMm3": 0,
+      "assemblyOverlapVolumeMm3": 0,
+      "toleranceMm3": 0.0003493451030791873,
+      "independentGeometryVerified": true,
+      "stlBoundsVerified": true,
+      "printability": "UNKNOWN",
+      "assemblyManifestSha256": "52a3e3dae08e722c7030f5fe29ac1a8bf48f182a854a8c24527421b77b9c9728",
+      "coverage": "Immutable STEP/STL closure and independent physical-part union versus assembly geometry"
+    }
+  },
+  "touchingCircularPartsSourceSha256": "9a475063bb37b2c71c5a9168f745364fbcd95aef7bf6192667b55002734e9bcf",
+  "positiveVolumeOverlapRejected": true,
+  "build123dVersion": "0.10.0",
+  "sourceHashes": {
+    "cad_parts.py": "49691aad1942a0b74f346746ac736a6268181fc19cb1eec1f69c2659868cdc02",
+    "native_runner.py": "6fe59db19b245f570a152801696da2ce9970c29fcf843e26c4a2c9f588fdad2c"
+  },
+  "fixtureScriptSha256": "8e48bb356a2d78d88c289518997ffd02e4212c162c70dd3e98033e595a61f634",
+  "inputSourceSha256": "c956ec06869ae116a399aa79f84209e30532d6b7cf4ba02d6716baa343c98ee7",
+  "assemblyManifestSha256": "65bcd9571322cbd2a2c202cee1b87d1aaf66e177452ac06ce5048f009f3916c2",
+  "assemblyFileHashes": {
+    "step": "4f89180462fe1df6990df62791f050d11e240ff379772f89da783e6b782963b5",
+    "stl": "1bde91e05aaa8df4b0472b9fe5bcf60218c9b99f13d3c905ab334c5993f18a5e"
+  },
+  "scope": "Real build123d STEP/STL parts and closure; no slicing or physical operation qualification"
+}

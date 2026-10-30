@@ -24,7 +24,7 @@ for geometry, expected in [("Box(40, 30, 10) - Box(38, 28, 8)", "PASS"), ("Box(4
         Path(tmp).chmod(0o755)
         result = run_job(request, Path(tmp))
         assert result.status == "succeeded", result.model_dump()
-        assert {Path(file.path).suffix for file in result.files} == {".step", ".stl"}
+        assert {Path(file.path).suffix for file in result.files} == {".step", ".stl", ".json"}
         inputs = [{"id": str(index), "name": file.path, "lane": "mechanics",
                    "sha256": hashlib.sha256(base64.b64decode(file.content)).hexdigest(),
                    "contentBase64": file.content, "provenance": {"nativeJobId": "smoke-build"}}

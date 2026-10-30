@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from kleos.api import create_app
-from kleos.auth import Principal
+from kleos.auth import Principal, issue_invite
 from kleos.config import Settings
 from kleos.db import Base, Database, Membership, Organization
 from kleos.domain import ControlPlane
@@ -32,4 +32,26 @@ def platform(tmp_path):
         client.headers["Authorization"] = "Bearer test-token-not-for-deployment"
         yield SimpleNamespace(settings=settings, db=db, store=store, control=control,
                               principal=principal, client=client)
+    db.close()
+
+
+@pytest.fixture
+def auth(tmp_path):
+    settings = Settings(
+        _env_file=None, environment="test", auth_mode="password", database_url=f"sqlite:///{tmp_path / 'db.sqlite'}",
+        local_artifact_dir=tmp_path / "artifacts", project_budget_usd=10, daily_budget_usd=100,
+        setup_token="setup-token-for-tests-only",
+    )
+    db = Database(settings.database_url)
+    Base.metadata.create_all(db.engine)
+    with db.transaction() as session:
+        session.add(Organization(id="org-a", name="A"))
+    app = create_app(settings, db, ArtifactStore(settings))
+
+    def invite(role="member", **kwargs):
+        with db.transaction() as session:
+            return issue_invite(session, "org-a", role, **kwargs)
+
+    with TestClient(app, base_url="https://testserver") as client:
+        yield type("Auth", (), {"client": client, "db": db, "invite": staticmethod(invite), "app": app})
     db.close()

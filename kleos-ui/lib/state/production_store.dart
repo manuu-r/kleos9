@@ -26,11 +26,45 @@ class AccountController extends AsyncNotifier<AccountSession?> {
   Future<AccountSession?> build() =>
       ref.watch(productionAuthProvider).restore();
 
-  Future<void> signIn({String? developmentToken}) async {
+  Future<void> signIn(
+      {String? developmentToken, String? email, String? password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => ref
         .read(productionAuthProvider)
-        .signIn(developmentToken: developmentToken));
+        .signIn(
+            developmentToken: developmentToken,
+            email: email,
+            password: password));
+  }
+
+  Future<void> setUp(
+      {required String setupToken,
+      required String organization,
+      required String email,
+      required String password,
+      String name = ''}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref.read(productionAuthProvider).setUp(
+        setupToken: setupToken,
+        organization: organization,
+        email: email,
+        password: password,
+        name: name));
+  }
+
+  Future<void> signUp(
+      {required String inviteCode,
+      required String email,
+      required String password,
+      String name = ''}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref
+        .read(productionAuthProvider)
+        .signUp(
+            inviteCode: inviteCode,
+            email: email,
+            password: password,
+            name: name));
   }
 
   Future<void> signOut() async {

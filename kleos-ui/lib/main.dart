@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'state/kleos_store.dart';
 import 'ui/core/app_shell.dart';
 import 'ui/core/theme.dart';
+import 'ui/features/admin/admin_page.dart';
 import 'ui/features/connections_page.dart';
 import 'ui/features/developer_page.dart';
 import 'ui/features/home_pages.dart';
@@ -62,7 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ? ProductionAccessGate(
                     child: _ConnectedRouteScope(
                         uri: state.uri,
-                        child: AppShell(uri: state.uri, child: child)))
+                        child: AppShell(
+                            uri: state.uri, showAccount: true, child: child)))
                 : AppShell(uri: state.uri, child: child),
             routes: [
               GoRoute(
@@ -87,6 +89,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: '/runs/:id',
                     builder: (_, state) =>
                         ProductionRunPage(runId: state.pathParameters['id']!)),
+              if (usesProductionBackend)
+                GoRoute(
+                    path: '/admin',
+                    pageBuilder: (context, state) =>
+                        _page(state, const AppPage(child: AdminPage()))),
               GoRoute(
                   path: '/human-tasks',
                   pageBuilder: (context, state) => _page(

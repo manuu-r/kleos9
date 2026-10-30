@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -77,6 +78,65 @@ void main() {
     expect(session!.tenantId, 'local');
     expect(session.loginRequired, false);
     expect(await auth.token(), isNull);
+  });
+
+  test('password sign-in and invite signup keep the native bearer token',
+      () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final seen = <String>[];
+    final api = ProductionApi(client: MockClient((request) async {
+      final path = request.url.path.replaceFirst('/api/v1', '');
+      seen.add('$path ${request.headers['Authorization'] ?? '-'}');
+      if (path == '/auth/config') {
+        return http.Response(
+            jsonEncode({'authMode': 'password', 'loginRequired': true}), 200);
+      }
+      if (path == '/auth/login' || path == '/auth/signup') {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['native'], true);
+        if (path == '/auth/signup') {
+          expect(body['inviteCode'], 'k9-code');
+        }
+        return http.Response(
+            jsonEncode({'subject': 'u', 'token': 'tok-1'}), 200);
+      }
+      if (path == '/auth/organizations') {
+        return http.Response(
+            jsonEncode({
+              'subject': 'u',
+              'organizations': [
+                {'id': 'org', 'name': 'Org', 'role': 'member'}
+              ]
+            }),
+            200);
+      }
+      return http.Response(
+          jsonEncode({'subject': 'u', 'tenantId': 'org', 'role': 'member'}),
+          200);
+    }));
+    addTearDown(api.close);
+    ProductionAuth auth() => ProductionAuth(api,
+        readPreference: (_) async => null, writePreference: (_, __) async {});
+    final signedIn = auth();
+    expect(
+        (await signedIn.signIn(email: ' ada@example.com ', password: 'pw'))!
+            .tenantId,
+        'org');
+    expect(await signedIn.token(), 'tok-1');
+    expect(seen, contains('/auth/organizations Bearer tok-1'));
+    // The token survives an app restart through secure storage.
+    final restored = auth();
+    expect(await restored.restore(), isNotNull);
+    expect(await restored.token(), 'tok-1');
+    expect(
+        (await auth().signUp(
+                inviteCode: ' k9-code ',
+                email: 'new@example.com',
+                password: 'long enough password'))
+            .tenantId,
+        'org');
+    await expectLater(auth().signIn(email: '', password: ''),
+        throwsA(isA<ProductionApiException>()));
   });
 
   test(

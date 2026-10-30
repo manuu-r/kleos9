@@ -1,15 +1,22 @@
 import hashlib
 import hmac
+import re
+import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
-import jwt
 from fastapi import Request
-from sqlalchemy import and_, select
+from sqlalchemy import and_, delete, select
 
 from .contracts import DomainError
-from .db import Membership, Project, ProjectMembership, SessionRecord
+from .db import Account, Invite, Membership, Project, ProjectMembership, SessionRecord, now
+
+WEB_SESSION = timedelta(hours=8)
+NATIVE_SESSION = timedelta(days=30)
+MAX_FAILED_LOGINS = 10
+LOCKOUT = timedelta(minutes=15)
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @dataclass(frozen=True)
@@ -58,29 +65,83 @@ def resolve_workspace_access(session, subject, project_id, tenant=None):
     return WorkspaceAccess(Principal(subject, membership.tenant_id, membership.role), found_id, revision)
 
 
-@lru_cache
-def jwks_client(issuer):
-    return jwt.PyJWKClient(f"{issuer}/.well-known/jwks.json", cache_keys=True)
+def normalize_email(email):
+    email = email.strip().lower()
+    if len(email) > 320 or not _EMAIL.match(email):
+        raise DomainError("Enter a valid email address", 422, "invalid_email")
+    return email
 
 
-def cognito_claims(token, settings, token_use="access"):
-    if not settings.cognito_pool_id or not settings.cognito_client_id:
-        raise DomainError("Authentication is not configured", 503, "auth_unconfigured")
-    issuer = f"https://cognito-idp.{settings.cognito_region}.amazonaws.com/{settings.cognito_pool_id}"
+def hash_password(password, n=2**15, r=8, p=1):
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=n, r=r, p=p, maxmem=128 * n * r * 2, dklen=32)
+    return f"scrypt${n}${r}${p}${salt.hex()}${digest.hex()}"
+
+
+def verify_password(password, stored):
     try:
-        key = jwks_client(issuer).get_signing_key_from_jwt(token)
-        claims = jwt.decode(
-            token, key.key, algorithms=["RS256"], issuer=issuer,
-            audience=settings.cognito_client_id if token_use == "id" else None,
-            options={"verify_aud": token_use == "id", "require": ["exp", "sub", "iss", "token_use"]},
-        )
-        if claims["token_use"] != token_use:
-            raise ValueError("Wrong token type")
-        if token_use == "access" and claims.get("client_id") != settings.cognito_client_id:
-            raise ValueError("Wrong client")
-        return claims
-    except (jwt.PyJWTError, ValueError) as exc:
-        raise DomainError("Sign in again", 401, "unauthenticated") from exc
+        scheme, n, r, p, salt, expected = stored.split("$")
+        n, r, p = int(n), int(r), int(p)
+        digest = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=n, r=r, p=p,
+                                maxmem=128 * n * r * 2, dklen=32)
+        return scheme == "scrypt" and hmac.compare_digest(digest.hex(), expected)
+    except ValueError:
+        return False
+
+
+@lru_cache
+def _unknown_account_hash():
+    # Unknown emails still pay for a hash so response time does not reveal accounts.
+    return hash_password(secrets.token_urlsafe(16))
+
+
+def check_password(account, password):
+    return verify_password(password, account.password_hash if account else _unknown_account_hash())
+
+
+def hash_code(code):
+    return hashlib.sha256(code.strip().encode()).hexdigest()
+
+
+def issue_invite(session, tenant_id, role, hours=168, email=None, created_by="cli"):
+    """Create a single-use invite and return the code, which is never stored in plain text."""
+    code = "k9-" + secrets.token_urlsafe(16)
+    session.add(Invite(code_hash=hash_code(code), tenant_id=tenant_id, role=role,
+                       email=normalize_email(email) if email else None, created_by=created_by,
+                       expires_at=now() + timedelta(hours=hours)))
+    return code
+
+
+def reset_account_password(session, account):
+    """Set a one-time temporary password, unlock the account and end its sessions."""
+    temporary = secrets.token_urlsafe(12)
+    account.password_hash = hash_password(temporary)
+    account.failed_logins, account.locked_until = 0, None
+    session.execute(delete(SessionRecord).where(SessionRecord.subject == account.id))
+    return temporary
+
+
+def reset_password(session, email):
+    account = session.scalar(select(Account).where(Account.email == normalize_email(email)))
+    if not account:
+        raise DomainError("No account has that email address", 404, "not_found")
+    return reset_account_password(session, account)
+
+
+def start_session(session, subject, native=False):
+    """Persist a session; only the SHA-256 digest of the secret identifiers is stored."""
+    sid, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    expires = now() + (NATIVE_SESSION if native else WEB_SESSION)
+    session.add(SessionRecord(id=hashlib.sha256(sid.encode()).hexdigest(), subject=subject,
+                              csrf_hash=hashlib.sha256(csrf.encode()).hexdigest(), expires_at=expires))
+    return sid, csrf, expires
+
+
+def find_session(session, sid):
+    record = session.get(SessionRecord, hashlib.sha256(sid.encode()).hexdigest()) if sid else None
+    if not record or record.expires_at.replace(tzinfo=UTC) <= datetime.now(UTC):
+        raise DomainError("Sign in to continue", 401, "unauthenticated")
+    return record
 
 
 def resolve_membership(session, subject, tenant=None):
@@ -108,12 +169,10 @@ def authenticate_subject(request: Request) -> str:
                 raise DomainError("Invalid development token", 401, "unauthenticated")
             subject = "development"
         elif token:
-            subject = cognito_claims(token, settings)["sub"]
+            # Bearer sessions are not ambient credentials, so they need no CSRF token.
+            subject = find_session(session, token).subject
         else:
-            sid = request.cookies.get("kleos_session", "")
-            record = session.get(SessionRecord, hashlib.sha256(sid.encode()).hexdigest()) if sid else None
-            if not record or record.expires_at.replace(tzinfo=UTC) <= datetime.now(UTC):
-                raise DomainError("Sign in to continue", 401, "unauthenticated")
+            record = find_session(session, request.cookies.get("kleos_session", ""))
             if request.method not in {"GET", "HEAD", "OPTIONS"}:
                 csrf = request.headers.get("x-csrf-token", "")
                 if not hmac.compare_digest(hashlib.sha256(csrf.encode()).hexdigest(), record.csrf_hash):

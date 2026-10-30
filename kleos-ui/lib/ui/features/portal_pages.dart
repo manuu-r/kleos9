@@ -78,20 +78,19 @@ class _HumanTasksPageState extends State<HumanTasksPage> {
             KMuted(
                 '4. The workflow always requires a human (assembly trial, packing check).')
           ], gap: 7)),
-      kRow([
-        for (final f in [
-          'All',
-          'Open',
-          'Waiting for platform',
-          'In review',
-          'Accepted'
-        ])
-          ChoiceChip(
-              label: Text(f),
-              selected: filter == f,
-              onSelected: (_) => setState(() => filter = f),
-              labelStyle: const TextStyle(fontSize: 11))
-      ]),
+      KSegmented<String>(
+          selected: filter,
+          options: [
+            for (final f in [
+              'All',
+              'Open',
+              'Waiting for platform',
+              'In review',
+              'Accepted'
+            ])
+              (value: f, label: f, icon: null)
+          ],
+          onSelected: (f) => setState(() => filter = f)),
       if (tasks.isEmpty) const KCard(child: KMuted('No tasks in this view.')),
       for (final task in tasks)
         HumanTaskCard(
@@ -126,19 +125,18 @@ class _DemandPageState extends State<DemandPage> {
               label: 'Provider portal',
               compact: true,
               onPressed: () => context.go('/provider'))),
-      kRow([
-        for (final entry in {
-          'all': 'All',
-          'service': 'Services',
-          'tool': 'Engineering tools',
-          'printer': 'Printer drivers'
-        }.entries)
-          ChoiceChip(
-              label: Text(entry.value),
-              selected: kind == entry.key,
-              onSelected: (_) => setState(() => kind = entry.key),
-              labelStyle: const TextStyle(fontSize: 11))
-      ]),
+      KSegmented<String>(
+          selected: kind,
+          options: [
+            for (final entry in {
+              'all': 'All',
+              'service': 'Services',
+              'tool': 'Engineering tools',
+              'printer': 'Printer drivers'
+            }.entries)
+              (value: entry.key, label: entry.value, icon: null)
+          ],
+          onSelected: (value) => setState(() => kind = value)),
       KCard(
           padding: const EdgeInsets.all(8),
           child: KTable(
@@ -230,16 +228,13 @@ class _ProviderPageState extends State<ProviderPage> {
     final job = jobs.where((j) => j['id'] == selected).firstOrNull;
     final level = _ladder.indexWhere((l) => l.$1 == state['providerLevel']);
     final production = state['production'] == true;
-    final tabs = kRow([
-      ChoiceChip(
-          label: const Text('Services'),
-          selected: !showModels,
-          onSelected: (_) => setState(() => showModels = false)),
-      ChoiceChip(
-          label: const Text('AI models'),
-          selected: showModels,
-          onSelected: (_) => setState(() => showModels = true)),
-    ]);
+    final tabs = KSegmented<bool>(
+        selected: showModels,
+        options: const [
+          (value: false, label: 'Services', icon: null),
+          (value: true, label: 'AI models', icon: null),
+        ],
+        onSelected: (value) => setState(() => showModels = value));
     if (production && showModels) {
       return KPage(children: [
         tabs,

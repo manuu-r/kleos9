@@ -1,9 +1,11 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
+import '../../state/production_store.dart';
 import 'widgets.dart';
 
 const _nav = [
@@ -15,9 +17,16 @@ const _nav = [
 ];
 
 class AppShell extends ConsumerWidget {
-  const AppShell({super.key, required this.uri, required this.child});
+  const AppShell(
+      {super.key,
+      required this.uri,
+      required this.child,
+      this.showAccount = false});
   final Uri uri;
   final Widget child;
+
+  /// Production only: shows the signed-in account menu with Admin and Sign out.
+  final bool showAccount;
   int get index => uri.path == '/new' || uri.path.startsWith('/projects')
       ? 0
       : uri.path == '/demand'
@@ -86,17 +95,18 @@ class AppShell extends ConsumerWidget {
             ?.findAncestorWidgetOfExactType<EditableText>() !=
         null;
     final keyboardOpen = editing && MediaQuery.viewInsetsOf(context).bottom > 0;
-    final header = Container(
-        height: phone ? 60 : 72,
+    final headerBar = Container(
+        height: phone ? 60 : 68,
         padding: EdgeInsets.symmetric(horizontal: phone ? 12 : 24),
-        decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: KColors.border))),
+        decoration: BoxDecoration(
+            color: KColors.bg.withValues(alpha: .72),
+            border: const Border(bottom: BorderSide(color: KColors.hairline))),
         child: Row(children: [
           if (detail)
             IconButton(
               tooltip: 'Back to builds',
               onPressed: () => context.go('/'),
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back, size: 20),
             )
           else
             InkWell(
@@ -108,13 +118,17 @@ class AppShell extends ConsumerWidget {
                         height: 28,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                            color: KColors.text,
+                            gradient: const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0xffffffff), Color(0xffd5d5da)]),
                             borderRadius: BorderRadius.circular(8)),
                         child: const Text('K9',
                             style: TextStyle(
                                 color: KColors.bg,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700))),
+                                fontSize: 10,
+                                letterSpacing: -.2,
+                                fontWeight: FontWeight.w800))),
                     Positioned(
                         right: -3,
                         top: -3,
@@ -134,11 +148,11 @@ class AppShell extends ConsumerWidget {
           const Spacer(),
           if (!mobile)
             Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                    color: KColors.surface,
+                    color: KColors.surface.withValues(alpha: .7),
                     border: Border.all(color: KColors.border),
-                    borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(KRadius.control + 4)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   for (var i = 0; i < _nav.length; i++)
                     _NavItem(
@@ -152,7 +166,7 @@ class AppShell extends ConsumerWidget {
           const SizedBox(width: 8),
           if (width > 1120)
             SizedBox(
-                width: 210,
+                width: 196,
                 child: KButton(
                     label: 'Ask Kleos9 or jump to…  ⌘K',
                     compact: true,
@@ -163,6 +177,7 @@ class AppShell extends ConsumerWidget {
                 tooltip: 'Ask Kleos9 or jump to a page',
                 onPressed: () => showCommandMenu(context),
                 icon: const Icon(Icons.search, size: 20)),
+          if (showAccount) const _AccountMenu(),
           const SizedBox(width: 4),
           KButton(
               label: mobile ? 'New' : 'New build',
@@ -171,6 +186,10 @@ class AppShell extends ConsumerWidget {
               icon: Icons.add,
               onPressed: () => context.go('/new')),
         ]));
+    final header = ClipRect(
+        child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: headerBar));
     final content = controller.state.isEmpty
         ? Center(
             child: controller.loading
@@ -193,41 +212,46 @@ class AppShell extends ConsumerWidget {
             onPopInvokedWithResult: (didPop, _) {
               if (!didPop) context.go('/');
             },
-            child: Scaffold(
-              resizeToAvoidBottomInset: editing,
-              bottomNavigationBar:
-                  phone && !keyboardOpen ? _bottomNav(context) : null,
-              body: SafeArea(
-                  bottom: !phone || keyboardOpen,
-                  child: Column(children: [
-                    header,
-                    if (controller.error != null && controller.state.isNotEmpty)
-                      Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                          color: KColors.fail.withValues(alpha: .08),
-                          child: Row(children: [
-                            Expanded(
-                                child: Text(controller.error!,
-                                    style: const TextStyle(
-                                        color: KColors.fail, fontSize: 12))),
-                            KButton(
-                                label: 'Dismiss',
-                                compact: true,
-                                onPressed: controller.dismissError)
-                          ])),
-                    Expanded(
-                        child: Row(children: [
-                      if (rail) _rail(context),
+            child: Stack(children: [
+              const Positioned.fill(child: KAmbient()),
+              Scaffold(
+                backgroundColor: Colors.transparent,
+                resizeToAvoidBottomInset: editing,
+                bottomNavigationBar:
+                    phone && !keyboardOpen ? _bottomNav(context) : null,
+                body: SafeArea(
+                    bottom: !phone || keyboardOpen,
+                    child: Column(children: [
+                      header,
+                      if (controller.error != null &&
+                          controller.state.isNotEmpty)
+                        Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            color: KColors.fail.withValues(alpha: .08),
+                            child: Row(children: [
+                              Expanded(
+                                  child: Text(controller.error!,
+                                      style: const TextStyle(
+                                          color: KColors.fail, fontSize: 12))),
+                              KButton(
+                                  label: 'Dismiss',
+                                  compact: true,
+                                  onPressed: controller.dismissError)
+                            ])),
                       Expanded(
-                          child: Semantics(
-                              container: true,
-                              explicitChildNodes: true,
-                              child: content)),
-                    ]))
-                  ])),
-            )));
+                          child: Row(children: [
+                        if (rail) _rail(context),
+                        Expanded(
+                            child: Semantics(
+                                container: true,
+                                explicitChildNodes: true,
+                                child: content)),
+                      ]))
+                    ])),
+              ),
+            ])));
   }
 }
 
@@ -251,7 +275,7 @@ class AppPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 child,
-                const SizedBox(height: 64),
+                const SizedBox(height: 72),
                 const Center(
                     child: KMuted(
                         String.fromEnvironment('KLEOS_BACKEND',
@@ -278,22 +302,31 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) => KTap(
+      flat: true,
+      radius: KRadius.control,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      builder: (context, hovered) => AnimatedContainer(
+          duration: KMotion.base,
+          curve: KMotion.out,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-              color: selected ? KColors.surface2 : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              border: selected ? Border.all(color: KColors.border) : null),
+              color: selected
+                  ? KColors.surface3
+                  : hovered
+                      ? KColors.surface2
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(KRadius.control),
+              border: Border.all(
+                  color: selected ? KColors.borderStrong : Colors.transparent)),
           child: Row(children: [
             Icon(icon,
-                size: 14, color: selected ? KColors.accent : KColors.faint),
-            const SizedBox(width: 7),
+                size: 15, color: selected ? KColors.accent : KColors.faint),
+            const SizedBox(width: 8),
             Text(label,
                 style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
                     color: selected ? KColors.text : KColors.muted))
           ])));
 }
@@ -535,5 +568,45 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                               child: KMuted('No matches')),
                       ])),
                 ]))));
+  }
+}
+
+class _AccountMenu extends ConsumerWidget {
+  const _AccountMenu();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final account = ref.watch(accountProvider).asData?.value;
+    if (account == null) return const SizedBox.shrink();
+    final admin = const {'owner', 'admin'}.contains(account.role);
+    return PopupMenuButton<String>(
+        key: const ValueKey('account-menu'),
+        tooltip: 'Account',
+        icon: const Icon(Icons.account_circle_outlined, size: 22),
+        onSelected: (value) async {
+          if (value == 'admin') {
+            context.go('/admin');
+          } else if (value == 'out') {
+            await ref.read(accountProvider.notifier).signOut();
+          }
+        },
+        itemBuilder: (_) => [
+              PopupMenuItem(
+                  enabled: false,
+                  child: Text('Signed in as ${account.role}',
+                      style: const TextStyle(fontSize: 12))),
+              if (admin)
+                const PopupMenuItem(
+                    value: 'admin',
+                    child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.admin_panel_settings_outlined),
+                        title: Text('Admin'))),
+              const PopupMenuItem(
+                  value: 'out',
+                  child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.logout),
+                      title: Text('Sign out'))),
+            ]);
   }
 }

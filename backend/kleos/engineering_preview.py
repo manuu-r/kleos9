@@ -10,7 +10,10 @@ from collections import OrderedDict
 
 from sqlalchemy import select
 
+from .cad_parts import parse_assembly_manifest, validate_manifest_closure
 from .circuit_validation import validate_circuit_contract
+from .companion_preview import built_companion
+from .contracts import DomainError
 from .db import Artifact, Task
 from .domain import get_project
 from .storage import digest
@@ -181,6 +184,52 @@ class EngineeringPreview:
         self.database, self.store = database, store
         self.cache = OrderedDict()
 
+    def assembly(self, session, project):
+        manifest_artifact = session.scalar(select(Artifact).where(
+            Artifact.tenant_id == project.tenant_id, Artifact.project_id == project.id,
+            Artifact.revision == project.engineering_revision, Artifact.lane == 'mechanics',
+            Artifact.name == 'native/outputs/assembly-manifest.json',
+            Artifact.status.in_(['candidate', 'accepted'])).order_by(Artifact.created_at.desc()).limit(1))
+        if manifest_artifact is None or not manifest_artifact.provenance.get('nativeJobId'):
+            return None
+        raw = self.store.get_limited(manifest_artifact.key, 512 * 1024)
+        if digest(raw) != manifest_artifact.sha256:
+            raise ValueError('CAD manifest integrity check failed')
+        manifest = parse_assembly_manifest(raw)
+        refs = [entry[kind] for entry in [manifest['assembly'], *manifest['parts']] for kind in ('step', 'stl')]
+        artifacts = session.scalars(select(Artifact).where(
+            Artifact.tenant_id == project.tenant_id, Artifact.project_id == project.id,
+            Artifact.revision == project.engineering_revision, Artifact.lane == 'mechanics',
+            Artifact.attempt_id == manifest_artifact.attempt_id,
+            Artifact.status.in_(['candidate', 'accepted']),
+            Artifact.name.in_([ref['path'] for ref in refs]))).all()
+        by_name = {artifact.name: artifact for artifact in artifacts}
+        if len(by_name) != len(refs) or sum(artifact.size for artifact in artifacts) > 32 * 1024 * 1024:
+            raise ValueError('CAD parts closure is incomplete or exceeds preview bounds')
+        files, total = {}, 0
+        for ref in refs:
+            artifact = by_name[ref['path']]
+            if artifact.sha256 != ref['sha256']:
+                raise ValueError('CAD part metadata does not match its assembly')
+            content = self.store.get_limited(artifact.key, MAX_PREVIEW_BYTES)
+            total += len(content)
+            if total > 32 * 1024 * 1024:
+                raise ValueError('CAD part data exceeds preview bounds')
+            files[artifact.name] = content
+        validate_manifest_closure(manifest, files)
+        ceiling = min(1800, 12000 // len(manifest['parts']))
+        parts = []
+        for entry in manifest['parts']:
+            parts.append({key: value for key, value in entry.items() if key not in {'step', 'stl'}} | {
+                'mesh': stl_mesh(files[entry['stl']['path']], ceiling),
+                'stepArtifactId': by_name[entry['step']['path']].id,
+                'stlArtifactId': by_name[entry['stl']['path']].id})
+        return {'schemaVersion': 'cad-assembly-v1', 'units': 'mm', 'coordinateFrame': 'assembled',
+                'separation': manifest['separation'], 'manifestArtifactId': manifest_artifact.id,
+                'manifestSha256': manifest_artifact.sha256, 'parts': parts,
+                'limitations': ['Exploded positions are display-only; exported parts remain in assembled coordinates.',
+                                'Part identities and files are candidates until independent release checks accept them.']}
+
     def read(self, principal, project_id):
         with self.database.transaction(read_only=True) as session:
             project = get_project(session, project_id, principal, lock=False)
@@ -234,8 +283,11 @@ class EngineeringPreview:
                     for c in components[:128] if isinstance(c, dict)], 'traces': []}
             result['electronics']['summary'] = 'Enclosure component layout reference · PCB export pending'
             result['application']['app'] = {'title': project.name[:100], 'theme': 'dark', 'widgets': []}
-            selected = {'mechanics': next((a for a in artifacts if a.lane == 'mechanics'
-                                          and a.name.endswith('.stl') and a.provenance.get('nativeJobId')), None),
+            whole_mesh = next((a for a in artifacts if a.lane == 'mechanics'
+                               and a.name == 'native/outputs/model.stl' and a.provenance.get('nativeJobId')), None)
+            selected = {'mechanics': whole_mesh or next((a for a in artifacts if a.lane == 'mechanics'
+                                          and a.name.endswith('.stl') and '/parts/' not in a.name
+                                          and a.provenance.get('nativeJobId')), None),
                         'electronics': next((a for a in artifacts if a.lane == 'electronics'
                                             and a.name.endswith('.kicad_pcb')), None),
                         'application': next((a for a in artifacts if a.lane == 'application'
@@ -286,6 +338,29 @@ class EngineeringPreview:
                                                  'codeStatus': source.status})
                     except (OSError, UnicodeError):
                         pass
+            app_preview = result['application']
+            app_preview['previewAvailable'] = False
+            compiled = next((a for a in artifacts if a.lane == 'application'
+                             and a.name.endswith('/companion-web.zip') and a.provenance.get('nativeJobId')), None)
+            settings = getattr(self.store, 'settings', None)
+            if compiled is not None:
+                try:
+                    built_companion(session, project, compiled.id)
+                    app_preview.update({'previewArtifactId': compiled.id, 'previewSha256': compiled.sha256,
+                        'previewAvailable': bool(settings and settings.companion_preview_base_url
+                                                 and settings.companion_preview_signing_key)})
+                    if app_preview['previewAvailable']:
+                        app_preview['limitations'] = [
+                            'The real compiled web build runs in an isolated preview with no Kleos credentials.',
+                            'Runtime features depend on the generated implementation; previewing grants no release approval.']
+                except DomainError:
+                    pass
+            try:
+                assembly = self.assembly(session, project)
+                if assembly:
+                    result['mechanics']['assembly'] = assembly
+            except (ValueError, OSError, OverflowError, UnicodeError, struct.error):
+                result['mechanics']['limitations'].append('The part manifest is unavailable or does not match its files.')
             self.cache[key] = result
             while len(self.cache) > 32:
                 self.cache.popitem(last=False)

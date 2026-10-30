@@ -13,7 +13,8 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOTS = ["ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
-         "EventView", "ArtifactDownloadView", "Command", "CommandAccepted"]
+         "EventView", "ArtifactDownloadView", "Command", "CommandAccepted",
+         "CompanionPreviewRequest", "CompanionPreviewView"]
 
 
 def name(value):
@@ -132,7 +133,8 @@ def generate(document):
             prefix = f"if ({key} != null) " if key not in required else ""
             lines.append(f"{prefix}'{key}': {write_value(field, key, key not in required)},")
         lines += ["};", "}", ""]
-    result = subprocess.run(["dart", "format", "--output=show", "--summary=none"],
+    result = subprocess.run(["dart", "format", "--output=show", "--summary=none",
+                             "--stdin-name", str(ROOT / "lib/data/models/api.generated.dart")],
                             input="\n".join(lines), text=True, capture_output=True, check=True)
     return result.stdout
 

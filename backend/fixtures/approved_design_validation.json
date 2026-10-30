@@ -1,0 +1,1798 @@
+{
+  "circle": {
+    "requirements": {
+      "designIntent": {
+        "schemaVersion": "approved-design-intent-v1",
+        "approvalVersion": 1,
+        "sceneVersion": 1,
+        "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+        "units": "relative",
+        "coordinateFrame": "concept-centered-z-up",
+        "enclosure": {
+          "conceptPartId": "shell",
+          "primitive": "cylinder",
+          "profile": "circle",
+          "axis": "z",
+          "size": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "relativeSize": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "unsupportedReasons": []
+        },
+        "components": [
+          {
+            "conceptPartId": "board",
+            "label": "Board",
+            "role": "board",
+            "shape": "box",
+            "size": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 0.05
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.025
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.05
+              },
+              "sizeFraction": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.1
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "battery",
+            "label": "Battery",
+            "role": "battery",
+            "shape": "box",
+            "size": {
+              "x": 0.8,
+              "y": 0.7,
+              "z": 0.1
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": -0.1
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.2
+              },
+              "sizeFraction": {
+                "x": 0.4,
+                "y": 0.35,
+                "z": 0.2
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          }
+        ],
+        "aspectToleranceFraction": 0.25,
+        "positionToleranceFraction": 0.22,
+        "rotationToleranceDegrees": 15,
+        "stackingOrder": [
+          "battery",
+          "board"
+        ],
+        "dimensionPolicy": "accepted_requirements_and_interfaces_mm",
+        "limitations": [
+          "Relative component sizes are illustrative; actual component dimensions come from accepted datasheets.",
+          "Surface and external features are references, not internal clearance volumes.",
+          "Appearance approval grants no manufacturing or release approval."
+        ]
+      }
+    },
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 40,
+          "z": 10
+        },
+        "internalMm": {
+          "x": 38,
+          "y": 38,
+          "z": 8
+        },
+        "minimumWallMm": 1,
+        "components": [
+          {
+            "id": "pcb",
+            "conceptPartId": "board",
+            "sizeMm": {
+              "x": 20,
+              "y": 20,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 9.0,
+              "y": 9.0,
+              "z": 4
+            }
+          },
+          {
+            "id": "battery",
+            "conceptPartId": "battery",
+            "sizeMm": {
+              "x": 12,
+              "y": 10,
+              "z": 2
+            },
+            "positionMm": {
+              "x": 13.0,
+              "y": 14.0,
+              "z": 1
+            }
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-design-layout-v1",
+          "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+          "approvalVersion": 1,
+          "enclosure": {
+            "profile": "circle",
+            "axis": "z",
+            "conceptPartId": "shell",
+            "externalMm": {
+              "x": 40,
+              "y": 40,
+              "z": 10
+            },
+            "internalMm": {
+              "x": 38,
+              "y": 38,
+              "z": 8
+            },
+            "centerPolicy": "enclosure_bbox_center",
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "relativeSize": {
+              "x": 2.0,
+              "y": 2.0,
+              "z": 0.5
+            },
+            "aspectToleranceFraction": 0.25,
+            "unsupportedReasons": []
+          },
+          "components": [
+            {
+              "conceptPartId": "board",
+              "label": "Board",
+              "role": "board",
+              "shape": "box",
+              "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.05
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.025
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": 0.05
+                },
+                "sizeFraction": {
+                  "x": 0.5,
+                  "y": 0.5,
+                  "z": 0.1
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "pcb",
+              "sizeMm": {
+                "x": 20,
+                "y": 20,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 9.0,
+                "y": 9.0,
+                "z": 4
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "battery",
+              "label": "Battery",
+              "role": "battery",
+              "shape": "box",
+              "size": {
+                "x": 0.8,
+                "y": 0.7,
+                "z": 0.1
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.1
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": -0.2
+                },
+                "sizeFraction": {
+                  "x": 0.4,
+                  "y": 0.35,
+                  "z": 0.2
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "battery",
+              "sizeMm": {
+                "x": 12,
+                "y": 10,
+                "z": 2
+              },
+              "positionMm": {
+                "x": 13.0,
+                "y": 14.0,
+                "z": 1
+              },
+              "mount": "internal"
+            }
+          ],
+          "features": [],
+          "positionToleranceFraction": 0.22,
+          "rotationToleranceDegrees": 15,
+          "stackingOrder": [
+            "battery",
+            "board"
+          ]
+        }
+      },
+      "electronics": {
+        "componentReferences": [],
+        "designIntent": {
+          "schemaVersion": "engineering-pcb-layout-v1",
+          "sceneHash": "e75cfe3210ef6bc76088f95e3c18f414ddd3d4323274fa7609c0ef8927339008",
+          "approvalVersion": 1,
+          "boardConceptPartId": "board",
+          "componentReferences": [],
+          "unmappedConceptPartIds": [],
+          "positionToleranceFraction": 0.22
+        }
+      },
+      "circuit": {
+        "components": []
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 100,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 10
+          }
+        ]
+      }
+    }
+  },
+  "box": {
+    "requirements": {
+      "designIntent": {
+        "schemaVersion": "approved-design-intent-v1",
+        "approvalVersion": 1,
+        "sceneVersion": 1,
+        "sceneHash": "064b8e6d69b4448507b4308ddc9ec3fdbbb2918ef3e839625c0da90d853b4df8",
+        "units": "relative",
+        "coordinateFrame": "concept-centered-z-up",
+        "enclosure": {
+          "conceptPartId": "shell",
+          "primitive": "box",
+          "profile": "rectangle",
+          "axis": "z",
+          "size": {
+            "x": 2.0,
+            "y": 1.5,
+            "z": 0.5
+          },
+          "relativeSize": {
+            "x": 2.0,
+            "y": 1.5,
+            "z": 0.5
+          },
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "unsupportedReasons": []
+        },
+        "components": [
+          {
+            "conceptPartId": "board",
+            "label": "Board",
+            "role": "board",
+            "shape": "box",
+            "size": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 0.05
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.025
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.05
+              },
+              "sizeFraction": {
+                "x": 0.5,
+                "y": 0.6666666666666666,
+                "z": 0.1
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "battery",
+            "label": "Battery",
+            "role": "battery",
+            "shape": "box",
+            "size": {
+              "x": 0.8,
+              "y": 0.7,
+              "z": 0.1
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": -0.1
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.2
+              },
+              "sizeFraction": {
+                "x": 0.4,
+                "y": 0.4666666666666666,
+                "z": 0.2
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          }
+        ],
+        "aspectToleranceFraction": 0.25,
+        "positionToleranceFraction": 0.22,
+        "rotationToleranceDegrees": 15,
+        "stackingOrder": [
+          "battery",
+          "board"
+        ],
+        "dimensionPolicy": "accepted_requirements_and_interfaces_mm",
+        "limitations": [
+          "Relative component sizes are illustrative; actual component dimensions come from accepted datasheets.",
+          "Surface and external features are references, not internal clearance volumes.",
+          "Appearance approval grants no manufacturing or release approval."
+        ]
+      }
+    },
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 30,
+          "z": 10
+        },
+        "internalMm": {
+          "x": 38,
+          "y": 28,
+          "z": 8
+        },
+        "minimumWallMm": 1,
+        "components": [
+          {
+            "id": "pcb",
+            "conceptPartId": "board",
+            "sizeMm": {
+              "x": 20,
+              "y": 20,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 9.0,
+              "y": 4.0,
+              "z": 4
+            }
+          },
+          {
+            "id": "battery",
+            "conceptPartId": "battery",
+            "sizeMm": {
+              "x": 12,
+              "y": 10,
+              "z": 2
+            },
+            "positionMm": {
+              "x": 13.0,
+              "y": 9.0,
+              "z": 1
+            }
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-design-layout-v1",
+          "sceneHash": "064b8e6d69b4448507b4308ddc9ec3fdbbb2918ef3e839625c0da90d853b4df8",
+          "approvalVersion": 1,
+          "enclosure": {
+            "profile": "rectangle",
+            "axis": "z",
+            "conceptPartId": "shell",
+            "externalMm": {
+              "x": 40,
+              "y": 30,
+              "z": 10
+            },
+            "internalMm": {
+              "x": 38,
+              "y": 28,
+              "z": 8
+            },
+            "centerPolicy": "enclosure_bbox_center",
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "relativeSize": {
+              "x": 2.0,
+              "y": 1.5,
+              "z": 0.5
+            },
+            "aspectToleranceFraction": 0.25,
+            "unsupportedReasons": []
+          },
+          "components": [
+            {
+              "conceptPartId": "board",
+              "label": "Board",
+              "role": "board",
+              "shape": "box",
+              "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.05
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.025
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": 0.05
+                },
+                "sizeFraction": {
+                  "x": 0.5,
+                  "y": 0.6666666666666666,
+                  "z": 0.1
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "pcb",
+              "sizeMm": {
+                "x": 20,
+                "y": 20,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 9.0,
+                "y": 4.0,
+                "z": 4
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "battery",
+              "label": "Battery",
+              "role": "battery",
+              "shape": "box",
+              "size": {
+                "x": 0.8,
+                "y": 0.7,
+                "z": 0.1
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.1
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": -0.2
+                },
+                "sizeFraction": {
+                  "x": 0.4,
+                  "y": 0.4666666666666666,
+                  "z": 0.2
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "battery",
+              "sizeMm": {
+                "x": 12,
+                "y": 10,
+                "z": 2
+              },
+              "positionMm": {
+                "x": 13.0,
+                "y": 9.0,
+                "z": 1
+              },
+              "mount": "internal"
+            }
+          ],
+          "features": [],
+          "positionToleranceFraction": 0.22,
+          "rotationToleranceDegrees": 15,
+          "stackingOrder": [
+            "battery",
+            "board"
+          ]
+        }
+      },
+      "electronics": {
+        "componentReferences": [],
+        "designIntent": {
+          "schemaVersion": "engineering-pcb-layout-v1",
+          "sceneHash": "064b8e6d69b4448507b4308ddc9ec3fdbbb2918ef3e839625c0da90d853b4df8",
+          "approvalVersion": 1,
+          "boardConceptPartId": "board",
+          "componentReferences": [],
+          "unmappedConceptPartIds": [],
+          "positionToleranceFraction": 0.22
+        }
+      },
+      "circuit": {
+        "components": []
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 100,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 10
+          }
+        ]
+      }
+    }
+  },
+  "rounded": {
+    "requirements": {
+      "designIntent": {
+        "schemaVersion": "approved-design-intent-v1",
+        "approvalVersion": 1,
+        "sceneVersion": 1,
+        "sceneHash": "8c6e3c5c18273623f889b78d647af7967bebf601f619ef10c896e036b68a2dba",
+        "units": "relative",
+        "coordinateFrame": "concept-centered-z-up",
+        "enclosure": {
+          "conceptPartId": "shell",
+          "primitive": "rounded_box",
+          "profile": "rounded_rectangle",
+          "axis": "z",
+          "size": {
+            "x": 2.0,
+            "y": 1.5,
+            "z": 0.5
+          },
+          "relativeSize": {
+            "x": 2.0,
+            "y": 1.5,
+            "z": 0.5
+          },
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "unsupportedReasons": [],
+          "cornerRadiusRatio": 0.13
+        },
+        "components": [
+          {
+            "conceptPartId": "board",
+            "label": "Board",
+            "role": "board",
+            "shape": "box",
+            "size": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 0.05
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.025
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.05
+              },
+              "sizeFraction": {
+                "x": 0.5,
+                "y": 0.6666666666666666,
+                "z": 0.1
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "battery",
+            "label": "Battery",
+            "role": "battery",
+            "shape": "box",
+            "size": {
+              "x": 0.8,
+              "y": 0.7,
+              "z": 0.1
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": -0.1
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.2
+              },
+              "sizeFraction": {
+                "x": 0.4,
+                "y": 0.4666666666666666,
+                "z": 0.2
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          }
+        ],
+        "aspectToleranceFraction": 0.25,
+        "positionToleranceFraction": 0.22,
+        "rotationToleranceDegrees": 15,
+        "stackingOrder": [
+          "battery",
+          "board"
+        ],
+        "dimensionPolicy": "accepted_requirements_and_interfaces_mm",
+        "limitations": [
+          "Relative component sizes are illustrative; actual component dimensions come from accepted datasheets.",
+          "Surface and external features are references, not internal clearance volumes.",
+          "Appearance approval grants no manufacturing or release approval."
+        ]
+      }
+    },
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 30,
+          "z": 10
+        },
+        "internalMm": {
+          "x": 38,
+          "y": 28,
+          "z": 8
+        },
+        "minimumWallMm": 1,
+        "components": [
+          {
+            "id": "pcb",
+            "conceptPartId": "board",
+            "sizeMm": {
+              "x": 20,
+              "y": 20,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 9.0,
+              "y": 4.0,
+              "z": 4
+            }
+          },
+          {
+            "id": "battery",
+            "conceptPartId": "battery",
+            "sizeMm": {
+              "x": 12,
+              "y": 10,
+              "z": 2
+            },
+            "positionMm": {
+              "x": 13.0,
+              "y": 9.0,
+              "z": 1
+            }
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-design-layout-v1",
+          "sceneHash": "8c6e3c5c18273623f889b78d647af7967bebf601f619ef10c896e036b68a2dba",
+          "approvalVersion": 1,
+          "enclosure": {
+            "profile": "rounded_rectangle",
+            "axis": "z",
+            "conceptPartId": "shell",
+            "externalMm": {
+              "x": 40,
+              "y": 30,
+              "z": 10
+            },
+            "internalMm": {
+              "x": 38,
+              "y": 28,
+              "z": 8
+            },
+            "centerPolicy": "enclosure_bbox_center",
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "relativeSize": {
+              "x": 2.0,
+              "y": 1.5,
+              "z": 0.5
+            },
+            "aspectToleranceFraction": 0.25,
+            "unsupportedReasons": [],
+            "cornerRadiusRatio": 0.13,
+            "cornerRadiusMm": 3.9000000000000004,
+            "internalCornerRadiusMm": 2.9000000000000004
+          },
+          "components": [
+            {
+              "conceptPartId": "board",
+              "label": "Board",
+              "role": "board",
+              "shape": "box",
+              "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.05
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.025
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": 0.05
+                },
+                "sizeFraction": {
+                  "x": 0.5,
+                  "y": 0.6666666666666666,
+                  "z": 0.1
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "pcb",
+              "sizeMm": {
+                "x": 20,
+                "y": 20,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 9.0,
+                "y": 4.0,
+                "z": 4
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "battery",
+              "label": "Battery",
+              "role": "battery",
+              "shape": "box",
+              "size": {
+                "x": 0.8,
+                "y": 0.7,
+                "z": 0.1
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.1
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": -0.2
+                },
+                "sizeFraction": {
+                  "x": 0.4,
+                  "y": 0.4666666666666666,
+                  "z": 0.2
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "battery",
+              "sizeMm": {
+                "x": 12,
+                "y": 10,
+                "z": 2
+              },
+              "positionMm": {
+                "x": 13.0,
+                "y": 9.0,
+                "z": 1
+              },
+              "mount": "internal"
+            }
+          ],
+          "features": [],
+          "positionToleranceFraction": 0.22,
+          "rotationToleranceDegrees": 15,
+          "stackingOrder": [
+            "battery",
+            "board"
+          ]
+        }
+      },
+      "electronics": {
+        "componentReferences": [],
+        "designIntent": {
+          "schemaVersion": "engineering-pcb-layout-v1",
+          "sceneHash": "8c6e3c5c18273623f889b78d647af7967bebf601f619ef10c896e036b68a2dba",
+          "approvalVersion": 1,
+          "boardConceptPartId": "board",
+          "componentReferences": [],
+          "unmappedConceptPartIds": [],
+          "positionToleranceFraction": 0.22
+        }
+      },
+      "circuit": {
+        "components": []
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 100,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 10
+          }
+        ]
+      }
+    }
+  },
+  "sensor": {
+    "requirements": {
+      "designIntent": {
+        "schemaVersion": "approved-design-intent-v1",
+        "approvalVersion": 1,
+        "sceneVersion": 1,
+        "sceneHash": "6252b3a5941f0d3d12b639c19239b25561741f3bca1492c8b27c77a7bcf177df",
+        "units": "relative",
+        "coordinateFrame": "concept-centered-z-up",
+        "enclosure": {
+          "conceptPartId": "shell",
+          "primitive": "cylinder",
+          "profile": "circle",
+          "axis": "z",
+          "size": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "relativeSize": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "unsupportedReasons": []
+        },
+        "components": [
+          {
+            "conceptPartId": "board",
+            "label": "Board",
+            "role": "board",
+            "shape": "box",
+            "size": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 0.05
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.025
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.05
+              },
+              "sizeFraction": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.1
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "battery",
+            "label": "Battery",
+            "role": "battery",
+            "shape": "box",
+            "size": {
+              "x": 0.8,
+              "y": 0.7,
+              "z": 0.1
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": -0.1
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.2
+              },
+              "sizeFraction": {
+                "x": 0.4,
+                "y": 0.35,
+                "z": 0.2
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "sensor",
+            "label": "Front sensor",
+            "role": "sensor",
+            "shape": "box",
+            "size": {
+              "x": 0.1,
+              "y": 0.1,
+              "z": 0.04
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.7,
+              "z": 0.075
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.35,
+                "z": 0.15
+              },
+              "sizeFraction": {
+                "x": 0.05,
+                "y": 0.05,
+                "z": 0.08
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          }
+        ],
+        "aspectToleranceFraction": 0.25,
+        "positionToleranceFraction": 0.22,
+        "rotationToleranceDegrees": 15,
+        "stackingOrder": [
+          "battery",
+          "board",
+          "sensor"
+        ],
+        "dimensionPolicy": "accepted_requirements_and_interfaces_mm",
+        "limitations": [
+          "Relative component sizes are illustrative; actual component dimensions come from accepted datasheets.",
+          "Surface and external features are references, not internal clearance volumes.",
+          "Appearance approval grants no manufacturing or release approval."
+        ]
+      }
+    },
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 40,
+          "z": 10
+        },
+        "internalMm": {
+          "x": 38,
+          "y": 38,
+          "z": 8
+        },
+        "minimumWallMm": 1,
+        "components": [
+          {
+            "id": "pcb",
+            "conceptPartId": "board",
+            "sizeMm": {
+              "x": 20,
+              "y": 20,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 9.0,
+              "y": 9.0,
+              "z": 4
+            }
+          },
+          {
+            "id": "battery",
+            "conceptPartId": "battery",
+            "sizeMm": {
+              "x": 12,
+              "y": 10,
+              "z": 2
+            },
+            "positionMm": {
+              "x": 13.0,
+              "y": 14.0,
+              "z": 1
+            }
+          },
+          {
+            "id": "sensor",
+            "conceptPartId": "sensor",
+            "sizeMm": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 18.5,
+              "y": 32.5,
+              "z": 5
+            }
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-design-layout-v1",
+          "sceneHash": "6252b3a5941f0d3d12b639c19239b25561741f3bca1492c8b27c77a7bcf177df",
+          "approvalVersion": 1,
+          "enclosure": {
+            "profile": "circle",
+            "axis": "z",
+            "conceptPartId": "shell",
+            "externalMm": {
+              "x": 40,
+              "y": 40,
+              "z": 10
+            },
+            "internalMm": {
+              "x": 38,
+              "y": 38,
+              "z": 8
+            },
+            "centerPolicy": "enclosure_bbox_center",
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "relativeSize": {
+              "x": 2.0,
+              "y": 2.0,
+              "z": 0.5
+            },
+            "aspectToleranceFraction": 0.25,
+            "unsupportedReasons": []
+          },
+          "components": [
+            {
+              "conceptPartId": "board",
+              "label": "Board",
+              "role": "board",
+              "shape": "box",
+              "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.05
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.025
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": 0.05
+                },
+                "sizeFraction": {
+                  "x": 0.5,
+                  "y": 0.5,
+                  "z": 0.1
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "pcb",
+              "sizeMm": {
+                "x": 20,
+                "y": 20,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 9.0,
+                "y": 9.0,
+                "z": 4
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "battery",
+              "label": "Battery",
+              "role": "battery",
+              "shape": "box",
+              "size": {
+                "x": 0.8,
+                "y": 0.7,
+                "z": 0.1
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.1
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": -0.2
+                },
+                "sizeFraction": {
+                  "x": 0.4,
+                  "y": 0.35,
+                  "z": 0.2
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "battery",
+              "sizeMm": {
+                "x": 12,
+                "y": 10,
+                "z": 2
+              },
+              "positionMm": {
+                "x": 13.0,
+                "y": 14.0,
+                "z": 1
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "sensor",
+              "label": "Front sensor",
+              "role": "sensor",
+              "shape": "box",
+              "size": {
+                "x": 0.1,
+                "y": 0.1,
+                "z": 0.04
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.7,
+                "z": 0.075
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.35,
+                  "z": 0.15
+                },
+                "sizeFraction": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "z": 0.08
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "sensor",
+              "sizeMm": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 18.5,
+                "y": 32.5,
+                "z": 5
+              },
+              "mount": "internal"
+            }
+          ],
+          "features": [],
+          "positionToleranceFraction": 0.22,
+          "rotationToleranceDegrees": 15,
+          "stackingOrder": [
+            "battery",
+            "board",
+            "sensor"
+          ]
+        }
+      },
+      "electronics": {
+        "componentReferences": [
+          {
+            "conceptPartId": "sensor",
+            "reference": "U1"
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-pcb-layout-v1",
+          "sceneHash": "6252b3a5941f0d3d12b639c19239b25561741f3bca1492c8b27c77a7bcf177df",
+          "approvalVersion": 1,
+          "boardConceptPartId": "board",
+          "componentReferences": [
+            {
+              "conceptPartId": "sensor",
+              "role": "sensor",
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.35,
+                  "z": 0.15
+                },
+                "sizeFraction": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "z": 0.08
+                }
+              },
+              "shape": "box",
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "placementClass": "internal",
+              "reference": "U1"
+            }
+          ],
+          "unmappedConceptPartIds": [],
+          "positionToleranceFraction": 0.22
+        }
+      },
+      "circuit": {
+        "components": [
+          {
+            "reference": "U1"
+          }
+        ]
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 100,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 10
+          }
+        ]
+      }
+    }
+  },
+  "round_board": {
+    "requirements": {
+      "designIntent": {
+        "schemaVersion": "approved-design-intent-v1",
+        "approvalVersion": 1,
+        "sceneVersion": 1,
+        "sceneHash": "235bf47466ccca221b2b91f25f450921c96f3aeafa7474745410ef1fa2969475",
+        "units": "relative",
+        "coordinateFrame": "concept-centered-z-up",
+        "enclosure": {
+          "conceptPartId": "shell",
+          "primitive": "cylinder",
+          "profile": "circle",
+          "axis": "z",
+          "size": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "relativeSize": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": 0.5
+          },
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "unsupportedReasons": []
+        },
+        "components": [
+          {
+            "conceptPartId": "board",
+            "label": "Board",
+            "role": "board",
+            "shape": "cylinder",
+            "size": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 0.05
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.025
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.05
+              },
+              "sizeFraction": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.1
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          },
+          {
+            "conceptPartId": "battery",
+            "label": "Battery",
+            "role": "battery",
+            "shape": "box",
+            "size": {
+              "x": 0.8,
+              "y": 0.7,
+              "z": 0.1
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": -0.1
+            },
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "region": {
+              "center": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.2
+              },
+              "sizeFraction": {
+                "x": 0.4,
+                "y": 0.35,
+                "z": 0.2
+              }
+            },
+            "placementClass": "internal",
+            "requiredMapping": true
+          }
+        ],
+        "aspectToleranceFraction": 0.25,
+        "positionToleranceFraction": 0.22,
+        "rotationToleranceDegrees": 15,
+        "stackingOrder": [
+          "battery",
+          "board"
+        ],
+        "dimensionPolicy": "accepted_requirements_and_interfaces_mm",
+        "limitations": [
+          "Relative component sizes are illustrative; actual component dimensions come from accepted datasheets.",
+          "Surface and external features are references, not internal clearance volumes.",
+          "Appearance approval grants no manufacturing or release approval."
+        ]
+      }
+    },
+    "interfaces": {
+      "mechanical": {
+        "externalMm": {
+          "x": 40,
+          "y": 40,
+          "z": 10
+        },
+        "internalMm": {
+          "x": 38,
+          "y": 38,
+          "z": 8
+        },
+        "minimumWallMm": 1,
+        "components": [
+          {
+            "id": "pcb",
+            "conceptPartId": "board",
+            "sizeMm": {
+              "x": 36,
+              "y": 36,
+              "z": 1
+            },
+            "positionMm": {
+              "x": 1.0,
+              "y": 1.0,
+              "z": 4
+            }
+          },
+          {
+            "id": "battery",
+            "conceptPartId": "battery",
+            "sizeMm": {
+              "x": 12,
+              "y": 10,
+              "z": 2
+            },
+            "positionMm": {
+              "x": 13.0,
+              "y": 14.0,
+              "z": 1
+            }
+          }
+        ],
+        "designIntent": {
+          "schemaVersion": "engineering-design-layout-v1",
+          "sceneHash": "235bf47466ccca221b2b91f25f450921c96f3aeafa7474745410ef1fa2969475",
+          "approvalVersion": 1,
+          "enclosure": {
+            "profile": "circle",
+            "axis": "z",
+            "conceptPartId": "shell",
+            "externalMm": {
+              "x": 40,
+              "y": 40,
+              "z": 10
+            },
+            "internalMm": {
+              "x": 38,
+              "y": 38,
+              "z": 8
+            },
+            "centerPolicy": "enclosure_bbox_center",
+            "rotation": {
+              "x": 0.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "relativeSize": {
+              "x": 2.0,
+              "y": 2.0,
+              "z": 0.5
+            },
+            "aspectToleranceFraction": 0.25,
+            "unsupportedReasons": []
+          },
+          "components": [
+            {
+              "conceptPartId": "board",
+              "label": "Board",
+              "role": "board",
+              "shape": "cylinder",
+              "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.05
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.025
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": 0.05
+                },
+                "sizeFraction": {
+                  "x": 0.5,
+                  "y": 0.5,
+                  "z": 0.1
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "pcb",
+              "sizeMm": {
+                "x": 36,
+                "y": 36,
+                "z": 1
+              },
+              "positionMm": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 4
+              },
+              "mount": "internal"
+            },
+            {
+              "conceptPartId": "battery",
+              "label": "Battery",
+              "role": "battery",
+              "shape": "box",
+              "size": {
+                "x": 0.8,
+                "y": 0.7,
+                "z": 0.1
+              },
+              "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.1
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "region": {
+                "center": {
+                  "x": 0.0,
+                  "y": 0.0,
+                  "z": -0.2
+                },
+                "sizeFraction": {
+                  "x": 0.4,
+                  "y": 0.35,
+                  "z": 0.2
+                }
+              },
+              "placementClass": "internal",
+              "requiredMapping": true,
+              "interfaceComponentId": "battery",
+              "sizeMm": {
+                "x": 12,
+                "y": 10,
+                "z": 2
+              },
+              "positionMm": {
+                "x": 13.0,
+                "y": 14.0,
+                "z": 1
+              },
+              "mount": "internal"
+            }
+          ],
+          "features": [],
+          "positionToleranceFraction": 0.22,
+          "rotationToleranceDegrees": 15,
+          "stackingOrder": [
+            "battery",
+            "board"
+          ]
+        }
+      },
+      "electronics": {
+        "componentReferences": [],
+        "designIntent": {
+          "schemaVersion": "engineering-pcb-layout-v1",
+          "sceneHash": "235bf47466ccca221b2b91f25f450921c96f3aeafa7474745410ef1fa2969475",
+          "approvalVersion": 1,
+          "boardConceptPartId": "board",
+          "componentReferences": [],
+          "unmappedConceptPartIds": [],
+          "positionToleranceFraction": 0.22
+        }
+      },
+      "circuit": {
+        "components": []
+      },
+      "power": {
+        "supplyVoltageV": 3.3,
+        "maxCurrentMa": 100,
+        "loads": [
+          {
+            "id": "mcu",
+            "minVoltageV": 3,
+            "maxVoltageV": 3.6,
+            "currentMa": 10
+          }
+        ]
+      }
+    }
+  }
+}

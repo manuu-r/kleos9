@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 3d6d711371c7144613e1bd2f54ac89eb3300d2710ace7c4919eff5e4239c7d9f
+// Schema SHA-256: 321540195503e20f9d900296f9742ba1e1ef497e6377e37fcec4b61cc28f74bd
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -21,7 +21,11 @@ class ApiArtifactDownloadView {
   final String url;
   final String sha256;
   final String name;
-  Map<String, dynamic> toJson() => {'url': url, 'sha256': sha256, 'name': name};
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'sha256': sha256,
+        'name': name,
+      };
 }
 
 class ApiArtifactView {
@@ -46,9 +50,8 @@ class ApiArtifactView {
         size: (json['size'] as num).toInt(),
         status: json['status'] as String,
         mediaType: json['mediaType'] as String,
-        provenance: Map<String, dynamic>.unmodifiable(
-          _object(json['provenance']),
-        ),
+        provenance:
+            Map<String, dynamic>.unmodifiable(_object(json['provenance'])),
       );
   final String id;
   final String name;
@@ -60,16 +63,16 @@ class ApiArtifactView {
   final String mediaType;
   final Map<String, dynamic> provenance;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'lane': lane,
-    'revision': revision,
-    'sha256': sha256,
-    'size': size,
-    'status': status,
-    'mediaType': mediaType,
-    'provenance': provenance,
-  };
+        'id': id,
+        'name': name,
+        'lane': lane,
+        'revision': revision,
+        'sha256': sha256,
+        'size': size,
+        'status': status,
+        'mediaType': mediaType,
+        'provenance': provenance,
+      };
 }
 
 class ApiAttemptView {
@@ -86,23 +89,19 @@ class ApiAttemptView {
     required this.calls,
   });
   factory ApiAttemptView.fromJson(Map<String, dynamic> json) => ApiAttemptView(
-    id: json['id'] as String,
-    number: (json['number'] as num).toInt(),
-    status: json['status'] as String,
-    provider: json['provider'] as String,
-    model: json['model'] as String,
-    policyRevision: (json['policyRevision'] as num).toInt(),
-    error: json['error'] == null ? null : json['error'] as String,
-    contextManifest: Map<String, dynamic>.unmodifiable(
-      _object(json['contextManifest']),
-    ),
-    output: Map<String, dynamic>.unmodifiable(_object(json['output'])),
-    calls: List<ApiInvocationView>.unmodifiable(
-      (json['calls'] as List).map(
-        (v) => ApiInvocationView.fromJson(_object(v)),
-      ),
-    ),
-  );
+        id: json['id'] as String,
+        number: (json['number'] as num).toInt(),
+        status: json['status'] as String,
+        provider: json['provider'] as String,
+        model: json['model'] as String,
+        policyRevision: (json['policyRevision'] as num).toInt(),
+        error: json['error'] == null ? null : json['error'] as String,
+        contextManifest:
+            Map<String, dynamic>.unmodifiable(_object(json['contextManifest'])),
+        output: Map<String, dynamic>.unmodifiable(_object(json['output'])),
+        calls: List<ApiInvocationView>.unmodifiable((json['calls'] as List)
+            .map((v) => ApiInvocationView.fromJson(_object(v)))),
+      );
   final String id;
   final int number;
   final String status;
@@ -114,17 +113,17 @@ class ApiAttemptView {
   final Map<String, dynamic> output;
   final List<ApiInvocationView> calls;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'number': number,
-    'status': status,
-    'provider': provider,
-    'model': model,
-    'policyRevision': policyRevision,
-    'error': error,
-    'contextManifest': contextManifest,
-    'output': output,
-    'calls': calls.map((v) => v.toJson()).toList(growable: false),
-  };
+        'id': id,
+        'number': number,
+        'status': status,
+        'provider': provider,
+        'model': model,
+        'policyRevision': policyRevision,
+        'error': error,
+        'contextManifest': contextManifest,
+        'output': output,
+        'calls': calls.map((v) => v.toJson()).toList(growable: false),
+      };
 }
 
 class ApiBudgetView {
@@ -135,44 +134,48 @@ class ApiBudgetView {
     required this.reservedUsd,
   });
   factory ApiBudgetView.fromJson(Map<String, dynamic> json) => ApiBudgetView(
-    allowanceUsd: json['allowanceUsd'] == null
-        ? null
-        : (json['allowanceUsd'] as num).toDouble(),
-    unlimited: json['unlimited'] == null ? null : json['unlimited'] as bool,
-    spentEstimateUsd: (json['spentEstimateUsd'] as num).toDouble(),
-    reservedUsd: (json['reservedUsd'] as num).toDouble(),
-  );
+        allowanceUsd: json['allowanceUsd'] == null
+            ? null
+            : (json['allowanceUsd'] as num).toDouble(),
+        unlimited: json['unlimited'] == null ? null : json['unlimited'] as bool,
+        spentEstimateUsd: (json['spentEstimateUsd'] as num).toDouble(),
+        reservedUsd: (json['reservedUsd'] as num).toDouble(),
+      );
   final double? allowanceUsd;
   final bool? unlimited;
   final double spentEstimateUsd;
   final double reservedUsd;
   Map<String, dynamic> toJson() => {
-    'allowanceUsd': allowanceUsd,
-    if (unlimited != null) 'unlimited': unlimited,
-    'spentEstimateUsd': spentEstimateUsd,
-    'reservedUsd': reservedUsd,
-  };
+        'allowanceUsd': allowanceUsd,
+        if (unlimited != null) 'unlimited': unlimited,
+        'spentEstimateUsd': spentEstimateUsd,
+        'reservedUsd': reservedUsd,
+      };
 }
 
 class ApiCommand {
-  const ApiCommand({required this.type, this.payload, this.expectedRevision});
+  const ApiCommand({
+    required this.type,
+    this.payload,
+    this.expectedRevision,
+  });
   factory ApiCommand.fromJson(Map<String, dynamic> json) => ApiCommand(
-    type: json['type'] as String,
-    payload: json['payload'] == null
-        ? null
-        : Map<String, dynamic>.unmodifiable(_object(json['payload'])),
-    expectedRevision: json['expectedRevision'] == null
-        ? null
-        : (json['expectedRevision'] as num).toInt(),
-  );
+        type: json['type'] as String,
+        payload: json['payload'] == null
+            ? null
+            : Map<String, dynamic>.unmodifiable(_object(json['payload'])),
+        expectedRevision: json['expectedRevision'] == null
+            ? null
+            : (json['expectedRevision'] as num).toInt(),
+      );
   final String type;
   final Map<String, dynamic>? payload;
   final int? expectedRevision;
   Map<String, dynamic> toJson() => {
-    'type': type,
-    if (payload != null) 'payload': payload,
-    if (expectedRevision != null) 'expectedRevision': expectedRevision,
-  };
+        'type': type,
+        if (payload != null) 'payload': payload,
+        if (expectedRevision != null) 'expectedRevision': expectedRevision,
+      };
 }
 
 class ApiCommandAccepted {
@@ -194,11 +197,60 @@ class ApiCommandAccepted {
   final String? runId;
   final int revision;
   Map<String, dynamic> toJson() => {
-    'commandId': commandId,
-    'projectId': projectId,
-    if (runId != null) 'runId': runId,
-    'revision': revision,
-  };
+        'commandId': commandId,
+        'projectId': projectId,
+        if (runId != null) 'runId': runId,
+        'revision': revision,
+      };
+}
+
+class ApiCompanionPreviewRequest {
+  const ApiCompanionPreviewRequest({
+    required this.artifactId,
+  });
+  factory ApiCompanionPreviewRequest.fromJson(Map<String, dynamic> json) =>
+      ApiCompanionPreviewRequest(
+        artifactId: json['artifactId'] as String,
+      );
+  final String artifactId;
+  Map<String, dynamic> toJson() => {
+        'artifactId': artifactId,
+      };
+}
+
+class ApiCompanionPreviewView {
+  const ApiCompanionPreviewView({
+    required this.url,
+    required this.expiresAt,
+    required this.artifactId,
+    required this.sha256,
+    this.mode,
+    required this.limitations,
+  });
+  factory ApiCompanionPreviewView.fromJson(Map<String, dynamic> json) =>
+      ApiCompanionPreviewView(
+        url: json['url'] as String,
+        expiresAt: json['expiresAt'] as String,
+        artifactId: json['artifactId'] as String,
+        sha256: json['sha256'] as String,
+        mode: json['mode'] == null ? null : json['mode'] as String,
+        limitations: List<String>.unmodifiable(
+            (json['limitations'] as List).map((v) => v as String)),
+      );
+  final String url;
+  final String expiresAt;
+  final String artifactId;
+  final String sha256;
+  final String? mode;
+  final List<String> limitations;
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'expiresAt': expiresAt,
+        'artifactId': artifactId,
+        'sha256': sha256,
+        if (mode != null) 'mode': mode,
+        'limitations': limitations.map((v) => v).toList(growable: false),
+      };
 }
 
 class ApiEventView {
@@ -211,13 +263,13 @@ class ApiEventView {
     required this.createdAt,
   });
   factory ApiEventView.fromJson(Map<String, dynamic> json) => ApiEventView(
-    id: json['id'] as String,
-    sequence: (json['sequence'] as num).toInt(),
-    type: json['type'] as String,
-    data: Map<String, dynamic>.unmodifiable(_object(json['data'])),
-    traceId: json['traceId'] == null ? null : json['traceId'] as String,
-    createdAt: json['createdAt'] as String,
-  );
+        id: json['id'] as String,
+        sequence: (json['sequence'] as num).toInt(),
+        type: json['type'] as String,
+        data: Map<String, dynamic>.unmodifiable(_object(json['data'])),
+        traceId: json['traceId'] == null ? null : json['traceId'] as String,
+        createdAt: json['createdAt'] as String,
+      );
   final String id;
   final int sequence;
   final String type;
@@ -225,13 +277,13 @@ class ApiEventView {
   final String? traceId;
   final String createdAt;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'sequence': sequence,
-    'type': type,
-    'data': data,
-    'traceId': traceId,
-    'createdAt': createdAt,
-  };
+        'id': id,
+        'sequence': sequence,
+        'type': type,
+        'data': data,
+        'traceId': traceId,
+        'createdAt': createdAt,
+      };
 }
 
 class ApiInvocationView {
@@ -259,13 +311,13 @@ class ApiInvocationView {
   final double estimatedUsd;
   final bool hasTranscript;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'operation': operation,
-    'status': status,
-    'usage': usage,
-    'estimatedUsd': estimatedUsd,
-    'hasTranscript': hasTranscript,
-  };
+        'id': id,
+        'operation': operation,
+        'status': status,
+        'usage': usage,
+        'estimatedUsd': estimatedUsd,
+        'hasTranscript': hasTranscript,
+      };
 }
 
 class ApiModelCatalogView {
@@ -276,36 +328,38 @@ class ApiModelCatalogView {
   });
   factory ApiModelCatalogView.fromJson(Map<String, dynamic> json) =>
       ApiModelCatalogView(
-        models: List<ApiModelView>.unmodifiable(
-          (json['models'] as List).map(
-            (v) => ApiModelView.fromJson(_object(v)),
-          ),
-        ),
+        models: List<ApiModelView>.unmodifiable((json['models'] as List)
+            .map((v) => ApiModelView.fromJson(_object(v)))),
         defaultPolicy: Map<String, ApiModelChoice>.unmodifiable(
-          _object(json['defaultPolicy'])
-              .map((k, v) => MapEntry(k, ApiModelChoice.fromJson(_object(v)))),
-        ),
+            _object(json['defaultPolicy']).map(
+                (k, v) => MapEntry(k, ApiModelChoice.fromJson(_object(v))))),
         billing: json['billing'] as String,
       );
   final List<ApiModelView> models;
   final Map<String, ApiModelChoice> defaultPolicy;
   final String billing;
   Map<String, dynamic> toJson() => {
-    'models': models.map((v) => v.toJson()).toList(growable: false),
-    'defaultPolicy': defaultPolicy.map((k, v) => MapEntry(k, v.toJson())),
-    'billing': billing,
-  };
+        'models': models.map((v) => v.toJson()).toList(growable: false),
+        'defaultPolicy': defaultPolicy.map((k, v) => MapEntry(k, v.toJson())),
+        'billing': billing,
+      };
 }
 
 class ApiModelChoice {
-  const ApiModelChoice({required this.provider, required this.model});
+  const ApiModelChoice({
+    required this.provider,
+    required this.model,
+  });
   factory ApiModelChoice.fromJson(Map<String, dynamic> json) => ApiModelChoice(
-    provider: json['provider'] as String,
-    model: json['model'] as String,
-  );
+        provider: json['provider'] as String,
+        model: json['model'] as String,
+      );
   final String provider;
   final String model;
-  Map<String, dynamic> toJson() => {'provider': provider, 'model': model};
+  Map<String, dynamic> toJson() => {
+        'provider': provider,
+        'model': model,
+      };
 }
 
 class ApiModelView {
@@ -322,25 +376,24 @@ class ApiModelView {
     required this.contextLimit,
   });
   factory ApiModelView.fromJson(Map<String, dynamic> json) => ApiModelView(
-    provider: json['provider'] as String,
-    model: json['model'] as String,
-    configured: json['configured'] as bool,
-    qualification: json['qualification'] as String,
-    enabledLanes: List<String>.unmodifiable(
-      (json['enabledLanes'] as List).map((v) => v as String),
-    ),
-    capabilities: List<String>.unmodifiable(
-      (json['capabilities'] as List).map((v) => v as String),
-    ),
-    creditBalance: json['creditBalance'] == null
-        ? null
-        : (json['creditBalance'] as num).toDouble(),
-    contextCharacterCeiling: (json['contextCharacterCeiling'] as num).toInt(),
-    pricingVersion: json['pricingVersion'] as String,
-    contextLimit: json['contextLimit'] == null
-        ? null
-        : (json['contextLimit'] as num).toInt(),
-  );
+        provider: json['provider'] as String,
+        model: json['model'] as String,
+        configured: json['configured'] as bool,
+        qualification: json['qualification'] as String,
+        enabledLanes: List<String>.unmodifiable(
+            (json['enabledLanes'] as List).map((v) => v as String)),
+        capabilities: List<String>.unmodifiable(
+            (json['capabilities'] as List).map((v) => v as String)),
+        creditBalance: json['creditBalance'] == null
+            ? null
+            : (json['creditBalance'] as num).toDouble(),
+        contextCharacterCeiling:
+            (json['contextCharacterCeiling'] as num).toInt(),
+        pricingVersion: json['pricingVersion'] as String,
+        contextLimit: json['contextLimit'] == null
+            ? null
+            : (json['contextLimit'] as num).toInt(),
+      );
   final String provider;
   final String model;
   final bool configured;
@@ -352,17 +405,17 @@ class ApiModelView {
   final String pricingVersion;
   final int? contextLimit;
   Map<String, dynamic> toJson() => {
-    'provider': provider,
-    'model': model,
-    'configured': configured,
-    'qualification': qualification,
-    'enabledLanes': enabledLanes.map((v) => v).toList(growable: false),
-    'capabilities': capabilities.map((v) => v).toList(growable: false),
-    'creditBalance': creditBalance,
-    'contextCharacterCeiling': contextCharacterCeiling,
-    'pricingVersion': pricingVersion,
-    'contextLimit': contextLimit,
-  };
+        'provider': provider,
+        'model': model,
+        'configured': configured,
+        'qualification': qualification,
+        'enabledLanes': enabledLanes.map((v) => v).toList(growable: false),
+        'capabilities': capabilities.map((v) => v).toList(growable: false),
+        'creditBalance': creditBalance,
+        'contextCharacterCeiling': contextCharacterCeiling,
+        'pricingVersion': pricingVersion,
+        'contextLimit': contextLimit,
+      };
 }
 
 class ApiProjectView {
@@ -385,30 +438,29 @@ class ApiProjectView {
     required this.createdAt,
   });
   factory ApiProjectView.fromJson(Map<String, dynamic> json) => ApiProjectView(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    brief: json['brief'] as String,
-    revision: (json['revision'] as num).toInt(),
-    engineeringRevision: (json['engineeringRevision'] as num).toInt(),
-    policyRevision: (json['policyRevision'] as num).toInt(),
-    modelPolicy: Map<String, ApiModelChoice>.unmodifiable(
-      _object(json['modelPolicy'])
-          .map((k, v) => MapEntry(k, ApiModelChoice.fromJson(_object(v)))),
-    ),
-    stage: (json['stage'] as num).toInt(),
-    status: json['status'] as String,
-    requirements: Map<String, dynamic>.unmodifiable(
-      _object(json['requirements']),
-    ),
-    interfaces: Map<String, dynamic>.unmodifiable(_object(json['interfaces'])),
-    state: Map<String, dynamic>.unmodifiable(_object(json['state'])),
-    acceptedReleaseId: json['acceptedReleaseId'] == null
-        ? null
-        : json['acceptedReleaseId'] as String,
-    budget: ApiBudgetView.fromJson(_object(json['budget'])),
-    mode: json['mode'] as String,
-    createdAt: json['createdAt'] as String,
-  );
+        id: json['id'] as String,
+        name: json['name'] as String,
+        brief: json['brief'] as String,
+        revision: (json['revision'] as num).toInt(),
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        policyRevision: (json['policyRevision'] as num).toInt(),
+        modelPolicy: Map<String, ApiModelChoice>.unmodifiable(
+            _object(json['modelPolicy']).map(
+                (k, v) => MapEntry(k, ApiModelChoice.fromJson(_object(v))))),
+        stage: (json['stage'] as num).toInt(),
+        status: json['status'] as String,
+        requirements:
+            Map<String, dynamic>.unmodifiable(_object(json['requirements'])),
+        interfaces:
+            Map<String, dynamic>.unmodifiable(_object(json['interfaces'])),
+        state: Map<String, dynamic>.unmodifiable(_object(json['state'])),
+        acceptedReleaseId: json['acceptedReleaseId'] == null
+            ? null
+            : json['acceptedReleaseId'] as String,
+        budget: ApiBudgetView.fromJson(_object(json['budget'])),
+        mode: json['mode'] as String,
+        createdAt: json['createdAt'] as String,
+      );
   final String id;
   final String name;
   final String brief;
@@ -426,44 +478,43 @@ class ApiProjectView {
   final String mode;
   final String createdAt;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'brief': brief,
-    'revision': revision,
-    'engineeringRevision': engineeringRevision,
-    'policyRevision': policyRevision,
-    'modelPolicy': modelPolicy.map((k, v) => MapEntry(k, v.toJson())),
-    'stage': stage,
-    'status': status,
-    'requirements': requirements,
-    'interfaces': interfaces,
-    'state': state,
-    'acceptedReleaseId': acceptedReleaseId,
-    'budget': budget.toJson(),
-    'mode': mode,
-    'createdAt': createdAt,
-  };
+        'id': id,
+        'name': name,
+        'brief': brief,
+        'revision': revision,
+        'engineeringRevision': engineeringRevision,
+        'policyRevision': policyRevision,
+        'modelPolicy': modelPolicy.map((k, v) => MapEntry(k, v.toJson())),
+        'stage': stage,
+        'status': status,
+        'requirements': requirements,
+        'interfaces': interfaces,
+        'state': state,
+        'acceptedReleaseId': acceptedReleaseId,
+        'budget': budget.toJson(),
+        'mode': mode,
+        'createdAt': createdAt,
+      };
 }
 
 class ApiProjectsView {
-  const ApiProjectsView({required this.projects, required this.nextCursor});
+  const ApiProjectsView({
+    required this.projects,
+    required this.nextCursor,
+  });
   factory ApiProjectsView.fromJson(Map<String, dynamic> json) =>
       ApiProjectsView(
-        projects: List<ApiProjectView>.unmodifiable(
-          (json['projects'] as List).map(
-            (v) => ApiProjectView.fromJson(_object(v)),
-          ),
-        ),
-        nextCursor: json['nextCursor'] == null
-            ? null
-            : json['nextCursor'] as String,
+        projects: List<ApiProjectView>.unmodifiable((json['projects'] as List)
+            .map((v) => ApiProjectView.fromJson(_object(v)))),
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
       );
   final List<ApiProjectView> projects;
   final String? nextCursor;
   Map<String, dynamic> toJson() => {
-    'projects': projects.map((v) => v.toJson()).toList(growable: false),
-    'nextCursor': nextCursor,
-  };
+        'projects': projects.map((v) => v.toJson()).toList(growable: false),
+        'nextCursor': nextCursor,
+      };
 }
 
 class ApiRunSummary {
@@ -478,15 +529,15 @@ class ApiRunSummary {
     required this.createdAt,
   });
   factory ApiRunSummary.fromJson(Map<String, dynamic> json) => ApiRunSummary(
-    id: json['id'] as String,
-    projectId: json['projectId'] as String,
-    kind: json['kind'] as String,
-    status: json['status'] as String,
-    revision: (json['revision'] as num).toInt(),
-    traceId: json['traceId'] as String,
-    blocker: json['blocker'] == null ? null : json['blocker'] as String,
-    createdAt: json['createdAt'] as String,
-  );
+        id: json['id'] as String,
+        projectId: json['projectId'] as String,
+        kind: json['kind'] as String,
+        status: json['status'] as String,
+        revision: (json['revision'] as num).toInt(),
+        traceId: json['traceId'] as String,
+        blocker: json['blocker'] == null ? null : json['blocker'] as String,
+        createdAt: json['createdAt'] as String,
+      );
   final String id;
   final String projectId;
   final String kind;
@@ -496,15 +547,15 @@ class ApiRunSummary {
   final String? blocker;
   final String createdAt;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'projectId': projectId,
-    'kind': kind,
-    'status': status,
-    'revision': revision,
-    'traceId': traceId,
-    'blocker': blocker,
-    'createdAt': createdAt,
-  };
+        'id': id,
+        'projectId': projectId,
+        'kind': kind,
+        'status': status,
+        'revision': revision,
+        'traceId': traceId,
+        'blocker': blocker,
+        'createdAt': createdAt,
+      };
 }
 
 class ApiRunView {
@@ -520,18 +571,17 @@ class ApiRunView {
     required this.tasks,
   });
   factory ApiRunView.fromJson(Map<String, dynamic> json) => ApiRunView(
-    id: json['id'] as String,
-    projectId: json['projectId'] as String,
-    kind: json['kind'] as String,
-    status: json['status'] as String,
-    revision: (json['revision'] as num).toInt(),
-    traceId: json['traceId'] as String,
-    blocker: json['blocker'] == null ? null : json['blocker'] as String,
-    createdAt: json['createdAt'] as String,
-    tasks: List<ApiTaskView>.unmodifiable(
-      (json['tasks'] as List).map((v) => ApiTaskView.fromJson(_object(v))),
-    ),
-  );
+        id: json['id'] as String,
+        projectId: json['projectId'] as String,
+        kind: json['kind'] as String,
+        status: json['status'] as String,
+        revision: (json['revision'] as num).toInt(),
+        traceId: json['traceId'] as String,
+        blocker: json['blocker'] == null ? null : json['blocker'] as String,
+        createdAt: json['createdAt'] as String,
+        tasks: List<ApiTaskView>.unmodifiable((json['tasks'] as List)
+            .map((v) => ApiTaskView.fromJson(_object(v)))),
+      );
   final String id;
   final String projectId;
   final String kind;
@@ -542,16 +592,16 @@ class ApiRunView {
   final String createdAt;
   final List<ApiTaskView> tasks;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'projectId': projectId,
-    'kind': kind,
-    'status': status,
-    'revision': revision,
-    'traceId': traceId,
-    'blocker': blocker,
-    'createdAt': createdAt,
-    'tasks': tasks.map((v) => v.toJson()).toList(growable: false),
-  };
+        'id': id,
+        'projectId': projectId,
+        'kind': kind,
+        'status': status,
+        'revision': revision,
+        'traceId': traceId,
+        'blocker': blocker,
+        'createdAt': createdAt,
+        'tasks': tasks.map((v) => v.toJson()).toList(growable: false),
+      };
 }
 
 class ApiTaskView {
@@ -565,24 +615,18 @@ class ApiTaskView {
     required this.nativeJobs,
   });
   factory ApiTaskView.fromJson(Map<String, dynamic> json) => ApiTaskView(
-    id: json['id'] as String,
-    lane: json['lane'] as String,
-    status: json['status'] as String,
-    dependencies: List<Object?>.unmodifiable(
-      (json['dependencies'] as List).map((v) => v),
-    ),
-    result: Map<String, dynamic>.unmodifiable(_object(json['result'])),
-    attempts: List<ApiAttemptView>.unmodifiable(
-      (json['attempts'] as List).map(
-        (v) => ApiAttemptView.fromJson(_object(v)),
-      ),
-    ),
-    nativeJobs: List<Map<String, dynamic>>.unmodifiable(
-      (json['nativeJobs'] as List).map(
-        (v) => Map<String, dynamic>.unmodifiable(_object(v)),
-      ),
-    ),
-  );
+        id: json['id'] as String,
+        lane: json['lane'] as String,
+        status: json['status'] as String,
+        dependencies: List<Object?>.unmodifiable(
+            (json['dependencies'] as List).map((v) => v)),
+        result: Map<String, dynamic>.unmodifiable(_object(json['result'])),
+        attempts: List<ApiAttemptView>.unmodifiable((json['attempts'] as List)
+            .map((v) => ApiAttemptView.fromJson(_object(v)))),
+        nativeJobs: List<Map<String, dynamic>>.unmodifiable(
+            (json['nativeJobs'] as List)
+                .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
+      );
   final String id;
   final String lane;
   final String status;
@@ -591,14 +635,14 @@ class ApiTaskView {
   final List<ApiAttemptView> attempts;
   final List<Map<String, dynamic>> nativeJobs;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'lane': lane,
-    'status': status,
-    'dependencies': dependencies.map((v) => v).toList(growable: false),
-    'result': result,
-    'attempts': attempts.map((v) => v.toJson()).toList(growable: false),
-    'nativeJobs': nativeJobs.map((v) => v).toList(growable: false),
-  };
+        'id': id,
+        'lane': lane,
+        'status': status,
+        'dependencies': dependencies.map((v) => v).toList(growable: false),
+        'result': result,
+        'attempts': attempts.map((v) => v.toJson()).toList(growable: false),
+        'nativeJobs': nativeJobs.map((v) => v).toList(growable: false),
+      };
 }
 
 class ApiValidationView {
@@ -623,12 +667,12 @@ class ApiValidationView {
   final String evidenceKind;
   final Map<String, dynamic> details;
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'status': status,
-    'evidenceKind': evidenceKind,
-    'details': details,
-  };
+        'id': id,
+        'name': name,
+        'status': status,
+        'evidenceKind': evidenceKind,
+        'details': details,
+      };
 }
 
 class ApiWorkspaceView {
@@ -646,19 +690,13 @@ class ApiWorkspaceView {
         project: ApiProjectView.fromJson(_object(json['project'])),
         revision: (json['revision'] as num).toInt(),
         eventCursor: (json['eventCursor'] as num).toInt(),
-        runs: List<ApiRunSummary>.unmodifiable(
-          (json['runs'] as List).map((v) => ApiRunSummary.fromJson(_object(v))),
-        ),
+        runs: List<ApiRunSummary>.unmodifiable((json['runs'] as List)
+            .map((v) => ApiRunSummary.fromJson(_object(v)))),
         artifacts: List<ApiArtifactView>.unmodifiable(
-          (json['artifacts'] as List).map(
-            (v) => ApiArtifactView.fromJson(_object(v)),
-          ),
-        ),
-        checks: List<ApiValidationView>.unmodifiable(
-          (json['checks'] as List).map(
-            (v) => ApiValidationView.fromJson(_object(v)),
-          ),
-        ),
+            (json['artifacts'] as List)
+                .map((v) => ApiArtifactView.fromJson(_object(v)))),
+        checks: List<ApiValidationView>.unmodifiable((json['checks'] as List)
+            .map((v) => ApiValidationView.fromJson(_object(v)))),
         trainingOptedIn: json['trainingOptedIn'] as bool,
       );
   final ApiProjectView project;
@@ -669,12 +707,12 @@ class ApiWorkspaceView {
   final List<ApiValidationView> checks;
   final bool trainingOptedIn;
   Map<String, dynamic> toJson() => {
-    'project': project.toJson(),
-    'revision': revision,
-    'eventCursor': eventCursor,
-    'runs': runs.map((v) => v.toJson()).toList(growable: false),
-    'artifacts': artifacts.map((v) => v.toJson()).toList(growable: false),
-    'checks': checks.map((v) => v.toJson()).toList(growable: false),
-    'trainingOptedIn': trainingOptedIn,
-  };
+        'project': project.toJson(),
+        'revision': revision,
+        'eventCursor': eventCursor,
+        'runs': runs.map((v) => v.toJson()).toList(growable: false),
+        'artifacts': artifacts.map((v) => v.toJson()).toList(growable: false),
+        'checks': checks.map((v) => v.toJson()).toList(growable: false),
+        'trainingOptedIn': trainingOptedIn,
+      };
 }

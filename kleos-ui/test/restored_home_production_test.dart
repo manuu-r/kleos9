@@ -27,7 +27,11 @@ void main() {
           client: MockClient((_) async => http.Response(
               jsonEncode({
                 'revision': 1,
-                'state': {'production': true, 'projects': <Object?>[], 'connectors': <Object?>[]},
+                'state': {
+                  'production': true,
+                  'projects': <Object?>[],
+                  'connectors': <Object?>[]
+                },
                 'demo': {'speed': 1}
               }),
               200)));

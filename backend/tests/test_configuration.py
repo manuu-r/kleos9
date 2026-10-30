@@ -22,7 +22,7 @@ def test_local_native_execution_requires_authentication_and_cannot_enter_cloud()
         Settings(_env_file=None, execution_backend="docker")
     with pytest.raises(ValidationError, match="restricted to local development"):
         Settings(_env_file=None, execution_backend="docker", session_key="fixture-signing-key",
-                 environment="production", auth_mode="cognito", storage_backend="s3")
+                 environment="production", auth_mode="password", storage_backend="s3")
     settings = Settings(_env_file=None, execution_backend="docker", session_key="fixture-signing-key")
     assert settings.docker_jobs_dir == Path("/native-jobs")
 

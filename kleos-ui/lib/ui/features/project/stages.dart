@@ -7,6 +7,10 @@ import '../../core/device_visual.dart';
 import '../../core/human_task_card.dart';
 import '../../core/widgets.dart';
 import 'common.dart';
+import 'engineering_preview.dart' show EngineeringPreviewPanel;
+import 'engineering_views.dart';
+import 'mock_preview.dart';
+import 'stage_kit.dart';
 import 'production_stages.dart';
 
 const _questions = <JsonMap>[
@@ -136,7 +140,6 @@ class ProjectStage extends StatefulWidget {
 
 class _ProjectStageState extends State<ProjectStage> {
   final Set<String> _picked = {};
-  String? _sourceLane;
   JsonMap get p => widget.project;
   KleosController get controller => widget.controller;
   List<JsonMap> get connectors => asMaps(controller.state['connectors']);
@@ -184,21 +187,45 @@ class _ProjectStageState extends State<ProjectStage> {
           _ => _deliver(),
         };
 
-  Widget _chat(String text, {bool user = false}) => Align(
-        alignment: user ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 690),
-          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
-          decoration: BoxDecoration(
-              color: user ? KColors.accent.withValues(alpha: .1) : KColors.bg,
-              border: Border.all(
+  Widget _chat(String text, {bool user = false}) => Row(
+          mainAxisAlignment:
+              user ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!user) ...[
+              Container(
+                  width: 28,
+                  height: 28,
+                  margin: const EdgeInsets.only(top: 2),
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: KColors.accent.withValues(alpha: .12),
+                      border: Border.all(
+                          color: KColors.accent.withValues(alpha: .3))),
+                  child: const Icon(Icons.auto_awesome,
+                      size: 14, color: KColors.accent)),
+              const SizedBox(width: 12),
+            ],
+            Flexible(
+                child: Container(
+              constraints: const BoxConstraints(maxWidth: 620),
+              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+              decoration: BoxDecoration(
                   color: user
-                      ? KColors.accent.withValues(alpha: .2)
-                      : KColors.border),
-              borderRadius: BorderRadius.circular(12)),
-          child: pText(text),
-        ),
-      );
+                      ? KColors.accent.withValues(alpha: .1)
+                      : KColors.surface2.withValues(alpha: .6),
+                  border: Border.all(
+                      color: user
+                          ? KColors.accent.withValues(alpha: .24)
+                          : KColors.border),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(user ? 16 : 4),
+                      topRight: Radius.circular(user ? 4 : 16),
+                      bottomLeft: const Radius.circular(16),
+                      bottomRight: const Radius.circular(16))),
+              child: pText(text),
+            )),
+          ]);
 
   Future<void> _answer(JsonMap question, List<String> values) async {
     final result = await controller.execute('project.answer', {
@@ -213,60 +240,68 @@ class _ProjectStageState extends State<ProjectStage> {
     final answers = asMap(p['answers']);
     final current =
         _questions.where((q) => !answers.containsKey(q['key'])).firstOrNull;
+    final answered =
+        _questions.where((q) => answers.containsKey(q['key'])).length;
     final pending = controller.isPending('project.answer');
     return pColumn([
-      const KSectionHeader(
+      StageHeader(
           title: 'Capture intent',
           description:
-              'A few focused questions so the design matches what you actually want.'),
-      KCard(
+              'A few focused questions so the design matches what you actually want.',
+          status: _done(0)
+              ? const KBadge('Requirements captured', tone: 'pass')
+              : KBadge(
+                  'Question ${(answered + 1).clamp(1, _questions.length)} of ${_questions.length}',
+                  tone: 'accent')),
+      KPanel(
+          padding: const EdgeInsets.all(24),
           child: pColumn([
-        pActions([
-          const Icon(Icons.smart_toy_outlined, size: 15, color: KColors.muted),
-          pText('Agent', muted: true, small: true)
-        ]),
-        _chat(
-            'Got it: “${'${p['brief']}'.replaceFirst(RegExp(r'[.\s]+$'), '')}”. I’ll ask a few quick questions before researching feasibility.'),
-        for (final q
-            in _questions.where((q) => answers.containsKey(q['key']))) ...[
-          _chat('${q['ask']}'),
-          _chat(joinValues(answers[q['key']]), user: true),
-        ],
-        if (current != null) ...[
-          _chat('${current['ask']}'),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final value in asList(current['options']))
-              current['multi'] == true
-                  ? FilterChip(
-                      label: Text('$value'),
-                      selected: _picked.contains(value),
-                      onSelected: pending
-                          ? null
-                          : (selected) => setState(() {
-                                if (selected) {
-                                  _picked.add('$value');
-                                } else {
-                                  _picked.remove(value);
-                                }
-                              }),
-                    )
-                  : ActionChip(
-                      label: Text('$value'),
-                      onPressed:
-                          pending ? null : () => _answer(current, ['$value'])),
-          ]),
-          if (current['multi'] == true)
-            KButton(
-                label: 'Continue',
-                primary: true,
-                compact: true,
-                onPressed: _picked.isEmpty || pending
-                    ? null
-                    : () => _answer(current, _picked.toList())),
-        ],
-        if (current == null && !_done(0))
-          _chat('Summarizing your requirements…'),
-      ], gap: 16)),
+            SegmentBar(tones: [
+              for (var i = 0; i < _questions.length; i++)
+                i < answered ? 'pass' : (i == answered ? 'accent' : '')
+            ]),
+            const SizedBox(height: 4),
+            _chat(
+                'Got it: “${'${p['brief']}'.replaceFirst(RegExp(r'[.\s]+$'), '')}”. I’ll ask a few quick questions before researching feasibility.'),
+            for (final q
+                in _questions.where((q) => answers.containsKey(q['key']))) ...[
+              _chat('${q['ask']}'),
+              _chat(joinValues(answers[q['key']]), user: true),
+            ],
+            if (current != null) ...[
+              _chat('${current['ask']}'),
+              Padding(
+                  padding: const EdgeInsets.only(left: 40),
+                  child: pColumn([
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final value in asList(current['options']))
+                        ChoicePill(
+                            label: '$value',
+                            multi: current['multi'] == true,
+                            selected: _picked.contains('$value'),
+                            onTap: pending
+                                ? null
+                                : current['multi'] == true
+                                    ? () => setState(() {
+                                          if (!_picked.add('$value')) {
+                                            _picked.remove('$value');
+                                          }
+                                        })
+                                    : () => _answer(current, ['$value'])),
+                    ]),
+                    if (current['multi'] == true)
+                      KButton(
+                          label: 'Continue',
+                          primary: true,
+                          compact: true,
+                          onPressed: _picked.isEmpty || pending
+                              ? null
+                              : () => _answer(current, _picked.toList())),
+                  ], gap: 14)),
+            ],
+            if (current == null && !_done(0))
+              _chat('Summarizing your requirements…'),
+          ], gap: 16)),
       if (_done(0))
         KCard(
             title: 'Requirements v1',
@@ -276,27 +311,21 @@ class _ProjectStageState extends State<ProjectStage> {
                 icon: Icons.arrow_forward,
                 onPressed: widget.onNext),
             child: KResponsive(children: [
-              KTable(headers: const [
-                'Requirement',
-                'Value'
-              ], rows: [
+              KeyValueRows(rows: [
                 for (final requirement in asMaps(p['requirements']))
-                  [
-                    pText(requirement['label'], muted: true),
-                    pText(requirement['value'])
-                  ]
+                  ('${requirement['label']}', pText(requirement['value']))
               ]),
               pColumn([
-                pText('ASSUMPTIONS', muted: true, small: true),
+                const Text('Assumptions', style: KType.label),
                 for (final item in asList(p['assumptions'])) pText('• $item'),
                 const SizedBox(height: 4),
-                pText('UNKNOWNS, CARRIED FORWARD', muted: true, small: true),
+                const Text('Unknowns, carried forward', style: KType.label),
                 for (final item in asList(p['unknowns']))
                   pActions(
                       [const KBadge('Unknown', tone: 'unknown'), pText(item)]),
               ], gap: 8),
             ])),
-    ], gap: 24);
+    ], gap: 28);
   }
 
   Widget _feasibility() {
@@ -307,47 +336,57 @@ class _ProjectStageState extends State<ProjectStage> {
       'Electronics & power budget',
       'Firmware & app support'
     ];
+    final idle = p['feasibility'] == 'idle';
+    final done = p['feasibility'] == 'done';
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Research feasibility',
           description:
               'Parts, materials, manufacturing and software are researched together before anything is designed.',
-          trailing: p['feasibility'] == 'idle'
+          status: done
+              ? const KBadge('Research complete', tone: 'pass')
+              : idle
+                  ? null
+                  : const KBadge('Researching', tone: 'accent'),
+          action: idle
               ? _action('project.research', 'Run feasibility research',
                   icon: Icons.search)
               : null),
-      if (p['feasibility'] != 'idle')
-        KCard(
-            title: 'Research tracks',
-            child: KResponsive(children: [
-              for (final track in tracks)
-                pColumn([
-                  Row(children: [
-                    Expanded(child: pText(track)),
-                    pText('${research[track] ?? 0}%',
-                        muted: true, mono: true, small: true)
-                  ]),
-                  KProgress(number(research[track]).toDouble()),
-                ], gap: 7)
-            ])),
-      if (p['feasibility'] == 'done') ...[
+      if (!idle)
+        KResponsive(columns: 4, children: [
+          for (final track in tracks)
+            MeterTile(label: track, value: number(research[track]).toDouble())
+        ]),
+      if (done) ...[
         KResponsive(children: [
-          KCard(title: 'Concept', child: _device()),
+          KCard(
+              title: 'Concept',
+              child: SizedBox(
+                  width: double.infinity,
+                  child: KGridBackdrop(child: _device()))),
           KCard(
               title: 'Features',
-              child: pColumn([
-                for (final feature in asMaps(p['features']))
-                  pColumn([
-                    pActions([
-                      pText(feature['name'], strong: true),
-                      KBadge('${feature['status']}',
-                          tone: feature['status'] == 'supported'
-                              ? 'pass'
-                              : 'unknown')
-                    ]),
-                    pText(feature['note'], muted: true, small: true),
-                  ], gap: 4)
-              ])),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (i, feature)
+                        in asMaps(p['features']).indexed) ...[
+                      if (i > 0)
+                        const Divider(height: 1, color: KColors.hairline),
+                      Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: pColumn([
+                            pActions([
+                              pText(feature['name'], strong: true),
+                              KBadge('${feature['status']}',
+                                  tone: feature['status'] == 'supported'
+                                      ? 'pass'
+                                      : 'unknown')
+                            ]),
+                            pText(feature['note'], muted: true, small: true),
+                          ], gap: 4)),
+                    ]
+                  ])),
         ]),
         KCard(
             title: 'Candidate parts',
@@ -365,24 +404,24 @@ class _ProjectStageState extends State<ProjectStage> {
                   pText(part['note'], muted: true)
                 ]
             ])),
-        KResponsive(columns: 3, children: [
-          KCard(
-              title: 'Estimates',
-              child: pColumn([
-                pText('Kit estimate: \$95-125', strong: true),
-                pText('Lead time: 9-14 days'),
-                pText('Assembly: ~40 min, no soldering'),
-                pText('Quotes commit later; these are estimates.',
-                    muted: true, small: true)
-              ], gap: 7)),
-          KCard(
+        const KStats(items: [
+          (
+            label: 'Kit estimate',
+            value: '\$95-125',
+            sub: 'Quotes commit later; these are estimates.'
+          ),
+          (label: 'Lead time', value: '9-14 days', sub: null),
+          (label: 'Assembly', value: '~40 min', sub: 'No soldering'),
+        ]),
+        KResponsive(children: [
+          StagePanel(
               title: 'Limitations',
               child: pColumn([
                 pText('• Not a safety alarm'),
                 pText('• CO2 is indicative until calibrated'),
                 pText('• Printed shells show fine layer lines')
               ], gap: 7)),
-          KCard(
+          StagePanel(
               title: 'Next',
               child: pColumn([
                 pText('Review the concept and confirm before design starts.'),
@@ -391,32 +430,45 @@ class _ProjectStageState extends State<ProjectStage> {
                     primary: true,
                     icon: Icons.arrow_forward,
                     onPressed: widget.onNext)
-              ])),
+              ], gap: 14)),
         ]),
       ],
-    ], gap: 24);
+    ], gap: 28);
   }
 
   Widget _confirm() {
     final review =
         allTasks.where((t) => t['id'] == p['reviewTaskId']).firstOrNull;
+    final confirmed = p['confirmed'] == true;
     return pColumn([
-      const KSectionHeader(
+      StageHeader(
           title: 'Review concept & confirm',
           description:
-              'Nothing is designed or spent until you confirm. Reduce scope or ask a human engineer first if you like.'),
+              'Nothing is designed or spent until you confirm. Reduce scope or ask a human engineer first if you like.',
+          status: confirmed
+              ? const KBadge('Confirmed', tone: 'pass')
+              : review != null
+                  ? const KBadge('With an engineer', tone: 'accent')
+                  : null),
       KResponsive(children: [
         KCard(
             title: 'Your monitor',
             child: pColumn([
               SizedBox(
-                  height: 220,
-                  child: DeviceVisual(exploded: false, finish: finishOf(p))),
-              for (final requirement in asMaps(p['requirements'])
-                  .where((r) => r['label'] != 'Features'))
-                pText('${requirement['label']}: ${requirement['value']}',
-                    small: true),
-            ], gap: 5)),
+                  width: double.infinity,
+                  height: 240,
+                  child: KGridBackdrop(
+                      child:
+                          DeviceVisual(exploded: false, finish: finishOf(p)))),
+              KeyValueRows(rows: [
+                for (final requirement in asMaps(p['requirements'])
+                    .where((r) => r['label'] != 'Features'))
+                  (
+                    '${requirement['label']}',
+                    pText(requirement['value'], small: true)
+                  ),
+              ]),
+            ], gap: 12)),
         KCard(
             title: 'Features (click to reduce scope)',
             child: pColumn([
@@ -455,17 +507,19 @@ class _ProjectStageState extends State<ProjectStage> {
       if (review != null)
         HumanTaskCard(
             key: ValueKey(review['id']), controller: controller, task: review),
-      KCard(
+      KPanel(
           child: pColumn([
-        p['confirmed'] == true
+        confirmed
             ? pActions([
                 const Icon(Icons.check_circle_outline,
                     color: KColors.pass, size: 18),
                 pText('Confirmed. Design can start.', color: KColors.pass)
               ])
-            : pText(
-                'Estimated kit \$95-125  ·  9-14 days  ·  About 40 min to assemble',
-                muted: true),
+            : const Wrap(spacing: 28, runSpacing: 8, children: [
+                KMuted('Estimated kit \$95-125', size: 13),
+                KMuted('9-14 days', size: 13),
+                KMuted('About 40 min to assemble', size: 13),
+              ]),
         pActions([
           if (p['confirmed'] != true && review == null)
             _action('project.requestReview', 'Ask a human engineer to review',
@@ -480,208 +534,267 @@ class _ProjectStageState extends State<ProjectStage> {
             _action('project.confirm', 'Confirm and start design',
                 icon: Icons.check_circle_outline),
         ]),
-      ])),
-    ], gap: 24);
+      ], gap: 16)),
+    ], gap: 28);
   }
 
   Widget _interfaces() {
     final saved = asMaps(p['interfaces']);
     final rows = saved.isNotEmpty ? saved : asMaps(p['interfacePreview']);
     final running = rows.any((r) => r['state'] == 'RUNNING');
+    final agreed = p['interfacesAgreed'] == true;
+    final tones = [for (final r in rows) evidenceTone('${r['state']}')];
+    final passed = tones.where((t) => t == 'pass').length;
     const criteria = [
       'Every interface value has units and an owner',
-      'Battery and core fit with ≥ 0.3 mm clearance',
-      'Estimated battery life ≥ requirement',
+      'Battery and core fit with at least 0.3 mm clearance',
+      'Estimated battery life meets the requirement',
       'All parts reachable for assembly without soldering',
       'Firmware pin map matches schematic net names'
     ];
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Establish interfaces',
           description:
               'Mechanics, electronics and firmware agree on shared contracts first, so they are designed to fit together.',
-          trailing: p['interfacesAgreed'] != true
-              ? _action(
-                  'project.solveInterfaces', 'Run solver & agree interfaces',
+          status: agreed
+              ? const KBadge('Interfaces agreed', tone: 'pass')
+              : running
+                  ? const KBadge('Solver running', tone: 'accent')
+                  : null,
+          action: !agreed
+              ? _action('project.solveInterfaces', 'Run solver and agree',
                   enabled: !running, icon: Icons.functions)
               : null),
-      KCard(
-          title: 'Interface specification v1',
-          child: KTable(headers: const [
-            'Interface',
-            'Contract',
-            'Owner',
-            'Solver'
-          ], rows: [
-            for (final item in rows)
-              [
-                pText(item['name'], strong: true),
-                pText(item['value'], mono: true, small: true),
-                KBadge('${item['owner']}'),
-                evidence(item['state'])
-              ]
-          ])),
-      KCard(
-          title:
-              'Acceptance criteria (owned by Quality, generators cannot change)',
-          child:
-              pColumn([for (final item in criteria) pText('• $item')], gap: 9)),
-      if (p['interfacesAgreed'] == true) _next('Generate designs'),
-    ], gap: 24);
+      SolverBand(
+          passed: passed, total: rows.length, tones: tones, running: running),
+      EngineeringPreviewPanel(
+          key: ValueKey('studio-${p['id']}-contracts'),
+          data: mockPreviewData(p),
+          initialView: 'overview',
+          mechanicsBuilder: (height) => mockAssembly(p, height),
+          sidebar: (bounded) => ContractExplorer(
+                  title: 'Interface contracts',
+                  bounded: bounded,
+                  items: [
+                    for (final r in rows)
+                      (
+                        name: '${r['name']}',
+                        value: '${r['value']}',
+                        state: '${r['state']}',
+                        group: '${r['owner']}',
+                        footer: null
+                      )
+                  ])),
+      KPanel(
+          child: pColumn([
+        GroupLabel('Acceptance criteria',
+            trailing: const KBadge('Owned by Quality')),
+        const KMuted('Generators cannot change these.', size: 12),
+        CriteriaList(items: criteria, satisfied: agreed),
+      ], gap: 14)),
+      if (agreed) _next('Generate designs'),
+    ], gap: 36);
+  }
+
+  Widget _laneCard(String lane, JsonMap progress, JsonMap tools) {
+    final pct = number(progress[lane]).toDouble();
+    final generating = p['generation'] == 'running' && pct < 100;
+    final status = pct >= 100
+        ? 'Candidate ready'
+        : generating
+            ? 'Generating'
+            : 'Ready';
+    final compact = MediaQuery.sizeOf(context).width < 600;
+    return KCard(
+        tint: generating ? KColors.accent : null,
+        padding: EdgeInsets.all(compact ? 16 : 22),
+        child: pColumn([
+          Row(children: [
+            ProgressRing(
+                value: pct,
+                size: compact ? 42 : 52,
+                running: generating,
+                child: pct >= 100
+                    ? const Icon(Icons.check, size: 20, color: KColors.pass)
+                    : Text('${pct.round()}',
+                        style: const TextStyle(
+                            fontFamily: 'GeistMono',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500))),
+            const SizedBox(width: 16),
+            Expanded(
+                child: pColumn([
+              Text(lane, style: Theme.of(context).textTheme.titleMedium),
+              KMuted(status, size: 12),
+            ], gap: 2)),
+          ]),
+          if (lane == 'App')
+            const KMuted('Kleos9 App (built in)', size: 12)
+          else
+            Builder(builder: (context) {
+              final candidates = connectors
+                  .where((c) =>
+                      c['kind'] == 'tool' &&
+                      c['domain'] == lane &&
+                      c['linked'] == true &&
+                      c['enabled'] == true)
+                  .toList();
+              final value = candidates.any((c) => c['id'] == tools[lane])
+                  ? '${tools[lane]}'
+                  : null;
+              final locked = p['generation'] != 'idle' ||
+                  controller.isPending('project.selectTool');
+              return Semantics(
+                  label: '$lane tool',
+                  child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                          color: KColors.bg,
+                          borderRadius: BorderRadius.circular(KRadius.control),
+                          border: Border.all(color: KColors.border)),
+                      child: DropdownButton<String>(
+                        value: value,
+                        isExpanded: true,
+                        underline: const SizedBox.shrink(),
+                        dropdownColor: KColors.surface2,
+                        borderRadius: BorderRadius.circular(KRadius.control),
+                        icon: const Icon(Icons.unfold_more,
+                            size: 16, color: KColors.faint),
+                        hint: const KMuted('Choose a tool', size: 12),
+                        items: [
+                          for (final candidate in candidates)
+                            DropdownMenuItem(
+                                value: '${candidate['id']}',
+                                child: Text(
+                                    '${candidate['name']}${candidate['builtIn'] == true ? ' (default)' : ''}',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12)))
+                        ],
+                        onChanged: locked
+                            ? null
+                            : (value) {
+                                if (value != null) {
+                                  controller.execute('project.selectTool', {
+                                    'projectId': p['id'],
+                                    'lane': lane,
+                                    'toolId': value
+                                  });
+                                }
+                              },
+                      )));
+            }),
+        ], gap: 16));
   }
 
   Widget _generate() {
     final lanes = asList(p['generationLanes']).map((v) => '$v').toList();
     final progress = asMap(p['genProgress']);
     final tools = asMap(p['tools']);
-    final selectedLane =
-        lanes.contains(_sourceLane) ? _sourceLane : lanes.firstOrNull;
-    final log = asList(p['genLog']);
+    final log = asList(p['genLog']).map((l) => '$l').toList();
+    final running = p['generation'] == 'running';
+    final done = p['generation'] == 'done';
+    final overall = lanes.isEmpty
+        ? 0.0
+        : lanes.fold<double>(0, (a, l) => a + number(progress[l]).toDouble()) /
+            lanes.length;
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Generate in parallel',
           description:
               'Each domain generates code-defined files against the shared interface spec. Generators submit candidates; they cannot approve them.',
-          trailing: p['generation'] == 'idle'
-              ? _action('project.generate', 'Start generation')
+          status: done
+              ? const KBadge('Candidates ready', tone: 'pass')
+              : running
+                  ? KBadge('Generating ${overall.round()}%', tone: 'accent')
+                  : null,
+          action: p['generation'] == 'idle'
+              ? _action('project.generate', 'Start generation',
+                  icon: Icons.play_arrow_rounded)
               : null),
-      KResponsive(columns: lanes.length.clamp(1, 4), children: [
-        for (final lane in lanes)
-          KCard(
-              child: pColumn([
-            Row(children: [
-              Expanded(child: pText(lane, strong: true)),
-              pText('${progress[lane] ?? 0}%',
-                  muted: true, small: true, mono: true)
-            ]),
-            if (lane == 'App')
-              pText('Kleos9 App (built in)', muted: true, small: true)
-            else
-              Builder(builder: (context) {
-                final candidates = connectors
-                    .where((c) =>
-                        c['kind'] == 'tool' &&
-                        c['domain'] == lane &&
-                        c['linked'] == true &&
-                        c['enabled'] == true)
-                    .toList();
-                final value = candidates.any((c) => c['id'] == tools[lane])
-                    ? '${tools[lane]}'
-                    : null;
-                return Semantics(
-                    label: '$lane tool',
-                    child: DropdownButton<String>(
-                      value: value,
-                      isExpanded: true,
-                      hint: pText('Choose a tool', muted: true, small: true),
-                      items: [
-                        for (final candidate in candidates)
-                          DropdownMenuItem(
-                              value: '${candidate['id']}',
-                              child: Text(
-                                  '${candidate['name']}${candidate['builtIn'] == true ? ' (default)' : ''}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12)))
-                      ],
-                      onChanged: p['generation'] != 'idle' ||
-                              controller.isPending('project.selectTool')
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                controller.execute('project.selectTool', {
-                                  'projectId': p['id'],
-                                  'lane': lane,
-                                  'toolId': value
-                                });
-                              }
-                            },
-                    ));
-              }),
-            KProgress(number(progress[lane]).toDouble()),
-          ]))
-      ]),
-      if (p['generation'] == 'idle')
-        pActions([
-          pText('Default Kleos9 tools run unless you pick another for a lane.',
-              muted: true),
-          KButton(
-              label: 'Plug in more tools',
-              compact: true,
-              onPressed: () => context.go('/connections?tab=tools'))
+      pColumn([
+        SpecFan(label: 'Interface spec v1', count: lanes.length),
+        EngineeringGrid(minWidth: 250, children: [
+          for (final lane in lanes) _laneCard(lane, progress, tools)
         ]),
-      if (log.isNotEmpty)
-        KCard(
-            title: 'Generation log',
-            child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxHeight: 310),
-                child: SingleChildScrollView(
-                    child: pColumn([
-                  for (final line in log) pText(line, mono: true, small: true)
-                ], gap: 5)))),
-      if (p['generation'] == 'done') ...[
-        KCard(
-            title: 'Generated source (code-defined)',
-            child: pColumn([
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final lane in lanes)
-                  ChoiceChip(
-                      label: Text(lane),
-                      selected: selectedLane == lane,
-                      onSelected: (_) => setState(() => _sourceLane = lane))
-              ]),
-              Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: KColors.bg,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SelectableText(
-                          '${asMap(p['generatedSource'])[selectedLane] ?? ''}',
-                          style: const TextStyle(
-                              fontFamily: 'GeistMono',
-                              fontSize: 12,
-                              height: 1.65,
-                              color: KColors.text)))),
-            ])),
-        KCard(
-            title: 'Candidate artifacts',
-            trailing: KButton(
-                label: 'Verify',
+        if (p['generation'] == 'idle')
+          pActions([
+            const KMuted(
+                'Default Kleos9 tools run unless you pick another for a lane.',
+                size: 12),
+            KButton(
+                label: 'Plug in more tools',
                 compact: true,
-                primary: true,
-                icon: Icons.arrow_forward,
-                onPressed: widget.onNext),
-            child: KTable(headers: const [
-              'Artifact',
-              'Files',
-              'Depends on',
-              'Version',
-              'Status'
-            ], rows: [
-              for (final artifact in asMaps(p['artifacts']))
-                [
-                  pColumn([
-                    pText(artifact['name'], strong: true),
-                    pText(artifact['domain'], muted: true, small: true)
-                  ], gap: 2),
-                  pText(artifact['file'], mono: true, small: true),
-                  pText(joinValues(artifact['deps']), muted: true, small: true),
-                  pText('v${artifact['version']} ${artifact['hash']}',
-                      mono: true, small: true),
-                  evidence(artifact['status']),
+                onPressed: () => context.go('/connections?tab=tools'))
+          ]),
+      ], gap: 14),
+      EngineeringPreviewPanel(
+          key: ValueKey('studio-${p['id']}-files'),
+          data: mockPreviewData(p),
+          initialView: 'overview',
+          mechanicsBuilder: (height) => mockAssembly(p, height)),
+      if (log.isNotEmpty)
+        pColumn([
+          GroupLabel('Generation log',
+              trailing: running ? const KBadge('Live', tone: 'accent') : null),
+          TerminalPanel(lines: log, live: running),
+        ], gap: 14),
+      if (done)
+        pColumn([
+          GroupLabel('Candidate artifacts',
+              count: asMaps(p['artifacts']).length,
+              trailing: KButton(
+                  label: 'Verify',
+                  compact: true,
+                  primary: true,
+                  icon: Icons.arrow_forward,
+                  onPressed: widget.onNext)),
+          KPanel(
+              padding: EdgeInsets.zero,
+              child: Column(children: [
+                for (final (i, artifact) in asMaps(p['artifacts']).indexed) ...[
+                  if (i > 0) const Divider(height: 1, color: KColors.hairline),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 16),
+                      child: LayoutBuilder(builder: (context, c) {
+                        final head = pColumn([
+                          pText(artifact['name'], strong: true),
+                          pText('${artifact['domain']}  ${artifact['file']}',
+                              mono: true, small: true, muted: true),
+                        ], gap: 3);
+                        final meta = pColumn([
+                          pText('v${artifact['version']}  ${artifact['hash']}',
+                              mono: true, small: true, muted: true),
+                          if (joinValues(artifact['deps']).isNotEmpty)
+                            pText('Depends on ${joinValues(artifact['deps'])}',
+                                small: true, muted: true),
+                        ], gap: 3);
+                        return c.maxWidth < 560
+                            ? pColumn([
+                                Row(children: [
+                                  Expanded(child: head),
+                                  evidence(artifact['status'])
+                                ]),
+                                meta
+                              ], gap: 10)
+                            : Row(children: [
+                                Expanded(flex: 5, child: head),
+                                Expanded(flex: 5, child: meta),
+                                evidence(artifact['status'])
+                              ]);
+                      }))
                 ]
-            ])),
-      ],
-    ], gap: 24);
+              ])),
+        ], gap: 14),
+    ], gap: 36);
   }
 
   Widget _verify() {
     final checks = asMaps(p['checks']);
     final artifacts = asMaps(p['artifacts']);
-    final busy = p['verifyRun'] == 'running' ||
+    final running = p['verifyRun'] == 'running';
+    final busy = running ||
         artifacts.any((a) => a['status'] == 'generating') ||
         checks.any((c) => c['state'] == 'RUNNING');
     final blocking = checks
@@ -703,20 +816,38 @@ class _ProjectStageState extends State<ProjectStage> {
     final finished = checks
         .where((c) => !['PENDING', 'RUNNING'].contains(c['state']))
         .length;
+    final tones = [
+      for (final c in checks)
+        switch ('${c['state']}') {
+          'PASS' => 'pass',
+          'FAIL' => 'fail',
+          'RUNNING' => 'accent',
+          'PENDING' => '',
+          _ => 'unknown',
+        }
+    ];
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Verify and revise',
           description:
               'Validators inspect the candidate files. Anything they cannot prove stays unknown.',
-          trailing: p['verifyRun'] == 'idle'
+          status: accepted
+              ? const KBadge('Release accepted', tone: 'pass')
+              : running
+                  ? KBadge('$finished of ${checks.length} checks done',
+                      tone: 'accent')
+                  : null,
+          action: p['verifyRun'] == 'idle'
               ? _action('project.verify', 'Run verification',
                   icon: Icons.verified_user_outlined)
               : null),
-      if (p['verifyRun'] == 'running')
-        pColumn([
-          pText('$finished of ${checks.length} checks done', muted: true),
-          KProgress(checks.isEmpty ? 0 : finished / checks.length * 100)
-        ], gap: 8),
+      if ((running || settled) && checks.isNotEmpty)
+        SolverBand(
+            passed: passed.length,
+            total: checks.length,
+            tones: tones,
+            running: running,
+            label: running ? 'checks passed so far' : 'checks passed'),
       if (settled) ...[
         pActions([
           KBadge('${passed.length} passed', tone: 'pass'),
@@ -727,21 +858,26 @@ class _ProjectStageState extends State<ProjectStage> {
           if (unknowns.isNotEmpty)
             KBadge('${unknowns.length} need a person', tone: 'unknown')
         ]),
-        if (attention.isNotEmpty) pCheckList(attention),
+        if (attention.isNotEmpty)
+          StagePanel(
+              title: 'Needs attention',
+              trailing: Text('${attention.length}', style: KType.monoSmall),
+              child: pCheckList(attention)),
         pDisclosure(
             title: 'All checks',
             count: checks.length,
             child: pColumn([
               for (final domain in checks.map((c) => '${c['domain']}').toSet())
                 pColumn([
-                  pText(domain.toUpperCase(), muted: true, small: true),
+                  Text(domain, style: KType.label),
                   pCheckList(
                       checks.where((c) => c['domain'] == domain).toList())
                 ], gap: 4),
             ], gap: 18)),
       ],
       if (settled && !accepted)
-        pColumn([
+        KPanel(
+            child: pColumn([
           pText(
               hasStale
                   ? 'Only the affected work is regenerated; the rest is reused.'
@@ -763,15 +899,16 @@ class _ProjectStageState extends State<ProjectStage> {
                   enabled: !busy && blocking.isEmpty),
             ],
           ]),
-        ]),
+        ], gap: 14)),
       if (accepted)
-        pColumn([
+        KPanel(
+            child: pColumn([
           pText(
               'Release ${shortHash(p['manifestHash'])} covers ${artifacts.length} artifacts. ${unknowns.length} unknown result(s) go to physical testing.',
               muted: true),
           _next('Procure prototype')
-        ]),
-    ], gap: 24);
+        ], gap: 14)),
+    ], gap: 28);
   }
 
   Widget _procure() {
@@ -799,45 +936,54 @@ class _ProjectStageState extends State<ProjectStage> {
     final print = asMap(p['homePrint']);
     final orders = asMaps(p['orders']);
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Procure prototype',
           description:
               'Each item goes to the connector that fits best. Nothing is sent until you authorize.',
-          trailing: p['procurement'] == 'idle'
+          status: p['procurement'] == 'quoting'
+              ? const KBadge('Waiting for quotes', tone: 'accent')
+              : p['procurement'] == 'done'
+                  ? const KBadge('Orders received', tone: 'pass')
+                  : null,
+          action: p['procurement'] == 'idle'
               ? _action('project.requestQuotes', 'Request quotes',
                   icon: Icons.receipt_long_outlined)
               : null),
       if (p['procurement'] == 'quoting')
-        KCard(
+        KPanel(
             child: pColumn([
           pText('Waiting for quotes…'),
           const LinearProgressIndicator(minHeight: 3)
         ])),
       if (quotes.isNotEmpty) ...[
-        KTable(headers: const [
-          'Item',
-          'Routed to',
-          'Price',
-          'Lead time'
-        ], rows: [
-          for (final item in items)
-            () {
-              final candidates =
-                  quotes.where((q) => q['item'] == item).toList();
-              final quote =
-                  candidates.where((q) => q['selected'] == true).firstOrNull ??
+        KPanel(
+            padding: const EdgeInsets.all(8),
+            child: KTable(headers: const [
+              'Item',
+              'Routed to',
+              'Price',
+              'Lead time'
+            ], rows: [
+              for (final item in items)
+                () {
+                  final candidates =
+                      quotes.where((q) => q['item'] == item).toList();
+                  final quote = candidates
+                          .where((q) => q['selected'] == true)
+                          .firstOrNull ??
                       candidates.first;
-              final home =
-                  p['casePrint'] == 'home' && quote['id'] == caseQuote?['id'];
-              return <Widget>[
-                pText(item),
-                pText(home ? 'Your printer' : _name(quote['connectorId']),
-                    muted: true),
-                pText(home ? '\$2.80' : '\$${quote['price']}', mono: true),
-                pText(home ? 'Today' : '${quote['leadDays']} days', mono: true)
-              ];
-            }()
-        ]),
+                  final home = p['casePrint'] == 'home' &&
+                      quote['id'] == caseQuote?['id'];
+                  return <Widget>[
+                    pText(item),
+                    pText(home ? 'Your printer' : _name(quote['connectorId']),
+                        muted: true),
+                    pText(home ? '\$2.80' : '\$${quote['price']}', mono: true),
+                    pText(home ? 'Today' : '${quote['leadDays']} days',
+                        mono: true)
+                  ];
+                }()
+            ])),
         pDisclosure(
             title: 'Compare all quotes',
             count: quotes.length,
@@ -870,12 +1016,13 @@ class _ProjectStageState extends State<ProjectStage> {
       ],
       if (caseQuote != null)
         pColumn([
-          pText('Printed shells', strong: true),
+          Text('Printed shells',
+              style: Theme.of(context).textTheme.titleMedium),
           pText('Print them yourself, or order them.', muted: true),
           if (printer != null)
             KResponsive(children: [
               for (final mode in ['home', 'order'])
-                InkWell(
+                KTap(
                   onTap: p['procurement'] != 'quoted' ||
                           controller.isPending('project.selectPrint')
                       ? null
@@ -883,17 +1030,22 @@ class _ProjectStageState extends State<ProjectStage> {
                           controller.execute('project.selectPrint',
                               {'projectId': p['id'], 'mode': mode});
                         },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
+                  builder: (context, hovered) => AnimatedContainer(
+                      duration: KMotion.base,
+                      curve: KMotion.out,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                          color: KColors.surface,
+                          color: p['casePrint'] == mode
+                              ? KColors.accent.withValues(alpha: .06)
+                              : KColors.surface,
                           border: Border.all(
                               color: p['casePrint'] == mode
-                                  ? KColors.accent
-                                  : KColors.border,
+                                  ? KColors.accent.withValues(alpha: .7)
+                                  : hovered
+                                      ? KColors.borderStrong
+                                      : KColors.border,
                               width: p['casePrint'] == mode ? 1.5 : 1),
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(KRadius.card)),
                       child: pColumn([
                         pActions([
                           Icon(
@@ -983,15 +1135,19 @@ class _ProjectStageState extends State<ProjectStage> {
             ])),
       if (!['idle', 'quoting'].contains(p['procurement']))
         pColumn([
-          pActions([
-            pText('Mandate \$${mandate['limit']}', mono: true),
-            pText('This order \$$total', mono: true),
-            pText('Left after \$$remaining', mono: true),
-            if (p['procurement'] == 'quoted')
-              _action('project.placeOrders', 'Authorize and place orders',
-                  enabled: total <= number(mandate['limit']),
-                  icon: Icons.shopping_cart_outlined)
+          KStats(items: [
+            (
+              label: 'Mandate',
+              value: '\$${mandate['limit']}',
+              sub: 'Spending limit for this build'
+            ),
+            (label: 'This order', value: '\$$total', sub: null),
+            (label: 'Left after', value: '\$$remaining', sub: null),
           ]),
+          if (p['procurement'] == 'quoted')
+            pRight(_action('project.placeOrders', 'Authorize and place orders',
+                enabled: total <= number(mandate['limit']),
+                icon: Icons.shopping_cart_outlined)),
           if (orders.isNotEmpty)
             pDisclosure(
                 title: 'Orders',
@@ -1010,9 +1166,9 @@ class _ProjectStageState extends State<ProjectStage> {
                       evidence(order['state'])
                     ]
                 ])),
-        ]),
+        ], gap: 16),
       if (p['procurement'] == 'done') _next('Physical tests'),
-    ], gap: 24);
+    ], gap: 28);
   }
 
   Widget _physical() {
@@ -1021,22 +1177,32 @@ class _ProjectStageState extends State<ProjectStage> {
     final linked = rah?['linked'] == true && rah?['enabled'] == true;
     final allAccepted =
         tasks.isNotEmpty && tasks.every((t) => t['state'] == 'ACCEPTED');
+    final accepted = tasks.where((t) => t['state'] == 'ACCEPTED').length;
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Test physically',
           description:
               'What the AI could not verify goes to people, with a fixed evidence format.',
-          trailing: tasks.isEmpty
+          status: tasks.isEmpty
+              ? null
+              : KBadge('$accepted of ${tasks.length} accepted',
+                  tone: allAccepted ? 'pass' : 'accent'),
+          action: tasks.isEmpty
               ? _action('project.createPhysicalTasks',
                   'Create human tasks from UNKNOWN results',
                   icon: Icons.back_hand_outlined)
               : null),
-      pActions([
-        pText(
-            linked
-                ? 'Jobs are posted to RentAHuman as bounties.'
-                : 'No human-task platform is linked. Tasks wait until you connect one or use the Kleos9 portal.',
-            muted: true),
+      KPanel(
+          child: pActions([
+        Icon(linked ? Icons.link : Icons.link_off,
+            size: 18, color: linked ? KColors.pass : KColors.faint),
+        ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: pText(
+                linked
+                    ? 'Jobs are posted to RentAHuman as bounties.'
+                    : 'No human-task platform is linked. Tasks wait until you connect one or use the Kleos9 portal.',
+                muted: true)),
         if (!linked)
           KButton(
               label: 'Connect RentAHuman',
@@ -1049,7 +1215,7 @@ class _ProjectStageState extends State<ProjectStage> {
                         'connect': 'rentahuman',
                         'back': '/projects/${p['id']}?s=7'
                       }).toString())),
-      ]),
+      ])),
       for (final task in tasks)
         HumanTaskCard(
             key: ValueKey(task['id']), controller: controller, task: task),
@@ -1068,45 +1234,57 @@ class _ProjectStageState extends State<ProjectStage> {
     final allAccepted =
         tasks.length == 2 && tasks.every((t) => t['state'] == 'ACCEPTED');
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Prepare the DIY kit',
           description:
               'Tested subassemblies, labeled bags and a guide generated from the same accepted CAD as the parts.',
-          trailing: tasks.isEmpty
+          status: p['kitAccepted'] == true
+              ? const KBadge('Kit accepted', tone: 'pass')
+              : null,
+          action: tasks.isEmpty
               ? _action('project.prepareKit', 'Start kit preparation',
                   icon: Icons.inventory_2_outlined)
               : null),
       KResponsive(children: [
-        KCard(
+        StagePanel(
             title: 'Packing manifest',
-            child: KTable(headers: const [
-              'Bag',
-              'Contents',
-              'Count'
-            ], rows: [
-              for (final bag in _bags)
-                [
-                  KBadge('Bag ${bag['bag']}'),
-                  pColumn([
-                    pText(bag['contents'],
-                        muted: home && ['A', 'F'].contains(bag['bag'])),
-                    if (home && ['A', 'F'].contains(bag['bag']))
-                      pText('Shell printed at home; feet and caps still packed',
-                          muted: true, small: true)
-                  ], gap: 3),
-                  pText('×${bag['count']}', mono: true)
-                ]
+            trailing: Text('${_bags.length} bags', style: KType.monoSmall),
+            child: Column(children: [
+              for (final (i, bag) in _bags.indexed) ...[
+                if (i > 0) const Divider(height: 1, color: KColors.hairline),
+                Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(children: [
+                      LetterTile('${bag['bag']}'),
+                      const SizedBox(width: 14),
+                      Expanded(
+                          child: pColumn([
+                        pText(bag['contents'],
+                            muted: home && ['A', 'F'].contains(bag['bag'])),
+                        if (home && ['A', 'F'].contains(bag['bag']))
+                          pText(
+                              'Shell printed at home; feet and caps still packed',
+                              muted: true,
+                              small: true)
+                      ], gap: 3)),
+                      const SizedBox(width: 12),
+                      pText('×${bag['count']}', mono: true),
+                    ])),
+              ]
             ])),
-        KCard(
+        StagePanel(
             title: 'Guide preview (from CAD assembly graph)',
             child: pColumn([
-              _device(),
+              SizedBox(
+                  width: double.infinity,
+                  height: 300,
+                  child: KGridBackdrop(child: _device())),
               pText(
                   'Firmware on core module: fw-9c41e2, manifest ${shortHash(p['manifestHash'])}',
                   muted: true,
                   small: true,
                   mono: true)
-            ])),
+            ], gap: 12)),
       ]),
       for (final task in tasks)
         HumanTaskCard(
@@ -1116,7 +1294,7 @@ class _ProjectStageState extends State<ProjectStage> {
             ? _next('Deliver & activate')
             : pRight(_action('project.acceptKit', 'Accept final kit',
                 enabled: allAccepted)),
-    ], gap: 24);
+    ], gap: 28);
   }
 
   Widget _deliver() {
@@ -1128,11 +1306,14 @@ class _ProjectStageState extends State<ProjectStage> {
     final assembled = p['assemblyDone'] == true;
     final selfTests = asMaps(p['selfTest']);
     return pColumn([
-      KSectionHeader(
+      StageHeader(
           title: 'Deliver & activate',
           description:
               'Shipment, assembly and activation are tracked as separate records.',
-          trailing: shipment.isEmpty
+          status: p['activation'] == 'done'
+              ? const KBadge('Activated', tone: 'pass')
+              : null,
+          action: shipment.isEmpty
               ? _action('project.ship', 'Ship kit',
                   icon: Icons.local_shipping_outlined)
               : null),
@@ -1143,18 +1324,7 @@ class _ProjectStageState extends State<ProjectStage> {
               pText(shipment['tracking'], mono: true, small: true),
               const KBadge('Simulated', tone: 'sim')
             ]),
-            child: Wrap(spacing: 22, runSpacing: 15, children: [
-              for (var i = 0; i < _shipSteps.length; i++)
-                pActions([
-                  Icon(
-                      i <= shipmentStep
-                          ? Icons.check_circle
-                          : Icons.circle_outlined,
-                      color: i <= shipmentStep ? KColors.pass : KColors.faint,
-                      size: 17),
-                  pText(_shipSteps[i], muted: i > shipmentStep, small: true)
-                ]),
-            ])),
+            child: StepTrack(steps: _shipSteps, reached: shipmentStep)),
       if (delivered)
         KCard(
             title:
@@ -1167,32 +1337,41 @@ class _ProjectStageState extends State<ProjectStage> {
                         size: 18, color: KColors.pass),
                     pText('All 6 steps completed.', color: KColors.pass)
                   ])
-                : KResponsive(children: [
-                    _device(guideStep: step),
-                    pColumn([
-                      Text('${_guide[step]['title']}',
-                          style: Theme.of(context).textTheme.headlineSmall),
-                      pText(_guide[step]['text']),
-                      pActions([
-                        _action('project.assemblyStep', 'Back',
-                            enabled: step > 0,
-                            primary: false,
-                            icon: Icons.arrow_back,
-                            extra: {'step': step - 1}),
-                        _action(
-                            'project.assemblyStep',
-                            step == _guide.length - 1
-                                ? 'Finish assembly'
-                                : 'Done, next step',
-                            icon: Icons.arrow_forward,
-                            extra: {'step': step + 1}),
-                      ]),
-                      pText(
-                          'Stuck? A human helper can be requested as a human task.',
-                          muted: true,
-                          small: true),
+                : pColumn([
+                    SegmentBar(tones: [
+                      for (var i = 0; i < _guide.length; i++)
+                        i < step ? 'pass' : (i == step ? 'accent' : '')
                     ]),
-                  ])),
+                    KResponsive(children: [
+                      SizedBox(
+                          height: 300,
+                          child:
+                              KGridBackdrop(child: _device(guideStep: step))),
+                      pColumn([
+                        Text('${_guide[step]['title']}',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                        pText(_guide[step]['text']),
+                        pActions([
+                          _action('project.assemblyStep', 'Back',
+                              enabled: step > 0,
+                              primary: false,
+                              icon: Icons.arrow_back,
+                              extra: {'step': step - 1}),
+                          _action(
+                              'project.assemblyStep',
+                              step == _guide.length - 1
+                                  ? 'Finish assembly'
+                                  : 'Done, next step',
+                              icon: Icons.arrow_forward,
+                              extra: {'step': step + 1}),
+                        ]),
+                        pText(
+                            'Stuck? A human helper can be requested as a human task.',
+                            muted: true,
+                            small: true),
+                      ]),
+                    ]),
+                  ], gap: 18)),
       if (assembled)
         KCard(
             title: 'Activation',
@@ -1205,34 +1384,49 @@ class _ProjectStageState extends State<ProjectStage> {
                     'Hold the top button for 3 seconds, then run the self-test.',
                     muted: true)
                 : KResponsive(children: [
-                    pColumn([
-                      for (final test in selfTests)
-                        Row(children: [
-                          Expanded(child: pText(test['name'])),
-                          evidence(test['state'])
-                        ])
-                    ], gap: 12),
+                    Column(children: [
+                      for (final (i, test) in selfTests.indexed) ...[
+                        if (i > 0)
+                          const Divider(height: 1, color: KColors.hairline),
+                        Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            child: Row(children: [
+                              Expanded(child: pText(test['name'])),
+                              evidence(test['state'])
+                            ])),
+                      ]
+                    ]),
                     if (p['activation'] == 'done')
-                      _device(exploded: false)
+                      SizedBox(
+                          height: 260,
+                          child: KGridBackdrop(child: _device(exploded: false)))
                     else
                       Center(child: pText('Testing…', muted: true)),
                   ])),
       if (p['activation'] == 'done')
-        KCard(
+        StagePanel(
             title: 'Device history',
             child: pColumn([
-              pText(
-                  'Manifest ${shortHash(p['manifestHash'], 16)}  ·  Firmware fw-9c41e2  ·  Battery ${p['batteryMah']} mAh',
-                  mono: true,
-                  small: true),
-              pText(
-                  'Shipment ${shipment['tracking']}  ·  Assembly completed  ·  Activation passed',
-                  small: true),
+              KeyValueRows(rows: [
+                (
+                  'Manifest',
+                  pText(shortHash(p['manifestHash'], 16),
+                      mono: true, small: true)
+                ),
+                ('Firmware', pText('fw-9c41e2', mono: true, small: true)),
+                ('Battery', pText('${p['batteryMah']} mAh', small: true)),
+                (
+                  'Shipment',
+                  pText('${shipment['tracking']}', mono: true, small: true)
+                ),
+                ('Assembly', pText('Completed', small: true)),
+                ('Activation', pText('Passed', small: true)),
+              ]),
               pText(
                   'Spares and rebuilds route back to the same providers when you mark them as preferred.',
                   muted: true),
-            ])),
-    ], gap: 24);
+            ], gap: 14)),
+    ], gap: 28);
   }
 }
 
