@@ -10,6 +10,45 @@ import 'package:kleos_ui/data/services/production_auth.dart';
 import 'package:kleos_ui/data/repositories/production_repository.dart';
 
 void main() {
+  test(
+      'delete pins revision and organization and clears only its pending commands',
+      () async {
+    String? disk;
+    final journal = DurableCommandJournal('delete-test',
+        read: (_) async => disk,
+        write: (_, value) async {
+          disk = value;
+        });
+    await journal.prepare(
+        'project.answer',
+        {
+          'projectId': 'p',
+          'values': ['yes']
+        },
+        4);
+    await journal.prepare(
+        'project.answer',
+        {
+          'projectId': 'q',
+          'values': ['no']
+        },
+        2);
+    final api = ProductionApi(client: MockClient((request) async {
+      expect(request.method, 'DELETE');
+      expect(request.url.path, '/api/v1/projects/p');
+      expect(request.url.queryParameters['expectedRevision'], '4');
+      expect(request.headers['X-Organization-Id'], 'org');
+      return http.Response('{"projectId":"p","deleted":true}', 202);
+    }));
+    addTearDown(api.close);
+    final repository =
+        ProductionRepository(api, journal, organizationId: 'org');
+    expect((await repository.deleteProject('p', revision: 4))['deleted'], true);
+    final pending = await journal.pending();
+    expect(pending, hasLength(1));
+    expect((pending.single.body['payload'] as Map)['projectId'], 'q');
+  });
+
   test('development no-login session needs no token', () async {
     final api = ProductionApi(client: MockClient((request) async {
       expect(request.headers.containsKey('Authorization'), false);

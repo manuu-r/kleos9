@@ -8,6 +8,7 @@ import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/device_visual.dart';
 import '../core/widgets.dart';
+import '../core/build_actions.dart';
 
 const stageNames = [
   'Capture intent',
@@ -95,6 +96,7 @@ class ProjectsPage extends StatelessWidget {
                     Expanded(
                         child: Text('${p['name']}',
                             style: Theme.of(context).textTheme.titleMedium)),
+                    BuildActionsMenu(project: p, controller: controller),
                     const Icon(Icons.arrow_forward,
                         size: 16, color: KColors.faint)
                   ]),
@@ -270,8 +272,10 @@ class _NewBuildPageState extends State<NewBuildPage> {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
-    final result = await widget.controller
-        .execute('project.create', {'brief': brief.text.trim()});
+    final result = await widget.controller.execute('project.create', {
+      'brief': brief.text.trim(),
+      if (widget.controller.state['production'] == true) 'autoStart': true,
+    });
     if (mounted && result.ok) {
       context.go('/projects/${result.result['projectId']}');
     }

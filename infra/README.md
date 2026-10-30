@@ -19,7 +19,7 @@ state with locking; generated Qdrant credentials are sensitive state.
    write runtime configuration. It creates separate application, DBOS and
    Conductor databases and login roles. Rerunning preserves existing passwords.
    The task prints no credentials. Wait for successful task exit.
-4. Update the runtime JSON secret with direct Meta, Anthropic and Gemini keys
+4. Update the runtime JSON secret with direct Meta and Gemini keys
    without changing other keys. Never put credentials in Terraform variables.
    Set the project and daily allowances; a zero allowance intentionally prevents
    paid generation.

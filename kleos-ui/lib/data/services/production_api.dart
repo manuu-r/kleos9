@@ -62,6 +62,8 @@ class ProductionApi {
 
   Future<JsonMap> get(String path, {String? organizationId}) =>
       _request('GET', path, organizationId: organizationId);
+  Future<JsonMap> delete(String path, {String? organizationId}) =>
+      _request('DELETE', path, organizationId: organizationId);
   Future<JsonMap> post(String path, JsonMap body,
           {String? idempotencyKey, String? organizationId}) =>
       _request('POST', path,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/models/json.dart';
 import '../../../state/kleos_store.dart';
 import '../../core/widgets.dart';
+import '../../core/build_actions.dart';
 import 'common.dart';
 import 'stages.dart';
 
@@ -32,6 +33,10 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
         oldWidget.stage != widget.stage) {
       _pinned = widget.stage;
     }
+  }
+
+  void _afterDeletion() {
+    if (mounted) context.go('/');
   }
 
   void _go(int index) {
@@ -119,9 +124,13 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
           }
           final project = matches.first;
           final latest = number(project['stage']).toInt().clamp(0, 9);
-          _pinned = (_pinned ?? widget.stage ?? latest).clamp(0, latest);
+          final followPlanning = widget.stage == null &&
+              asMap(asMap(project['state'])['planning'])['autoResume'] == true;
+          _pinned =
+              (followPlanning ? latest : (_pinned ?? widget.stage ?? latest))
+                  .clamp(0, latest);
           final view = _pinned!.clamp(0, latest);
-          if (widget.stage == null) {
+          if (widget.stage == null && !followPlanning) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               final uri = GoRouterState.of(context).uri;
@@ -140,7 +149,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                 builder: (context, constraints) => pActions([
                       SizedBox(
                           width: constraints.maxWidth > 680
-                              ? constraints.maxWidth - 150
+                              ? constraints.maxWidth - 204
                               : constraints.maxWidth,
                           child: pColumn([
                             Text('${project['name'] ?? 'Your build'}',
@@ -153,6 +162,10 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                           compact: true,
                           icon: Icons.list_alt_outlined,
                           onPressed: () => _activity(project)),
+                      BuildActionsMenu(
+                          project: project,
+                          controller: widget.controller,
+                          onDeleted: _afterDeletion),
                     ])),
             LayoutBuilder(builder: (context, constraints) {
               final compact = constraints.maxWidth < 840;

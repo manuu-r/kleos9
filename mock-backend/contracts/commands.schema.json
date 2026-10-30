@@ -682,6 +682,33 @@
       ],
       "properties": {
         "type": {
+          "const": "project.delete"
+        },
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "projectId": {
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectId"
+          ],
+          "title": "project_deletePayload",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
           "const": "project.generate"
         },
         "payload": {

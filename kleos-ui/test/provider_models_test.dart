@@ -97,7 +97,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Muse'), findsWidgets);
-    expect(find.text('Claude'), findsWidgets);
     expect(find.text('Gemini'), findsWidgets);
     await tester.tap(find.text('Use Gemini for all lanes'));
     await tester.pumpAndSettle();

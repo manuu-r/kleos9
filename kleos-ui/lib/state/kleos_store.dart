@@ -219,16 +219,17 @@ class KleosStore extends Notifier<KleosController> {
     final service = _service;
     final request = Future<CommandResult>(() async {
       try {
-        final effectivePayload = service is ProductionLegacyApiService &&
-                type == 'project.create' &&
-                !payload.containsKey('modelPolicy')
-            ? {
-                ...payload,
-                'modelPolicy':
-                    (await ref.read(newBuildModelPolicyProvider.future))
-                        .map((lane, model) => MapEntry(lane, model.toJson()))
-              }
-            : payload;
+        final effectivePayload =
+            service is ProductionLegacyApiService && type == 'project.create'
+                ? {
+                    ...payload,
+                    'autoStart': payload['autoStart'] ?? true,
+                    if (!payload.containsKey('modelPolicy'))
+                      'modelPolicy': (await ref
+                              .read(newBuildModelPolicyProvider.future))
+                          .map((lane, model) => MapEntry(lane, model.toJson()))
+                  }
+                : payload;
         if (generation != _generation || !ref.mounted) {
           return const CommandResult(ok: false);
         }

@@ -11,6 +11,7 @@ from opentelemetry.trace import StatusCode
 from sqlalchemy import func, select
 
 from .auth import Principal
+from .clarification import answer_context, retain_unanswered_questions
 from .contracts import AgentOutput, DomainError, JobResult
 from .db import (
     Artifact,
@@ -29,11 +30,22 @@ from .db import (
 )
 from .domain import (
     ENGINEERING_LANES,
+    ControlPlane,
     contract_hash,
     emit,
     get_project,
     lock_platform,
     settle_native_reservation,
+)
+from .planning import (
+    PLANNING_KINDS,
+    append_message,
+    concept_snapshot,
+    context_manifest,
+    conversation_context,
+    planning_context,
+    planning_state,
+    update_concept,
 )
 from .storage import artifact_key, digest
 from .telemetry import metric, redact, tracer
@@ -58,6 +70,11 @@ class EngineeringEngine:
                 run.status, run.blocker = "cancelled", "Superseded engineering revision"
                 return []
             if run.status == "queued":
+                planning = planning_state(project)
+                not_before = planning.get("notBefore")
+                if run.kind in PLANNING_KINDS and planning["autoResume"] and not_before and (
+                        datetime.fromisoformat(not_before) > now()):
+                    return None
                 active = session.scalar(select(func.count(Run.id)).where(Run.status == "running"))
                 own = session.scalar(select(func.count(Run.id)).where(
                     Run.status == "running", Run.tenant_id == run.tenant_id))
@@ -84,10 +101,16 @@ class EngineeringEngine:
                 return attempt.id
             if task.kind == "project.retryNative":
                 raise DomainError("Native rebuild has no pinned source attempt", 409, "native_retry_invalid")
-            prior_count = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
-                Task.project_id == task.project_id, Task.revision == task.revision, Task.lane == task.lane,
-                Task.kind.in_(["project.generate", "project.repair", "project.pivot"])
-                if task.lane in ENGINEERING_LANES else Task.kind == task.kind))
+            if task.kind in {"project.capture", "project.requestReview"}:
+                # Each explicit user review is a new conversational turn. Its
+                # persisted retries remain bounded within that task, while
+                # engineering repair/pivot ceilings still span the baseline.
+                prior_count = session.scalar(select(func.count(Attempt.id)).where(Attempt.task_id == task.id))
+            else:
+                prior_count = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
+                    Task.project_id == task.project_id, Task.revision == task.revision, Task.lane == task.lane,
+                    Task.kind.in_(["project.generate", "project.repair", "project.pivot"])
+                    if task.lane in ENGINEERING_LANES else Task.kind == task.kind))
             ceiling = min(3, self.settings.max_attempts) if task.lane in ENGINEERING_LANES and (
                 task.kind != "project.pivot") else self.settings.max_attempts
             pivots = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
@@ -116,6 +139,10 @@ class EngineeringEngine:
                 "task": task.kind, "lane": task.lane, "brief": project.brief,
                 "requirements": project.requirements, "interfaces": project.interfaces,
                 "proposal": project.state.get("proposal", {}),
+                "clarification": answer_context(project),
+                "planning": planning_context(project, bool(task.result.get("autoPlanning"))),
+                "concept": concept_snapshot(project),
+                "conversation": conversation_context(project),
                 "inputArtifacts": [{"id": a.id, "sha256": a.sha256, "name": a.name} for a in artifacts],
                 "acceptanceCriteria": ["requirements coverage", "shared interfaces", "independent tool validation"],
                 "failures": [{"name": c.name, "status": c.status, "details": c.details} for c in failures],
@@ -136,18 +163,38 @@ class EngineeringEngine:
             prior = session.scalars(select(Attempt).join(Task, Task.id == Attempt.task_id).where(
                 Task.project_id == task.project_id, Task.revision == task.revision, Task.lane == task.lane)
                 .order_by(Attempt.created_at.desc()).limit(4)).all()
-            context["repairHistory"] = [{"attemptId": a.id, "error": a.error, "output": a.output} for a in prior]
+            automatic = bool(context["planning"]["automatic"])
+            context["repairHistory"] = [
+                {"attemptId": a.id, "error": a.error,
+                 "output": {"summary": a.output.get("summary", "")} if automatic else a.output}
+                for a in prior]
+            if automatic:
+                context["proposal"] = {k: v for k, v in context["proposal"].items()
+                                       if k in {"summary", "requirements", "sources", "limitations"}}
+                context["acceptanceCriteria"] = ["user intent coverage", "illustrative concept", "saved answer lineage"]
+            # The current scene is the reference. Older scenes remain in their
+            # immutable attempt records rather than being repeated in prompts.
+            context["manifest"] = context_manifest(context)
             # Mandatory context is never silently truncated.
             if len(json.dumps(context)) > self.settings.max_context_chars:
                 raise DomainError("Mandatory context exceeds the budget; split the task", 409, "context_too_large")
             remaining = self.settings.max_context_chars - len(json.dumps(context))
             excerpts = []
-            for source in sources:
-                if len(source.text) <= remaining:
-                    excerpts.append({"sourceId": source.id, "sha256": source.sha256, "uri": source.uri,
-                                     "authority": source.authority, "text": source.text})
-                    remaining -= len(source.text)
+            for source in sources[:3] if automatic else sources:
+                text = source.text[:1200] if automatic else source.text
+                if len(text) <= remaining:
+                    excerpt = {"sourceId": source.id, "sha256": source.sha256, "uri": source.uri,
+                               "authority": source.authority, "text": text}
+                    if automatic:
+                        excerpt["excerpted"] = len(text) < len(source.text)
+                    excerpts.append(excerpt)
+                    remaining -= len(text)
             context["sourceExcerpts"] = excerpts
+            context["manifest"] = context_manifest(context)
+            for _ in range(3):
+                context["manifest"]["inputCharacterCount"] = len(json.dumps(context))
+            if len(json.dumps(context)) > self.settings.max_context_chars:
+                raise DomainError("Context manifest exceeds the budget; split the task", 409, "context_too_large")
             attempt = Attempt(id=uid(), tenant_id=task.tenant_id, task_id=task.id,
                               number=task.attempt_count, fence=task.fence,
                               policy_revision=project.policy_revision, provider=choice["provider"],
@@ -172,6 +219,8 @@ class EngineeringEngine:
                 Invocation.attempt_id == attempt_id, Invocation.operation == "generate"))
             if existing:
                 return existing.id, existing.output if existing.status == "succeeded" else None
+            if task.kind in PLANNING_KINDS and attempt.context.get("planning", {}).get("inputVersion", 0) != planning_state(project)["inputVersion"]:
+                raise DomainError("New requirements arrived before this model call started", 409, "planning_input_superseded")
             hosted = session.scalar(select(func.count(Invocation.id)).where(Invocation.status == "pending"))
             embeddings = session.scalar(select(func.count(ExternalIntent.id)).where(
                 ExternalIntent.mode == "compute", ExternalIntent.operation.like("embedding:%"),
@@ -242,8 +291,10 @@ class EngineeringEngine:
         try:
             # Task kind is immutable. Deterministic native work must not embed a retrieval query.
             with self.db.transaction(read_only=True) as session:
-                task_kind = session.get(Task, task_id).kind
-            retrieved = None if task_kind in {"project.retryNative", "project.verify"} else await self.retrieve_context(task_id)
+                task = session.get(Task, task_id)
+                task_kind = task.kind
+                lean_planning = task_kind == "project.capture" or (task_kind == "project.requestReview" and task.result.get("autoPlanning"))
+            retrieved = None if lean_planning or task_kind in {"project.retryNative", "project.verify"} else await self.retrieve_context(task_id)
             attempt_id = self.begin_attempt(task_id, retrieved)
             if not attempt_id:
                 return
@@ -491,9 +542,35 @@ class EngineeringEngine:
             if attempt.status == "succeeded":
                 return
             attempt.status, task.status, task.result = "succeeded", "succeeded", output
-            if task.kind in {"project.research", "project.requestReview"}:
-                project.state = {**project.state, "proposal": output}
-                project.stage = 2
+            if task.kind in PLANNING_KINDS:
+                planning = planning_state(project)
+                input_version = attempt.context.get("planning", {}).get("inputVersion", 0)
+                if input_version != planning["inputVersion"]:
+                    task.result = {"supersededPlanningInput": True, "inputVersion": input_version}
+                    emit(session, project, "planning.superseded", {"attemptId": attempt.id, "inputVersion": input_version,
+                                                                 "currentInputVersion": planning["inputVersion"]})
+                    return
+                proposal = {**output, "clarificationQuestions": retain_unanswered_questions(output, attempt.context)}
+                proposal.pop("clarification_questions", None)
+                project.state = {**project.state, "proposal": proposal, "confirmed": False,
+                                 "proposalReview": task.kind == "project.requestReview",
+                                 "clarificationReviewedVersion": attempt.context.get("clarification", {}).get("version", 0)}
+                planning = {**planning, "captureComplete": True, "pending": False,
+                            "appliedInputVersion": input_version,
+                            "feasibilityComplete": planning["feasibilityComplete"] or task.kind == "project.research"}
+                if task.kind == "project.research":
+                    planning = {**planning, "pendingResearch": False, "lastResearchInputVersion": input_version}
+                elif output.get("researchRequired", output.get("research_required", False)) and planning["lastResearchInputVersion"] < input_version:
+                    planning["pendingResearch"] = True
+                phase = "capture" if task.kind == "project.capture" else "feasibility" if task.kind == "project.research" else "refining"
+                update_concept(project, output, phase, task.run_id, attempt.id, input_version)
+                pending = bool(answer_context(project)["remainingRequired"])
+                planning["phase"] = "clarifying" if pending else "ready" if planning["feasibilityComplete"] else "capture"
+                project.state = {**project.state, "planning": planning}
+                message = append_message(project, "assistant", output.get("summary", "Concept updated."), "planning",
+                                         runId=task.run_id, attemptId=attempt.id)
+                emit(session, project, "planning.assistantMessage", message)
+                project.stage = 2 if planning["feasibilityComplete"] or task.kind != "project.capture" else 0
             elif task.kind == "project.solveInterfaces":
                 if not output.get("interfaces"):
                     raise DomainError("The model did not establish interfaces", 409, "interfaces_unknown")
@@ -535,6 +612,12 @@ class EngineeringEngine:
             run.blocker = "; ".join(t.result.get("reason", "Task cancelled") for t in blocked) or None
             run.finished_at, project.status = now(), run.status
             emit(session, project, f"run.{run.status}", {"runId": run.id, "reason": run.blocker})
+            if run.kind in PLANNING_KINDS:
+                planning = planning_state(project)
+                if blocked and not planning["pending"]:
+                    project.state = {**project.state, "planning": {**planning, "phase": "blocked"}}
+                elif not blocked or planning["pending"]:
+                    ControlPlane(self.db, self.settings, self.store)._resume_planning(session, project)
 
     @staticmethod
     def _fresh(session, task, attempt, project):

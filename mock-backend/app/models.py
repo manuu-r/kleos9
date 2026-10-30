@@ -7,7 +7,7 @@ class Payload(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
 
-PROJECT_COMMANDS = ["research", "requestReview", "confirm", "solveInterfaces", "generate", "verify", "repair", "swapBattery", "acceptRelease", "requestQuotes", "placeOrders", "createPhysicalTasks", "acceptPhysical", "prepareKit", "acceptKit", "ship", "activate"]
+PROJECT_COMMANDS = ["delete", "research", "requestReview", "confirm", "solveInterfaces", "generate", "verify", "repair", "swapBattery", "acceptRelease", "requestQuotes", "placeOrders", "createPhysicalTasks", "acceptPhysical", "prepareKit", "acceptKit", "ship", "activate"]
 TASK_COMMANDS = ["usePortal", "submitEvidence", "accept", "requestRevision"]
 CONNECTOR_COMMANDS = ["test", "calibrate", "disconnect"]
 FIELDS: dict[str, dict[str, Any]] = {

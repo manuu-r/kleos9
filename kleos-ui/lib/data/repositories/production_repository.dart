@@ -40,6 +40,25 @@ class ProductionRepository {
     return incoming;
   }
 
+  Future<JsonMap> deleteProject(String id, {required int revision}) async {
+    final result = await api.delete(
+        '/projects/${Uri.encodeComponent(id)}?expectedRevision=$revision',
+        organizationId: organizationId);
+    _workspaces.remove(id);
+    // The server has accepted deletion already. A local journal failure must
+    // not make a deleted build reappear or imply the server rejected it.
+    try {
+      for (final pending in await journal.pending()) {
+        if (asMap(pending.body['payload'])['projectId'] == id) {
+          await journal.remove(pending.key);
+        }
+      }
+    } catch (_) {
+      return {...result, 'localJournalCleanupPending': true};
+    }
+    return result;
+  }
+
   Future<ModelCatalog> catalog() async =>
       ModelCatalog.fromJson(ApiModelCatalogView.fromJson(
               await api.get('/model-catalog', organizationId: organizationId))

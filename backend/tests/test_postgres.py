@@ -35,7 +35,7 @@ def postgres(tmp_path):
     with psycopg.connect(admin, autocommit=True) as connection:
         for name in names:
             connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
-    settings = Settings(environment="test", database_url=base.set(
+    settings = Settings(_env_file=None, environment="test", database_url=base.set(
         drivername="postgresql+psycopg", database=names[0]).render_as_string(hide_password=False),
         dbos_database_url=base.set(drivername="postgresql", database=names[1]).render_as_string(hide_password=False),
         local_artifact_dir=tmp_path, project_budget_usd=20, daily_budget_usd=100)

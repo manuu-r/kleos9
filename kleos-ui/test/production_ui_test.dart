@@ -16,7 +16,6 @@ import 'package:kleos_ui/ui/features/production/production_app.dart';
 
 const choices = [
   ModelChoice('meta', 'muse-spark-1.3'),
-  ModelChoice('anthropic', 'claude-sonnet-5-5'),
   ModelChoice('google', 'gemini-3.8-flash')
 ];
 final testCatalog = ModelCatalog([
@@ -300,7 +299,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(7));
     for (final entry in [
-      (0, 'Claude · claude-sonnet-5-5', 'anthropic'),
+      (0, 'Gemini · gemini-3.8-flash', 'google'),
       (1, 'Gemini · gemini-3.8-flash', 'google')
     ]) {
       final picker = find.byType(DropdownButtonFormField<String>).at(entry.$1);

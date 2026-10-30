@@ -24,10 +24,19 @@ class NewBuildModelPolicy extends AsyncNotifier<Map<String, ModelChoice>> {
     final account = ref.watch(accountProvider).requireValue!;
     final api = ref.watch(productionApiProvider);
     final catalogFuture = ref.watch(modelCatalogProvider.future);
-    _key =
-        'kleos.model-defaults.${sha256.convert(utf8.encode('${api.baseUrl}|${account.subject}|${account.tenantId}'))}';
-    final key = _key;
     final catalog = await catalogFuture;
+    if (!ref.mounted || generation != _generation) {
+      throw StateError('The workspace changed while loading model defaults.');
+    }
+    // An explicit operator default change starts a fresh preference namespace;
+    // existing projects and manually selected running attempts remain pinned.
+    final policyVersion = jsonEncode({
+      for (final lane in engineeringLanes.keys)
+        lane: catalog.defaults[lane]?.toJson()
+    });
+    _key =
+        'kleos.model-defaults.${sha256.convert(utf8.encode('${api.baseUrl}|${account.subject}|${account.tenantId}|$policyVersion'))}';
+    final key = _key;
     final saved = await preferences.readJournal(key);
     if (saved == null) return Map.unmodifiable(catalog.defaults);
     try {

@@ -472,7 +472,7 @@ class ModelPolicyEditor extends StatelessWidget {
         title: 'AI providers by lane',
         child: kColumn([
           const KMuted(
-              'Choose Muse, Claude, or Gemini for each part of the work. Changes apply to new attempts; active work keeps its selected model.'),
+              'Choose Muse or Gemini for each part of the work. Changes apply to new attempts; active work keeps its selected model.'),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final model in catalog.models.where((model) =>
                 model.configured &&
@@ -897,7 +897,7 @@ class _ModelSettingsState extends ConsumerState<_ModelSettings> {
         data: (catalog) => ExpansionTile(
           tilePadding: EdgeInsets.zero,
           title: const Text('AI provider settings'),
-          subtitle: const Text('Muse, Claude, and Gemini by engineering lane'),
+          subtitle: const Text('Muse and Gemini by engineering lane'),
           children: [
             ModelPolicyEditor(
                 catalog: catalog,

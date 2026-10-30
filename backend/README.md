@@ -1,7 +1,7 @@
 # Kleos9 backend
 
 This is the production backend alongside the existing mock. It implements durable commands,
-engineering attempts, direct Muse/Claude/Gemini adapters, isolated native job contracts,
+engineering attempts, direct Muse/Gemini adapters, isolated native job contracts,
 independent release gates, scoped retrieval, connectors, Modal compute, and the Flutter
 production transport. Physical fulfillment is explicitly simulated and live dispatch is blocked.
 
@@ -12,7 +12,15 @@ complete smartwatch acceptance run remain deployment checks; tests do not establ
 
 `GEMINI_API_KEY` in `backend/.env` is supported directly. The prefixed
 `KLEOS_GEMINI_API_KEY` is also supported and takes priority if both are present.
-Keep the key server-side; choose Gemini explicitly for each engineering lane in Flutter.
+Keep the key server-side. Set `KLEOS_DEFAULT_MODEL_PROVIDER=google` to make Gemini
+an explicit default for every lane on new projects. Omit the setting to retain the
+original per-lane defaults. Existing project policies and running attempts remain
+pinned; change their choices explicitly through Providers. This setting does not
+automatically fall back to another provider when credentials or credits are unavailable.
+Only Meta and Gemini are supported. Firmware and application lanes default to Gemini;
+the explicit Google default above continues to select Gemini for every lane locally.
+The provider-policy migration moves unsupported choices on existing builds to Gemini,
+records a policy-change event and applies the new choice to subsequent attempts.
 Configure the local identity/signing secrets and operator allowances shown in `.env.example`.
 
 ```sh
@@ -86,7 +94,7 @@ Enter the local development token in the sign-in screen. The mock remains the de
 `KLEOS_BACKEND` is omitted. See [Flutter setup](../kleos-ui/README.md) for mobile host addresses,
 secure storage and Cognito configuration. No provider credential belongs in Flutter.
 
-To enable hosted AI, configure the three direct API keys and positive project/daily allowances.
+To enable hosted AI, configure the Meta and Gemini API keys and positive project/daily allowances.
 New projects copy the configured project allowance. Provider availability is explicit in the
 catalog; an outage never silently selects another provider. The default host process disables native
 execution. The Compose profile enables qualified local Docker images; AWS needs qualified ECS
@@ -94,6 +102,38 @@ task definitions, networking and callback access. Generated
 sources remain available when a native tool is unavailable; that is a blocker, not a passing check.
 
 ## Execution and authority
+
+### Conversational capture and concept previews
+
+New Flutter builds submit `project.create` with `autoStart: true`. Capture returns
+an immediate, explicitly provisional concept, then a bounded planning agent asks
+guided questions. `project.answer` with `autoResume: true` and `project.message`
+save user input durably and resume planning automatically. Required answers lead
+into feasibility research; the same scene is refined from those findings. Review
+can request fresh research for substantive changes, once per input version.
+Engineering still requires explicit confirmation.
+
+Concurrent inputs coalesce into the latest planning turn. Each turn pins its input
+version; superseded output cannot publish a concept or overwrite current choices.
+Client message IDs, command idempotency keys and question hashes make retrying
+safe. Selected-part messages pin both a part ID and the displayed concept version.
+Provider failures pause visibly rather than silently switching or looping.
+
+The [Anatomy skill](https://skills.sh/wheresryan22/anatomy/anatomy) is vendored under
+`kleos/skills/anatomy` at commit
+`1482e8469b0a9e0d8cc18ea2740a01423d29ae80`, with its MIT license, source checksums
+and a compact runtime adaptation. Agents emit a validated data-only scene of
+relative shapes; Flutter renders it natively. No generated JavaScript or CAD is
+executed for a concept preview. Scene versions, skill provenance and context
+hashes are available in the run records. Concepts are references, never evidence
+for engineering or physical acceptance.
+
+Planning uses a separate structured output contract without source files or
+interface generation. Defaults cap each model response at 5,000 output tokens and
+each turn at four model requests (`KLEOS_PLANNING_MAX_OUTPUT_TOKENS` and
+`KLEOS_PLANNING_MAX_MODEL_TURNS`). Context contains one current scene, bounded chat,
+saved choices and bounded research excerpts. Capture and visual preference
+updates skip retrieval; qualified engineering keeps its separate execution path.
 
 `api.py` accepts commands and serves scoped queries. `domain.py` enforces the nine logical
 business modules' transitions, permissions, revision checks, release rules and simulated
@@ -147,7 +187,7 @@ produced, but signed iOS builds need a macOS worker and signing setup.
 
 The 25 [golden briefs](fixtures/golden_briefs.json) cover deterministic interface acceptance,
 incompatible envelopes/voltages and missing/invalid evidence. SDK contract tests exercise all
-seven lanes across all three adapters, schema failures and provider failures without paid calls.
+seven lanes across both adapters, schema failures and provider failures without paid calls.
 These fixtures are a regression baseline, not a claim that live model engineering quality has
 been qualified. Run account-backed engineering evaluations before promoting models/prompts/images.
 
@@ -211,3 +251,24 @@ Requests then use the existing `development` user's organization/project
 permissions. This does not create a new organization or replace existing data.
 Staging/production and Cognito configurations reject this setting. Keep it
 `false` when a development token should be required.
+
+## Guided requirements and build removal
+
+Research produces `clarificationQuestions` with stable IDs, plain prompts, choice
+options, help text, and optional numeric bounds/units. The workspace projects
+`state.clarification` with saved answers, current and resolved questions, progress,
+and confirmation readiness. Legacy text questions remain supported.
+`project.answer` accepts `questionId` and `values`; it saves without inference.
+`project.requestReview` incorporates choices into the proposal. Required unanswered
+questions and unreviewed edits block `project.confirm`. Model responses cannot
+remove unanswered required decisions; reviewed choices remain editable.
+Each explicit review turn has a bounded, durable retry allowance; engineering
+repair/pivot limits and monetary ceilings apply independently.
+
+Owners/admins can delete a build with
+`DELETE /api/v1/projects/{id}?expectedRevision=N`. It disappears immediately,
+active work is fenced/cancelled, and asynchronous cleanup erases project content,
+files, retrieval records, and eligible training copies/checkpoints. Minimal
+operational tombstones/accounting records remain. Flutter exposes this through
+its confirmed **Delete and clear build** action and clears matching pending
+commands so deleted builds cannot reappear during recovery.

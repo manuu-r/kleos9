@@ -29,6 +29,7 @@ flutter:
   assets:
     - assets/device.generated.json
     - assets/fonts/
+    - assets/licenses/
   fonts:
     - family: Geist
       fonts:

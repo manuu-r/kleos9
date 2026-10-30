@@ -34,12 +34,11 @@ class Settings(BaseSettings):
     qdrant_key: SecretStr | None = None
     embedding_model: str = "gemini-embedding-2"
     meta_api_key: SecretStr | None = None
-    anthropic_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = Field(default=None,
         validation_alias=AliasChoices("KLEOS_GEMINI_API_KEY", "GEMINI_API_KEY"))
     meta_model: str = "muse-spark-1.3"
-    anthropic_model: str = "claude-sonnet-5-5"
     gemini_model: str = "gemini-3.8-flash"
+    default_model_provider: Literal["meta", "google"] | None = None
     # Limits are operator allowances, never claims about provider credit balances.
     project_budget_usd: float = Field(default=0, ge=0, allow_inf_nan=False)
     daily_budget_usd: float | None = Field(default=0, ge=0, allow_inf_nan=False)
@@ -57,6 +56,8 @@ class Settings(BaseSettings):
     max_attempts: int = Field(default=4, ge=1, le=4)
     max_model_turns: int = Field(default=40, ge=1, le=40)
     max_context_chars: int = Field(default=80000, ge=2000)
+    planning_max_output_tokens: int = Field(default=5000, ge=1000, le=8000)
+    planning_max_model_turns: int = Field(default=4, ge=1, le=8)
     invocation_reservation_usd: float = Field(default=1, gt=0, allow_inf_nan=False)
     embedding_reservation_usd: float = Field(default=0.01, gt=0, allow_inf_nan=False)
     native_job_reservation_usd: float = Field(default=1, gt=0, allow_inf_nan=False)

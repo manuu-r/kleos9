@@ -4,7 +4,6 @@ import json
 import httpx
 import httpx2
 import pytest
-from anthropic.types.beta import BetaMessage
 from google.genai.types import GenerateContentResponse
 from openai.types.responses import Response
 from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
@@ -20,7 +19,7 @@ def gateway(monkeypatch):
         raise AssertionError("Provider contract tests must never access the network")
     monkeypatch.setattr(httpx.AsyncClient, "send", no_network)
     monkeypatch.setattr(httpx2.AsyncClient, "send", no_network)
-    return ModelGateway(Settings(meta_api_key="fixture", anthropic_api_key="fixture", gemini_api_key="fixture"))
+    return ModelGateway(Settings(meta_api_key="fixture", gemini_api_key="fixture"))
 
 
 def payload():
@@ -28,7 +27,7 @@ def payload():
             "files": [], "sources": [], "limitations": ["Fixture response; no engineering qualification"]}
 
 
-@pytest.mark.parametrize("provider", ["meta", "anthropic", "google"])
+@pytest.mark.parametrize("provider", ["meta", "google"])
 @pytest.mark.parametrize("lane", list(Lane))
 async def test_every_lane_uses_selected_direct_provider(gateway, monkeypatch, provider, lane):
     model = gateway.agents[provider].model
@@ -46,20 +45,12 @@ async def test_every_lane_uses_selected_direct_provider(gateway, monkeypatch, pr
                           "output_tokens_details": {"reasoning_tokens": 0}},
                 "error": None, "incomplete_details": None, "instructions": None, "metadata": {},
                 "temperature": 1, "top_p": 1})
-        if provider == "anthropic":
-            return BetaMessage.model_validate({"id": "msg_fixture", "type": "message", "role": "assistant",
-                "model": gateway.registry.models[provider], "stop_reason": "end_turn", "stop_sequence": None,
-                "content": [{"type": "text", "text": json.dumps(payload())}],
-                "usage": {"input_tokens": 100, "output_tokens": 50}})
         return GenerateContentResponse.model_validate({"candidates": [{"content": {"role": "model", "parts": [
             {"text": json.dumps(payload())}]}, "finishReason": "STOP"}],
             "usageMetadata": {"promptTokenCount": 100, "candidatesTokenCount": 50, "totalTokenCount": 150},
             "modelVersion": gateway.registry.models[provider]})
     if provider == "meta":
         monkeypatch.setattr(model.client.responses, "create", respond)
-    elif provider == "anthropic":
-        monkeypatch.setattr(type(model.client.messages), "create", respond)
-        monkeypatch.setattr(type(model.client.beta.messages), "create", respond)
     else:
         monkeypatch.setattr(model.client.aio.models, "generate_content", respond)
     output, usage, transcript = await gateway.generate(provider, gateway.registry.models[provider],
@@ -99,7 +90,7 @@ async def test_non_generation_lanes_reject_code_and_request_a_bounded_correction
     assert usage["requests"] == 2
 
 
-@pytest.mark.parametrize("provider", ["meta", "anthropic", "google"])
+@pytest.mark.parametrize("provider", ["meta", "google"])
 @pytest.mark.parametrize("failure", ["throttle", "timeout", "unavailable"])
 async def test_provider_failures_remain_on_selected_provider(gateway, monkeypatch, provider, failure):
     called = []
@@ -130,3 +121,31 @@ async def test_invalid_structured_response_has_bounded_repair_and_no_authority(g
     with pytest.raises(UnexpectedModelBehavior):
         await gateway.generate("google", gateway.registry.models["google"], {"lane": "coordination"})
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize("provider", ["meta", "google"])
+def test_explicit_provider_default_sets_every_lane_without_hiding_other_choices(provider):
+    from kleos.models import ModelRegistry
+    registry = ModelRegistry(Settings(_env_file=None, default_model_provider=provider))
+    policy = registry.default_policy()
+    assert set(policy) == {lane.value for lane in Lane}
+    assert all(choice == {"provider": provider, "model": registry.models[provider]} for choice in policy.values())
+    assert {model["provider"] for model in registry.catalog()["models"]} == {"meta", "google"}
+    assert registry.catalog()["defaultPolicy"] == policy
+
+
+def test_absent_default_override_preserves_original_lane_policy():
+    from kleos.models import DEFAULT_PROVIDERS, ModelRegistry
+    registry = ModelRegistry(Settings(_env_file=None, default_model_provider=None))
+    assert registry.default_policy() == {
+        lane: {"provider": provider, "model": registry.models[provider]}
+        for lane, provider in DEFAULT_PROVIDERS.items()}
+
+
+def test_unconfigured_explicit_default_is_not_silently_replaced():
+    from kleos.models import ModelRegistry
+    registry = ModelRegistry(Settings(_env_file=None, default_model_provider="google", gemini_api_key=None,
+                                      meta_api_key="fixture"))
+    assert not registry.configured("google")
+    assert {choice["provider"] for choice in registry.default_policy().values()} == {"google"}
+    assert next(model for model in registry.catalog()["models"] if model["provider"] == "google")["configured"] is False

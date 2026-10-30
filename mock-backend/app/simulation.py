@@ -241,6 +241,18 @@ class Simulation:
                 log(project, "Project created from your request", "system")
                 self.state["projects"].insert(0, project)
                 result = {"projectId": project["id"]}
+            elif kind == "project.delete":
+                project = self.project(payload["projectId"])
+                task_ids = {t["id"] for t in self.state["humanTasks"] if t.get("projectId") == project["id"]}
+                markers = {project["id"], *task_ids}
+                for job in list(self.jobs):
+                    if any(marker in job.get_name() for marker in markers):
+                        job.cancel()
+                self.active = {key for key in self.active if not any(marker in key for marker in markers)}
+                self.state["projects"] = [p for p in self.state["projects"] if p["id"] != project["id"]]
+                self.state["humanTasks"] = [t for t in self.state["humanTasks"] if t.get("projectId") != project["id"]]
+                self.state["providerJobs"] = [j for j in self.state["providerJobs"] if j.get("projectId") != project["id"]]
+                result = {"projectId": project["id"], "deleted": True}
             elif kind.startswith("project."):
                 project_command(self, kind, payload)
                 result = None

@@ -274,14 +274,13 @@ Future<void> main() async {
 
         await tap(find.text('AI provider settings'));
         await tap(find.byValueKey('provider-coordination'));
-        await driver
-            .tap(find.byValueKey('provider-option-coordination-anthropic'));
+        await driver.tap(find.byValueKey('provider-option-coordination-meta'));
         await tap(find.text('Save provider choices'));
         await until(
             workspacePath,
             (j) =>
                 j['project']['modelPolicy']['coordination']['provider'] ==
-                'anthropic');
+                'meta');
         await driver.waitForAbsent(find.text('Save provider choices'),
             timeout: const Duration(seconds: 30));
         await tap(find.byValueKey('provider-preset-google'));

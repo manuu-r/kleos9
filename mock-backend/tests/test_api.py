@@ -64,3 +64,18 @@ def test_reset_cancels_pending_job_and_preserves_monotonic_revision():
         assert reset["revision"] > running["revision"]
         assert not reset["state"]["connectionRuns"]
         assert not client.app.state.simulation.active
+
+
+def test_delete_build_clears_only_its_simulated_data_and_is_idempotent():
+    with TestClient(create_app(time_scale=0)) as client:
+        one = post(client, "project.create", {"brief": "Delete this simulation"}).json()["result"]["projectId"]
+        two = post(client, "project.create", {"brief": "Keep this simulation"}).json()["result"]["projectId"]
+        key = uuid4().hex
+        deleted = post(client, "project.delete", {"projectId": one}, key)
+        assert deleted.status_code == 200
+        assert deleted.json()["result"]["deleted"] is True
+        assert post(client, "project.delete", {"projectId": one}, key).json() == deleted.json()
+        state = client.get("/api/state").json()["state"]
+        assert [p["id"] for p in state["projects"]] == [two]
+        assert len(state["humanTasks"]) == 3
+        assert len(state["connectors"]) == 23

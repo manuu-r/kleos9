@@ -233,7 +233,7 @@ def test_stage_inputs_rejects_hash_and_duplicate_names(tmp_path):
 def test_generated_environment_never_inherits_credentials(tmp_path, monkeypatch):
     monkeypatch.setenv("KLEOS_JOB_TOKEN", "callback-secret")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "aws-secret")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "provider-secret")
+    monkeypatch.setenv("GEMINI_API_KEY", "provider-secret")
     environment = clean_environment(tmp_path)
     assert not any("SECRET" in key or "TOKEN" in key or "KEY" in key for key in environment)
     assert environment["HOME"].startswith(str(tmp_path))

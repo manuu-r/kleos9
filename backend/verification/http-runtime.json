@@ -9,23 +9,8 @@
     {
       "name": "health_authentication_model_catalog",
       "status": "passed",
-      "models": [
-        {
-          "provider": "meta",
-          "model": "muse-spark-1.3",
-          "configured": false
-        },
-        {
-          "provider": "anthropic",
-          "model": "claude-sonnet-5-5",
-          "configured": false
-        },
-        {
-          "provider": "google",
-          "model": "gemini-3.8-flash",
-          "configured": true
-        }
-      ]
+      "modelCatalogChecked": true,
+      "note": "Historical catalog details omitted; the current model catalog is served by /api/v1/model-catalog."
     },
     {
       "name": "command_idempotency_conflict_and_tenant_authorization",

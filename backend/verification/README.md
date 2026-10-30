@@ -78,7 +78,7 @@ $38.16 of the configured $40 daily ceiling and $19.15 of the main project's $20 
 remaining reservations. These were the ceilings during verification. The daily ceiling was
 subsequently disabled at the user's request; project ceilings remain independent.
 
-Muse/Claude, DigiKey, Modal, Cognito, AWS and licensed Conductor were not live-account qualified;
+Muse, DigiKey, Modal, Cognito, AWS and licensed Conductor were not live-account qualified;
 their available contracts/guards were tested without claiming configured access. The 25 golden
 briefs and provider SDK/failure matrix are deterministic regressions, not live model-quality
 evaluations across 25 engineering journeys. Renode starts, but its ARM specimen hit its bounded

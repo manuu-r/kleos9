@@ -34,7 +34,7 @@ def resolve(address):
 def connector_env(tmp_path):
     db = Database(f"sqlite:///{tmp_path}/connectors.db")
     Base.metadata.create_all(db.engine)
-    settings = Settings(environment="test", daily_budget_usd=100)
+    settings = Settings(_env_file=None, environment="test", daily_budget_usd=100)
     with db.transaction() as session:
         session.add(Organization(id="org", name="Test"))
         session.add(Project(id="project", tenant_id="org", owner_id="owner", name="Watch", brief="Watch"))

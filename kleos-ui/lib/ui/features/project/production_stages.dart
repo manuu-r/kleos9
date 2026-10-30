@@ -10,7 +10,10 @@ import '../../../data/models/production.dart';
 import '../../../state/kleos_store.dart';
 import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
+import '../../core/concept_preview.dart';
 import 'common.dart';
+import 'requirements_interview.dart';
+import 'planning_conversation.dart';
 
 /// Real engineering records presented inside the original stage workspace.
 class ProductionStage extends ConsumerStatefulWidget {
@@ -29,11 +32,11 @@ class ProductionStage extends ConsumerStatefulWidget {
 }
 
 class _ProductionStageState extends ConsumerState<ProductionStage> {
-  final Map<String, TextEditingController> answers = {};
   final battery = List.generate(4, (_) => TextEditingController());
   String? downloadError;
   String? downloading;
   bool refreshing = false;
+  String? selectedPart;
   JsonMap get workspace => asMap(widget.project['productionWorkspace']);
   JsonMap get project => asMap(workspace['project']);
   JsonMap get state => asMap(project['state']);
@@ -41,12 +44,34 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
   List<JsonMap> get runs => asMaps(workspace['runs']);
   bool get active =>
       const {'queued', 'running', 'waiting'}.contains(project['status']);
+  bool get planningActive =>
+      active &&
+      (runs.any((run) =>
+              const {'queued', 'running', 'waiting'}.contains(run['status']) &&
+              const {
+                'project.capture',
+                'project.research',
+                'project.requestReview'
+              }.contains(run['kind'])) ||
+          (asMap(state['planning']).isNotEmpty &&
+              number(project['stage']) <= 2));
+  bool get planningPending => asMap(state['planning'])['pending'] == true;
+  String? get selectedPartId =>
+      asMaps(asMap(asMap(state['concept'])['scene'])['parts'])
+              .any((part) => part['id'] == selectedPart)
+          ? selectedPart
+          : null;
+  String? get selectedPartLabel =>
+      asMaps(asMap(asMap(state['concept'])['scene'])['parts'])
+          .where((part) => part['id'] == selectedPartId)
+          .firstOrNull?['label']
+          ?.toString();
   bool get canWrite =>
       ref.watch(accountProvider).asData?.value?.canWrite == true;
 
   @override
   void dispose() {
-    for (final field in [...answers.values, ...battery]) {
+    for (final field in battery) {
       field.dispose();
     }
     super.dispose();
@@ -88,14 +113,14 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
       ];
     }
     if (proposal.isEmpty) {
-      return [action('project.research', 'Research feasibility')];
+      return asMap(state['planning']).isEmpty
+          ? [
+              action('project.capture', 'Start planning',
+                  data: {'autoResume': true})
+            ]
+          : [];
     }
-    if (state['confirmed'] != true) {
-      return [
-        action('project.requestReview', 'Refine concept', primary: false),
-        action('project.confirm', 'Confirm and start design')
-      ];
-    }
+    if (state['confirmed'] != true) return [];
     if (asMap(project['interfaces']).isEmpty) {
       return [action('project.solveInterfaces', 'Establish interfaces')];
     }
@@ -137,54 +162,111 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
     return [];
   }
 
-  Widget concept() => pColumn([
-        if (proposal.isEmpty)
-          pText(
-              'Your brief is ready. Start research to receive a concept, engineering scope, and any questions that need your input.',
-              muted: true)
-        else ...[
-          if (proposal['summary'] != null) pText(proposal['summary']),
-          for (final limitation in asList(proposal['limitations']))
-            pCallout(pText(limitation, small: true)),
-          if (asMap(proposal['requirements']).isNotEmpty)
-            record('Proposed requirements', proposal['requirements']),
-          if (asList(proposal['sources']).isNotEmpty)
-            record('Research sources', proposal['sources']),
-          for (final question in asList(proposal['questions']))
-            questionField('$question'),
-        ],
-        if (asMap(project['requirements']).isNotEmpty)
-          record('Accepted requirements', project['requirements']),
-      ], gap: 18);
-
-  Widget questionField(String question) {
-    final field = answers.putIfAbsent(question, TextEditingController.new);
-    final saved = asMap(state['answers'])[question];
-    return pColumn([
-      pText(question, strong: true),
-      if (saved != null)
-        pText('Saved answer: ${asList(saved).join(', ')}', muted: true),
-      TextField(
-          controller: field,
-          enabled: canWrite && !active,
-          minLines: 1,
-          maxLines: 4,
-          decoration: const InputDecoration(labelText: 'Your answer'),
-          onChanged: (_) => setState(() {})),
-      KButton(
-          label: 'Save answer',
-          compact: true,
-          onPressed: !canWrite ||
-                  active ||
-                  field.text.trim().isEmpty ||
-                  widget.controller.isPending('project.answer')
+  Widget concept() => LayoutBuilder(builder: (context, constraints) {
+        final concept = asMap(state['concept']);
+        final scene = asMap(concept['scene']);
+        final clarification = asMap(state['clarification']);
+        final conversation = asMaps(state['conversation']);
+        final questions = [
+          ...asMaps(clarification['questions']),
+          ...asMaps(clarification['resolvedQuestions'])
+        ];
+        final pending = planningPending || planningActive;
+        final chat = PlanningConversation(
+          key: ValueKey('planning-chat-${project['id']}'),
+          messages: conversation.isEmpty
+              ? [
+                  {
+                    'id': 'original-brief',
+                    'role': 'user',
+                    'text': project['brief']
+                  },
+                ]
+              : conversation,
+          canWrite: canWrite,
+          busy: active,
+          pending: planningPending,
+          allowSendWhileBusy: planningActive,
+          phase:
+              '${asMap(state['planning'])['phase'] ?? (widget.stage == 1 ? 'research' : 'capture')}',
+          selectedPartLabel: selectedPartLabel,
+          selectedPartId: selectedPartId,
+          onClearPart: () => setState(() => selectedPart = null),
+          onSend: (text, clientId) => command('project.message', {
+            'text': text,
+            'clientMessageId': clientId,
+            'autoResume': true,
+            if (selectedPartId != null) ...{
+              'selectedPartId': selectedPartId,
+              'conceptVersion': concept['version'],
+            },
+          }),
+          question: proposal.isEmpty
               ? null
-              : () => command('project.answer', {
-                    'questionKey': question,
-                    'values': [field.text.trim()]
-                  })),
-    ], gap: 10);
-  }
+              : RequirementsInterview(
+                  key: ValueKey(project['id']),
+                  clarification: clarification,
+                  proposal: proposal,
+                  legacyAnswers: asMap(state['answers']),
+                  canWrite: canWrite,
+                  active: active,
+                  confirmed: state['confirmed'] == true,
+                  autoResume: true,
+                  acceptWhileActive: planningActive,
+                  updatePending: planningPending,
+                  onAnswer: (id, values, legacy) => command('project.answer', {
+                    if (legacy) 'questionKey': id else 'questionId': id,
+                    'values': values,
+                    'autoResume': true,
+                    if (questions
+                            .where((q) => q['id'] == id)
+                            .firstOrNull?['questionHash'] !=
+                        null)
+                      'questionHash': questions
+                          .where((q) => q['id'] == id)
+                          .first['questionHash'],
+                  }),
+                  onReview: () =>
+                      command('project.requestReview', {'autoResume': true}),
+                  onConfirm: () => command('project.confirm'),
+                ),
+        );
+        final preview = KCard(
+          title: 'Live concept',
+          trailing: const KBadge('Concept preview'),
+          child: ConceptPreview(
+            scene: scene,
+            conceptVersion: (concept['version'] as num?)?.toInt(),
+            updating: pending,
+            height: constraints.maxWidth < 600 ? 270 : 390,
+            onPartSelected: (id) => setState(() => selectedPart = id),
+          ),
+        );
+        final details = pDisclosure(
+          title: 'Concept and engineering details',
+          child: pColumn([
+            if (proposal['summary'] != null) pText(proposal['summary']),
+            for (final limitation in asList(proposal['limitations']))
+              pCallout(pText(limitation, small: true)),
+            if (asMap(proposal['requirements']).isNotEmpty)
+              record('Proposed requirements', proposal['requirements']),
+            if (asList(proposal['sources']).isNotEmpty)
+              record('Research sources', proposal['sources']),
+            if (asMap(project['requirements']).isNotEmpty)
+              record('Accepted requirements', project['requirements']),
+          ], gap: 16),
+        );
+        return pColumn([
+          if (constraints.maxWidth >= 900)
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(flex: 6, child: chat),
+              const SizedBox(width: 24),
+              Expanded(flex: 5, child: preview),
+            ])
+          else ...[preview, chat],
+          if (proposal.isNotEmpty) details,
+        ], gap: 24);
+      });
 
   Widget interfaceRecords() {
     final interfaces = asMap(project['interfaces']);
@@ -478,8 +560,8 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
       ])),
       KCard(
           title: switch (widget.stage) {
-            0 => 'Your brief and questions',
-            1 => 'Research findings',
+            0 => 'Shape your device',
+            1 => 'Shape your device',
             2 => 'Concept review',
             3 => 'Shared interfaces',
             4 => 'Engineering lanes',
@@ -514,7 +596,10 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             primary: true,
             icon: Icons.arrow_forward,
             onPressed: widget.onNext)),
-      settings(),
+      if (widget.stage <= 2 && state['confirmed'] != true)
+        pDisclosure(title: 'Project settings', child: settings())
+      else
+        settings(),
     ], gap: 24);
   }
 }

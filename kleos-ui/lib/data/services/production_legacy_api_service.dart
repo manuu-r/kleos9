@@ -19,6 +19,7 @@ class ProductionLegacyApiService extends ApiService {
   final _updates = StreamController<JsonMap>.broadcast();
   Stream<JsonMap> get updates => _updates.stream;
   final Map<String, ProjectRecord> _projects = {};
+  final Set<String> _deletedProjects = {};
   final Map<String, Workspace> _workspaces = {};
   final Map<String, List<JsonMap>> _activity = {};
   List<JsonMap> _connectors = [];
@@ -94,12 +95,14 @@ class ProductionLegacyApiService extends ApiService {
     do {
       final page = await repository.projects(after: cursor);
       for (final project in page.projects) {
+        if (_deletedProjects.contains(project.id)) continue;
         summaries[project.id] = project;
       }
       cursor = page.nextCursor;
     } while (cursor != null && !_disposed);
     if (_disposed) throw const ApiException('The connection is closed.');
     for (final entry in summaries.entries) {
+      if (_deletedProjects.contains(entry.key)) continue;
       if ((_projects[entry.key]?.revision ?? -1) <= entry.value.revision) {
         _projects[entry.key] = entry.value;
       }
@@ -112,8 +115,12 @@ class ProductionLegacyApiService extends ApiService {
     if (active != null) {
       if (_activeIsSimulation != _isSimulatedProject(active)) {
         await setActiveProject(active);
-      } else if (!_activeIsSimulation) {
-        _save(await repository.workspace(active));
+      } else if (!_activeIsSimulation && !_deletedProjects.contains(active)) {
+        try {
+          _save(await repository.workspace(active));
+        } catch (_) {
+          if (!_deletedProjects.contains(active)) rethrow;
+        }
       }
     }
     try {
@@ -182,6 +189,9 @@ class ProductionLegacyApiService extends ApiService {
     }
     final response = await service.command(type, payload);
     _acceptSimulation(asMap(response['snapshot']));
+    if (type == 'project.delete' && _activeProject == payload['projectId']) {
+      await setActiveProject(null);
+    }
     final snapshot = _snapshot();
     if (!_disposed) _updates.add(snapshot);
     return {'snapshot': snapshot, 'result': asMap(response['result'])};
@@ -190,6 +200,7 @@ class ProductionLegacyApiService extends ApiService {
   void _save(Workspace workspace) {
     final id = workspace.project.id;
     if (_disposed ||
+        _deletedProjects.contains(id) ||
         (_workspaces[id]?.project.revision ?? -1) >
             workspace.project.revision) {
       return;
@@ -276,6 +287,19 @@ class ProductionLegacyApiService extends ApiService {
         throw const ApiException('Reload this project before making a change.');
       }
       revision = current.revision;
+    }
+    if (type == 'project.delete') {
+      final result = await repository.deleteProject(id!, revision: revision!);
+      if (_disposed) return {'snapshot': <String, dynamic>{}, 'result': result};
+      _deletedProjects.add(id);
+      _projects.remove(id);
+      _workspaces.remove(id);
+      _activity.remove(id);
+      _lastRealLoad = null;
+      if (_activeProject == id) await setActiveProject(null);
+      final snapshot = _snapshot();
+      if (!_disposed) _updates.add(snapshot);
+      return {'snapshot': snapshot, 'result': result};
     }
     final accepted =
         await repository.command(type, payload, revision: revision);

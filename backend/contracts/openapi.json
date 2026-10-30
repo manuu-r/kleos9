@@ -3084,7 +3084,6 @@
             "type": "string",
             "enum": [
               "meta",
-              "anthropic",
               "google"
             ],
             "title": "Provider"

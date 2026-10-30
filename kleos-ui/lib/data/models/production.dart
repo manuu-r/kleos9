@@ -13,7 +13,6 @@ const engineeringLanes = <String, String>{
 
 String providerLabel(String provider) => switch (provider) {
       'meta' => 'Muse',
-      'anthropic' => 'Claude',
       'google' => 'Gemini',
       _ => provider,
     };

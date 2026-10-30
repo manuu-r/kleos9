@@ -90,7 +90,7 @@ Future<ProviderContainer> _mount(
     modelCatalogProvider.overrideWith((ref) async => ModelCatalog([
           CatalogModel(const ModelChoice('google', 'test-gemini'), true,
               engineeringLanes.keys.toList()),
-          CatalogModel(const ModelChoice('anthropic', 'test-claude'), true,
+          CatalogModel(const ModelChoice('meta', 'test-muse'), true,
               engineeringLanes.keys.toList()),
         ], {
           for (final lane in engineeringLanes.keys)
@@ -132,7 +132,7 @@ void main() {
     await _mount(tester, service, _project(), 0);
     expect(find.text('Reconnecting updates'), findsOneWidget);
     expect(find.text('Events connection was interrupted'), findsOneWidget);
-    expect(find.text('Your brief and questions'), findsOneWidget);
+    expect(find.text('Shape your device'), findsOneWidget);
     final before = service.loads;
     service.state = {'liveConnected': true};
     await tester.tap(find.widgetWithText(KButton, 'Refresh workspace'));
@@ -158,18 +158,18 @@ void main() {
   });
 
   testWidgets(
-      'original intent stage submits real research without fixture questions',
+      'original intent stage starts live capture without fixture questions',
       (tester) async {
     final service = _Service();
     await _mount(tester, service, _project(), 0);
-    expect(find.text('Your brief and questions'), findsOneWidget);
+    expect(find.text('Shape your device'), findsOneWidget);
     expect(find.text('Which screen suits you?'), findsNothing);
     expect(find.byType(DeviceVisual), findsNothing);
-    await tester.tap(find.widgetWithText(KButton, 'Research feasibility'));
+    await tester.tap(find.widgetWithText(KButton, 'Start planning'));
     await tester.pumpAndSettle();
     expect(service.commands.single, {
-      'type': 'project.research',
-      'payload': {'projectId': 'project'}
+      'type': 'project.capture',
+      'payload': {'projectId': 'project', 'autoResume': true}
     });
     expect(tester.takeException(), isNull);
   });
@@ -190,20 +190,23 @@ void main() {
         }),
         0,
         onNext: () => next++);
-    expect(find.text('A measured workshop sensor design.'), findsOneWidget);
+    expect(find.text('A measured workshop sensor design.'), findsNothing);
+    expect(
+        find.text('Which particulate range must be measured?'), findsOneWidget);
     expect(find.byType(DeviceVisual), findsNothing);
     await tester.ensureVisible(find.byType(TextField).first);
     await tester.enterText(find.byType(TextField).first, 'PM2.5');
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(KButton, 'Save answer'));
-    await tester.tap(find.widgetWithText(KButton, 'Save answer'));
+    await tester.ensureVisible(find.widgetWithText(KButton, 'Send answer'));
+    await tester.tap(find.widgetWithText(KButton, 'Send answer'));
     await tester.pumpAndSettle();
     expect(service.commands.single, {
       'type': 'project.answer',
       'payload': {
         'projectId': 'project',
         'questionKey': 'Which particulate range must be measured?',
-        'values': ['PM2.5']
+        'values': ['PM2.5'],
+        'autoResume': true
       }
     });
     final continuation =

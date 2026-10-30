@@ -25,3 +25,11 @@ def test_local_native_execution_requires_authentication_and_cannot_enter_cloud()
                  environment="production", auth_mode="cognito", storage_backend="s3")
     settings = Settings(_env_file=None, execution_backend="docker", session_key="fixture-signing-key")
     assert settings.docker_jobs_dir == Path("/native-jobs")
+
+
+def test_explicit_default_model_provider_environment(monkeypatch):
+    monkeypatch.setenv("KLEOS_DEFAULT_MODEL_PROVIDER", "google")
+    assert Settings(_env_file=None).default_model_provider == "google"
+    monkeypatch.setenv("KLEOS_DEFAULT_MODEL_PROVIDER", "unknown")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)

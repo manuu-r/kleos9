@@ -2,10 +2,12 @@ import hashlib
 import json
 import math
 from copy import deepcopy
+from datetime import timedelta
 
 from sqlalchemy import func, or_, select, text
 
 from .auth import Principal
+from .clarification import clarification_view, question_hash, validate_answer
 from .contracts import Command, DomainError
 from .db import (
     Artifact,
@@ -29,6 +31,15 @@ from .db import (
     uid,
 )
 from .models import ModelRegistry
+from .planning import (
+    PLANNING_KINDS,
+    append_message,
+    concept_snapshot,
+    context_manifest,
+    planning_state,
+    seed_project_concept,
+    validate_part_reference,
+)
 from .telemetry import redact
 from .telemetry import trace_id as current_trace_id
 
@@ -39,6 +50,7 @@ MODULES = (
 ACTIVE = ("queued", "running", "waiting")
 ENGINEERING_LANES = ("mechanics", "electronics", "firmware", "application")
 ASYNC_LANES = {
+    "project.capture": ["coordination"],
     "project.research": ["research"],
     "project.requestReview": ["coordination"],
     "project.solveInterfaces": ["coordination"],
@@ -120,7 +132,8 @@ def project_view(project):
         "revision": project.revision, "engineeringRevision": project.engineering_revision,
         "policyRevision": project.policy_revision, "modelPolicy": project.model_policy,
         "stage": project.stage, "status": project.status, "requirements": project.requirements,
-        "interfaces": project.interfaces, "state": project.state,
+        "interfaces": project.interfaces, "state": {**project.state, "clarification": clarification_view(project),
+            "planning": planning_state(project), "concept": concept_snapshot(project)},
         "acceptedReleaseId": project.accepted_release_id,
         "budget": {"allowanceUsd": project.budget_usd, "spentEstimateUsd": project.spent_usd,
                    "reservedUsd": project.reserved_usd},
@@ -171,10 +184,37 @@ class ControlPlane:
                 session.add(project)
                 session.flush()
                 emit(session, project, "project.created", {"brief": brief})
+                auto_start = payload.get("autoStart", False)
+                if not isinstance(auto_start, bool):
+                    raise DomainError("autoStart must be true or false", 422)
+                seed_project_concept(project)
+                if auto_start:
+                    project.state = {**project.state, "planning": {**planning_state(project), "autoResume": True,
+                                     "pending": True, "phase": "capture"}}
+                    append_message(project, "user", brief, "brief")
+                    run_id = self._resume_planning(session, project, command_id)
             else:
                 project = get_project(session, payload.get("projectId", ""), principal, write=True)
                 if command.expected_revision != project.revision:
-                    raise DomainError("Project changed; refresh before applying this command", 409, "stale_revision")
+                    # Chat is append-only, and a hashed choice identifies its
+                    # exact semantics. During unaccepted planning these can
+                    # safely coexist with unrelated progress/event revisions.
+                    safe_planning = (payload.get("autoResume") is True and project.stage <= 2
+                                     and not project.state.get("confirmed") and not project.accepted_release_id
+                                     and command.expected_revision is not None
+                                     and command.expected_revision < project.revision)
+                    safe_append = safe_planning and command.type == "project.message"
+                    safe_answer = False
+                    if safe_planning and command.type == "project.answer" and payload.get("questionHash"):
+                        progress = clarification_view(project)
+                        ident = payload.get("questionId", payload.get("questionKey"))
+                        current = next((q for q in [*progress["questions"], *progress["resolvedQuestions"]]
+                                        if q["id"] == ident or q["prompt"] == ident), None)
+                        if not current or payload["questionHash"] != question_hash(current):
+                            raise DomainError("This question changed; review its current choices", 409, "question_changed")
+                        safe_answer = True
+                    if not (safe_append or safe_answer):
+                        raise DomainError("Project changed; refresh before applying this command", 409, "stale_revision")
                 kind = command.type
                 if kind == "project.setModelPolicy":
                     project.model_policy = self.registry.validate_policy(payload.get("modelPolicy", {}))
@@ -184,18 +224,84 @@ class ControlPlane:
                         "modelPolicy": project.model_policy,
                     })
                 elif kind == "project.answer":
-                    question, answer = payload.get("questionKey"), payload.get("values")
-                    if not isinstance(question, str) or not isinstance(answer, list):
-                        raise DomainError("A question key and values are required", 422)
-                    self._invalidate(session, project, "requirements_changed")
-                    project.requirements = {**project.requirements, question: answer}
-                    project.state = {**project.state, "confirmed": False}
-                    emit(session, project, "requirements.changed", {"questionKey": question})
+                    question_key = payload.get("questionId", payload.get("questionKey"))
+                    clarification = clarification_view(project)
+                    question = next((q for q in [*clarification["questions"], *clarification["resolvedQuestions"]]
+                                     if q["id"] == question_key or q["prompt"] == question_key), None)
+                    if question is None:
+                        raise DomainError("This question is no longer available; refresh the requirements", 409, "unknown_question")
+                    self._check_planning_input(session, project, payload)
+                    if payload.get("questionHash") is not None and payload["questionHash"] != question_hash(question):
+                        raise DomainError("This question changed; review its current choices", 409, "question_changed")
+                    answer = validate_answer(question, payload.get("values"))
+                    if question["id"] in clarification["answers"] and clarification["answers"][question["id"]] == answer:
+                        if payload.get("autoResume") is True and clarification["needsReview"]:
+                            project.state = {**project.state, "planning": {**planning_state(project), "autoResume": True, "pending": True}}
+                            run_id = self._resume_planning(session, project, command_id)
+                    else:
+                        previous_state = project.state
+                        if previous_state.get("confirmed") or project.interfaces:
+                            self._invalidate(session, project, "requirements_changed")
+                            retained = {k: v for k, v in previous_state.items()
+                                        if k in {"proposal", "answers", "clarificationAnswers", "clarificationAnswerVersion",
+                                                 "clarificationReviewedVersion", "proposalReview", "planning", "conversation",
+                                                 "concept", "conceptHistory", "clientMessageIds"}}
+                            project.state = {**project.state, **retained}
+                        records = {**project.state.get("clarificationAnswers", {}), question["id"]: {
+                            "values": answer, "questionHash": question_hash(question),
+                            "question": {k: v for k, v in question.items() if k != "questionHash"}}}
+                        project.state = {**project.state, "confirmed": False, "clarificationAnswers": records,
+                                         "answers": {**project.state.get("answers", {}), question["id"]: answer},
+                                         "clarificationAnswerVersion": project.state.get("clarificationAnswerVersion", 0) + 1}
+                        progress = clarification_view(project)
+                        emit(session, project, "requirements.answerSaved", {
+                            "questionId": question["id"], "answeredCount": progress["answeredCount"],
+                            "remainingRequired": progress["remainingRequired"], "needsReview": progress["needsReview"]})
+                        labels = [next((o["label"] for o in question["options"] if o["value"] == v), v) for v in answer]
+                        message = append_message(project, "user", f"{question['prompt']} {', '.join(labels) if labels else 'No preference'}",
+                                                 "answer", questionId=question["id"])
+                        emit(session, project, "planning.userMessage", message)
+                        self._record_planning_input(project, payload)
+                        run_id = self._resume_planning(session, project, command_id)
+                elif kind == "project.message":
+                    self._check_planning_input(session, project, payload)
+                    message_text = payload.get("text")
+                    client_id = payload.get("clientMessageId")
+                    if (not isinstance(message_text, str) or not 1 <= len(message_text.strip()) <= 4000
+                            or not isinstance(client_id, str) or not 1 <= len(client_id) <= 100):
+                        raise DomainError("Provide a message and a stable clientMessageId", 422, "invalid_message")
+                    if client_id not in project.state.get("clientMessageIds", []):
+                        reference = validate_part_reference(project, payload)
+                        if project.state.get("confirmed") or project.interfaces:
+                            previous_state = project.state
+                            self._invalidate(session, project, "requirements_message")
+                            retained = {k: v for k, v in previous_state.items() if k in {
+                                "proposal", "answers", "clarificationAnswers", "clarificationAnswerVersion", "clarificationReviewedVersion",
+                                "proposalReview", "planning", "conversation", "concept", "conceptHistory", "clientMessageIds"}}
+                            project.state = {**project.state, **retained}
+                        project.state = {**project.state, "confirmed": False,
+                                         "clientMessageIds": [*project.state.get("clientMessageIds", []), client_id][-256:]}
+                        message = append_message(project, "user", message_text.strip(), "chat", clientMessageId=client_id, **reference)
+                        emit(session, project, "planning.userMessage", message)
+                        self._record_planning_input(project, payload)
+                        run_id = self._resume_planning(session, project, command_id)
                 elif kind == "project.confirm":
+                    if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
+                        raise DomainError("Wait for the current requirements review before confirming", 409, "run_active")
                     if not project.state.get("proposal"):
                         raise DomainError("Research the concept before confirming it", 409)
+                    planning = planning_state(project)
+                    if planning["autoResume"] and not planning["feasibilityComplete"]:
+                        raise DomainError("Complete feasibility planning before confirming", 409, "feasibility_required")
+                    clarification = clarification_view(project)
+                    if clarification["remainingRequired"]:
+                        raise DomainError("Answer the remaining required questions before confirming", 409, "clarification_required")
+                    if clarification["needsReview"]:
+                        raise DomainError("Review your saved answers before confirming the design", 409, "clarification_review_required")
                     proposal = project.state["proposal"]
-                    requirements = {**proposal.get("requirements", {}), **project.requirements}
+                    requirements = ({**project.requirements, **proposal.get("requirements", {})}
+                                    if project.state.get("proposalReview") or project.state.get("clarificationReviewedVersion", 0) > 0
+                                    else {**proposal.get("requirements", {}), **project.requirements})
                     if requirements.get("validationProfile") == "watch-telemetry-v1":
                         required = requirements.get("requiredPeripheralCoverage")
                         excluded = requirements.get("excludedCoverage")
@@ -206,17 +312,28 @@ class ControlPlane:
                                 or not known.issubset(set(required) | set(excluded))):
                             raise DomainError("Explicitly review requiredPeripheralCoverage and excludedCoverage before confirming", 422,
                                               "scope_required")
-                    if project.state.get("confirmed") and requirements != project.requirements:
+                    if requirements != project.requirements and (
+                            project.state.get("confirmed") or project.interfaces or project.accepted_release_id):
+                        retained = {k: v for k, v in project.state.items()
+                                    if k in {"answers", "clarificationAnswers", "clarificationAnswerVersion",
+                                             "clarificationReviewedVersion", "proposalReview", "planning", "conversation", "concept", "conceptHistory", "clientMessageIds"}}
                         self._invalidate(session, project, "requirements_reconfirmed")
+                        project.state = {**project.state, **retained}
                     project.state = {**project.state, "proposal": proposal, "confirmed": True}
                     project.requirements = requirements
                     project.stage = max(3, project.stage)
                     emit(session, project, "concept.confirmed", {"actor": principal.subject})
+                elif kind == "project.capture" and payload.get("autoResume") is True:
+                    self._check_planning_input(session, project, payload)
+                    project.state = {**project.state, "planning": {**planning_state(project), "autoResume": True, "pending": True}}
+                    run_id = self._resume_planning(session, project, command_id)
                 elif kind in ASYNC_LANES:
                     run_id = self._enqueue(session, project, command_id, kind, payload)
                 elif kind == "project.retryNative":
                     run_id = self._retry_native(session, project, command_id, payload)
                 elif kind == "project.cancel":
+                    project.state = {**project.state, "planning": {**planning_state(project), "autoResume": False,
+                                     "pending": False, "phase": "cancelled"}}
                     self._cancel(session, project, "Cancelled by the user")
                     emit(session, project, "project.cancelled", {})
                 elif kind == "project.retry":
@@ -285,6 +402,60 @@ class ControlPlane:
             ))
             return response
 
+    def _check_planning_input(self, session, project, payload):
+        automatic = payload.get("autoResume", planning_state(project)["autoResume"])
+        if not isinstance(automatic, bool):
+            raise DomainError("autoResume must be true or false", 422)
+        active = session.scalars(select(Run).where(Run.project_id == project.id, Run.status.in_(ACTIVE))).all()
+        if active and (not automatic or any(run.kind not in PLANNING_KINDS for run in active)):
+            raise DomainError("Wait for the current work before changing requirements", 409, "run_active")
+
+    @staticmethod
+    def _record_planning_input(project, payload):
+        state = planning_state(project)
+        state = {**state, "autoResume": payload.get("autoResume", state["autoResume"]), "pending": True,
+                 "inputVersion": state["inputVersion"] + 1, "notBefore": (now() + timedelta(seconds=.8)).isoformat()}
+        project.state = {**project.state, "planning": state}
+        if project.state.get("concept"):
+            project.state = {**project.state, "concept": {**project.state["concept"], "stale": True}}
+
+    def _resume_planning(self, session, project, command_id=None):
+        state = planning_state(project)
+        if not state["autoResume"] or project.state.get("confirmed"):
+            return None
+        active = session.scalar(select(Run).where(Run.project_id == project.id, Run.status.in_(ACTIVE)))
+        if active:
+            # A queued, unbilled run can absorb the latest user turn. An active
+            # model invocation finishes against its pinned input, then coalesces.
+            if active.status == "queued" and active.kind in PLANNING_KINDS:
+                for task in session.scalars(select(Task).where(Task.run_id == active.id)):
+                    task.result = {**task.result, "planningInputVersion": state["inputVersion"],
+                                   "planningNotBefore": state.get("notBefore")}
+                project.state = {**project.state, "planning": {**state, "pending": False}}
+            return active.id
+        progress = clarification_view(project)
+        next_kind = None
+        research_pending = (state["pendingResearch"] and not progress["remainingRequired"]
+                            and state["lastResearchInputVersion"] < state["inputVersion"])
+        if state["pending"]:
+            next_kind = ("project.capture" if not state["captureComplete"] or (
+                not state["feasibilityComplete"] and progress["remainingRequired"]) else
+                "project.research" if not state["feasibilityComplete"] or research_pending else "project.requestReview")
+        elif state["captureComplete"] and not state["feasibilityComplete"] and not progress["remainingRequired"]:
+            next_kind = "project.research"
+        elif research_pending:
+            next_kind = "project.research"
+        if next_kind is None:
+            return None
+        phase = {"project.capture": "capture", "project.research": "researching", "project.requestReview": "refining"}[next_kind]
+        run_id = self._enqueue(session, project, command_id or uid(), next_kind, {})
+        task = session.scalar(select(Task).where(Task.run_id == run_id))
+        task.result = {**task.result, "autoPlanning": True, "planningInputVersion": state["inputVersion"],
+                       "planningNotBefore": state.get("notBefore")}
+        project.state = {**project.state, "planning": {**state, "pending": False, "phase": phase, "runId": run_id}}
+        emit(session, project, "planning.queued", {"runId": run_id, "kind": next_kind, "inputVersion": state["inputVersion"]})
+        return run_id
+
     def _enqueue(self, session, project, command_id, kind, payload):
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
             raise DomainError("A run is already active for this project", 409, "run_active")
@@ -315,10 +486,18 @@ class ControlPlane:
             if payload["lane"] not in ENGINEERING_LANES:
                 raise DomainError("Choose a supported engineering lane", 422, "invalid_lane")
             lanes = [payload["lane"]]
+        planning = planning_state(project)
+        automatic = kind in PLANNING_KINDS and planning["autoResume"]
         for lane in lanes:
+            metadata = {"pivotReason": payload["reason"]} if kind == "project.pivot" else {}
+            if automatic:
+                metadata = {**metadata, "autoPlanning": True, "planningInputVersion": planning["inputVersion"],
+                            "planningNotBefore": planning.get("notBefore")}
             session.add(Task(id=uid(), tenant_id=project.tenant_id, project_id=project.id,
-                             run_id=run_id, lane=lane, kind=kind, revision=project.engineering_revision,
-                             result={"pivotReason": payload["reason"]} if kind == "project.pivot" else {}))
+                             run_id=run_id, lane=lane, kind=kind, revision=project.engineering_revision, result=metadata))
+        if automatic:
+            phase = {"project.capture": "capture", "project.research": "researching", "project.requestReview": "refining"}[kind]
+            project.state = {**project.state, "planning": {**planning, "pending": False, "phase": phase, "runId": run_id}}
         session.add(Outbox(key=f"run:{run_id}", kind="run", payload={"runId": run_id}))
         project.status = "queued"
         emit(session, project, "run.queued", {"runId": run_id, "kind": kind}, run.trace_id)
@@ -562,9 +741,7 @@ class ControlPlane:
                     attempt_views.append({
                         "id": a.id, "number": a.number, "status": a.status, "provider": a.provider,
                         "model": a.model, "policyRevision": a.policy_revision, "error": a.error,
-                        "contextManifest": {k: v for k, v in a.context.items() if k in {
-                            "projectId", "revision", "task", "lane", "inputArtifacts", "acceptanceCriteria",
-                            "remainingAllowanceUsd", "pivotReason", "retrieval"}},
+                        "contextManifest": context_manifest(a.context),
                         "output": a.output, "calls": [{
                             "id": c.id, "operation": c.operation, "status": c.status,
                             "usage": {**c.usage, **({"allowanceDebitUsd": c.usage.get("allowanceDebitUsd", c.reserved_usd)}

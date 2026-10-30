@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 53791e34bd635833433433d729d6ecb37fb52f5da4aa3c5184b7c8f0978a508c
+// Schema SHA-256: 961c4fc1da813cc91685c7c36162e18cc682f711787f1868da4a28ccfb93bae7
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>

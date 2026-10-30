@@ -73,7 +73,8 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             catalog = catalog_response.json()
             choices = {entry["provider"]: entry for entry in catalog["models"]}
             assert choices["google"]["configured"] is True
-            assert choices["meta"]["configured"] is False and choices["anthropic"]["configured"] is False
+            assert choices["meta"]["configured"] is False
+            assert set(choices) == {"meta", "google"}
             assert all(entry["creditBalance"] is None for entry in choices.values())
             passed("health_authentication_model_catalog", models=[{
                 "provider": entry["provider"], "model": entry["model"], "configured": entry["configured"]}

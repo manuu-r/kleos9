@@ -21,6 +21,10 @@ const usesProductionBackend =
 SemanticsHandle? semanticsHandle;
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['Anatomy'],
+        await rootBundle.loadString('assets/licenses/anatomy-LICENSE.txt'));
+  });
   if (kIsWeb) semanticsHandle = SemanticsBinding.instance.ensureSemantics();
   runApp(const ProviderScope(child: KleosApp()));
 }

@@ -24,9 +24,9 @@ flutter build web --no-web-resources-cdn --dart-define=KLEOS_BACKEND=production
 
 On HTTPS web the API defaults to `/api/v1` on the same origin. Set `API_BASE_URL=https://your-api.example/api/v1` for native release builds. Local Android development defaults to `http://10.0.2.2:8000/api/v1`; iOS defaults to localhost. Configure the API's allowed origin for local web development. Native transport settings currently allow local HTTP development; use HTTPS for hosted deployments.
 
-Production includes project creation, per-lane Muse/Claude/Gemini settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
+Production includes project creation, per-lane Muse/Gemini settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
 
-Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse/Claude) shortcut. It changes the editable choices only; creating the project or saving settings persists them. There is no automatic provider fallback.
+Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse) shortcut. It changes the editable choices only; creating the project or saving settings persists them. There is no automatic provider fallback.
 
 The organization menu switches between invited memberships. Its remembered choice is scoped to the signed-in account; revoking that choice requires explicit reselection. In-flight commands remain pinned to their original organization. Accepted release ZIPs can be downloaded from the workspace, including a previous accepted baseline after revisions. The run inspector includes native job inputs, tool versions, limitations, and administrator-only redacted engineering logs.
 
@@ -184,3 +184,22 @@ Use the same UI origin in the backend CORS configuration. The preview server
 sends `Cache-Control: no-store`. Development no-login is controlled by the backend
 setting `KLEOS_DEVELOPMENT_NO_LOGIN=true`; no credentials are bundled into Flutter.
 The simulation server keeps its original in-memory state and resets on restart.
+
+Requirements use a planning conversation with guided choices, saved progress,
+optional custom answers and an editable summary. Sending an answer or message
+automatically resumes the plan. New builds start at capture with an immediate
+rough 3D concept, then update it from Gemini and feasibility research. The preview
+supports drag to rotate, pinch/zoom controls, assembled/exploded views and part
+selection. Selecting a part attaches its ID and scene version to the next message.
+The same scene is supplied to the agent as a reference. Chat history is bounded
+on screen and follows new replies; earlier messages remain accessible.
+
+The native data-only renderer adapts the pinned, MIT-licensed Anatomy skill
+bundled in the backend. Its license is included in Flutter's license registry.
+Concepts use relative proportions and do not generate CAD or satisfy engineering
+checks. Explicit confirmation still starts design. Technical proposal details
+stay expandable, and all existing simulation sections retain their behavior.
+
+Build cards and workspaces expose **⋯ → Delete build**, followed by an explicit
+**Delete and clear build** confirmation. Real build cleanup continues server-side
+in the background; simulation deletion only clears the selected simulation.

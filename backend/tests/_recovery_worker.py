@@ -72,7 +72,7 @@ async def main(config_file, mode):
         dbos_database_url=config["dbosDatabaseUrl"], dbos_application_version="recovery-drill-v1",
         local_artifact_dir=Path(config["artifactDir"]), storage_backend="local",
         project_budget_usd=20, daily_budget_usd=100, execution_backend="disabled",
-        meta_api_key="fixture-only-never-sent", gemini_api_key=None, anthropic_api_key=None,
+        meta_api_key="fixture-only-never-sent", gemini_api_key=None,
         invocation_reservation_usd=config["reservationUsd"], meta_model=config["metaModel"],
     )
     ai_models.ALLOW_MODEL_REQUESTS = False
