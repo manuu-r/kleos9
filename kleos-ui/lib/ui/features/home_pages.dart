@@ -376,6 +376,7 @@ class NewBuildPage extends StatefulWidget {
 
 class _NewBuildPageState extends State<NewBuildPage> {
   final brief = TextEditingController();
+  bool _simulate = false;
   @override
   void dispose() {
     brief.dispose();
@@ -390,7 +391,9 @@ class _NewBuildPageState extends State<NewBuildPage> {
     FocusManager.instance.primaryFocus?.unfocus();
     final result = await widget.controller.execute('project.create', {
       'brief': brief.text.trim(),
-      if (widget.controller.state['production'] == true) 'autoStart': true,
+      if (_simulate) 'simulation': true,
+      if (widget.controller.state['production'] == true && !_simulate)
+        'autoStart': true,
     });
     if (mounted && result.ok) {
       context.go('/projects/${result.result['projectId']}');
@@ -403,12 +406,25 @@ class _NewBuildPageState extends State<NewBuildPage> {
         final composer = kColumn([
           KSectionHeader(
               title: 'Describe the device you want to build.',
-              description: widget.controller.state['production'] == true
-                  ? 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together. Physical fulfillment remains simulated.'
-                  : 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together and ships you a kit.'),
+              description: _simulate
+                  ? 'Walk through the complete build flow with simulated results. No AI credits or real orders are used.'
+                  : widget.controller.state['production'] == true
+                      ? 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together. Physical fulfillment remains simulated.'
+                      : 'Plain language is fine. The agent asks a few questions, then designs the case, electronics and firmware together and ships you a kit.'),
           KPanel(
               padding: const EdgeInsets.all(18),
               child: kColumn([
+                if (widget.controller.state['production'] == true &&
+                    widget.controller.state['simulationAvailable'] == true)
+                  SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Simulated demo'),
+                      subtitle: const Text(
+                          'Use sample results to explore all stages.'),
+                      value: _simulate,
+                      onChanged: widget.controller.isPending('project.create')
+                          ? null
+                          : (value) => setState(() => _simulate = value)),
                 CallbackShortcuts(
                     bindings: {
                       const SingleActivator(LogicalKeyboardKey.enter,
@@ -428,23 +444,30 @@ class _NewBuildPageState extends State<NewBuildPage> {
                             contentPadding: EdgeInsets.all(16),
                             hintText:
                                 'A desk air-quality monitor with a small screen…'))),
-                Row(children: [
-                  Expanded(
-                      child: KMuted(
-                          widget.controller.state['production'] == true
-                              ? 'AI models are configured in Providers.'
-                              : 'Scripted around an air-quality monitor in this prototype.',
-                          size: 11)),
-                  const SizedBox(width: 12),
-                  KButton(
-                      label: 'Start build',
+                LayoutBuilder(builder: (context, constraints) {
+                  final help = KMuted(
+                      widget.controller.state['production'] == true &&
+                              !_simulate
+                          ? 'AI models are configured in Providers.'
+                          : 'Scripted around an air-quality monitor in this prototype.',
+                      size: 11);
+                  final submit = KButton(
+                      label: _simulate ? 'Start demo build' : 'Start build',
                       primary: true,
                       icon: Icons.arrow_forward,
                       onPressed: brief.text.trim().isEmpty ||
                               widget.controller.isPending('project.create')
                           ? null
-                          : start)
-                ]),
+                          : start);
+                  if (constraints.maxWidth < 400) {
+                    return kColumn([help, submit], gap: 12);
+                  }
+                  return Row(children: [
+                    Expanded(child: help),
+                    const SizedBox(width: 12),
+                    submit,
+                  ]);
+                }),
               ], gap: 14)),
           kColumn([
             const KMuted('Or start from a sample', size: 12),

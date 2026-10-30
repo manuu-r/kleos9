@@ -73,7 +73,7 @@ resource "aws_security_group" "edge" {
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
-    security_groups = [aws_security_group.api.id]
+    security_groups = concat([aws_security_group.api.id], aws_security_group.simulation[*].id)
   }
 }
 resource "aws_security_group" "api" {
@@ -123,7 +123,7 @@ resource "aws_security_group" "endpoints" {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
-    security_groups = [aws_security_group.native.id, aws_security_group.api.id, aws_security_group.trusted.id]
+    security_groups = concat([aws_security_group.native.id, aws_security_group.api.id, aws_security_group.trusted.id], aws_security_group.simulation[*].id)
   }
 }
 resource "aws_security_group_rule" "native_endpoints" {

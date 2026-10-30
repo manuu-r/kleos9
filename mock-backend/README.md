@@ -53,3 +53,22 @@ State survives browser reloads and is shared by connected tabs while this proces
 ```
 
 Tests exercise all ten stages with both ordering and home printing, stale-artifact repair, human evidence revisions, connector reposting, all developer qualification kinds, provider outcomes, command validation, HTTP idempotency/concurrency, CORS and job cancellation. The test scheduler completes simulations without wall-clock waits. All HTTP tests run against the in-process ASGI app; they do not contact external services.
+
+## Hosted reference demo
+
+The shared simulation runs in its own ECS service at https://api.kleos9.com/api.
+It has no AWS task role, production database access, or provider credentials.
+The frontend connects through KLEOS_SIMULATION_API_BASE_URL alongside the real
+/api/v1 backend. In New build, enable Simulated demo to create a scripted build;
+real engineering remains the default and never falls back to simulation.
+
+Demo projects, human tasks, connector examples, provider jobs, demand and demo
+controls are shared sample data. Reset and simulator restarts/redeployments reset
+this in-memory state; real projects and accounts are unaffected. The ten-stage
+scripted journey is a development reference and makes no real purchases or model
+calls. A single process/replica avoids serving divergent copies of that state.
+
+The production GitHub workflow verifies these simulations, rebuilds their
+hash-locked Docker image, updates the separate service, checks its mock health
+response and publishes the connected frontend. Runtime dependencies are pinned
+in requirements-runtime.lock; requirements.lock retains the original test pins.

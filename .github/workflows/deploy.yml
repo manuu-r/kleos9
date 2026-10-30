@@ -36,6 +36,8 @@ jobs:
       ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
       CONTROL_REPOSITORY: ${{ vars.CONTROL_ECR_REPOSITORY }}
       API_URL: ${{ vars.API_URL }}
+      SIMULATION_API_URL: ${{ vars.SIMULATION_API_URL }}
+      SIMULATION_REPOSITORY: ${{ vars.SIMULATION_ECR_REPOSITORY }}
       INITIAL_DEPLOYMENT: ${{ inputs.initial_deployment }}
       FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET }}
       FRONTEND_DISTRIBUTION_ID: ${{ vars.FRONTEND_DISTRIBUTION_ID }}
@@ -52,12 +54,15 @@ jobs:
         working-directory: kleos-ui
         run: |
           test -n "$API_URL"
+          test -n "$SIMULATION_API_URL"
+          test -n "$SIMULATION_REPOSITORY"
           test -n "$FRONTEND_BUCKET"
           test -n "$FRONTEND_DISTRIBUTION_ID"
           flutter pub get --enforce-lockfile
           flutter build web --release --no-web-resources-cdn \
             --dart-define=KLEOS_BACKEND=production \
-            --dart-define=API_BASE_URL="$API_URL/api/v1"
+            --dart-define=API_BASE_URL="$API_URL/api/v1" \
+            --dart-define=KLEOS_SIMULATION_API_BASE_URL="$SIMULATION_API_URL"
       - name: Install locked deployment runtime
         run: |
           python -m pip install --require-hashes -r backend/requirements.lock
@@ -75,6 +80,8 @@ jobs:
             --repository "$CONTROL_REPOSITORY" --api-url "$API_URL" \
             --version "$GITHUB_SHA" --release-id "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             "${args[@]}"
+      - name: Build and deploy the shared simulation service
+        run: bash mock-backend/deploy.sh
       - name: Publish frontend after healthy backend release
         run: |
           aws s3 sync kleos-ui/build/web/ "s3://$FRONTEND_BUCKET/" \
@@ -91,6 +98,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-deployment-${{ github.run_id }}-${{ github.run_attempt }}
-          path: deployment_manifest.json
+          path: |
+            deployment_manifest.json
+            simulation_deployment_manifest.json
           if-no-files-found: ignore
           retention-days: 90

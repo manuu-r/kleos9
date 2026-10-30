@@ -228,3 +228,18 @@ For this repository, github_oidc_subject_prefix is
 repo:manuu-r@13869998/kleos9@1438875917. Obtain the exact value using
 `gh api repos/manuu-r/kleos9/actions/oidc/customization/sub --jq .sub_claim_prefix`.
 Newer GitHub repositories include immutable IDs; name-only trust does not match.
+
+## Hosted simulation
+
+Set simulation_image to a digest from simulation_ecr_repository to enable the
+separate simulation ECS service. HTTPS paths /api/state, /api/commands, /api/demo/*
+and /api/health route to it; /api/v1 remains the real backend. No DNS changes
+are required. The simulator has a dedicated security group, no task role or
+runtime secrets, and a read-only filesystem. It can pull images and publish logs
+through private AWS endpoints; it cannot reach the production database.
+
+It is an explicitly shared public demo, runs one process/replica, and resets to
+seed data on reset or redeployment. GitHub release permissions cover its ECR
+repository and ECS service and may pass only the existing no-secret native
+execution role for it. The frontend exposes an explicit Simulated demo switch
+on New build so future real integrations can replace the reference flow gradually.

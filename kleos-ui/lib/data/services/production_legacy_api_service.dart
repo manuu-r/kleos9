@@ -272,6 +272,9 @@ class ProductionLegacyApiService extends ApiService {
   @override
   Future<JsonMap> command(String type, JsonMap payload) async {
     if (_disposed) throw const ApiException('The connection is closed.');
+    if (type == 'project.create' && payload['simulation'] == true) {
+      return _simulationCommand(type, {'brief': payload['brief']});
+    }
     final id = payload['projectId'] as String?;
     if (type != 'project.create' &&
         (!type.startsWith('project.') ||

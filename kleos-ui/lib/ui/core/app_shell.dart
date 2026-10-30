@@ -281,7 +281,7 @@ class AppPage extends StatelessWidget {
                         String.fromEnvironment('KLEOS_BACKEND',
                                     defaultValue: 'mock') ==
                                 'production'
-                            ? 'Prototype. Simulation examples remain available. New builds use real engineering runs; physical fulfillment remains simulated.'
+                            ? 'Prototype. Choose real engineering or a simulated demo for new builds. Physical fulfillment remains simulated.'
                             : 'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.',
                         size: 10)),
               ])),

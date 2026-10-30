@@ -19,3 +19,6 @@ project_budget_usd = 0
 daily_budget_usd   = 0
 
 github_oidc_subject_prefix = "repo:manuu-r@13869998/kleos9@1438875917"
+
+# Optional hosted reference simulator (shared, in-memory demo).
+simulation_image = "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/simulation@sha256:31985eb1bd0efcb6afe4d9afb675e1c7571295cd00235285ae6fd2006ef3eabc"

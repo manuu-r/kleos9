@@ -117,3 +117,18 @@ Initial provisioning still requires DNS/TLS inputs, control and qualified native
 image digests, encrypted remote Terraform state, bootstrap, runtime provider keys,
 migrations and activation as described in infra/README.md. Do not enable automatic
 releases until that first deployment is healthy and GitHub variables are configured.
+
+## Shared simulation deployment
+
+The same serialized release job deploys mock-backend with mock-backend/deploy.sh
+after the healthy control release and before publishing the frontend. Set
+SIMULATION_ECR_REPOSITORY to the simulation_ecr_repository Terraform output and
+SIMULATION_API_URL to simulation_api_url. The frontend keeps KLEOS_BACKEND=production
+and additionally compiles KLEOS_SIMULATION_API_BASE_URL.
+
+The simulation uses a distinct ECS service, immutable image and task definition.
+It has no task role or runtime secrets. Its endpoint /api is routed separately
+from the authenticated /api/v1 backend. This is public, shared, in-memory demo
+data; deployment/reset clears simulated progress. Service updates use stop-before-
+start to keep exactly one authoritative demo instance. The workflow checks the
+requested revision to detect an ECS rollback and uploads a simulation manifest.

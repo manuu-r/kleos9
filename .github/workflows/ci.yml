@@ -45,6 +45,11 @@ jobs:
           pytest -q
           python -m kleos.cli export-contracts
           git diff --exit-code -- contracts/openapi.json
+      - name: Verify simulated flows
+        working-directory: mock-backend
+        run: |
+          python -m pytest tests -q
+          bash -n deploy.sh
   flutter:
     runs-on: ubuntu-latest
     steps:

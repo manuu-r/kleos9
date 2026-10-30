@@ -151,6 +151,47 @@ class SimulationService extends ApiService {
 }
 
 void main() {
+  test('explicit demo creation never reaches real engineering', () async {
+    final repository = Repository();
+    final simulation = SimulationService();
+    final adapter =
+        ProductionLegacyApiService(repository, simulationService: simulation);
+    addTearDown(() {
+      adapter.close();
+      repository.close();
+    });
+    await adapter.load();
+    await adapter.command('project.create', {
+      'brief': 'A reference device',
+      'simulation': true,
+      'autoStart': true,
+    });
+    expect(repository.commands, isEmpty);
+    expect(simulation.commands, [
+      {
+        'type': 'project.create',
+        'payload': {'brief': 'A reference device'}
+      }
+    ]);
+    await adapter.command('project.create', {'brief': 'A real device'});
+    expect(repository.commands.single['type'], 'project.create');
+    expect(simulation.commands, hasLength(1));
+  });
+
+  test('missing demo service never falls back to paid engineering', () async {
+    final repository = Repository();
+    final adapter = ProductionLegacyApiService(repository);
+    addTearDown(() {
+      adapter.close();
+      repository.close();
+    });
+    await expectLater(
+      adapter.command('project.create', {'brief': 'Demo', 'simulation': true}),
+      throwsA(isA<ApiException>()),
+    );
+    expect(repository.commands, isEmpty);
+  });
+
   test('retains all original simulation state beside real records', () async {
     final repository = Repository(connectors: [
       {'id': 'fixture-connector', 'name': 'Collision'},
