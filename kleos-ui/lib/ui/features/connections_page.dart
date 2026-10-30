@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/widgets.dart';
+import 'production/engineering_tools.dart';
 
 const _tabs = {
   'tools': 'Engineering tools',
@@ -125,6 +126,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   '/developer?kind=${tab == 'tools' ? 'tool' : tab == 'printers' ? 'printer' : 'service'}'))
         ]
       ]),
+      if (tab == 'tools' && widget.controller.state['production'] == true)
+        EngineeringTools(controller: widget.controller),
       KResponsive(
           columns: 3,
           children: list

@@ -41,3 +41,46 @@ def test_manual_engineering_keeps_its_existing_agent():
     assert not is_planning_context({'task':'project.generate','planning':{'automatic':True}})
     assert not is_planning_context({'task':'project.research'})
     assert is_planning_context({'task':'project.capture'})
+
+
+def scripted_gateway(monkeypatch, scenes):
+    async def no_network(*args, **kwargs):
+        raise AssertionError('No external API calls in model contract tests')
+    monkeypatch.setattr(httpx.AsyncClient, 'send', no_network)
+    monkeypatch.setattr(httpx2.AsyncClient, 'send', no_network)
+    gateway = ModelGateway(Settings(_env_file=None, gemini_api_key='fixture'))
+    requests = []
+    async def respond(**kwargs):
+        scene = scenes[min(len(requests), len(scenes) - 1)]
+        requests.append(kwargs)
+        return GenerateContentResponse.model_validate({'candidates':[{'content':{'role':'model','parts':[
+            {'text':json.dumps({'summary':'Updated the watch.','conceptScene':scene})}]},
+            'finishReason':'STOP'}], 'usageMetadata':{'promptTokenCount':100,'candidatesTokenCount':200,'totalTokenCount':300}})
+    monkeypatch.setattr(gateway.planning_agents['google'].model.client.aio.models,'generate_content',respond)
+    return gateway, requests
+
+
+def broken_watch():
+    scene = seed_concept('A smart watch')
+    scene['parts'][1]['position'] = {'x': 30, 'y': 30, 'z': 30}
+    return scene
+
+
+async def generate(gateway):
+    return await gateway.generate('google', gateway.registry.models['google'],
+        {'task': 'project.capture', 'lane': 'coordination', 'planning': {'automatic': True}, 'brief': 'A smart watch'})
+
+
+async def test_broken_scene_is_sent_back_once_and_the_repair_is_published(monkeypatch):
+    gateway, requests = scripted_gateway(monkeypatch, [broken_watch(), seed_concept('A smart watch')])
+    output, usage, _ = await generate(gateway)
+    assert len(requests) == 2 and usage['requests'] == 2
+    assert not any(part.id == 'battery' and part.position.x == 30 for part in output.concept_scene.parts)
+    assert output.limitations == []
+
+
+async def test_scene_that_stays_broken_is_published_with_the_fault_disclosed(monkeypatch):
+    gateway, requests = scripted_gateway(monkeypatch, [broken_watch()])
+    output, _, _ = await generate(gateway)
+    assert len(requests) == 2  # one repair request, then the turn still completes
+    assert 'battery' in output.limitations[-1] and output.limitations[-1].startswith('Preview layout is approximate')

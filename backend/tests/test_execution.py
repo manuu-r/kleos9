@@ -110,6 +110,35 @@ def test_native_submission_is_durable_and_does_not_dispatch(execution):
     assert len(execution.ecs.calls) == 1
 
 
+def test_native_dispatch_and_reconciliation_do_not_cross_execution_backends(execution):
+    ident = execution.submit("attempt", "build")
+    with execution.db.transaction() as session:
+        job = session.get(NativeJob, ident)
+        job.request = {**job.request, "dispatch": {**job.request["dispatch"], "backend": "docker"}}
+    execution.dispatch_pending()
+    assert not execution.ecs.calls
+    assert execution.reconcile() == [] and not execution.ecs.describes
+    with execution.db.transaction() as session:
+        job = session.get(NativeJob, ident)
+        job.status, job.external_id = "running", "docker-container-id"
+        job.request = {**job.request, "reservation": {**job.request["reservation"], "dispatchAttempted": True}}
+    execution.cancel_run("run")
+    assert not execution.ecs.stops
+    with execution.db.transaction() as session:
+        job = session.get(NativeJob, ident)
+        assert job.status == "cancelled" and not job.result.get("terminationObservedAt")
+
+
+def test_legacy_jobs_without_backend_discriminator_still_dispatch_on_ecs(execution):
+    ident = execution.submit("attempt", "build")
+    with execution.db.transaction() as session:
+        job = session.get(NativeJob, ident)
+        dispatch = {k: v for k, v in job.request["dispatch"].items() if k != "backend"}
+        job.request = {**job.request, "dispatch": dispatch}
+    execution.dispatch_pending()
+    assert len(execution.ecs.calls) == 1
+
+
 def prepare_native_retry(execution):
     original = execution.submit("attempt", "build")
     with execution.db.transaction() as session:
@@ -814,7 +843,8 @@ def test_native_timeout_preserves_bounded_logs_without_source_repair(tmp_path, m
 
 
 @pytest.mark.parametrize("empty", [False, True])
-def test_passing_kicad_checks_cannot_accept_irrelevant_or_empty_circuit(tmp_path, empty):
+def test_passing_kicad_checks_cannot_accept_irrelevant_or_empty_circuit(tmp_path, empty, monkeypatch):
+    monkeypatch.setattr("kleos.circuit_validation.prepare_kicad_libraries", lambda _, **kwargs: {"source": "test_fixture"})
     artifacts = []
     for suffix in ["kicad_sch", "kicad_pcb"]:
         content = b"native-export-test-fixture"

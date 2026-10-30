@@ -1,0 +1,38 @@
+#!/usr/local/bin/python
+"""Reference image-owned CAD adapter; candidate exports, no validation authority."""
+import argparse
+import json
+import math
+from pathlib import Path
+
+from build123d import Box, Pos, export_step, export_stl
+
+
+def positive(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 < value <= 1000:
+        raise ValueError("Dimensions must be finite positive millimetres, at most 1000")
+    return value
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--request", required=True)
+parser.add_argument("--output-dir", required=True)
+args = parser.parse_args()
+request = json.loads(Path(args.request).read_text())
+if request.get("schemaVersion") != 1 or request.get("tool") != {"id": "parametric-cad", "version": "1"}:
+    raise ValueError("Unsupported tool contract")
+source = Path("design.json")
+if source.is_symlink() or source.stat().st_size > 16384:
+    raise ValueError("Invalid or oversized template source")
+design = json.loads(source.read_text())
+if set(design) != {"externalMm", "wallMm"} or set(design["externalMm"]) != {"x", "y", "z"}:
+    raise ValueError("Expected externalMm:{x,y,z} and wallMm only")
+x, y, z = (positive(design["externalMm"][key]) for key in ("x", "y", "z"))
+wall = positive(design["wallMm"])
+if 2 * wall >= min(x, y, z):
+    raise ValueError("The wall leaves no supported internal clearance")
+enclosure = Box(x, y, z) - Pos(0, 0, wall / 2) * Box(x - 2 * wall, y - 2 * wall, z - wall)
+output = Path(args.output_dir)
+output.mkdir(parents=True, exist_ok=True)
+export_step(enclosure, str(output / "model.step"))
+export_stl(enclosure, str(output / "model.stl"))

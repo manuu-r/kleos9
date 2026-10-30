@@ -82,16 +82,67 @@ async def delete_source(source_id: str):
     await asyncio.to_thread(MemoryIndex(engine.db, engine.settings).delete_points, [source_id])
 
 
+@DBOS.step()
+async def delete_project_once(project_id: str):
+    from .maintenance import Maintenance
+    def purge():
+        maintenance = Maintenance(engine.db, engine.settings, engine.store)
+        maintenance.mark_deletion_started(project_id)
+        return maintenance.purge_project(project_id)
+    return await asyncio.to_thread(purge)
+
+
+@DBOS.step()
+async def record_deletion_failure(project_id, error_type, attempt, exhausted):
+    from .maintenance import Maintenance
+    await asyncio.to_thread(Maintenance(engine.db, engine.settings, engine.store).record_deletion_failure,
+                            project_id, error_type, attempt, exhausted)
+
+
+async def delete_with_retry(project_id, purge, sleep, record_failure, attempts=5):
+    # Deletions are idempotent. Durable bounded retries handle brief outages;
+    # the tombstone schedules a fresh workflow after a longer outage.
+    for attempt in range(attempts):
+        try:
+            return await purge(project_id)
+        except Exception as exc:
+            exhausted = attempt == attempts - 1
+            await record_failure(project_id, type(exc).__name__, attempt + 1, exhausted)
+            if exhausted:
+                return {"status": "retry_pending"}
+            await sleep(2 ** attempt)
+
+
 @DBOS.workflow()
 async def delete_project(project_id: str):
-    from .maintenance import Maintenance
-    await asyncio.to_thread(Maintenance(engine.db, engine.settings, engine.store).purge_project, project_id)
+    return await delete_with_retry(project_id, delete_project_once, DBOS.sleep_async, record_deletion_failure)
 
 
 @DBOS.workflow()
 async def retention():
     from .maintenance import Maintenance
-    return await asyncio.to_thread(Maintenance(engine.db, engine.settings, engine.store).retention)
+    from .training_consent import reconcile_training_cancellations
+    result = await asyncio.to_thread(Maintenance(engine.db, engine.settings, engine.store).retention)
+    result["trainingCancellationsQueued"] = await asyncio.to_thread(reconcile_training_cancellations, engine.db)
+    return result
+
+
+@DBOS.step()
+async def cancel_training_once(intent_id: str):
+    from .learning import ModalCompute
+    await ModalCompute(engine.db, engine.settings, engine.store).cancel_training(intent_id)
+
+
+@DBOS.workflow()
+async def cancel_training(intent_id: str):
+    for attempt in range(4):
+        try:
+            await cancel_training_once(intent_id)
+            return
+        except Exception:
+            if attempt == 3:
+                raise
+            await DBOS.sleep_async(2 ** attempt)
 
 
 def finish_native_with_trace(job_id, result):
@@ -119,6 +170,10 @@ class Dispatcher:
         self.db, self.settings, self.client, self.execution = db, settings, client, execution
 
     def once(self, kinds=None):
+        from .maintenance import Maintenance
+        maintenance = Maintenance(self.db, self.settings, None)
+        maintenance.schedule_deletion_retries()
+        maintenance.reclassify_failed_invocations()
         count = 0
         with self.db.transaction() as session:
             query = select(Outbox).where(Outbox.delivered_at.is_(None)).order_by(Outbox.created_at).limit(25)
@@ -152,6 +207,11 @@ class Dispatcher:
                             "workflow_name": "delete_project", "queue_name": "connectors",
                             "workflow_id": item.key, "app_version": self.settings.dbos_application_version,
                         }, item.payload["projectId"])
+                    elif item.kind == "cancel_training":
+                        self.client.enqueue({
+                            "workflow_name": "cancel_training", "queue_name": "connectors",
+                            "workflow_id": item.key, "app_version": self.settings.dbos_application_version,
+                        }, item.payload["intentId"])
                     elif item.kind == "cancel":
                         if self.execution:
                             self.execution.cancel_run(item.payload["runId"])

@@ -30,6 +30,7 @@ from .db import (
     now,
     uid,
 )
+from .engineering_tools import DEFAULT_TOOL_POLICY, EngineeringToolRegistry, tool_policy
 from .models import ModelRegistry
 from .planning import (
     PLANNING_KINDS,
@@ -126,16 +127,18 @@ def get_project(session, project_id, principal=None, write=False, lock=True):
     return project
 
 
-def project_view(project):
+def project_view(project, settings=None):
+    unlimited = bool(settings and settings.development_unlimited_usage)
     return redact({
         "id": project.id, "name": project.name, "brief": project.brief,
         "revision": project.revision, "engineeringRevision": project.engineering_revision,
         "policyRevision": project.policy_revision, "modelPolicy": project.model_policy,
         "stage": project.stage, "status": project.status, "requirements": project.requirements,
-        "interfaces": project.interfaces, "state": {**project.state, "clarification": clarification_view(project),
+        "interfaces": project.interfaces, "state": {**project.state, "toolPolicy": tool_policy(project),
+            "toolPolicyVersion": project.state.get("toolPolicyVersion", 0), "clarification": clarification_view(project),
             "planning": planning_state(project), "concept": concept_snapshot(project)},
         "acceptedReleaseId": project.accepted_release_id,
-        "budget": {"allowanceUsd": project.budget_usd, "spentEstimateUsd": project.spent_usd,
+        "budget": {"allowanceUsd": None if unlimited else project.budget_usd, "unlimited": unlimited, "spentEstimateUsd": project.spent_usd,
                    "reservedUsd": project.reserved_usd},
         "mode": "real_engineering_simulated_fulfillment",
         "createdAt": project.created_at.isoformat(),
@@ -146,6 +149,7 @@ class ControlPlane:
     def __init__(self, db, settings, store):
         self.db, self.settings, self.store = db, settings, store
         self.registry = ModelRegistry(settings)
+        self.tool_registry = EngineeringToolRegistry(settings)
         self._workspace_cache = {}
 
     def command(self, principal: Principal, command: Command, key: str):
@@ -176,10 +180,13 @@ class ControlPlane:
                     raise DomainError("Provide a brief between 1 and 10,000 characters", 422)
                 policy = self.registry.validate_policy(payload["modelPolicy"]) if "modelPolicy" in payload else (
                     self.registry.default_policy())
+                tools = self.tool_registry.validate_policy(payload["toolPolicy"], principal.tenant_id) if "toolPolicy" in payload else (
+                    deepcopy(DEFAULT_TOOL_POLICY))
                 project = Project(
                     id=uid(), tenant_id=principal.tenant_id, owner_id=principal.subject,
                     name=brief.split("\n")[0][:80], brief=brief, model_policy=policy,
-                    budget_usd=self.settings.project_budget_usd, state={"confirmed": False},
+                    budget_usd=self.settings.project_budget_usd,
+                    state={"confirmed": False, "toolPolicy": tools, "toolPolicyVersion": 1},
                 )
                 session.add(project)
                 session.flush()
@@ -223,6 +230,13 @@ class ControlPlane:
                         "policyRevision": project.policy_revision, "appliesTo": "next_attempt",
                         "modelPolicy": project.model_policy,
                     })
+                elif kind == "project.setToolPolicy":
+                    tools = self.tool_registry.validate_policy(payload.get("toolPolicy"), principal.tenant_id)
+                    if tools != tool_policy(project):
+                        version = project.state.get("toolPolicyVersion", 0) + 1
+                        project.state = {**project.state, "toolPolicy": tools, "toolPolicyVersion": version}
+                        emit(session, project, "toolPolicy.changed", {
+                            "toolPolicyVersion": version, "appliesTo": "next_attempt", "toolPolicy": tools})
                 elif kind == "project.answer":
                     question_key = payload.get("questionId", payload.get("questionKey"))
                     clarification = clarification_view(project)
@@ -379,6 +393,8 @@ class ControlPlane:
                     consent.version += 1
                     consent.updated_at = now()
                     consent.actor_id = principal.subject
+                    from .training_consent import exclude_project_training
+                    exclude_project_training(session, project)
                     emit(session, project, "training.consentChanged", {"optedIn": value, "version": consent.version})
                 elif kind == "project.selectPrint":
                     if payload.get("mode") not in {"home", "order"}:
@@ -505,38 +521,62 @@ class ControlPlane:
 
     def _retry_native(self, session, project, command_id, payload):
         """Create a pinned native-only attempt; original source bytes/provenance remain immutable."""
-        if set(payload) != {"projectId", "jobId"} or not isinstance(payload.get("jobId"), str):
-            raise DomainError("Native rebuild requires projectId and a completed build jobId only", 422)
+        from_attempt = set(payload) == {"projectId", "sourceAttemptId"} and isinstance(payload.get("sourceAttemptId"), str)
+        from_job = set(payload) == {"projectId", "jobId"} and isinstance(payload.get("jobId"), str)
+        if not (from_attempt or from_job):
+            raise DomainError("Native rebuild requires projectId and either jobId or sourceAttemptId", 422)
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
             raise DomainError("A run is already active for this project", 409, "run_active")
         if not project.state.get("confirmed") or not project.interfaces:
             raise DomainError("Confirm the current concept and interfaces before rebuilding", 409, "confirmation_required")
         if self.settings.execution_backend == "disabled":
             raise DomainError("Native worker images are not configured", 503, "native_unconfigured")
-        job = session.get(NativeJob, payload["jobId"])
-        old_task = session.get(Task, job.task_id) if job else None
-        old_attempt = session.get(Attempt, job.attempt_id) if job else None
-        if (not job or not old_task or not old_attempt or job.tenant_id != project.tenant_id
+        job = session.get(NativeJob, payload["jobId"]) if from_job else None
+        old_attempt = session.get(Attempt, job.attempt_id if job else payload.get("sourceAttemptId")) if job or from_attempt else None
+        old_task = session.get(Task, old_attempt.task_id) if old_attempt else None
+        if (not old_task or not old_attempt or (from_job and (not job or job.tenant_id != project.tenant_id))
                 or old_task.project_id != project.id or old_task.lane not in ENGINEERING_LANES
                 or old_task.tenant_id != project.tenant_id or old_attempt.tenant_id != project.tenant_id
                 or old_attempt.task_id != old_task.id):
-            raise DomainError("Native build job not found", 404)
-        if (job.purpose != "build" or job.status not in {"succeeded", "failed", "unsupported"}
-                or old_task.status in ACTIVE or old_task.revision != project.engineering_revision
-                or job.request.get("revision") != project.engineering_revision):
-            raise DomainError("Choose a completed native build from the current engineering revision", 409, "native_retry_invalid")
+            raise DomainError("Native build source not found", 404)
+        if (old_task.status in ACTIVE or old_task.revision != project.engineering_revision or (job and (
+                job.purpose != "build" or job.status not in {"succeeded", "failed", "unsupported"}
+                or job.request.get("revision") != project.engineering_revision))):
+            raise DomainError("Choose completed source from the current engineering revision", 409, "native_retry_invalid")
+        if from_attempt:
+            if session.scalar(select(NativeJob.id).where(NativeJob.attempt_id == old_attempt.id)):
+                raise DomainError("This source already has a native job; rebuild using its jobId", 409, "native_retry_invalid")
+            recorded_model = session.scalar(select(Invocation.id).where(Invocation.attempt_id == old_attempt.id,
+                Invocation.operation == "generate", Invocation.status == "succeeded"))
+            if (old_task.kind not in {"project.generate", "project.repair", "project.pivot"}
+                    or old_attempt.status not in {"succeeded", "blocked", "failed"} or not recorded_model
+                    or not old_attempt.output.get("files")):
+                raise DomainError("Choose a recorded model-generated source attempt awaiting native execution", 409, "native_retry_invalid")
+        source_request = job.request if job else old_attempt.context
         current_contract = contract_hash(project.requirements, project.interfaces)
-        if (job.request.get("retentionExpired") or old_attempt.context.get("retentionExpired")
-                or contract_hash(job.request.get("requirements", {}), job.request.get("interfaces", {})) != current_contract):
+        if (source_request.get("retentionExpired") or old_attempt.context.get("retentionExpired")
+                or contract_hash(source_request.get("requirements", {}), source_request.get("interfaces", {})) != current_contract):
             raise DomainError("The original native inputs or engineering contract are no longer available", 409, "stale_artifacts")
-        root_attempt_id = job.request.get("nativeRetry", {}).get("rootSourceAttemptId", old_attempt.id)
+        root_attempt_id = source_request.get("nativeRetry", {}).get("rootSourceAttemptId", old_attempt.id) if job else old_attempt.id
         used = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
             Task.project_id == project.id, Task.revision == project.engineering_revision, Task.kind == "project.retryNative",
             Attempt.context["nativeRetry"]["rootSourceAttemptId"].as_string() == root_attempt_id))
-        if used >= 2:
+        if used >= 2 and not self.settings.development_unlimited_usage:
             raise DomainError("Two native rebuilds were already requested for this source; review the blocker", 409,
                               "native_retry_exhausted")
-        refs = job.request.get("inputArtifacts")
+        refs = job.request.get("inputArtifacts") if job else [{
+            "id": artifact.id, "name": artifact.name, "lane": artifact.lane, "sha256": artifact.sha256,
+            "size": artifact.size, "mediaType": artifact.media_type, "provenance": deepcopy(artifact.provenance),
+        } for artifact in session.scalars(select(Artifact).where(
+            Artifact.attempt_id == old_attempt.id, Artifact.lane == old_task.lane,
+            Artifact.status.in_(["candidate", "accepted"])).order_by(Artifact.name))
+            if not artifact.name.startswith("native/") and not artifact.provenance.get("nativeJobId")]
+        if from_attempt:
+            output_files = old_attempt.output.get("files")
+            if (not isinstance(output_files, list) or any(not isinstance(item, dict) for item in output_files)
+                    or len({item.get("path") for item in output_files}) != len(output_files)
+                    or {item.get("path") for item in output_files} != {ref["name"] for ref in refs}):
+                raise DomainError("The complete generated source closure is no longer available", 409, "stale_artifacts")
         if (not isinstance(refs, list) or not refs or len(refs) > 50
                 or any(not isinstance(ref, dict) or not isinstance(ref.get("id"), str) for ref in refs)
                 or len({ref["id"] for ref in refs}) != len(refs)):
@@ -566,7 +606,8 @@ class ControlPlane:
                     fence=1, attempt_count=1)
         session.add(task)
         session.flush()
-        retry = {"sourceJobId": job.id, "sourceAttemptId": old_attempt.id, "sourceTaskId": old_task.id,
+        retry = {"sourceJobId": job.id if job else None, "sourceKind": "job" if job else "attempt",
+                 "sourceAttemptId": old_attempt.id, "sourceTaskId": old_task.id,
                  "rootSourceAttemptId": root_attempt_id, "inputArtifacts": deepcopy(refs),
                  "contractHash": current_contract, "number": used + 1}
         attempt = Attempt(id=uid(), tenant_id=project.tenant_id, task_id=task.id, number=1, fence=1,
@@ -584,7 +625,7 @@ class ControlPlane:
         project.stage, project.status = min(project.stage, 5), "queued"
         session.add(Outbox(key=f"run:{run.id}", kind="run", payload={"runId": run.id}))
         emit(session, project, "native.rebuildRequested", {"runId": run.id, "taskId": task.id, "attemptId": attempt.id,
-            "sourceJobId": job.id, "lane": task.lane, "sourceAttemptId": old_attempt.id, "nativeRetryNumber": used + 1,
+            "sourceJobId": job.id if job else None, "lane": task.lane, "sourceAttemptId": old_attempt.id, "nativeRetryNumber": used + 1,
             "provider": attempt.provider, "model": attempt.model, "policyRevision": attempt.policy_revision,
             "modelInvoked": False, "requiresIndependentValidation": True}, run.trace_id)
         return run.id
@@ -607,7 +648,9 @@ class ControlPlane:
             if artifact.status != "accepted":
                 artifact.status = "stale"
         # Preserve the old accepted release as a baseline, not a current release authorization.
-        project.state = {"previousAcceptedReleaseId": project.accepted_release_id}
+        project.state = {"previousAcceptedReleaseId": project.accepted_release_id,
+                         "toolPolicy": tool_policy(project),
+                         "toolPolicyVersion": project.state.get("toolPolicyVersion", 0)}
 
     def _accept_release(self, session, project, principal):
         if session.scalar(select(Run.id).where(Run.project_id == project.id, Run.status.in_(ACTIVE))):
@@ -684,7 +727,7 @@ class ControlPlane:
             if after:
                 q = q.where(Project.id > after)
             rows = session.scalars(q.order_by(Project.id).limit(limit + 1)).all()
-            return {"projects": [project_view(p) for p in rows[:limit]],
+            return {"projects": [project_view(p, self.settings) for p in rows[:limit]],
                     "nextCursor": rows[limit - 1].id if len(rows) > limit else None}
 
     def workspace(self, principal, project_id):
@@ -700,7 +743,7 @@ class ControlPlane:
             consent = session.scalar(select(Consent).where(Consent.project_id == project_id))
             checks = session.scalars(select(Validation).where(
                 Validation.project_id == project_id, Validation.revision == project.engineering_revision)).all()
-            snapshot = redact({"project": project_view(project), "revision": project.revision,
+            snapshot = redact({"project": project_view(project, self.settings), "revision": project.revision,
                     "eventCursor": project.event_sequence, "runs": [self._run_view(r) for r in runs],
                     "artifacts": [self._artifact_view(a) for a in artifacts],
                     "checks": [{"id": c.id, "name": c.name, "status": c.status,

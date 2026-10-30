@@ -89,10 +89,10 @@ async def start(rebuild, key="native-rebuild", job_id=None):
 
 async def test_native_rebuild_pins_source_skips_model_and_retrieval_and_uses_new_tool(rebuild):
     execution, engine, control, user, source_job_id, source_request, old_context = rebuild
-    execution.settings.ecs_task_definitions["mechanics"] = "task:mechanics:updated"
+    execution.settings.ecs_task_definitions["mechanics"] = "task:mechanics:18"
     accepted, command, task, attempt, job = await start(rebuild)
     assert control.command(user, command, "native-rebuild") == accepted
-    assert job.request["toolVersion"] == "task:mechanics:updated"
+    assert job.request["toolVersion"] == "task:mechanics:18"
     assert job.request["inputArtifacts"] == source_request["inputArtifacts"]
     assert attempt.provider == "google" and attempt.model == "pinned-source-model" and attempt.policy_revision == 3
     assert {k: v for k, v in attempt.context.items() if k != "nativeRetry"} == old_context
@@ -114,7 +114,7 @@ async def test_native_rebuild_pins_source_skips_model_and_retrieval_and_uses_new
     with execution.db.transaction() as session:
         native = session.scalar(select(Artifact).where(Artifact.attempt_id == attempt.id))
         assert native.provenance["nativeJobId"] == job.id
-        assert native.provenance["toolVersion"] == "task:mechanics:updated"
+        assert native.provenance["toolVersion"] == "task:mechanics:18"
         assert native.dependencies == source_request["inputArtifacts"]
         assert session.get(Artifact, "artifact").status == "candidate"
         assert session.query(Validation).count() == 0

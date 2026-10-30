@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from kleos.telemetry import SafeAccessFormatter
+from kleos.telemetry import SafeAccessFormatter, SafeFormatter, redact
 
 
 @pytest.mark.parametrize("target", [
@@ -26,3 +26,16 @@ def test_unexpected_access_log_shape_never_falls_back_to_raw_interpolation():
     record = logging.LogRecord("uvicorn.access", logging.WARNING, "", 0, "private-message %s",
                                ("private-argument",), None)
     assert "private-" not in SafeAccessFormatter().format(record)
+
+
+@pytest.mark.parametrize("url", [
+    "https://[",
+    "https://user:private-password@[broken?signature=private-signature",
+    "https://[not-ipv6]/item?signature=private-signature",
+])
+def test_malformed_urls_cannot_interrupt_transcript_or_log_redaction(url):
+    text = f"Open {url} before continuing"
+    assert redact({"prompt": text}) == {"prompt": "Open [redacted URL] before continuing"}
+    record = logging.LogRecord("kleos.worker", logging.INFO, "", 0, "%s", (text,), None)
+    captured = json.loads(SafeFormatter().format(record))
+    assert captured["message"] == "Open [redacted URL] before continuing"

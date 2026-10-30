@@ -54,13 +54,31 @@ variable "control_image" {
 variable "native_images" {
   type        = map(string)
   default     = {}
-  description = "Qualified ECR image digests keyed mechanics/electronics/firmware/application/validate."
+  description = "Qualified ECR image digests keyed by a default lane or engineering tool id@version."
   validation {
     condition = alltrue([for key, image in var.native_images :
-      contains(["mechanics", "electronics", "firmware", "application", "validate"], key)
+      (contains(["mechanics", "electronics", "firmware", "application", "validate"], key)
+      || can(regex("^[a-z][a-z0-9.-]{0,79}@[A-Za-z0-9][A-Za-z0-9_.-]{0,49}$", key)))
     && can(regex("@sha256:[a-f0-9]{64}$", image))])
-    error_message = "Native images must have known lane keys and immutable digests."
+    error_message = "Native images require default lane or id@version keys and immutable digests."
   }
+}
+variable "engineering_tools" {
+  type = list(object({
+    id                     = string
+    version                = string
+    name                   = string
+    lane                   = string
+    runner                 = string
+    sourceContract         = string
+    outputFiles            = list(string)
+    qualified              = bool
+    qualificationReference = optional(string)
+    tenantIds              = optional(list(string), [])
+    limitations            = optional(list(string), [])
+  }))
+  default     = []
+  description = "Operator-reviewed tool contracts; install matching immutable native_images[id@version]."
 }
 variable "recovery_cluster_arns" {
   type        = list(string)

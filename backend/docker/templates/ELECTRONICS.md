@@ -28,9 +28,11 @@ ERC, DRC, Gerber and drill exports. Missing exports return UNKNOWN/unsupported.
 
 Independent validation repeats ERC/DRC and exports a KiCad XML netlist. Empty
 components or nets fail, even if both rule checks report zero violations.
-`electronics_correspondence` remains a required UNKNOWN until a reviewed template
-maps actual components and nets to the accepted loads and interface IDs. Neither
-an irrelevant circuit nor a generated check report can unlock release.
+`electronics_correspondence` automatically compares complete accepted
+`interfaces.circuit` pin/net expectations with fresh XML export and actual PCB
+pad bindings. Missing expectations remain UNKNOWN; wrong components, pins or nets
+fail. Neither an irrelevant circuit nor a generated report can unlock release.
+See [supported scope and contract](../../docs/circuit-correspondence.md).
 
 The live Gemini electronics run on 2026-10-30 made three recorded attempts:
 obsolete configuration key, missing entry module, then an atopile process that

@@ -9,6 +9,7 @@ import 'package:kleos_ui/state/production_store.dart';
 import 'package:kleos_ui/ui/core/device_visual.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/project/stages.dart';
+import 'package:kleos_ui/ui/features/project/engineering_preview.dart';
 
 class _Owner extends AccountController {
   @override
@@ -87,6 +88,15 @@ Future<ProviderContainer> _mount(
     apiServiceProvider.overrideWithValue(service),
     pollingEnabledProvider.overrideWithValue(false),
     accountProvider.overrideWith(_Owner.new),
+    engineeringPreviewProvider((projectId: 'project', revision: 3))
+        .overrideWith((ref) async => {
+              'revision': 3,
+              'mechanics': {
+                'source': 'interface',
+                'status': 'ready',
+                'envelope': {'width': 50, 'height': 35, 'depth': 12}
+              },
+            }),
     modelCatalogProvider.overrideWith((ref) async => ModelCatalog([
           CatalogModel(const ModelChoice('google', 'test-gemini'), true,
               engineeringLanes.keys.toList()),
@@ -122,6 +132,45 @@ Future<ProviderContainer> _mount(
 }
 
 void main() {
+  for (final stage in [3, 4]) {
+    testWidgets(
+        'stage $stage shows interface preview inside the original workspace',
+        (tester) async {
+      await _mount(
+          tester,
+          _Service(),
+          _project(stage: stage, state: {
+            'confirmed': true,
+            'proposal': {'summary': 'A compact workshop sensor'},
+          }),
+          stage);
+      expect(find.byType(EngineeringPreview), findsOneWidget);
+      expect(find.text('Build preview'), findsOneWidget);
+      expect(find.text('Shared size envelope'), findsOneWidget);
+      expect(find.text('Approximation'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('an unlimited local budget is displayed without a fake allowance',
+      (tester) async {
+    final project = _project(stage: 5);
+    (project['productionWorkspace'] as JsonMap)['project']['budget'] = {
+      'unlimited': true,
+      'allowanceUsd': null,
+      'spentEstimateUsd': 1.25,
+      'reservedUsd': .4,
+    };
+    await _mount(tester, _Service(), project, 5);
+    await tester.ensureVisible(find.text('Usage allowance'));
+    await tester.tap(find.text('Usage allowance'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unlimited in development'), findsOneWidget);
+    expect(find.text('Used: \$1.25 · Reserved: \$0.4'), findsOneWidget);
+    expect(find.text('Project allowance: \$0'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('stream failures retain the workspace and offer a real refresh',
       (tester) async {
     final service = _Service()

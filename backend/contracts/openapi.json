@@ -1228,6 +1228,24 @@
         }
       }
     },
+    "/api/v1/engineering-tools": {
+      "get": {
+        "summary": "Engineering Tools",
+        "operationId": "engineering_tools_api_v1_engineering_tools_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineeringToolCatalogView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ready": {
       "get": {
         "summary": "Ready",
@@ -1394,6 +1412,43 @@
                 "schema": {
                   "$ref": "#/components/schemas/WorkspaceView"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/engineering-preview": {
+      "get": {
+        "summary": "Engineering Preview",
+        "operationId": "engineering_preview_api_v1_projects__project_id__engineering_preview_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -2421,8 +2476,20 @@
       "BudgetView": {
         "properties": {
           "allowanceUsd": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Allowanceusd"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "title": "Unlimited",
+            "default": false
           },
           "spentEstimateUsd": {
             "type": "number",
@@ -2743,6 +2810,134 @@
           "projectIds"
         ],
         "title": "DatasetRequest"
+      },
+      "EngineeringToolCatalogView": {
+        "properties": {
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/EngineeringToolView"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "defaultPolicy": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EngineeringToolChoice"
+            },
+            "type": "object",
+            "title": "Defaultpolicy"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tools",
+          "defaultPolicy"
+        ],
+        "title": "EngineeringToolCatalogView"
+      },
+      "EngineeringToolChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,79}$",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,49}$",
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "EngineeringToolChoice"
+      },
+      "EngineeringToolView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lane": {
+            "type": "string",
+            "title": "Lane"
+          },
+          "runner": {
+            "type": "string",
+            "title": "Runner"
+          },
+          "sourceContract": {
+            "type": "string",
+            "title": "Sourcecontract"
+          },
+          "outputFiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outputfiles"
+          },
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified"
+          },
+          "qualificationReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualificationreference"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "title": "Isdefault"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "name",
+          "lane",
+          "runner",
+          "sourceContract",
+          "outputFiles",
+          "qualified",
+          "qualificationReference",
+          "limitations",
+          "configured",
+          "isDefault"
+        ],
+        "title": "EngineeringToolView"
       },
       "EvaluationRequest": {
         "properties": {

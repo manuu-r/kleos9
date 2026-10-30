@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 961c4fc1da813cc91685c7c36162e18cc682f711787f1868da4a28ccfb93bae7
+// Schema SHA-256: 3d6d711371c7144613e1bd2f54ac89eb3300d2710ace7c4919eff5e4239c7d9f
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -130,19 +130,25 @@ class ApiAttemptView {
 class ApiBudgetView {
   const ApiBudgetView({
     required this.allowanceUsd,
+    this.unlimited,
     required this.spentEstimateUsd,
     required this.reservedUsd,
   });
   factory ApiBudgetView.fromJson(Map<String, dynamic> json) => ApiBudgetView(
-    allowanceUsd: (json['allowanceUsd'] as num).toDouble(),
+    allowanceUsd: json['allowanceUsd'] == null
+        ? null
+        : (json['allowanceUsd'] as num).toDouble(),
+    unlimited: json['unlimited'] == null ? null : json['unlimited'] as bool,
     spentEstimateUsd: (json['spentEstimateUsd'] as num).toDouble(),
     reservedUsd: (json['reservedUsd'] as num).toDouble(),
   );
-  final double allowanceUsd;
+  final double? allowanceUsd;
+  final bool? unlimited;
   final double spentEstimateUsd;
   final double reservedUsd;
   Map<String, dynamic> toJson() => {
     'allowanceUsd': allowanceUsd,
+    if (unlimited != null) 'unlimited': unlimited,
     'spentEstimateUsd': spentEstimateUsd,
     'reservedUsd': reservedUsd,
   };

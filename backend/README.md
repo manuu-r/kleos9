@@ -22,6 +22,12 @@ the explicit Google default above continues to select Gemini for every lane loca
 The provider-policy migration moves unsupported choices on existing builds to Gemini,
 records a policy-change event and applies the new choice to subsequent attempts.
 Configure the local identity/signing secrets and operator allowances shown in `.env.example`.
+Development Compose enables `KLEOS_DEVELOPMENT_UNLIMITED_USAGE` by default; set it to `false`
+to exercise production-style usage limits. Outside Compose the setting defaults to `false`, and
+staging/production reject `true`. Unlimited development skips monetary ceilings, project admission
+limits and lifetime manual retry caps while preserving real cost/reservation records, finite automatic
+repair chains, concurrency, runtime, security and engineering approval gates. The API reports
+`budget.unlimited=true` and `allowanceUsd=null`, never an invented credit balance.
 
 ```sh
 docker compose --profile backend up -d --build
@@ -44,7 +50,7 @@ for measured results, actual generated artifacts and remaining release blockers.
 Run Flutter from `kleos-ui` with `--dart-define=KLEOS_BACKEND=production` and web port `5180`.
 The development token authenticates the local application only; never use it as a provider key.
 Generation and embedding reservations are separate configured allowances, not account credit balances.
-Set `KLEOS_DAILY_BUDGET_USD=unlimited` to disable the daily ceiling for models, embeddings,
+When unlimited development is off, set `KLEOS_DAILY_BUDGET_USD=unlimited` to disable only the daily ceiling for models, embeddings,
 native jobs and custom compute while retaining usage accounting. Zero blocks unconfigured paid
 work; positive values enforce a daily ceiling. Project budgets and concurrency controls apply
 independently. Recreate the API and workers after changing the setting.
@@ -94,7 +100,7 @@ Enter the local development token in the sign-in screen. The mock remains the de
 `KLEOS_BACKEND` is omitted. See [Flutter setup](../kleos-ui/README.md) for mobile host addresses,
 secure storage and Cognito configuration. No provider credential belongs in Flutter.
 
-To enable hosted AI, configure the Meta and Gemini API keys and positive project/daily allowances.
+To enable hosted AI, configure the Meta and Gemini API keys and, when unlimited development is disabled, positive project/daily allowances.
 New projects copy the configured project allowance. Provider availability is explicit in the
 catalog; an outage never silently selects another provider. The default host process disables native
 execution. The Compose profile enables qualified local Docker images; AWS needs qualified ECS
@@ -153,11 +159,20 @@ targeted repairs; one additional pivot needs a recorded justification. Provider 
 run IDs do not reset this engineering-attempt allowance. Infrastructure outages and unsupported
 tools do not trigger speculative engineering repairs.
 
-`project.retryNative` rebuilds the exact current sources of a completed build using the current
-qualified tool image. Flutter exposes this as **Rebuild saved sources**. It preserves the source
-model/policy and original artifact hashes, makes no model or retrieval call, charges the normal
-native compute allowance, and requires fresh independent validation. Two rebuilds per source
-lineage are permitted; it cannot reset the separate engineering repair limit.
+`project.retryNative` rebuilds exact current sources using `{projectId, jobId}` for a completed build,
+or `{projectId, sourceAttemptId}` when a recorded model response produced complete current sources
+but native submission never started. The latter rejects missing files, stale contracts, unrecorded
+responses and attempts that already have a native job. Flutter exposes this as **Rebuild saved sources**.
+It preserves source model/policy and artifact hashes, makes no model/retrieval call, records native
+compute costs and requires fresh independent validation. Built-in tool rebuilds may use the current
+qualified image; custom adapters retain their original qualified installation. Outside unlimited
+development, two rebuilds per source lineage are permitted and the separate engineering repair
+limit remains in force.
+
+Firmware workers explicitly translate the legacy `nrf52840dk_nrf52840` target to Zephyr 4.2's
+`nrf52840dk/nrf52840`, recording both names and the alias policy in job measurements. The image
+bakes Zephyr's release-pinned Nordic HAL. This development-board compile does not qualify a
+custom PCB or establish BLE, display, sensor or physical behavior.
 
 Only independent validation records can satisfy release gates. Uploaded user files are inputs,
 model outputs are candidates, and native exports retain their job/image provenance. Validation
@@ -172,6 +187,11 @@ retrieval, artifacts and event streams. Workspace snapshots use repeatable-read 
 a bounded cache keyed by the authoritative revision, with authorization checked before reuse.
 
 ## Engineering scope
+
+CAD/PCB generators now use versioned per-build tool policies. Defaults remain
+build123d and atopile/KiCad; project writers select qualified installed alternatives
+under Connectors → Engineering tools. See [adapter contracts and installation](../docs/engineering-tool-plugins.md)
+and the [backend review](../docs/backend-review-2026-10-30.md).
 
 See [native image setup](docker/README.md) and
 [watch-telemetry-v1](docker/templates/watch-telemetry-v1/README.md). The initial software profile

@@ -29,8 +29,13 @@ def redact(value):
         for secret in known_secrets:
             value = value.replace(secret, "[redacted]")
         def clean_url(match):
-            parsed = urlsplit(match.group())
-            return urlunsplit((parsed.scheme, parsed.hostname or "", parsed.path, "", ""))
+            try:
+                parsed = urlsplit(match.group())
+                return urlunsplit((parsed.scheme, parsed.hostname or "", parsed.path, "", ""))
+            except ValueError:
+                # User/model text may contain incomplete URLs. Drop the entire
+                # token rather than leaking credentials or interrupting capture.
+                return "[redacted URL]"
         return re.sub(r"https?://[^\s<>\"']+", clean_url, value)
     return value
 

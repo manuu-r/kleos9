@@ -6,7 +6,7 @@ from qdrant_client import QdrantClient
 
 from kleos.auth import Principal
 from kleos.config import Settings
-from kleos.contracts import DomainError
+from kleos.contracts import Command, DomainError
 from kleos.db import (
     Artifact,
     Base,
@@ -14,12 +14,15 @@ from kleos.db import (
     DailyBudget,
     Database,
     Dataset,
+    ExternalIntent,
     Organization,
+    Outbox,
     Project,
     Release,
     Source,
     TrainedModel,
 )
+from kleos.domain import ControlPlane
 from kleos.learning import ComputeLedger, LearningService, ModalCompute
 from kleos.memory import GeminiEmbedder, MemoryIndex
 from kleos.storage import ArtifactStore
@@ -348,3 +351,193 @@ def test_modal_and_training_admission_have_independent_capacity_limits(learning_
     with pytest.raises(DomainError) as error:
         ledger.begin(user, "project-2", "training-two", "training", {})
     assert error.value.status == 429
+
+
+def training_candidate(learning_env):
+    db, settings, store, user = learning_env
+    learning = LearningService(db, settings, store)
+    dataset = learning.create_dataset(user, ["project-1", "project-2"])
+    learning.approve_dataset_rights(user, dataset["id"], "The customer opted in and all example rights are approved.")
+    model = learning.register_candidate(user, dataset["id"], {
+        "baseModel": "fixture", "baseModelPath": "fixture", "weightsLicense": "Apache-2.0",
+        "recipe": "causal_lm_sft", "budgetUsd": 10, "maxGpuSeconds": 600})
+    return dataset, model
+
+
+def withdraw_training_consent(learning_env):
+    db, settings, store, user = learning_env
+    with db.transaction() as session:
+        revision = session.get(Project, "project-1").revision
+    return ControlPlane(db, settings, store).command(user, Command(
+        type="project.setTrainingConsent", payload={"projectId": "project-1", "optedIn": False},
+        expected_revision=revision), "withdraw-training")
+
+
+async def test_training_rechecks_consent_between_materialization_and_admission(learning_env, monkeypatch):
+    db, settings, store, user = learning_env
+    _, model = training_candidate(learning_env)
+    def signed_url_after_withdrawal(key, expires=300):
+        withdraw_training_consent(learning_env)
+        return "https://bucket.s3.amazonaws.com/scoped-dataset"
+    monkeypatch.setattr(store, "download_url", signed_url_after_withdrawal)
+    class Modal:
+        calls = 0
+        async def train(self, request):
+            self.calls += 1
+            return "fc-forbidden"
+    provider = Modal()
+    with pytest.raises(DomainError):
+        await ModalCompute(db, settings, store, provider).start_training(
+            user, "project-2", "withdrawn-before-admission", model["id"])
+    assert provider.calls == 0
+    with db.transaction() as session:
+        assert session.query(ExternalIntent).count() == 0
+        assert session.get(Project, "project-2").reserved_usd == 0
+
+
+async def test_withdrawal_before_dispatch_claim_refunds_and_prevents_paid_call(learning_env, monkeypatch):
+    db, settings, store, user = learning_env
+    _, model = training_candidate(learning_env)
+    monkeypatch.setattr(store, "download_url", lambda *args, **kwargs: "https://bucket.s3.amazonaws.com/dataset")
+    compute = ModalCompute(db, settings, store, object())
+    begin = compute.ledger.begin
+    def admitted_then_withdrawn(*args, **kwargs):
+        admitted = begin(*args, **kwargs)
+        withdraw_training_consent(learning_env)
+        return admitted
+    monkeypatch.setattr(compute.ledger, "begin", admitted_then_withdrawn)
+    with pytest.raises(DomainError) as error:
+        await compute.start_training(user, "project-2", "withdrawn-before-claim", model["id"])
+    assert error.value.code == "consent_changed"
+    with db.transaction() as session:
+        intent = session.query(ExternalIntent).one()
+        assert intent.status == "failed" and intent.receipt["allowanceDebitUsd"] == 0
+        assert session.get(Project, "project-2").reserved_usd == 0
+        assert session.query(DailyBudget).one().reserved == 0
+
+
+async def test_withdrawal_during_training_dispatch_fences_and_cancels_late_call_id(learning_env, monkeypatch):
+    db, settings, store, user = learning_env
+    dataset, model = training_candidate(learning_env)
+    monkeypatch.setattr(store, "download_url", lambda *args, **kwargs: "https://bucket.s3.amazonaws.com/dataset")
+    class Modal:
+        result_calls = 0
+        cancelled = []
+        async def train(self, request):
+            assert request["datasetBinding"]["projects"][0]["consentVersion"] == 1
+            withdraw_training_consent(learning_env)
+            return "fc-late-receipt"
+        async def result(self, call_id):
+            self.result_calls += 1
+            return {"output": "Do not accept this training result"}
+        async def cancel(self, call_id):
+            self.cancelled.append(call_id)
+    provider = Modal()
+    compute = ModalCompute(db, settings, store, provider)
+    job = await compute.start_training(user, "project-2", "withdrawn-during-dispatch", model["id"])
+    assert job["receipt"]["cancelRequired"] and job["receipt"]["externalId"] == "fc-late-receipt"
+    assert (await compute.poll(user, job["id"]))["receipt"]["cancelRequired"]
+    assert provider.result_calls == 0
+    await compute.cancel_training(job["id"])
+    await compute.cancel_training(job["id"])
+    assert provider.cancelled == ["fc-late-receipt"]
+    done = compute.ledger.view(user, job["id"])
+    assert done["status"] == "failed" and done["receipt"]["cancelled"]
+    assert not done["receipt"]["cancelRequired"] and "resultKey" not in done["receipt"]
+    with db.transaction() as session:
+        assert session.get(Dataset, dataset["id"]).status == "excluded"
+        assert session.query(Outbox).filter(Outbox.kind == "cancel_training").count() == 2
+        assert session.get(Project, "project-2").spent_usd == 10
+
+
+async def test_withdrawal_while_polling_prevents_training_result_publication(learning_env, monkeypatch):
+    db, settings, store, user = learning_env
+    _, model = training_candidate(learning_env)
+    monkeypatch.setattr(store, "download_url", lambda *args, **kwargs: "https://bucket.s3.amazonaws.com/dataset")
+    class Modal:
+        async def train(self, request):
+            return "fc-poll-race"
+        async def result(self, call_id):
+            withdraw_training_consent(learning_env)
+            return {"output": "Late result"}
+    compute = ModalCompute(db, settings, store, Modal())
+    job = await compute.start_training(user, "project-2", "withdrawn-during-poll", model["id"])
+    result = await compute.poll(user, job["id"])
+    assert result["receipt"]["cancelRequired"] and "resultKey" not in result["receipt"]
+    assert not (settings.local_artifact_dir / "compute").exists()
+
+
+async def test_stale_dataset_after_admission_releases_undispatched_reservation(learning_env, monkeypatch):
+    db, settings, store, user = learning_env
+    _, model = training_candidate(learning_env)
+    monkeypatch.setattr(store, "download_url", lambda *args, **kwargs: "https://bucket.s3.amazonaws.com/dataset")
+    compute = ModalCompute(db, settings, store, object())
+    begin = compute.ledger.begin
+    def admitted_then_revised(*args, **kwargs):
+        admitted = begin(*args, **kwargs)
+        with db.transaction() as session:
+            session.get(Project, "project-1").engineering_revision += 1
+        return admitted
+    monkeypatch.setattr(compute.ledger, "begin", admitted_then_revised)
+    with pytest.raises(DomainError) as error:
+        await compute.start_training(user, "project-2", "revised-before-dispatch", model["id"])
+    assert error.value.code == "consent_changed"
+    with db.transaction() as session:
+        assert session.query(ExternalIntent).one().status == "failed"
+        assert session.get(Project, "project-2").reserved_usd == 0
+        assert session.query(DailyBudget).one().reserved == 0
+
+
+async def test_failed_training_cancellation_keeps_fence_and_is_rediscovered(learning_env, monkeypatch):
+    from kleos.training_consent import reconcile_training_cancellations
+    db, settings, store, user = learning_env
+    _, model = training_candidate(learning_env)
+    monkeypatch.setattr(store, "download_url", lambda *args, **kwargs: "https://bucket.s3.amazonaws.com/dataset")
+    class Modal:
+        async def train(self, request):
+            return "fc-retry-cancel"
+        async def cancel(self, call_id):
+            raise RuntimeError("Provider temporarily unavailable")
+    compute = ModalCompute(db, settings, store, Modal())
+    job = await compute.start_training(user, "project-2", "cancellation-retry", model["id"])
+    withdraw_training_consent(learning_env)
+    with pytest.raises(RuntimeError):
+        await compute.cancel_training(job["id"])
+    fenced = compute.ledger.view(user, job["id"])
+    assert fenced["receipt"]["cancelRequired"] and fenced["status"] == "submitted"
+    assert reconcile_training_cancellations(db) == 1
+    assert reconcile_training_cancellations(db) == 0
+    with db.transaction() as session:
+        assert session.get(Project, "project-2").reserved_usd == 10
+
+
+@pytest.mark.parametrize("phase", ["unclaimed", "claimed", "submitted", "uncertain"])
+def test_project_deletion_immediately_fences_or_refunds_related_training(learning_env, phase):
+    from kleos.maintenance import Maintenance
+    db, settings, store, user = learning_env
+    dataset, model = training_candidate(learning_env)
+    materialized = LearningService(db, settings, store).materialize_training(user, dataset["id"])
+    ledger = ComputeLedger(db, settings)
+    intent_id, _ = ledger.begin(user, "project-2", "deletion-fence", "training", {
+        "datasetId": dataset["id"], "modelId": model["id"], "datasetBinding": materialized["datasetBinding"]}, reserve=10)
+    if phase != "unclaimed":
+        ledger.claim_training_dispatch(user, intent_id)
+    if phase == "submitted":
+        ledger.submitted(intent_id, "fc-delete-pending")
+    if phase == "uncertain":
+        ledger.uncertain(intent_id)
+    Maintenance(db, settings, store).request_delete(user, "project-1", 1)
+    with db.transaction() as session:
+        intent = session.get(ExternalIntent, intent_id)
+        assert session.get(Dataset, dataset["id"]).status == "excluded"
+        assert session.get(TrainedModel, model["id"]).status == "retired"
+        # Accepted files remain until purge; admission/result authority is fenced now.
+        assert session.get(Artifact, "artifact-1") is not None
+        if phase == "unclaimed":
+            assert intent.status == "failed" and intent.receipt["allowanceDebitUsd"] == 0
+            assert session.get(Project, "project-2").reserved_usd == 0
+            assert session.query(DailyBudget).one().reserved == 0
+        else:
+            assert intent.receipt["cancelRequired"] and intent.receipt["cancelReason"] == "project_deleted"
+            assert session.get(Project, "project-2").reserved_usd == 10
+            assert session.query(Outbox).filter(Outbox.kind == "cancel_training").count() == 1

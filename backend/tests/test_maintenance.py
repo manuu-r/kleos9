@@ -197,8 +197,10 @@ def test_deletion_cancels_training_funded_by_another_project(learning_env):
     learning.approve_dataset_rights(user, dataset["id"], "Explicitly licensed examples for model improvement.")
     model = learning.register_candidate(user, dataset["id"], {
         "baseModel": "model", "weightsLicense": "Apache", "recipe": "causal_lm_sft", "budgetUsd": 5, "maxGpuSeconds": 60})
+    materialized = learning.materialize_training(user, dataset["id"])
     ledger = ComputeLedger(db, settings)
-    intent_id, _ = ledger.begin(user, "project-2", "train", "training", {"datasetId": dataset["id"], "modelId": model["id"]})
+    intent_id, _ = ledger.begin(user, "project-2", "train", "training", {
+        "datasetId": dataset["id"], "modelId": model["id"], "datasetBinding": materialized["datasetBinding"]})
     ledger.submitted(intent_id, "fc-training")
     cancelled = []
     maintenance = Maintenance(db, settings, store, cancel_modal=cancelled.append)

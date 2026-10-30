@@ -5,11 +5,13 @@ x-control: &control
     context: .
     dockerfile: docker/Dockerfile
   env_file:
+    - ./docker/native-defaults.env
     - .env
   environment: &control-environment
     KLEOS_ENVIRONMENT: development
     KLEOS_AUTH_MODE: development
     KLEOS_DEMO_MODE: "true"
+    KLEOS_DEVELOPMENT_UNLIMITED_USAGE: ${KLEOS_DEVELOPMENT_UNLIMITED_USAGE:-true}
     KLEOS_STORAGE_BACKEND: local
     KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
     KLEOS_DBOS_DATABASE_URL: postgresql://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos_dbos
@@ -18,7 +20,6 @@ x-control: &control
     KLEOS_EXECUTION_BACKEND: docker
     KLEOS_DOCKER_JOBS_DIR: /native-jobs
     KLEOS_DOCKER_JOBS_VOLUME: kleos9_native_jobs
-    KLEOS_DOCKER_NATIVE_IMAGES: '{"mechanics":"kleos-mechanics:development","validate":"kleos-validator:development","firmware":"kleos-firmware:development","application":"kleos-application:development","electronics":"kleos-electronics:development"}'
     KLEOS_CONDUCTOR_URL: ""
     # Enable with --profile observability and an explicit Docker-network endpoint.
     KLEOS_OTLP_ENDPOINT: ${KLEOS_DOCKER_OTLP_ENDPOINT:-}

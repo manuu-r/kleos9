@@ -54,6 +54,11 @@ Both project and daily allowances must be positive before a paid embedding or Mo
 
 ## DigiKey and connector contracts
 
+CAD/PCB worker adapters use a separate [versioned engineering-tool contract](engineering-tool-plugins.md).
+The read-only connector invocation endpoint does not submit engineering builds or
+grant release authority. User artifact uploads accept up to 16 MiB decoded with
+authentication, CSRF and project-write checks before the larger body is buffered.
+
 Configure `KLEOS_DIGIKEY_CLIENT_ID`, `KLEOS_DIGIKEY_CLIENT_SECRET` and optionally `KLEOS_DIGIKEY_SANDBOX=false` in server secrets. The adapter uses client-credentials OAuth and v4 keyword product search. Sandbox observations are labeled `sandbox`; production observations are read-only and are never reservations, guaranteed quotes or orders. See [DigiKey OAuth](https://developer.digikey.com/tutorials-and-resources/oauth-20-2-legged-flow) and [v4 keyword search](https://developer.digikey.com/products/product-information-v4/productsearch/keywordsearch).
 
 Generate the example REST manifest and inspect required fixtures locally:

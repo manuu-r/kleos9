@@ -7,6 +7,9 @@ from pydantic import ValidationError
 
 from .contracts import ClarificationQuestion, DomainError
 
+MAX_NEW_QUESTIONS_PER_TURN = 3
+MAX_PLANNING_QUESTIONS = 16
+
 
 def question_hash(question):
     # Cosmetic help text does not invalidate a saved engineering choice.
@@ -169,4 +172,10 @@ def retain_unanswered_questions(output, context):
     supplied = {q["id"]: q for q in incoming}
     # Existing open decisions stay first and required even if omitted by the AI.
     retained = [{**supplied.get(q["id"], q), "required": True} for q in pending]
-    return retained + [q for q in incoming if q["id"] not in pending_ids]
+    # A deeper design conversation stays finite: only genuinely new questions are
+    # limited, per turn and over the project, and never any outstanding decision.
+    known = {q["id"] for q in previous} | {a["questionId"] for a in clarification.get("answers", [])}
+    room = min(MAX_NEW_QUESTIONS_PER_TURN, max(0, MAX_PLANNING_QUESTIONS - len(known)))
+    fresh = [q for q in incoming if q["id"] not in pending_ids and q["id"] not in known]
+    carried = [q for q in incoming if q["id"] not in pending_ids and q["id"] in known]
+    return retained + carried + fresh[:room]

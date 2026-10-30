@@ -5,9 +5,9 @@ import hashlib
 import json
 import shutil
 from collections import defaultdict
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select
 
 from .checkpoint_retention import CheckpointRetention
 from .contracts import DomainError
@@ -23,6 +23,7 @@ from .db import (
     Inbox,
     Invocation,
     NativeJob,
+    Organization,
     Outbox,
     Project,
     Release,
@@ -97,9 +98,90 @@ class Maintenance:
         return {key: value for key, value in job.result.items() if key in {
             "status", "terminationRequested", "terminationObservedAt", "terminationObservation", "localCleaned"}}
 
+    def mark_deletion_started(self, project_id):
+        with self.db.transaction() as session:
+            project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
+            if project and project.deleted_at:
+                deletion = project.state.get("deletion", {})
+                if not deletion.get("applicationPurged"):
+                    project.state = {**project.state, "deletion": {**deletion, "status": "retrying",
+                        "leaseUntil": (now() + timedelta(seconds=max(300, self.settings.worker_timeout_seconds))).isoformat()}}
+
+    def record_deletion_failure(self, project_id, error_type, attempt, exhausted):
+        with self.db.transaction() as session:
+            project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
+            if project and project.deleted_at and not project.state.get("deletion", {}).get("applicationPurged"):
+                deletion = project.state.get("deletion", {})
+                project.state = {**project.state, "deletion": {**deletion,
+                    "status": "retry_pending" if exhausted else "retrying", "lastErrorType": str(error_type)[:100],
+                    "lastAttempt": attempt, "lastFailureAt": now().isoformat(),
+                    "nextAttemptAt": (now() + timedelta(minutes=5)).isoformat() if exhausted else None}}
+
+    def schedule_deletion_retries(self, at=None, limit=25):
+        """Recover failed erasures with fresh workflow IDs, without replaying live work."""
+        at = _utc(at or now())
+        count = 0
+        with self.db.transaction() as session:
+            undelivered = select(Outbox.id).where(Outbox.kind == "delete_project",
+                Outbox.payload["projectId"].as_string() == Project.id,
+                Outbox.delivered_at.is_(None)).correlate(Project).exists()
+            recently_delivered = select(Outbox.id).where(Outbox.kind == "delete_project",
+                Outbox.payload["projectId"].as_string() == Project.id,
+                Outbox.delivered_at > at - timedelta(hours=1)).correlate(Project).exists()
+            # Older workers left a queued tombstone after their one-shot workflow
+            # failed. Recover it once only after a generous grace period, and never
+            # duplicate an outbox entry that has not yet reached DBOS.
+            legacy_queued = and_(Project.state["deletion"]["status"].as_string() == "queued",
+                Project.deleted_at <= at - timedelta(hours=1),
+                Project.state["deletion"]["retryGeneration"].as_integer().is_(None),
+                Project.state["deletion"]["leaseUntil"].as_string().is_(None), ~undelivered, ~recently_delivered)
+            projects = session.scalars(select(Project).where(Project.deleted_at.is_not(None), or_(
+                and_(Project.state["deletion"]["status"].as_string() == "retry_pending",
+                     Project.state["deletion"]["nextAttemptAt"].as_string() <= at.isoformat()),
+                and_(Project.state["deletion"]["status"].as_string() == "retrying",
+                     Project.state["deletion"]["leaseUntil"].as_string() <= at.isoformat()), legacy_queued)
+            ).order_by(Project.deleted_at).limit(limit).with_for_update(skip_locked=True)).all()
+            for project in projects:
+                deletion = project.state.get("deletion", {})
+                due = deletion.get("nextAttemptAt") if deletion.get("status") == "retry_pending" else deletion.get("leaseUntil")
+                if deletion.get("applicationPurged") or (deletion.get("status") != "queued" and (
+                        not due or _utc(datetime.fromisoformat(due)) > at)):
+                    continue
+                generation = deletion.get("retryGeneration", 0) + 1
+                session.add(Outbox(key=f"delete-project:{project.id}:retry:{generation}", kind="delete_project",
+                                  payload={"projectId": project.id}))
+                project.state = {**project.state, "deletion": {**deletion, "status": "queued", "retryGeneration": generation,
+                                                               "nextAttemptAt": None, "leaseUntil": None}}
+                count += 1
+        return count
+
+    def reclassify_failed_invocations(self, at=None, limit=100):
+        """Upgrade older failed-call holds without freeing money or replaying inference."""
+        at = _utc(at or now())
+        count = 0
+        with self.db.transaction() as session:
+            lock_platform(session)
+            calls = session.scalars(select(Invocation).join(Attempt, Attempt.id == Invocation.attempt_id).join(
+                Task, Task.id == Attempt.task_id).where(Invocation.status == "pending", or_(
+                    Task.status.in_(["blocked", "failed"]), and_(Task.status == "cancelled",
+                    Invocation.created_at <= at - timedelta(seconds=self.settings.model_timeout_seconds))
+                )).limit(limit)).all()
+            for call in calls:
+                task = session.get(Task, session.get(Attempt, call.attempt_id).task_id)
+                if task.status == "cancelled" and _utc(call.created_at) + timedelta(seconds=self.settings.model_timeout_seconds) > at:
+                    continue
+                call.status = "uncertain"
+                call.usage = {**call.usage, "financialOutcome": "uncertain", "recoveredFromLegacyPending": True}
+                count += 1
+        return count
+
     def request_delete(self, principal, project_id, expected_revision):
         principal.require_admin()
         with self.db.transaction() as session:
+            # Consent changes can also lock a shared dataset and another
+            # project's training reservation. Serialize before locking either.
+            session.scalar(select(Organization).where(
+                Organization.id == principal.tenant_id).with_for_update())
             lock_platform(session)
             project = session.scalar(select(Project).where(
                 Project.id == project_id, Project.tenant_id == principal.tenant_id).with_for_update())
@@ -124,6 +206,8 @@ class Maintenance:
                     dataset.manifest = {**dataset.manifest, "excludedByProjectDeletion": project_id}
                     for model in session.scalars(select(TrainedModel).where(TrainedModel.dataset_id == dataset.id)):
                         model.status = "retired"
+            from .training_consent import exclude_project_training
+            exclude_project_training(session, project, reason="project_deleted")
             emit(session, project, "project.deletionRequested", {"actorId": principal.subject})
             self.checkpoints.capture_project(session, project)
             session.add(Outbox(key=f"delete-project:{project_id}", kind="delete_project", payload={"projectId": project_id}))
@@ -132,6 +216,10 @@ class Maintenance:
     def purge_project(self, project_id):
         """Worker entry point; works on a tombstone and can resume after any external deletion failure."""
         with self.db.transaction() as session:
+            tenant_id = session.scalar(select(Project.tenant_id).where(Project.id == project_id))
+            if not tenant_id:
+                raise DomainError("Project deletion was not explicitly requested", 409)
+            session.scalar(select(Organization).where(Organization.id == tenant_id).with_for_update())
             project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
             if not project or not project.deleted_at:
                 raise DomainError("Project deletion was not explicitly requested", 409)
@@ -177,6 +265,7 @@ class Maintenance:
             self.memory.delete_points(source_ids)
         # Erase data only after external objects/indexes were removed, retaining retryable references until then.
         with self.db.transaction() as session:
+            session.scalar(select(Organization).where(Organization.id == tenant_id).with_for_update())
             lock_platform(session)
             project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
             if not project.deleted_at:
@@ -184,7 +273,7 @@ class Maintenance:
             tasks = session.scalars(select(Task).where(Task.project_id == project_id)).all()
             task_ids = [task.id for task in tasks]
             for call in session.scalars(select(Invocation).where(Invocation.project_id == project_id)):
-                if call.status == "pending":
+                if call.status in {"pending", "uncertain"}:
                     self._settle_deleted_reservation(session, project, call.reserved_usd, call.usage.get("reservationDay"))
                     call.status, call.estimated_usd = "failed", call.reserved_usd
                 call.output, call.transcript_key = {}, None

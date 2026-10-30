@@ -1,9 +1,10 @@
 """Stable public transport schemas, exported to the Flutter client through OpenAPI."""
-from .contracts import ModelChoice, WireModel
+from .contracts import EngineeringToolChoice, ModelChoice, WireModel
 
 
 class BudgetView(WireModel):
-    allowance_usd: float
+    allowance_usd: float | None
+    unlimited: bool = False
     spent_estimate_usd: float
     reserved_usd: float
 
@@ -126,6 +127,26 @@ class ModelCatalogView(WireModel):
     models: list[ModelView]
     default_policy: dict[str, ModelChoice]
     billing: str
+
+
+class EngineeringToolView(WireModel):
+    id: str
+    version: str
+    name: str
+    lane: str
+    runner: str
+    source_contract: str
+    output_files: list[str]
+    qualified: bool
+    qualification_reference: str | None
+    limitations: list[str]
+    configured: bool
+    is_default: bool
+
+
+class EngineeringToolCatalogView(WireModel):
+    tools: list[EngineeringToolView]
+    default_policy: dict[str, EngineeringToolChoice]
 
 
 class EventView(WireModel):

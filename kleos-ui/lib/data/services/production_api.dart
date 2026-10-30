@@ -62,6 +62,10 @@ class ProductionApi {
 
   Future<JsonMap> get(String path, {String? organizationId}) =>
       _request('GET', path, organizationId: organizationId);
+  Future<JsonMap> engineeringPreview(String projectId,
+          {String? organizationId}) =>
+      get('/projects/${Uri.encodeComponent(projectId)}/engineering-preview',
+          organizationId: organizationId);
   Future<JsonMap> delete(String path, {String? organizationId}) =>
       _request('DELETE', path, organizationId: organizationId);
   Future<JsonMap> post(String path, JsonMap body,

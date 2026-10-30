@@ -25,6 +25,49 @@ class ModelChoice(WireModel):
     model: str = Field(min_length=1, max_length=100)
 
 
+class EngineeringToolChoice(WireModel):
+    id: str = Field(pattern=r"^[a-z][a-z0-9.-]{0,79}$")
+    version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,49}$")
+
+
+class EngineeringToolDefinition(EngineeringToolChoice):
+    name: str = Field(min_length=1, max_length=120)
+    lane: Literal["mechanics", "electronics"]
+    runner: Literal["build123d", "atopile-kicad", "kicad", "plugin"]
+    source_contract: str = Field(min_length=20, max_length=6000)
+    output_files: list[str] = Field(min_length=1, max_length=32)
+    qualified: bool = Field(default=False, strict=True)
+    qualification_reference: str | None = Field(default=None, min_length=8, max_length=1000)
+    tenant_ids: list[str] = Field(default_factory=list, max_length=1000)
+    limitations: list[str] = Field(default_factory=list, max_length=12)
+
+    @model_validator(mode="after")
+    def valid_profile(self):
+        if self.runner == "build123d" and self.lane != "mechanics":
+            raise ValueError("The build123d runner requires the mechanical lane")
+        if self.runner in {"atopile-kicad", "kicad"} and self.lane != "electronics":
+            raise ValueError("PCB runners require the electronics lane")
+        if self.qualified and not self.qualification_reference:
+            raise ValueError("Qualified tools require an operator-reviewed qualification reference")
+        if len(set(self.output_files)) != len(self.output_files):
+            raise ValueError("Tool output paths must be unique")
+        for name in self.output_files:
+            path = PurePosixPath(name)
+            if (not name or len(name) > 240 or path.is_absolute() or ".." in path.parts
+                    or "\\" in name or ":" in name or any(ord(c) < 32 for c in name)):
+                raise ValueError("Tool outputs must stay in the job workspace")
+            if self.runner == "plugin" and (not name.startswith("outputs/") or any(c in name for c in "*?[]")):
+                raise ValueError("Plugin outputs must be explicit files under outputs/")
+        if self.runner == "plugin":
+            if self.lane == "mechanics" and not {"outputs/model.step", "outputs/model.stl"}.issubset(self.output_files):
+                raise ValueError("CAD plugins must export outputs/model.step and outputs/model.stl")
+            if self.lane == "electronics" and not all(
+                    sum(name.endswith(suffix) for name in self.output_files) == 1
+                    for suffix in (".kicad_pcb", ".kicad_sch")):
+                raise ValueError("PCB plugins must export one KiCad board and schematic for independent validation")
+        return self
+
+
 class Command(WireModel):
     type: str = Field(min_length=1, max_length=100)
     payload: dict = Field(default_factory=dict)

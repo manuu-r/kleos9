@@ -17,8 +17,9 @@ import httpx
 from sqlalchemy import and_, func, or_, select
 
 from .contracts import DomainError, JobResult
-from .db import Artifact, Attempt, DailyBudget, NativeJob, Project, Run, Task, now, uid
+from .db import Artifact, Attempt, DailyBudget, Invocation, NativeJob, Project, Run, Task, now, uid
 from .domain import contract_hash, emit, get_project, lock_platform, settle_native_reservation
+from .engineering_tools import DEFAULT_TOOL_POLICY, EngineeringToolRegistry
 from .storage import digest
 
 TERMINAL = {"succeeded", "failed", "unsupported", "cancelled"}
@@ -40,6 +41,16 @@ class ECSExecution:
     def _cluster(self, job):
         return job.request.get("dispatch", {}).get("cluster", self.settings.ecs_cluster)
 
+    def _owns(self, job):
+        # Legacy native jobs predate the Docker backend and belong to ECS.
+        return job.request.get("dispatch", {}).get("backend", "ecs") == self.settings.execution_backend
+
+    def _job_scope(self):
+        backend = NativeJob.request["dispatch"]["backend"].as_string()
+        if self.settings.execution_backend == "ecs":
+            return or_(backend == "ecs", backend.is_(None))
+        return backend == self.settings.execution_backend
+
     def _token(self, job_id):
         if not self.settings.session_key:
             raise DomainError("A server signing key is required for native execution", 503)
@@ -52,37 +63,71 @@ class ECSExecution:
         definition = self.settings.ecs_task_definitions.get(image_kind)
         if not definition:
             raise DomainError(f"No qualified native image configured for {image_kind}", 503, "tool_unconfigured")
+        if not re.fullmatch(r".+:[1-9][0-9]*", definition):
+            raise DomainError("Native ECS tasks must pin a task-definition revision", 503, "tool_unconfigured")
         return definition
 
     def _dispatch_configuration(self):
         if not self.settings.ecs_cluster or not self.settings.ecs_subnets or not self.settings.ecs_security_groups:
             raise DomainError("ECS networking is not configured", 503)
-        return {"cluster": self.settings.ecs_cluster, "subnets": self.settings.ecs_subnets,
+        return {"cluster": self.settings.ecs_cluster, "backend": "ecs", "subnets": self.settings.ecs_subnets,
                 "securityGroups": self.settings.ecs_security_groups,
                 "callbackBaseUrl": self.settings.internal_base_url}
+
+    def pin_engineering_tool(self, snapshot, tenant_id, lane):
+        registry = EngineeringToolRegistry(self.settings)
+        profile = registry.pinned(snapshot, tenant_id, lane)
+        return {**snapshot, "executionDefinition": self._definition(registry.image_key(profile)),
+                "executionBackend": self.settings.execution_backend}
 
     def _retry_inputs(self, session, task, attempt, project, purpose):
         retry = attempt.context.get("nativeRetry")
         if purpose != "build" or not isinstance(retry, dict):
             raise DomainError("Native retry requires an explicit source closure", 409, "stale_artifacts")
-        source = session.get(NativeJob, retry.get("sourceJobId"))
-        source_task = session.get(Task, source.task_id) if source else None
         current_contract = contract_hash(project.requirements, project.interfaces)
-        if (not source or not source_task or source.tenant_id != project.tenant_id
-                or source_task.project_id != project.id or source_task.lane != task.lane
-                or source.purpose != "build" or source.status not in {"succeeded", "failed", "unsupported"}
-                or source_task.revision != task.revision or source.request.get("revision") != task.revision
-                or source.attempt_id != retry.get("sourceAttemptId") or source.task_id != retry.get("sourceTaskId")
-                or retry.get("contractHash") != current_contract
-                or contract_hash(source.request.get("requirements", {}), source.request.get("interfaces", {})) != current_contract
-                or retry.get("inputArtifacts") != source.request.get("inputArtifacts")):
-            raise DomainError("Native retry source is no longer applicable", 409, "stale_artifacts")
-        root_attempt = source.request.get("nativeRetry", {}).get("rootSourceAttemptId", source.attempt_id)
+        if retry.get("sourceKind") == "attempt":
+            source_attempt = session.get(Attempt, retry.get("sourceAttemptId"))
+            source_task = session.get(Task, source_attempt.task_id) if source_attempt else None
+            recorded_model = session.scalar(select(Invocation.id).where(
+                Invocation.attempt_id == retry.get("sourceAttemptId"), Invocation.operation == "generate",
+                Invocation.status == "succeeded"))
+            if (not source_attempt or not source_task or source_attempt.tenant_id != project.tenant_id
+                    or source_task.tenant_id != project.tenant_id or source_task.project_id != project.id
+                    or source_task.lane != task.lane or source_task.revision != task.revision
+                    or source_task.id != retry.get("sourceTaskId")
+                    or source_task.kind not in {"project.generate", "project.repair", "project.pivot"}
+                    or source_task.status not in {"succeeded", "blocked", "failed", "cancelled"}
+                    or source_attempt.status not in {"succeeded", "blocked", "failed"} or not recorded_model
+                    or not source_attempt.output.get("files") or source_attempt.context.get("retentionExpired")
+                    or retry.get("contractHash") != current_contract
+                    or contract_hash(source_attempt.context.get("requirements", {}),
+                                     source_attempt.context.get("interfaces", {})) != current_contract):
+                raise DomainError("Native retry source attempt is no longer applicable", 409, "stale_artifacts")
+            root_attempt = source_attempt.id
+        else:
+            source = session.get(NativeJob, retry.get("sourceJobId"))
+            source_task = session.get(Task, source.task_id) if source else None
+            if (not source or not source_task or source.tenant_id != project.tenant_id
+                    or source_task.project_id != project.id or source_task.lane != task.lane
+                    or source.purpose != "build" or source.status not in {"succeeded", "failed", "unsupported"}
+                    or source_task.revision != task.revision or source.request.get("revision") != task.revision
+                    or source.attempt_id != retry.get("sourceAttemptId") or source.task_id != retry.get("sourceTaskId")
+                    or retry.get("contractHash") != current_contract
+                    or contract_hash(source.request.get("requirements", {}), source.request.get("interfaces", {})) != current_contract
+                    or retry.get("inputArtifacts") != source.request.get("inputArtifacts")):
+                raise DomainError("Native retry source is no longer applicable", 409, "stale_artifacts")
+            root_attempt = source.request.get("nativeRetry", {}).get("rootSourceAttemptId", source.attempt_id)
         refs = retry["inputArtifacts"]
         if (retry.get("rootSourceAttemptId") != root_attempt or not isinstance(refs, list) or not refs
                 or any(not isinstance(ref, dict) or not ref.get("id") for ref in refs)
                 or len({ref["id"] for ref in refs}) != len(refs)):
             raise DomainError("Native retry source lineage is invalid", 409, "stale_artifacts")
+        if retry.get("sourceKind") == "attempt":
+            output_files = source_attempt.output.get("files")
+            if (not isinstance(output_files, list) or any(not isinstance(item, dict) for item in output_files)
+                    or len({item.get("path") for item in output_files}) != len(output_files)
+                    or {item.get("path") for item in output_files} != {ref.get("name") for ref in refs}):
+                raise DomainError("Native retry source output closure changed", 409, "stale_artifacts")
         artifacts = []
         for ref in refs:
             artifact = session.get(Artifact, ref["id"])
@@ -113,7 +158,28 @@ class ECSExecution:
             if previous:
                 return previous.id
             image_kind = "validate" if purpose == "validate" else task.lane
-            definition = self._definition(image_kind)
+            engineering_tool = None
+            if purpose == "build" and task.lane in DEFAULT_TOOL_POLICY:
+                registry = EngineeringToolRegistry(self.settings)
+                pinned = attempt.context.get("engineeringTool")
+                profile = registry.pinned(pinned, project.tenant_id, task.lane)
+                engineering_tool = pinned or registry.describe(profile)
+                image_kind = registry.image_key(profile)
+            # Ordinary attempts retain the installation resolved before model
+            # generation. Explicit default-tool source rebuilds may use the
+            # current qualified image and must be independently checked again.
+            refresh_default = task.kind == "project.retryNative" and engineering_tool and engineering_tool["id"] in {
+                "build123d", "atopile-kicad"}
+            if engineering_tool and engineering_tool.get("executionDefinition") and not refresh_default:
+                if engineering_tool.get("executionBackend") != self.settings.execution_backend:
+                    raise DomainError("The attempt belongs to another execution backend", 409, "tool_changed")
+                definition = engineering_tool["executionDefinition"]
+            else:
+                definition = self._definition(image_kind)
+            if refresh_default:
+                engineering_tool = {**engineering_tool, "executionDefinition": definition,
+                                    "executionBackend": self.settings.execution_backend,
+                                    "installationHash": registry.installation_hash(profile)}
             dispatch = self._dispatch_configuration()
             q = select(Artifact).where(
                 Artifact.project_id == project.id, Artifact.revision == task.revision,
@@ -129,16 +195,17 @@ class ECSExecution:
             if sum(a.size for a in artifacts) > MAX_INPUT_BYTES:
                 raise DomainError("Native input exceeds the 32 MiB transfer limit; split the task", 413)
             reserve = self.settings.native_job_reservation_usd
-            if reserve <= 0 or project.budget_usd <= 0 or self.settings.daily_budget_usd == 0:
+            if reserve <= 0 or (not self.settings.development_unlimited_usage and (
+                    project.budget_usd <= 0 or self.settings.daily_budget_usd == 0)):
                 raise DomainError("Configure positive project and daily allowances before native execution", 409, "budget_unconfigured")
             day = now().date().isoformat()
             daily = session.get(DailyBudget, day)
             if daily is None:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
+            if not self.settings.development_unlimited_usage and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
                 raise DomainError("Project native compute allowance exhausted", 409, "budget_exhausted")
-            if (self.settings.daily_budget_usd is not None
+            if (not self.settings.development_unlimited_usage and self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
                 raise DomainError("Daily native compute allowance exhausted", 409, "budget_exhausted")
             project.reserved_usd += reserve
@@ -167,6 +234,8 @@ class ECSExecution:
             if task.kind == "project.retryNative":
                 request["nativeRetry"] = {key: value for key, value in attempt.context["nativeRetry"].items()
                                           if key != "inputArtifacts"}
+            if engineering_tool:
+                request["engineeringTool"] = engineering_tool
             session.add(NativeJob(
                 id=job_id, tenant_id=project.tenant_id, task_id=task.id,
                 attempt_id=attempt.id, purpose=purpose, status="pending",
@@ -232,7 +301,7 @@ class ECSExecution:
                 if active >= self.settings.max_native_jobs:
                     return
                 job = session.scalar(select(NativeJob).where(
-                    NativeJob.status == "pending", NativeJob.expires_at > now()
+                    NativeJob.status == "pending", NativeJob.expires_at > now(), self._job_scope()
                 ).order_by(NativeJob.created_at).with_for_update(skip_locked=True).limit(1))
                 if not job:
                     return
@@ -297,11 +366,16 @@ class ECSExecution:
             self._terminate_cancelled(job_id, arn)
 
     def _dispatchable(self, session, job):
+        if not self._owns(job):
+            return False
         attempt = session.get(Attempt, job.attempt_id)
         task = session.get(Task, job.task_id)
         project = session.get(Project, task.project_id)
         try:
             self._fresh(session, task, attempt, project)
+            if job.purpose == "build" and job.request.get("engineeringTool"):
+                EngineeringToolRegistry(self.settings).pinned(
+                    job.request["engineeringTool"], project.tenant_id, task.lane)
             if project.deleted_at:
                 raise DomainError("Project deleted", 409)
             return True
@@ -318,7 +392,7 @@ class ECSExecution:
         with self.db.transaction() as session:
             jobs = session.scalars(select(NativeJob).where(NativeJob.status.in_(
                 {"pending", "dispatching", "submitted", "running", "cancelled"}
-            ))).all()
+            ), self._job_scope())).all()
         failures = []
         for job in jobs:
             if job.status == "cancelled":
@@ -393,7 +467,7 @@ class ECSExecution:
                 NativeJob.status.not_in(TERMINAL - {"cancelled"})
             )).all()
             pending = [(job.id, job.external_id) for job in jobs
-                       if job.external_id and not (job.result or {}).get("terminationRequested")]
+                       if self._owns(job) and job.external_id and not (job.result or {}).get("terminationRequested")]
             for job in jobs:
                 reservation = job.request.get("reservation", {})
                 if reservation and not reservation.get("settled"):

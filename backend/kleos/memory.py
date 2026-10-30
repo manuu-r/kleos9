@@ -88,6 +88,8 @@ class MemoryIndex:
             raise DomainError("Embedding model has no qualified allowance policy", 503, "model_unqualified")
         token_ceiling, usd_per_million = rates[model]
         reserve = self.settings.embedding_reservation_usd
+        if self.settings.development_unlimited_usage:
+            reserve = max(reserve, token_ceiling * usd_per_million * 3 / 1_000_000)
         if reserve < token_ceiling * usd_per_million * 3 / 1_000_000:
             raise DomainError("Embedding allowance is below the qualified maximum request cost", 409,
                               "embedding_budget_unconfigured")

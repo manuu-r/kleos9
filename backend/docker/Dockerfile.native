@@ -2,22 +2,20 @@
 FROM python:3.12.11-slim-bookworm AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 KLEOS_NATIVE_SANDBOX=1
 WORKDIR /opt/kleos
-COPY pyproject.toml ./
-COPY kleos ./kleos
 RUN pip install --no-cache-dir "pydantic==2.14.2" "httpx==0.28.1" \
-    && pip install --no-cache-dir --no-deps . && useradd --uid 10001 --create-home builder \
+    && useradd --uid 10001 --create-home builder \
     && apt-get update && apt-get install -y --no-install-recommends binutils \
     && rm -rf /var/lib/apt/lists/*
 # Supervisor needs SETUID/SETGID to launch untrusted subprocesses under a separate UID.
 # It receives only a job-scoped callback token; no AWS task role or database secrets.
 ENTRYPOINT ["python", "-m", "kleos.native_runner"]
 
-FROM base AS mechanics
+FROM base AS mechanics-toolchain
 RUN pip install --no-cache-dir "build123d==0.10.0" "ocp-gordon==0.1.18"
 RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglu1-mesa libxrender1 libxext6 libsm6 \
     && rm -rf /var/lib/apt/lists/*
 
-FROM base AS firmware
+FROM base AS firmware-toolchain
 ARG ZEPHYR_VERSION=v4.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git cmake ninja-build \
     gperf ccache device-tree-compiler gcc-arm-none-eabi libnewlib-arm-none-eabi make gcc gcc-multilib libc6-dev \
@@ -29,8 +27,11 @@ RUN git clone --depth 1 --branch ${ZEPHYR_VERSION} https://github.com/zephyrproj
     && cd /opt/zephyrproject && west config zephyr.base zephyr \
     && cd /opt/zephyrproject && west update --narrow --fetch-opt=--depth=1 cmsis cmsis_6 hal_stm32 \
     && pip install --no-cache-dir -r zephyr/scripts/requirements-base.txt
+# Nordic starter-board support is pinned by the Zephyr release manifest. Keep
+# this additive layer separate so an existing toolchain need not reclone Zephyr.
+RUN cd /opt/zephyrproject && west update --narrow --fetch-opt=--depth=1 hal_nordic
 
-FROM base AS application
+FROM base AS application-toolchain
 ARG FLUTTER_VERSION=3.35.4
 ENV PUB_CACHE=/opt/pub-cache
 RUN pip install --no-cache-dir "PyYAML==6.0.3"
@@ -47,14 +48,17 @@ RUN /opt/flutter/bin/flutter create --platforms web --project-name kleos_watch_c
     && chown -R 10001:10001 /opt/flutter /opt/pub-cache
 # Only dependencies prebaked into this image are supported. Untrusted jobs have no internet egress.
 
-FROM mechanics AS validate
+FROM mechanics-toolchain AS validate-toolchain
 ARG KICAD_VERSION=9.0.8+dfsg-1~bpo12+1
+ARG KICAD_LIBRARIES_VERSION=9.0.8-1~bpo12+1
 RUN echo 'deb https://deb.debian.org/debian bookworm-backports main' > /etc/apt/sources.list.d/backports.list \
-    && apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports "kicad=${KICAD_VERSION}" gcc libc6-dev \
+    && apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports \
+       "kicad=${KICAD_VERSION}" "kicad-symbols=${KICAD_LIBRARIES_VERSION}" \
+       "kicad-footprints=${KICAD_LIBRARIES_VERSION}" gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=application /opt/flutter/bin/cache/dart-sdk /opt/dart-sdk
+COPY --from=application-toolchain /opt/flutter/bin/cache/dart-sdk /opt/dart-sdk
 
-FROM validate AS electronics
+FROM validate-toolchain AS electronics-toolchain
 # atopile 0.12.5 requires CPython 3.13. Keep it in an isolated tool environment;
 # the trusted job supervisor and CAD packages remain on Python 3.12.
 ENV UV_PYTHON_INSTALL_DIR=/opt/ato-python UV_TOOL_DIR=/opt/ato-tools UV_TOOL_BIN_DIR=/opt/toolchains/bin
@@ -67,7 +71,7 @@ RUN pip install --no-cache-dir "uv==0.9.8" \
 # Optional, operator-qualified extension. The checked-in manifest remains disabled.
 # Supply the reviewed checksum of the official pinned release; never accept an
 # unchecked download or enable a profile merely because this image builds.
-FROM validate AS renode-validator
+FROM validate-toolchain AS renode-toolchain
 ARG RENODE_DEB_SHA256
 RUN test "${#RENODE_DEB_SHA256}" -eq 64 \
     && apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports curl ca-certificates \
@@ -78,3 +82,34 @@ RUN test "${#RENODE_DEB_SHA256}" -eq 64 \
     && apt-get install -y --no-install-recommends /tmp/renode.deb \
     && rm -rf /var/lib/apt/lists/* /tmp/renode.deb
 COPY docker/renode /opt/kleos/renode
+
+# Source changes rebuild a small wheel, not CAD/KiCad/Zephyr/Flutter toolchains.
+FROM python:3.12.11-slim-bookworm AS app-source
+WORKDIR /src
+COPY pyproject.toml ./
+COPY kleos ./kleos
+RUN pip wheel --no-cache-dir --no-deps . --wheel-dir /wheels
+
+FROM mechanics-toolchain AS mechanics
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+
+FROM firmware-toolchain AS firmware
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+
+FROM application-toolchain AS application
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+
+FROM validate-toolchain AS validate
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+
+FROM electronics-toolchain AS electronics
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+
+FROM renode-toolchain AS renode-validator
+COPY --from=app-source /wheels /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels

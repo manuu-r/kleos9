@@ -37,6 +37,7 @@ from .domain import (
     lock_platform,
     settle_native_reservation,
 )
+from .engineering_tools import EngineeringToolRegistry
 from .planning import (
     PLANNING_KINDS,
     append_message,
@@ -78,7 +79,8 @@ class EngineeringEngine:
                 active = session.scalar(select(func.count(Run.id)).where(Run.status == "running"))
                 own = session.scalar(select(func.count(Run.id)).where(
                     Run.status == "running", Run.tenant_id == run.tenant_id))
-                if active >= self.settings.max_active_projects or own >= self.settings.max_org_projects:
+                if not self.settings.development_unlimited_usage and (
+                        active >= self.settings.max_active_projects or own >= self.settings.max_org_projects):
                     return None
                 run.status, project.status = "running", "running"
                 emit(session, project, "run.started", {"runId": run_id}, run.trace_id)
@@ -101,10 +103,10 @@ class EngineeringEngine:
                 return attempt.id
             if task.kind == "project.retryNative":
                 raise DomainError("Native rebuild has no pinned source attempt", 409, "native_retry_invalid")
-            if task.kind in {"project.capture", "project.requestReview"}:
-                # Each explicit user review is a new conversational turn. Its
-                # persisted retries remain bounded within that task, while
-                # engineering repair/pivot ceilings still span the baseline.
+            if self.settings.development_unlimited_usage or task.kind in {"project.capture", "project.requestReview", "project.research"}:
+                # Each planning turn has its own persisted retry bound. In
+                # unlimited development, manual engineering turns also start
+                # fresh finite chains instead of sharing lifetime attempt caps.
                 prior_count = session.scalar(select(func.count(Attempt.id)).where(Attempt.task_id == task.id))
             else:
                 prior_count = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
@@ -116,8 +118,10 @@ class EngineeringEngine:
             pivots = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
                 Task.project_id == task.project_id, Task.revision == task.revision,
                 Task.lane == task.lane, Task.kind == "project.pivot"))
-            if prior_count >= ceiling or (task.kind == "project.pivot" and pivots):
-                task.status, task.result = "blocked", {"reason": "Attempt budget exhausted"}
+            if prior_count >= ceiling or (not self.settings.development_unlimited_usage and task.kind == "project.pivot" and pivots):
+                task.status, task.result = "blocked", {"reason": (
+                    "Automatic attempts stopped after repeated failures; retry this run to continue"
+                    if self.settings.development_unlimited_usage else "Attempt budget exhausted")}
                 return None
             task.attempt_count += 1
             task.fence += 1
@@ -146,11 +150,25 @@ class EngineeringEngine:
                 "inputArtifacts": [{"id": a.id, "sha256": a.sha256, "name": a.name} for a in artifacts],
                 "acceptanceCriteria": ["requirements coverage", "shared interfaces", "independent tool validation"],
                 "failures": [{"name": c.name, "status": c.status, "details": c.details} for c in failures],
-                "remainingAllowanceUsd": project.budget_usd - project.spent_usd - project.reserved_usd,
+                "remainingAllowanceUsd": None if self.settings.development_unlimited_usage else (
+                    project.budget_usd - project.spent_usd - project.reserved_usd),
                 "pivotReason": task.result.get("pivotReason"),
                 "retrieval": {"method": "qdrant" if retrieved and retrieved.get("sources") else "bounded_source_records",
                               "limitation": (retrieved or {}).get("limitation")},
             }
+            engineering_tool = EngineeringToolRegistry(self.settings).snapshot(project, task.lane)
+            if (engineering_tool and self.execution and self.settings.execution_backend != "disabled"
+                    and hasattr(self.execution, "pin_engineering_tool")):
+                try:
+                    engineering_tool = self.execution.pin_engineering_tool(engineering_tool, project.tenant_id, task.lane)
+                except DomainError as exc:
+                    if engineering_tool["id"] not in {"build123d", "atopile-kicad"} or exc.code != "tool_unconfigured":
+                        raise
+                    # Preserve the existing source-only default flow when local
+                    # tool setup is incomplete; it cannot claim an executed tool.
+                    engineering_tool["executionUnavailable"] = True
+            if engineering_tool:
+                context["engineeringTool"] = engineering_tool
             own_sources = []
             for artifact in artifacts:
                 if artifact.lane == task.lane and artifact.media_type.startswith(("text/", "application/json")):
@@ -218,29 +236,33 @@ class EngineeringEngine:
             existing = session.scalar(select(Invocation).where(
                 Invocation.attempt_id == attempt_id, Invocation.operation == "generate"))
             if existing:
+                if existing.status == "uncertain":
+                    raise DomainError("This model call has an uncertain billed outcome; reconcile it before replaying", 409, "invocation_uncertain")
+                if existing.status not in {"pending", "succeeded"}:
+                    raise DomainError("This model call was already reconciled", 409, "invocation_settled")
                 return existing.id, existing.output if existing.status == "succeeded" else None
             if task.kind in PLANNING_KINDS and attempt.context.get("planning", {}).get("inputVersion", 0) != planning_state(project)["inputVersion"]:
                 raise DomainError("New requirements arrived before this model call started", 409, "planning_input_superseded")
             hosted = session.scalar(select(func.count(Invocation.id)).where(Invocation.status == "pending"))
             embeddings = session.scalar(select(func.count(ExternalIntent.id)).where(
                 ExternalIntent.mode == "compute", ExternalIntent.operation.like("embedding:%"),
-                ExternalIntent.status.in_(["reserved", "submitted", "uncertain"])))
+                ExternalIntent.status.in_(["reserved", "submitted"])))
             if hosted + embeddings >= self.settings.max_model_calls:
                 raise DomainError("Hosted model capacity is reserved; retry after current calls finish", 429,
                                   "provider_capacity")
             if not self.models.registry.configured(attempt.provider):
                 raise DomainError(f"{attempt.provider} API credentials are not configured", 503, "provider_unconfigured")
             reserve = self.settings.invocation_reservation_usd
-            if self.settings.daily_budget_usd == 0 or project.budget_usd <= 0:
+            if not self.settings.development_unlimited_usage and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
                 raise DomainError("An operator must configure project and daily allowances", 409, "budget_unconfigured")
             day = datetime.now(UTC).date().isoformat()
             daily = session.get(DailyBudget, day)
             if not daily:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
+            if not self.settings.development_unlimited_usage and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
                 raise DomainError("Project allowance exhausted", 409, "budget_exhausted")
-            if (self.settings.daily_budget_usd is not None
+            if (not self.settings.development_unlimited_usage and self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
                 raise DomainError("Daily allowance exhausted", 409, "budget_exhausted")
             project.reserved_usd += reserve
@@ -323,6 +345,8 @@ class EngineeringEngine:
                 return self.request_native(attempt_id, "build")
             self.finish_attempt(attempt_id, output)
         except DomainError as exc:
+            if attempt_id:
+                self.mark_invocation_uncertain(attempt_id, exc.code)
             self.block_task(task_id, attempt_id, exc.message)
         except Exception as exc:
             # Do not put provider HTTP bodies, headers or credentials into activity.
@@ -333,8 +357,26 @@ class EngineeringEngine:
                 metric("ProviderThrottled", 1, Provider=provider)
             log.error("Task %s failed (%s, HTTP %s); frames=%s", task_id, type(exc).__name__, status, frames)
             detail = f" (HTTP {status})" if status else ""
+            if attempt_id:
+                self.mark_invocation_uncertain(attempt_id, type(exc).__name__)
             self.block_task(task_id, attempt_id,
                             f"{type(exc).__name__}{detail}: execution interrupted; retry or switch provider")
+
+    @DBOS.step()
+    def mark_invocation_uncertain(self, attempt_id, failure_type):
+        """A returned SDK failure ends live capacity, never the financial hold.
+
+        The same recorded operation may not issue another paid request until an
+        operator reconciles it. A later recorded response can still settle it.
+        """
+        with self.db.transaction() as session:
+            lock_platform(session)
+            invocation = session.scalar(select(Invocation).where(
+                Invocation.attempt_id == attempt_id, Invocation.operation == "generate"))
+            if invocation and invocation.status == "pending":
+                invocation.status = "uncertain"
+                invocation.usage = {**invocation.usage, "financialOutcome": "uncertain",
+                                    "failureType": str(failure_type)[:100], "failedAt": now().isoformat()}
 
     @DBOS.step()
     async def retrieve_context(self, task_id):
@@ -386,7 +428,7 @@ class EngineeringEngine:
             invocation = session.get(Invocation, invocation_id)
             if invocation.status == "succeeded":
                 return
-            if invocation.status != "pending":
+            if invocation.status not in {"pending", "uncertain"}:
                 raise DomainError("Invocation was reconciled by an operator", 409, "invocation_settled")
             project = get_project(session, invocation.project_id)
             key = f"transcripts/{invocation.tenant_id}/{project.id}/{invocation.id}.json"
@@ -435,6 +477,10 @@ class EngineeringEngine:
                                     provenance={"provider": attempt.provider, "model": attempt.model,
                                                 "policyRevision": attempt.policy_revision,
                                                 "toolVersion": self.settings.dbos_application_version,
+                                                **({"engineeringTool": {key: value for key, value in
+                                                    attempt.context["engineeringTool"].items() if key in
+                                                    {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}
+                                                   if attempt.context.get("engineeringTool") else {}),
                                                 **(_provenance or {})},
                                     dependencies=(attempt.context["nativeRetry"]["inputArtifacts"] if retry_sources
                                                   else attempt.context["inputArtifacts"]))
@@ -504,6 +550,10 @@ class EngineeringEngine:
             if result.files:
                 self.store_candidate(job.attempt_id, AgentOutput(summary="Native outputs", files=result.files),
                                      _session=session, _provenance={"nativeJobId": job.id,
+                                                                 **({"engineeringTool": {
+                                                                     key: value for key, value in job.request["engineeringTool"].items()
+                                                                     if key in {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}
+                                                                    if job.request.get("engineeringTool") else {}),
                                                                  "toolVersion": job.request["toolVersion"]})
             if result.status != "succeeded":
                 self.block_task(task.id, attempt.id,
@@ -515,9 +565,13 @@ class EngineeringEngine:
                     used = session.scalar(select(func.count(Attempt.id)).join(Task, Task.id == Attempt.task_id).where(
                         Task.project_id == project.id, Task.revision == task.revision, Task.lane == task.lane,
                         Task.kind.in_(["project.generate", "project.repair", "project.pivot"])))
+                    if self.settings.development_unlimited_usage:
+                        # User-requested retry turns are unlimited; each automatic
+                        # repair chain remains finite within its original task.
+                        used = session.scalar(select(func.count(Attempt.id)).where(Attempt.task_id == task.id))
                     if used < min(3, self.settings.max_attempts) and task.kind != "project.pivot" and (
-                            project.spent_usd + project.reserved_usd + self.settings.invocation_reservation_usd
-                            <= project.budget_usd):
+                            self.settings.development_unlimited_usage or project.spent_usd + project.reserved_usd
+                            + self.settings.invocation_reservation_usd <= project.budget_usd):
                         task.status = "queued"
                         session.add(Outbox(key=f"repair:{task.id}:{task.attempt_count + 1}", kind="task",
                                            payload={"taskId": task.id}))
@@ -575,6 +629,12 @@ class EngineeringEngine:
                 if not output.get("interfaces"):
                     raise DomainError("The model did not establish interfaces", 409, "interfaces_unknown")
                 project.interfaces = output["interfaces"]
+                from .circuit_validation import validate_circuit_contract
+                circuit_check = validate_circuit_contract(project.interfaces).model_dump(mode="json", by_alias=True)
+                circuit_check["details"] = {**circuit_check["details"], "engineeringRevision": task.revision,
+                                            "contractHash": contract_hash(project.requirements, project.interfaces)}
+                project.state = {**project.state, "circuitContractCheck": circuit_check}
+                task.result = {**task.result, "circuitContractCheck": circuit_check}
                 project.stage = 4
             elif task.kind in {"project.generate", "project.repair", "project.pivot", "project.retryNative"}:
                 project.stage = 5

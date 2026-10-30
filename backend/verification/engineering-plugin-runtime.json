@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "scope": "Isolated reference CAD plugin only; no hosted model, PCB release or physical work",
+  "tool": {
+    "id": "parametric-cad",
+    "version": "1"
+  },
+  "imageId": "sha256:7f361c3680215104fa38b660588991cbd4edd81b1e09941abeb22bc9d50451e2",
+  "elapsedSeconds": 15.42,
+  "sourceSha256": "2e12ee914e5dc1f9bb6c819b32d8215e321a019362cfa22be4abdd0f9031f264",
+  "artifacts": [
+    {
+      "name": "native/outputs/model.step",
+      "sha256": "f77f4f1bcb5663a98b5a5ba6929558c652c18cefcc02aaa8c712e609c6502458"
+    },
+    {
+      "name": "native/outputs/model.stl",
+      "sha256": "4efe89fc732f3633e12137dc1d1b60636d9e54c6e9420a5e87bd062b62e0d7ff"
+    }
+  ],
+  "independentMechanicalCheck": {
+    "name": "mechanics",
+    "status": "PASS",
+    "evidenceKind": "digital",
+    "details": {
+      "measurements": {
+        "sizeMm": {
+          "x": 40.0,
+          "y": 30.0,
+          "z": 10.0
+        },
+        "volumeMm3": 4512.0,
+        "solidCount": 1,
+        "valid": true,
+        "internalObstructionMm3": 0.0,
+        "componentIntersections": [
+          {
+            "id": "fixture-board",
+            "intersectionMm3": 0.0
+          }
+        ]
+      },
+      "toleranceMm": 0.1,
+      "intersectionToleranceMm3": 0.0001,
+      "coordinateConvention": "Centered internal box; component lower corners measured from internal minimum",
+      "coverage": "STEP solid validity/dimensions and actual solid intersections with declared clearances",
+      "limitations": [
+        "Does not qualify insertion paths, actual wall thickness, manufacturing tolerances or physical safety"
+      ]
+    }
+  },
+  "otherChecks": [
+    {
+      "name": "interfaces",
+      "status": "UNKNOWN"
+    },
+    {
+      "name": "electronics_correspondence",
+      "status": "UNKNOWN"
+    },
+    {
+      "name": "electronics",
+      "status": "UNKNOWN"
+    },
+    {
+      "name": "firmware",
+      "status": "UNKNOWN"
+    },
+    {
+      "name": "application",
+      "status": "UNKNOWN"
+    }
+  ],
+  "acceptedRelease": false,
+  "paidCalls": 0
+}

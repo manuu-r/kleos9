@@ -37,11 +37,20 @@ from .db import (
 )
 from .domain import ControlPlane, emit, get_project, lock_platform
 from .engine import EngineeringEngine
+from .engineering_preview import EngineeringPreview
 from .integration_api import register_routes
 from .packaging import ReleasePackaging
 from .storage import ArtifactStore, artifact_key, digest
 from .telemetry import configure, metric, redact
-from .views import ArtifactDownloadView, EventView, ModelCatalogView, ProjectsView, RunView, WorkspaceView
+from .views import (
+    ArtifactDownloadView,
+    EngineeringToolCatalogView,
+    EventView,
+    ModelCatalogView,
+    ProjectsView,
+    RunView,
+    WorkspaceView,
+)
 
 
 class InvocationReconciliation(WireModel):
@@ -54,11 +63,16 @@ class ProjectAccessRequest(WireModel):
     role: Literal["member", "viewer"]
 
 
+MAX_USER_INPUT_BYTES = 16 * 1024 * 1024
+MAX_UPLOAD_REQUEST_BYTES = 24 * 1024 * 1024 + 64 * 1024
+
+
 def create_app(settings: Settings | None = None, database=None, storage=None):
     settings = settings or get_settings()
     db = database or Database(settings.database_url)
     store = storage or ArtifactStore(settings)
     control = ControlPlane(db, settings, store)
+    engineering_previews = EngineeringPreview(db, store)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -90,10 +104,6 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
             event_reads[key] = (time.monotonic(), task)
         return await asyncio.shield(event_reads[key][1])
     register_routes(app, db, settings, store)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
-                       allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-                       allow_headers=["Authorization", "Content-Type", "Idempotency-Key",
-                                      "X-Organization-Id", "X-CSRF-Token", "Last-Event-ID"])
 
     @app.exception_handler(DomainError)
     async def domain_error(_request, exc):
@@ -105,7 +115,33 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     async def request_limits(request, call_next):
         started = time.perf_counter()
         if request.method in {"POST", "PUT", "PATCH"}:
-            limit = 64 * 1024 * 1024 if request.url.path.startswith("/api/v1/internal/jobs/") else 1024 * 1024
+            limit = 1024 * 1024
+            parts = request.url.path.split("/")
+            is_native_result = (request.method == "POST" and len(parts) == 7
+                                and parts[1:5] == ["api", "v1", "internal", "jobs"]
+                                and parts[5] and parts[6] == "result")
+            if is_native_result:
+                authorization = request.headers.get("authorization", "")
+                token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
+                try:
+                    await run_in_threadpool(execution().authorize, parts[5], token)
+                except DomainError as exc:
+                    return await domain_error(request, exc)
+                limit = 64 * 1024 * 1024
+            is_upload = (request.method == "POST" and len(parts) == 6
+                         and parts[1:4] == ["api", "v1", "projects"] and parts[4] and parts[5] == "artifacts")
+            if is_upload:
+                # The larger envelope is available only to an authenticated
+                # project writer. Authenticate also enforces cookie-session CSRF.
+                def authorize_upload():
+                    principal = authenticate(request)
+                    with db.transaction() as session:
+                        get_project(session, parts[4], principal, write=True, lock=False)
+                try:
+                    await run_in_threadpool(authorize_upload)
+                except DomainError as exc:
+                    return await domain_error(request, exc)
+                limit = MAX_UPLOAD_REQUEST_BYTES
             try:
                 length = int(request.headers.get("content-length", 0))
             except ValueError:
@@ -114,9 +150,9 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
                 return JSONResponse(status_code=413, content={"message": "Request too large"})
             body = bytearray()
             async for chunk in request.stream():
-                body.extend(chunk)
-                if len(body) > limit:
+                if len(body) + len(chunk) > limit:
                     return JSONResponse(status_code=413, content={"message": "Request too large"})
+                body.extend(chunk)
             request._body = bytes(body)
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -124,9 +160,19 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
         response.headers["Server-Timing"] = f"app;dur={(time.perf_counter() - started)*1000:.2f}"
         return response
 
+    # CORS must also wrap early authorization/size errors from request_limits.
+    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
+                       allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                       allow_headers=["Authorization", "Content-Type", "Idempotency-Key",
+                                      "X-Organization-Id", "X-CSRF-Token", "Last-Event-ID"])
+
     @app.get("/api/v1/health")
     def health():
         return {"status": "ok", "mode": "real_engineering_simulated_fulfillment", "version": "0.1.0"}
+
+    @app.get("/api/v1/engineering-tools", response_model=EngineeringToolCatalogView)
+    def engineering_tools(principal: Principal = Depends(authenticate)):
+        return control.tool_registry.catalog(principal.tenant_id)
 
     @app.get("/api/v1/ready")
     def ready():
@@ -158,6 +204,10 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
                 # A cache miss must still build snapshot + cursor in one repeatable-read transaction.
                 return snapshot
         return await run_in_threadpool(control.workspace, principal, project_id)
+
+    @app.get("/api/v1/projects/{project_id}/engineering-preview")
+    def engineering_preview(project_id: str, principal: Principal = Depends(authenticate)):
+        return engineering_previews.read(principal, project_id)
 
     @app.get("/api/v1/projects/{project_id}/members")
     def project_members(project_id: str, principal: Principal = Depends(authenticate)):
@@ -266,11 +316,15 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     @app.post("/api/v1/projects/{project_id}/artifacts", status_code=201)
     def upload_artifact(project_id: str, body: ArtifactUpload, principal: Principal = Depends(authenticate)):
         principal.require_write()
+        if body.file.encoding == "base64" and len(body.file.content) > 4 * ((MAX_USER_INPUT_BYTES + 2) // 3):
+            raise DomainError("Input artifacts must not exceed 16 MiB", 413, "artifact_too_large")
         try:
             content = (base64.b64decode(body.file.content, validate=True) if body.file.encoding == "base64"
                        else body.file.content.encode())
         except ValueError as exc:
             raise DomainError("Invalid base64 file", 422) from exc
+        if len(content) > MAX_USER_INPUT_BYTES:
+            raise DomainError("Input artifacts must not exceed 16 MiB", 413, "artifact_too_large")
         if digest(content) != body.sha256:
             raise DomainError("Upload did not match its SHA-256 manifest", 422, "artifact_integrity")
         with db.transaction() as session:
@@ -333,7 +387,7 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
                 return {"id": invocation.id, "status": invocation.status}
             attempt = session.get(Attempt, invocation.attempt_id)
             task = session.get(Task, attempt.task_id)
-            if invocation.status != "pending" or task.status not in {"blocked", "failed", "cancelled"}:
+            if invocation.status not in {"pending", "uncertain"} or task.status not in {"blocked", "failed", "cancelled"}:
                 raise DomainError("Cancel or stop the task before reconciling an uncertain invocation", 409)
             amount = body.actual_cost_usd if body.actual_cost_usd is not None else invocation.reserved_usd
             daily = session.get(DailyBudget, invocation.usage["reservationDay"])

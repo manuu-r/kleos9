@@ -716,7 +716,11 @@ class ProductionWorkspacePage extends ConsumerWidget {
       KCard(
           title: 'Usage allowance',
           child: Wrap(spacing: 30, runSpacing: 12, children: [
-            _Metric('Allowance', _money(project.budget['allowanceUsd'])),
+            _Metric(
+                'Allowance',
+                project.budget['unlimited'] == true
+                    ? 'Unlimited in development'
+                    : _money(project.budget['allowanceUsd'])),
             _Metric(
                 'Allowance used', _money(project.budget['spentEstimateUsd'])),
             _Metric('Reserved', _money(project.budget['reservedUsd'])),

@@ -5,6 +5,8 @@ from typing import Literal
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .contracts import EngineeringToolDefinition
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="KLEOS_", env_file=".env", extra="ignore", populate_by_name=True)
@@ -39,6 +41,7 @@ class Settings(BaseSettings):
     meta_model: str = "muse-spark-1.3"
     gemini_model: str = "gemini-3.8-flash"
     default_model_provider: Literal["meta", "google"] | None = None
+    development_unlimited_usage: bool = False
     # Limits are operator allowances, never claims about provider credit balances.
     project_budget_usd: float = Field(default=0, ge=0, allow_inf_nan=False)
     daily_budget_usd: float | None = Field(default=0, ge=0, allow_inf_nan=False)
@@ -68,6 +71,7 @@ class Settings(BaseSettings):
     docker_jobs_volume: str = "kleos9_native_jobs"
     docker_jobs_dir: Path = Path("/native-jobs")
     docker_native_images: dict[str, str] = {}
+    engineering_tools: list[EngineeringToolDefinition] = Field(default_factory=list, max_length=100)
     ecs_cluster: str = ""
     ecs_subnets: list[str] = []
     ecs_security_groups: list[str] = []
@@ -87,6 +91,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def deployment_guards(self):
+        if self.development_unlimited_usage and self.environment not in {"development", "test"}:
+            raise ValueError("Unlimited development usage is restricted to development/test environments")
+        tool_keys = [(tool.id, tool.version) for tool in self.engineering_tools]
+        if len(set(tool_keys)) != len(tool_keys) or any(
+                tool.id in {"build123d", "atopile-kicad"} for tool in self.engineering_tools):
+            raise ValueError("Engineering tools must be unique and cannot replace built-in defaults")
         if not self.demo_mode:
             raise ValueError("This MVP only permits demo fulfillment; live dispatch is not implemented")
         if self.environment in {"staging", "production"}:

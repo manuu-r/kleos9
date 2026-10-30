@@ -24,7 +24,7 @@ from pathlib import Path, PurePosixPath
 
 import httpx
 
-from .contracts import CheckResult, GeneratedFile, JobResult
+from .contracts import CheckResult, EngineeringToolDefinition, GeneratedFile, JobResult
 
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_WORK_FILE_BYTES = 256 * 1024 * 1024
@@ -403,7 +403,8 @@ def validate_renode(request, directory, execute=run_command, qualification_path=
         return CheckResult(name="renodeUart", status="FAIL", details={**details, "reason": str(exc)})
 
 
-def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_FONT_HASHES):
+def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_FONT_HASHES,
+                      web_template=Path('/opt/qualified-companion/web')):
     """Make the default font local and record the exact prepared source inputs."""
     import yaml
 
@@ -431,9 +432,24 @@ def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_F
         shutil.copyfile(original, destination / name)
     if not any(item.get("family") == "Roboto" for item in fonts):
         fonts.append({"family": "Roboto", "fonts": [{"asset": "assets/kleos_fonts/Roboto-Regular.ttf"}]})
+    scaffolded = False
+    if not (work / "web/index.html").exists() and web_template.is_dir():
+        # The web host scaffold is image-owned, never fetched or model-generated.
+        # Preserve explicit user files while filling required Flutter bootstrap files.
+        for original in web_template.rglob('*'):
+            if original.is_symlink():
+                raise ValueError('Companion web scaffold must not contain symlinks')
+            if original.is_file():
+                target = work / 'web' / original.relative_to(web_template)
+                if target.is_symlink() or not target.resolve().is_relative_to(work.resolve()):
+                    raise ValueError('Companion web scaffold path escapes workspace')
+                if not target.exists():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(original, target)
+        scaffolded = True
     pubspec.write_text(yaml.safe_dump(specification, sort_keys=False))
     details = {
-        "version": 1, "preparation": "offline-default-roboto-v1",
+        "version": 2, "preparation": "offline-companion-scaffold-v2", "webScaffoldAdded": scaffolded,
         "fontSource": "Flutter 3.35.4 pinned material_fonts cache",
         "fontLicense": "Apache-2.0", "fontHashes": expected_hashes,
         "sourceHashes": {str(path.relative_to(work)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -443,12 +459,34 @@ def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_F
     return details
 
 
+# Zephyr hardware model v2 names this same development board with qualifiers.
+# This is a target-name migration, never a substitute for a custom PCB definition.
+ZEPHYR_BOARD_ALIASES = {"nrf52840dk_nrf52840": "nrf52840dk/nrf52840"}
+
+
+def resolve_zephyr_board(board):
+    if (not isinstance(board, str) or len(board) > 100 or ".." in board or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_-]*(?:@[A-Za-z0-9][A-Za-z0-9_.-]*)?"
+            r"(?:/[A-Za-z0-9][A-Za-z0-9_-]*){0,3}", board)):
+        raise UnsupportedTool("A qualified Zephyr board target must be pinned in interfaces.firmware.board")
+    return ZEPHYR_BOARD_ALIASES.get(board, board)
+
+
 def build_lane(request, directory, execute=run_command):
     lane, timeout = request["lane"], min(int(request.get("timeoutSeconds", 1800)), 3600)
     work = directory / lane
     work.mkdir(exist_ok=True)
     outputs, logs, prepared_files = [], [], []
     measurements = {}
+    selected = request.get("engineeringTool")
+    profile = None
+    if selected:
+        profile = EngineeringToolDefinition.model_validate({
+            key: value for key, value in selected.items()
+            if key in {"id", "version", "name", "lane", "runner", "sourceContract", "outputFiles",
+                       "qualified", "qualificationReference", "limitations"}})
+        if profile.lane != lane or not profile.qualified:
+            raise UnsupportedTool("The selected engineering tool is not qualified for this lane")
 
     def call(args):
         code, output = execute(args, work, timeout)
@@ -462,19 +500,54 @@ def build_lane(request, directory, execute=run_command):
         if code:
             raise NativeBuildError(f"{args[0]} failed with exit code {code}", "\n".join(logs))
 
-    if lane == "mechanics":
+    if profile and profile.runner == "plugin":
+        # This executable belongs to the operator-installed image. It is never
+        # supplied by a project or a generated file and runs with the normal UID,
+        # network, filesystem and resource restrictions.
+        tool_request = work / ".kleos-tool-request.json"
+        if (work / "outputs").exists() or tool_request.exists():
+            raise NativeBuildError("Plugin inputs must not supply reserved outputs/ or .kleos-tool-request.json paths")
+        tool_request.write_text(json.dumps({
+            "schemaVersion": 1, "tool": {"id": profile.id, "version": profile.version},
+            "lane": lane, "requirements": request.get("requirements", {}),
+            "interfaces": request.get("interfaces", {}),
+            "inputs": [{key: item[key] for key in ("name", "sha256", "mediaType") if key in item}
+                       for item in request["inputArtifacts"] if item["lane"] == lane],
+        }, sort_keys=True))
+        (work / "outputs").mkdir(exist_ok=True)
+        call([f"/opt/kleos-tools/{profile.id}/run", "--request", str(tool_request),
+              "--output-dir", str(work / "outputs")])
+        outputs = [work / name for name in profile.output_files]
+        if any(not path.is_file() for path in outputs):
+            raise NativeBuildError("The selected tool did not produce its required output files", "\n".join(logs))
+        measurements["engineeringTool"] = {"id": profile.id, "version": profile.version}
+    elif lane == "mechanics":
         if not (work / "enclosure.py").is_file():
             raise UnsupportedTool("Mechanical source must provide enclosure.py defining assembly")
         call(["python", "-I", "-c", MECHANICAL_BUILD])
         outputs = [work / "outputs/model.step", work / "outputs/model.stl"]
     elif lane == "electronics":
-        if not (work / "ato.yaml").exists():
-            raise UnsupportedTool("Electronics source must include an atopile project")
-        call(["ato", "build"])
+        from .circuit_validation import UnavailableCircuitData, prepare_kicad_libraries
+        try:
+            measurements['kicadLibraries'] = prepare_kicad_libraries(work)
+        except UnavailableCircuitData as exc:
+            raise UnsupportedTool(str(exc)) from exc
+        if not profile or profile.runner == "atopile-kicad":
+            if not (work / "ato.yaml").exists():
+                raise UnsupportedTool("Electronics source must include an atopile project")
+            call(["ato", "build"])
         boards = list((work / "build").rglob("*.kicad_pcb")) or list(work.rglob("*.kicad_pcb"))
         schematics = list((work / "build").rglob("*.kicad_sch")) or list(work.rglob("*.kicad_sch"))
         if len(boards) != 1 or len(schematics) != 1:
-            raise UnsupportedTool("The qualified electronics profile requires one PCB and one schematic")
+            # Keep actual partial exports visible without claiming a complete or
+            # validated circuit. These candidates cannot pass the release gate.
+            partial = [collect_file(path, directory, 'native/preview/' + str(path.relative_to(work)))
+                       for path in [*boards[:2], *schematics[:2]]]
+            if sum(len(base64.b64decode(item.content)) for item in partial) > MAX_TOTAL_BYTES:
+                raise ValueError('Partial electronics outputs exceed transfer ceiling')
+            return JobResult(status='unsupported', files=partial, logs='\n'.join(logs), limitations=[
+                f'Circuit comparison requires one PCB and one schematic; found {len(boards)} PCB and '
+                f'{len(schematics)} schematic files. Supply the missing export before validation.'])
         (work / "outputs").mkdir(exist_ok=True)
         call(["kicad-cli", "sch", "erc", "--format", "json", "--exit-code-violations",
               "--output", "outputs/erc.json", str(schematics[0])])
@@ -484,9 +557,10 @@ def build_lane(request, directory, execute=run_command):
         call(["kicad-cli", "pcb", "export", "drill", "--output", "outputs/gerbers/", str(boards[0])])
         outputs = [*boards, *schematics, *[p for p in (work / "outputs").rglob("*") if p.is_file()]]
     elif lane == "firmware":
-        board = request.get("interfaces", {}).get("firmware", {}).get("board")
-        if not board or not re.fullmatch(r"[A-Za-z0-9_./-]{1,100}", board) or ".." in board:
-            raise UnsupportedTool("A qualified Zephyr board must be pinned in interfaces.firmware.board")
+        requested_board = request.get("interfaces", {}).get("firmware", {}).get("board")
+        board = resolve_zephyr_board(requested_board)
+        measurements["zephyrBoard"] = {"requested": requested_board, "resolved": board,
+            "aliasApplied": board != requested_board, "aliasPolicy": "zephyr-4.2-board-targets-v1"}
         args = ["west", "build", "-b", board, "-d", "build", "."]
         if board.startswith("native_sim"):
             args += ["--", "-DZEPHYR_TOOLCHAIN_VARIANT=host"]
@@ -543,7 +617,9 @@ def build_lane(request, directory, execute=run_command):
     if sum(len(f.content) for f in files) > MAX_TOTAL_BYTES:
         raise ValueError("Native output package exceeds the result transfer limit")
     return JobResult(status="succeeded", files=files, measurements=measurements, logs="\n".join(logs)[-100000:],
-                     limitations=["Build outputs are candidates until independently validated"])
+                     limitations=["Build outputs are candidates until independently validated", *(
+                         ["Board-target compilation does not establish custom PCB compatibility or validate BLE, sensors, displays or physical behavior"]
+                         if lane == "firmware" else [])])
 
 
 def _positive_vector(value):
@@ -611,7 +687,7 @@ def validate_candidates(request, directory, execute=run_command):
         validate_interfaces(request.get("interfaces", {})),
         CheckResult(name="electronics_correspondence", status="UNKNOWN", details={
             "required": True, "scopeExcluded": False,
-            "reason": "No qualified template binds schematic/PCB components and nets to accepted load/interface IDs",
+            "reason": "Complete accepted circuit contract and independent KiCad correspondence checks are required",
             "coverage": "ERC/DRC alone cannot establish that the requested circuit was implemented",
         }),
     ]
@@ -650,26 +726,49 @@ def validate_candidates(request, directory, execute=run_command):
                                                    "coverage": "STEP solid validity/dimensions and actual solid intersections with declared clearances",
                                                    "limitations": ["Does not qualify insertion paths, actual wall thickness, manufacturing tolerances or physical safety"]}))
             elif lane == "electronics":
+                from .circuit_validation import (
+                    PCB_CONNECTIVITY_SCRIPT,
+                    UnavailableCircuitData,
+                    prepare_kicad_libraries,
+                    validate_circuit_contract,
+                    validate_circuit_correspondence,
+                )
+                selected = {}
                 for suffix, verb in ((".kicad_sch", ["sch", "erc"]), (".kicad_pcb", ["pcb", "drc"])):
                     files = native_exports(request, directory, lane, suffix)
                     if len(files) != 1:
                         raise UnsupportedTool("A single KiCad schematic and PCB are required")
+                    selected[suffix] = files[0]
+                # Generated adjacent .kicad_pro settings cannot suppress the
+                # independent rule checks. Only the pinned schematic/PCB enter
+                # this fresh directory; both embed their symbol/pad definitions.
+                inspection = Path(tempfile.mkdtemp(prefix="kleos-circuit-check-", dir=directory))
+                for suffix, source in selected.items():
+                    shutil.copyfile(source, inspection / f"circuit{suffix}")
+                try:
+                    library_evidence = prepare_kicad_libraries(inspection, interfaces=request.get("interfaces", {}))
+                except UnavailableCircuitData as exc:
+                    raise UnsupportedTool(str(exc)) from exc
+                for suffix, verb in ((".kicad_sch", ["sch", "erc"]), (".kicad_pcb", ["pcb", "drc"])):
                     code, output = execute(
-                        ["kicad-cli", *verb, "--exit-code-violations", "--output", f"/tmp/{verb[1]}.rpt",
-                         str(files[0])], work, 300)
+                        ["kicad-cli", *verb, "--severity-all", "--exit-code-violations", "--output",
+                         str(inspection / f"{verb[1]}.rpt"), str(inspection / f"circuit{suffix}")], inspection, 300)
                     logs.append(output)
                     if code:
                         raise RuntimeError(f"{verb[1]} failed")
-                report = work / ".kleos_netlist.xml"
+                report = inspection / ".kleos_netlist.xml"
                 report.unlink(missing_ok=True)
-                schematic = native_exports(request, directory, lane, ".kicad_sch")[0]
+                schematic = inspection / "circuit.kicad_sch"
                 code, output = execute(["kicad-cli", "sch", "export", "netlist", "--format", "kicadxml",
-                                        "--output", str(report), str(schematic)], work, 300)
+                                        "--output", str(report), str(schematic)], inspection, 300)
                 logs.append(output)
                 if code or not report.is_file() or report.is_symlink() or report.stat().st_size > 1024**2:
                     raise RuntimeError("Independent schematic netlist export failed or exceeded its bounds")
+                netlist_bytes = report.read_bytes()
+                if any(marker in netlist_bytes.upper() for marker in (b"<!DOCTYPE", b"<!ENTITY")):
+                    raise RuntimeError("Independent schematic netlist must not contain DTD/entity declarations")
                 try:
-                    netlist = ET.parse(report).getroot()
+                    netlist = ET.fromstring(netlist_bytes)
                 except ET.ParseError as exc:
                     raise RuntimeError("Independent schematic netlist is malformed") from exc
                 component_count = len(netlist.findall("./components/comp"))
@@ -679,11 +778,26 @@ def validate_candidates(request, directory, execute=run_command):
                 checks.append(CheckResult(name="electronics_erc_drc", status="PASS", details={
                     "coverage": "Independent KiCad ERC and DRC",
                     "componentCount": component_count, "netCount": net_count,
+                    "libraries": library_evidence,
                     "limitations": ["No analog, RF, thermal, EMC or physical validation"],
                 }))
-                checks.append(CheckResult(name=lane, status="UNKNOWN", details={
-                    "required": True, "scopeExcluded": False,
-                    "reason": "Schematic and PCB correspondence to accepted loads/interfaces is not qualified",
+                evidence = {"schematicSha256": hashlib.sha256(schematic.read_bytes()).hexdigest(),
+                            "pcbSha256": hashlib.sha256((inspection / "circuit.kicad_pcb").read_bytes()).hexdigest()}
+                snapshot = None
+                if validate_circuit_contract(request.get("interfaces", {})).status == "PASS":
+                    code, output = execute(["/usr/bin/python3", "-I", "-c", PCB_CONNECTIVITY_SCRIPT,
+                                            str(inspection / "circuit.kicad_pcb")], inspection, 120)
+                    logs.append(output)
+                    if not code and len(output) <= 1024**2:
+                        try:
+                            snapshot = json.loads(output.strip().splitlines()[-1])
+                        except (ValueError, IndexError):
+                            pass
+                correspondence = validate_circuit_correspondence(request.get("interfaces", {}), netlist_bytes,
+                    snapshot, requirements, evidence)
+                checks[1] = correspondence
+                checks.append(CheckResult(name=lane, status=correspondence.status, details={
+                    **correspondence.details, "ercDrcPassed": True,
                 }))
             elif lane == "firmware":
                 files = native_exports(request, directory, lane, ".elf")

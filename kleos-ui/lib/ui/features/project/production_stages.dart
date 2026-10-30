@@ -14,6 +14,7 @@ import '../../core/concept_preview.dart';
 import 'common.dart';
 import 'requirements_interview.dart';
 import 'planning_conversation.dart';
+import 'engineering_preview.dart';
 
 /// Real engineering records presented inside the original stage workspace.
 class ProductionStage extends ConsumerStatefulWidget {
@@ -68,6 +69,10 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           ?.toString();
   bool get canWrite =>
       ref.watch(accountProvider).asData?.value?.canWrite == true;
+  VoidCallback? get reviseCircuit =>
+      canWrite && !active && asMap(project['interfaces']).isNotEmpty
+          ? () => command('project.solveInterfaces')
+          : null;
 
   @override
   void dispose() {
@@ -271,6 +276,16 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
   Widget interfaceRecords() {
     final interfaces = asMap(project['interfaces']);
     return pColumn([
+      EngineeringPreview(
+          projectId: '${project['id']}',
+          revision: number(project['revision']).toInt(),
+          updating: active,
+          onReviseCircuit: reviseCircuit,
+          fallbackScene: asMap(asMap(state['concept'])['scene'])),
+      if (asMap(state['circuitContractCheck']).isNotEmpty)
+        CircuitContractNotice(
+            check: asMap(state['circuitContractCheck']),
+            onRevise: reviseCircuit),
       pText(
           'Mechanics, electronics and firmware share the same accepted interface revision. Changes invalidate dependent files and checks.',
           muted: true),
@@ -285,6 +300,12 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
   Widget generation() {
     final policy = asMap(project['modelPolicy']);
     return pColumn([
+      EngineeringPreview(
+          projectId: '${project['id']}',
+          revision: number(project['revision']).toInt(),
+          updating: active,
+          onReviseCircuit: reviseCircuit,
+          fallbackScene: asMap(asMap(state['concept'])['scene'])),
       pText(
           'Each lane generates candidate files against the shared interfaces. Only independent checks and release gates can accept them.',
           muted: true),
@@ -478,8 +499,11 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
         pDisclosure(
             title: 'Usage allowance',
             child: pColumn([
-              pText(
-                  'Project allowance: \$${asMap(project['budget'])['allowanceUsd'] ?? 0}'),
+              pText(asMap(project['budget'])['unlimited'] == true
+                  ? 'Unlimited in development'
+                  : asMap(project['budget'])['allowanceUsd'] == null
+                      ? 'Project allowance is not configured'
+                      : 'Project allowance: \$${asMap(project['budget'])['allowanceUsd']}'),
               pText(
                   'Used: \$${asMap(project['budget'])['spentEstimateUsd'] ?? 0} · Reserved: \$${asMap(project['budget'])['reservedUsd'] ?? 0}',
                   muted: true),

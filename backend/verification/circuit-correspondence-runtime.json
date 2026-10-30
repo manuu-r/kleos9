@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "circuit-correspondence-runtime-v1",
+  "status": "passed",
+  "checkedAt": "2026-10-30T12:50:25.753906+00:00",
+  "modelCalls": 0,
+  "scope": "Real all-severity ERC/DRC and complete electronics validator branch on a two-resistor fixture; other engineering lanes and physical operation are outside this check",
+  "images": [
+    {
+      "image": "kleos-validator:development",
+      "imageId": "sha256:b467897a75e6addc251e66601dc5d84b3e929c4098d762e8c1b78d7e427c0761",
+      "positive": "PASS",
+      "wrongPadNet": "FAIL",
+      "fullElectronicsPipeline": "PASS",
+      "ercDrc": "PASS",
+      "checks": {
+        "electronics_erc_drc": "PASS",
+        "electronics_correspondence": "PASS",
+        "electronics": "PASS"
+      },
+      "libraries": {
+        "symbolTableSha256": "053fde1ebe20e96ecf9506b9fb5c138437ee257f52d2ad13839123abf82ac138",
+        "footprintTableSha256": "a14d77096bd0a32392ae8765dea0afe8d40cec83c921eb877527d6c26ba3af5c",
+        "source": "immutable_image",
+        "symbolLibraries": 223,
+        "footprintLibraries": 155
+      },
+      "sourceHashes": {
+        "circuit_validation.py": "ef5219635d018cd5054bb85f68db4c6250f81004290d5e97f06fb89bae73369e",
+        "native_runner.py": "87ae39eda2e572a43cc54f68dbb7c6857074f9b19952225b6bacd0486741dce7",
+        "contracts.py": "03554d40daac07bf671707da8d023a18ce8283a30b95491e906560fc43d4be5d"
+      },
+      "fixtureScriptSha256": "66ad14df446beb63201b22f8c6f4ef616af4249b355f6698808dbf7f993d8ad1",
+      "packageVersions": [
+        "kicad=9.0.8+dfsg-1~bpo12+1",
+        "kicad-footprints=9.0.8-1~bpo12+1",
+        "kicad-symbols=9.0.8-1~bpo12+1"
+      ],
+      "modelCalls": 0,
+      "acceptedContractHash": "e72caefbc990f9238d89f3518cef20e06eb358afc65f02d81b13c3eff4a77721",
+      "evidence": {
+        "schematicSha256": "4a3bb64ebf754887d60727f5aa5f7f3dff3d14246897f7aae1cc69b936ccf064",
+        "pcbSha256": "10192bc9fcc4b21ffa81f313d2871cbd29e26afd732bfa71a23ef25b9b93664b"
+      },
+      "netlistSha256": "7ead348c22c9b10741b843bd7e92e4764c1e7ff94404713b2390117124a35664",
+      "scope": "Actual ERC/DRC and full electronics validation; other engineering lanes are excluded"
+    },
+    {
+      "image": "kleos-electronics:development",
+      "imageId": "sha256:708f20e866b881ff0a76064bdb653b70f711ce5b2045bb8d6f8084e4d8e5c425",
+      "positive": "PASS",
+      "wrongPadNet": "FAIL",
+      "fullElectronicsPipeline": "PASS",
+      "ercDrc": "PASS",
+      "checks": {
+        "electronics_erc_drc": "PASS",
+        "electronics_correspondence": "PASS",
+        "electronics": "PASS"
+      },
+      "libraries": {
+        "symbolTableSha256": "053fde1ebe20e96ecf9506b9fb5c138437ee257f52d2ad13839123abf82ac138",
+        "footprintTableSha256": "a14d77096bd0a32392ae8765dea0afe8d40cec83c921eb877527d6c26ba3af5c",
+        "source": "immutable_image",
+        "symbolLibraries": 223,
+        "footprintLibraries": 155
+      },
+      "sourceHashes": {
+        "circuit_validation.py": "ef5219635d018cd5054bb85f68db4c6250f81004290d5e97f06fb89bae73369e",
+        "native_runner.py": "87ae39eda2e572a43cc54f68dbb7c6857074f9b19952225b6bacd0486741dce7",
+        "contracts.py": "03554d40daac07bf671707da8d023a18ce8283a30b95491e906560fc43d4be5d"
+      },
+      "fixtureScriptSha256": "66ad14df446beb63201b22f8c6f4ef616af4249b355f6698808dbf7f993d8ad1",
+      "packageVersions": [
+        "kicad=9.0.8+dfsg-1~bpo12+1",
+        "kicad-footprints=9.0.8-1~bpo12+1",
+        "kicad-symbols=9.0.8-1~bpo12+1"
+      ],
+      "modelCalls": 0,
+      "acceptedContractHash": "e72caefbc990f9238d89f3518cef20e06eb358afc65f02d81b13c3eff4a77721",
+      "evidence": {
+        "schematicSha256": "9a9dca2b56397f53e9edbed1bcc5106ca8d9bff5b42fb3e7f8ab92913f0d57ef",
+        "pcbSha256": "fdeedf93f797323caed42e7d6e531505fea96607d720e678dc03cb765433b3cb"
+      },
+      "netlistSha256": "eb6047f5df6aef9a3dbe7a18881aaa4c3cab0fa25bf619b16888c188784308b4",
+      "scope": "Actual ERC/DRC and full electronics validation; other engineering lanes are excluded"
+    }
+  ]
+}

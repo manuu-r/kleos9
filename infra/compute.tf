@@ -79,7 +79,7 @@ resource "aws_iam_role_policy" "control" {
 }
 resource "aws_ecs_task_definition" "native" {
   for_each                 = var.native_images
-  family                   = "${var.name}-native-${each.key}"
+  family                   = contains(["mechanics", "electronics", "firmware", "application", "validate"], each.key) ? "${var.name}-native-${each.key}" : "${var.name}-tool-${replace(each.key, "/[^a-zA-Z0-9_-]/", "-")}-${substr(sha256(each.key), 0, 8)}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 4096
@@ -124,6 +124,7 @@ locals {
     KLEOS_ECS_SUBNETS          = jsonencode(aws_subnet.native[*].id)
     KLEOS_ECS_SECURITY_GROUPS  = jsonencode([aws_security_group.native.id])
     KLEOS_ECS_TASK_DEFINITIONS = jsonencode({ for key, value in aws_ecs_task_definition.native : key => value.arn })
+    KLEOS_ENGINEERING_TOOLS    = jsonencode(var.engineering_tools)
     KLEOS_EXECUTION_BACKEND    = length(var.native_images) + length(var.recovery_task_definition_arns) > 0 ? "ecs" : "disabled"
     KLEOS_INTERNAL_BASE_URL    = "https://${local.jobs_hostname}"
     KLEOS_SQS_COMPLETION_QUEUE = aws_sqs_queue.completions.url

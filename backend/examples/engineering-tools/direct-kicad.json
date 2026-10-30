@@ -1,0 +1,12 @@
+{
+  "id": "direct-kicad",
+  "version": "1",
+  "name": "Direct KiCad sources",
+  "lane": "electronics",
+  "runner": "kicad",
+  "sourceContract": "Generate exactly one complete KiCad PCB (.kicad_pcb) and matching schematic (.kicad_sch), with referenced libraries/footprints available in the installed image. Do not emit atopile sources. The native runner executes KiCad ERC/DRC and Gerber/drill exports. Report unsupported circuit correspondence or layout capabilities rather than inventing success.",
+  "outputFiles": ["*.kicad_pcb", "*.kicad_sch", "outputs/gerbers/*"],
+  "qualified": false,
+  "qualificationReference": null,
+  "limitations": ["Requires independent design-rule, netlist and circuit-correspondence checks before release."]
+}

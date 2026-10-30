@@ -16,6 +16,7 @@ def report(db, settings):
             "OutboxPending": session.scalar(select(func.count(Outbox.id)).where(Outbox.delivered_at.is_(None))),
             "OutboxFailures": session.scalar(select(func.coalesce(func.sum(Outbox.failures), 0))),
             "PendingModelCalls": session.scalar(select(func.count(Invocation.id)).where(Invocation.status == "pending")),
+            "UncertainModelCalls": session.scalar(select(func.count(Invocation.id)).where(Invocation.status == "uncertain")),
             "BlockedRuns": session.scalar(select(func.count(Run.id)).where(Run.status == "blocked")),
             "RepairAttempts": session.scalar(select(func.count(Attempt.id)).where(Attempt.number > 1)),
             "IndexBacklog": session.scalar(select(func.count(Source.id)).join(Project, Project.id == Source.project_id).where(
@@ -33,8 +34,8 @@ def report(db, settings):
         values["ValidationPassPercent"] = 100*coverage.get("PASS", 0)/max(1, sum(coverage.values()))
         budget = session.get(DailyBudget, now().date().isoformat())
         values["DailyAllowanceUsedUsd"] = budget.spent+budget.reserved if budget else 0
-        values["DailyAllowanceLimited"] = int(settings.daily_budget_usd is not None)
-        if settings.daily_budget_usd is not None:
+        values["DailyAllowanceLimited"] = int(not settings.development_unlimited_usage and settings.daily_budget_usd is not None)
+        if not settings.development_unlimited_usage and settings.daily_budget_usd is not None:
             values["DailyAllowanceRemainingUsd"] = max(0, settings.daily_budget_usd-values["DailyAllowanceUsedUsd"])
     for name, value in values.items():
         metric(name, value, "Seconds" if name.endswith("Seconds") else "Percent" if name.endswith("Percent") else "Count",

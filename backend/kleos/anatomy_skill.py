@@ -39,6 +39,36 @@ def runtime_guidance():
     return f"Anatomy skill {metadata['commit']} / {metadata['skillSha256']}.\n{guidance}"
 
 
+FLOAT_TOLERANCE = 0.5
+
+
+def _gap(a, b):
+    """Largest per-axis distance between two boxes; zero or less when they touch."""
+    return max(abs(a["position"][axis] - b["position"][axis]) - (a["size"][axis] + b["size"][axis]) / 2
+               for axis in "xyz")
+
+
+def scene_issues(scene, previous=None):
+    """Objective layout faults a model can repair, mirroring GUIDANCE.md.
+
+    Rotation is ignored, so these are deliberately coarse; only unmistakable
+    faults are reported rather than judgements about taste or proportion.
+    """
+    parts = scene["parts"]
+    issues = []
+    if not any(any(part["explode"].values()) for part in parts):
+        issues.append("The exploded pose equals the assembled pose; give parts distinct offsets along the assembly axis.")
+    if len(parts) > 1:
+        floating = [p["id"] for p in parts if all(_gap(p, o) > FLOAT_TOLERANCE for o in parts if o is not p)]
+        if floating:
+            issues.append(f"Parts float apart from the assembly: {', '.join(floating)}. Place them touching their neighbours.")
+    if previous and len(previous["parts"]) >= 4:
+        kept = {p["id"] for p in previous["parts"]} & {p["id"] for p in parts}
+        if len(kept) * 2 < len(previous["parts"]):
+            issues.append("Most part IDs changed; keep the IDs of unchanged components stable.")
+    return issues
+
+
 def _v(x=0, y=0, z=0):
     return {"x": float(x), "y": float(y), "z": float(z)}
 

@@ -167,6 +167,13 @@ AI models are under **Providers → AI models**, alongside the original Services
 portal. Set per-lane defaults for new builds or change an existing real project's
 policy there. Defaults are saved per browser/device, user, organization, and API.
 
+**Connectors → Engineering tools** also offers per-build CAD/PCB tool choices.
+The existing build123d and atopile/KiCad defaults remain. Qualified installed
+alternatives appear in the appropriate lane; unavailable tools show their status.
+Saving applies to subsequent attempts. Active attempts retain their pinned tools,
+and selecting another generator never bypasses independent validation. Installation
+uses the [backend adapter contract](../docs/engineering-tool-plugins.md).
+
 For the local network preview, run the original simulation service separately:
 
 ```sh

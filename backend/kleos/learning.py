@@ -25,6 +25,13 @@ from .db import (
 )
 from .domain import emit, get_project, lock_platform
 from .telemetry import redact, tracer
+from .training_consent import (
+    cancel_undispatched_training,
+    dataset_binding,
+    lock_training_organization,
+    request_training_cancel,
+    training_inputs_current,
+)
 
 
 class ComputeLedger:
@@ -42,6 +49,10 @@ class ComputeLedger:
         if not isinstance(reserve, (int, float)) or not math.isfinite(reserve) or reserve <= 0:
             raise DomainError("A positive compute allowance reservation is required", 422)
         with self.db.transaction() as session:
+            if kind == "training":
+                # Consent commands take this same lock, so admission observes a
+                # complete consent change rather than a previously materialized copy.
+                lock_training_organization(session, principal.tenant_id)
             lock_platform(session)
             project = get_project(session, project_id, principal, write=True)
             if payload.get("revision", project.engineering_revision) != project.engineering_revision:
@@ -53,6 +64,10 @@ class ComputeLedger:
                 if not model or not dataset or dataset.tenant_id != principal.tenant_id or model.status != expected or (
                         kind == "training" and dataset.status != "ready"):
                     raise DomainError("Model or training dataset is no longer eligible for dispatch", 409)
+                if kind == "training":
+                    LearningService(self.db, self.settings, None)._dataset(session, principal, dataset.id)
+                    if payload.get("datasetBinding") != dataset_binding(dataset):
+                        raise DomainError("Training dataset consent or provenance changed", 409, "consent_changed")
             existing = session.scalar(select(ExternalIntent).where(
                 ExternalIntent.project_id == project_id, ExternalIntent.operation == operation,
                 ExternalIntent.revision == project.engineering_revision))
@@ -63,7 +78,7 @@ class ComputeLedger:
                     raise DomainError("Previous dispatch has an uncertain outcome; reconcile before retrying", 409,
                                       "compute_uncertain")
                 return existing.id, False
-            if self.settings.daily_budget_usd == 0 or project.budget_usd <= 0:
+            if not self.settings.development_unlimited_usage and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
                 raise DomainError("Configure project and daily allowances before paid compute", 409,
                                   "budget_unconfigured")
             if kind == "embedding":
@@ -71,7 +86,7 @@ class ComputeLedger:
                     Invocation.status == "pending"))
                 embedding = session.scalar(select(func.count()).select_from(ExternalIntent).where(
                     ExternalIntent.mode == "compute", ExternalIntent.operation.like("embedding:%"),
-                    ExternalIntent.status.in_(["reserved", "submitted", "uncertain"])))
+                    ExternalIntent.status.in_(["reserved", "submitted"])))
                 if hosted + embedding >= self.settings.max_model_calls:
                     raise DomainError("Hosted inference capacity is full; retry after queued work progresses", 429,
                                       "model_capacity")
@@ -87,9 +102,10 @@ class ComputeLedger:
             if not daily:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if project.spent_usd + project.reserved_usd + reserve > project.budget_usd or (
+            if not self.settings.development_unlimited_usage and (
+                    project.spent_usd + project.reserved_usd + reserve > project.budget_usd or (
                     self.settings.daily_budget_usd is not None
-                    and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
+                    and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd)):
                 raise DomainError("Compute allowance exhausted", 409, "budget_exhausted")
             intent = ExternalIntent(
                 id=uid(), tenant_id=principal.tenant_id, project_id=project_id,
@@ -116,6 +132,8 @@ class ComputeLedger:
 
     def submitted(self, intent_id, external_id):
         with self.db.transaction() as session:
+            tenant_id = session.scalar(select(ExternalIntent.tenant_id).where(ExternalIntent.id == intent_id))
+            lock_training_organization(session, tenant_id)
             intent = session.scalar(select(ExternalIntent).where(ExternalIntent.id == intent_id).with_for_update())
             project = session.get(Project, intent.project_id)
             dataset_id = intent.payload.get("input", {}).get("datasetId")
@@ -127,12 +145,37 @@ class ComputeLedger:
                     session.add(Outbox(key=f"delete-late-compute:{intent_id}", kind="delete_project",
                                        payload={"projectId": project.id if project.deleted_at else deleted_dataset_project}))
                 return
+            if intent.operation.startswith("training:") and (
+                    intent.receipt.get("cancelRequired") or not training_inputs_current(session, intent)):
+                intent.status = "submitted"
+                intent.receipt = {**intent.receipt, "externalId": external_id}
+                request_training_cancel(session, intent, "training_inputs_changed")
+                return
             if intent.status not in {"reserved", "submitted"}:
                 raise DomainError("Compute operation can no longer be submitted", 409)
             if intent.receipt.get("externalId") not in {None, external_id}:
                 raise DomainError("Compute operation already has a different external job", 409)
             intent.status = "submitted"
             intent.receipt = {**intent.receipt, "externalId": external_id}
+
+    def claim_training_dispatch(self, principal, intent_id):
+        rejected = False
+        with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
+            intent = session.scalar(select(ExternalIntent).where(
+                ExternalIntent.id == intent_id, ExternalIntent.tenant_id == principal.tenant_id).with_for_update())
+            if not intent or intent.status != "reserved":
+                raise DomainError("Training consent or inputs changed before dispatch", 409, "consent_changed")
+            if intent.receipt.get("dispatchClaimedAt"):
+                raise DomainError("Training dispatch already has an uncertain outcome", 409, "compute_uncertain")
+            model = session.get(TrainedModel, intent.payload["input"]["modelId"])
+            if not training_inputs_current(session, intent) or not model or model.status != "candidate":
+                cancel_undispatched_training(session, intent)
+                rejected = True
+            else:
+                intent.receipt = {**intent.receipt, "dispatchClaimedAt": datetime.now(UTC).isoformat()}
+        if rejected:
+            raise DomainError("Training consent or inputs changed before dispatch", 409, "consent_changed")
 
     def uncertain(self, intent_id):
         with self.db.transaction() as session:
@@ -145,6 +188,10 @@ class ComputeLedger:
         if status not in {"succeeded", "failed"}:
             raise ValueError("Invalid compute terminal status")
         with (nullcontext(_session) if _session else self.db.transaction()) as session:
+            training = session.execute(select(ExternalIntent.tenant_id, ExternalIntent.operation).where(
+                ExternalIntent.id == intent_id)).one()
+            if training.operation.startswith("training:"):
+                lock_training_organization(session, training.tenant_id)
             lock_platform(session)
             intent = session.get(ExternalIntent, intent_id)
             if intent.status in {"succeeded", "failed"}:
@@ -170,6 +217,7 @@ class ComputeLedger:
         if external_id is not None and (not isinstance(external_id, str) or not 1 <= len(external_id) <= 200):
             raise DomainError("Invalid provider job identity", 422)
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             lock_platform(session)
             intent = session.scalar(select(ExternalIntent).where(
                 ExternalIntent.id == intent_id, ExternalIntent.tenant_id == principal.tenant_id,
@@ -186,6 +234,9 @@ class ComputeLedger:
             if external_id:
                 intent.receipt = {**intent.receipt, "externalId": external_id}
                 intent.status = "submitted"
+                if intent.operation.startswith("training:") and (
+                        intent.receipt.get("cancelRequired") or not training_inputs_current(session, intent)):
+                    request_training_cancel(session, intent, "training_inputs_changed")
             emit(session, project, "compute.reconciled", {"intentId": intent.id, "actorId": principal.subject,
                                                           "attachedExternalJob": bool(external_id)})
         if not external_id:
@@ -198,6 +249,7 @@ class LearningService:
         self.db, self.settings, self.store = db, settings, store
 
     def _eligible_project(self, session, principal, project_id):
+        lock_training_organization(session, principal.tenant_id)
         project = get_project(session, project_id, principal)
         consent = session.scalar(select(Consent).where(
             Consent.tenant_id == principal.tenant_id, Consent.project_id == project_id,
@@ -222,6 +274,7 @@ class LearningService:
         if len(project_ids) < 2 or len(project_ids) > 100:
             raise DomainError("Use 2–100 projects so training and evaluation are separated by project", 422)
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             records = []
             validation_projects = set(project_ids[-max(1, len(project_ids) // 5):])
             for project_id in project_ids:
@@ -241,11 +294,12 @@ class LearningService:
             return {"id": dataset.id, "status": dataset.status, "manifest": dataset.manifest}
 
     def _dataset(self, session, principal, dataset_id):
+        lock_training_organization(session, principal.tenant_id)
         dataset = session.scalar(select(Dataset).where(
             Dataset.id == dataset_id, Dataset.tenant_id == principal.tenant_id))
         if not dataset:
             raise DomainError("Dataset not found", 404)
-        for entry in dataset.manifest["projects"]:
+        for entry in sorted(dataset.manifest["projects"], key=lambda item: item["projectId"]):
             project, consent, artifacts = self._eligible_project(session, principal, entry["projectId"])
             if consent.id != entry["consentId"] or consent.version != entry["consentVersion"]:
                 raise DomainError("Dataset consent changed; create a new dataset", 409, "consent_changed")
@@ -321,7 +375,8 @@ class LearningService:
                 raise DomainError("Training dataset exceeds the first-version 20 MB limit", 413)
             key = f"training/{principal.tenant_id}/{dataset.id}/training.jsonl"
             self.store.put(key, body, "application/x-ndjson")
-            return {"key": key, "sha256": hashlib.sha256(body).hexdigest(), "examples": len(examples)}
+            return {"key": key, "sha256": hashlib.sha256(body).hexdigest(), "examples": len(examples),
+                    "datasetBinding": dataset_binding(dataset)}
 
     def record_evaluation(self, principal, model_id, evaluation):
         principal.require_admin()
@@ -342,6 +397,7 @@ class LearningService:
             raise DomainError("Shadow and canary outcomes must be explicit booleans", 422)
         evaluation = {**evaluation, **counts, **scores}
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             model = session.get(TrainedModel, model_id)
             if not model:
                 raise DomainError("Model not found", 404)
@@ -364,6 +420,7 @@ class LearningService:
         if mode not in {"shadow", "canary", "promoted"}:
             raise DomainError("Choose shadow, canary or promoted", 422)
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             model = session.get(TrainedModel, model_id)
             if not model:
                 raise DomainError("Model not found", 404)
@@ -385,6 +442,7 @@ class LearningService:
     def rollback(self, principal, model_id):
         principal.require_admin()
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             model = session.get(TrainedModel, model_id)
             if not model:
                 raise DomainError("Model not found", 404)
@@ -457,7 +515,7 @@ class ModalCompute:
 
     async def poll(self, principal, intent_id):
         job = self.ledger.view(principal, intent_id)
-        if job["status"] != "submitted":
+        if job["status"] != "submitted" or job["receipt"].get("cancelRequired"):
             return job
         external_id = job["receipt"]["externalId"]
         try:
@@ -481,22 +539,48 @@ class ModalCompute:
             raise DomainError("Modal result does not match the bounded result contract", 502)
         key = f"compute/{principal.tenant_id}/{job['projectId']}/{intent_id}/result.json"
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             lock_platform(session)
             get_project(session, job["projectId"], principal, write=True)
-            self.store.put_json(key, redact(output))
-            self.ledger.finish(intent_id, {"resultKey": key, "externalId": external_id,
-                                          "computeUsage": {"executionSeconds": output.get("executionSeconds"),
-                                                           "gpuType": output.get("gpuType"),
-                                                           "basis": "function_elapsed_excludes_startup"},
-                                          "sha256": hashlib.sha256(encoded_output).hexdigest()},
-                               _session=session)
+            intent = session.scalar(select(ExternalIntent).where(ExternalIntent.id == intent_id).with_for_update())
+            if intent.operation.startswith("training:") and (
+                    intent.receipt.get("cancelRequired") or not training_inputs_current(session, intent)):
+                request_training_cancel(session, intent, "training_inputs_changed")
+            elif intent.status == "submitted":
+                self.store.put_json(key, redact(output))
+                self.ledger.finish(intent_id, {"resultKey": key, "externalId": external_id,
+                                              "computeUsage": {"executionSeconds": output.get("executionSeconds"),
+                                                               "gpuType": output.get("gpuType"),
+                                                               "basis": "function_elapsed_excludes_startup"},
+                                              "sha256": hashlib.sha256(encoded_output).hexdigest()},
+                                   _session=session)
         return self.ledger.view(principal, intent_id)
+
+    async def cancel_training(self, intent_id):
+        """Trusted outbox handler; no generated output is accepted after a consent fence."""
+        with self.db.transaction() as session:
+            intent = session.get(ExternalIntent, intent_id)
+            if not intent or not intent.operation.startswith("training:") or not intent.receipt.get("cancelRequired"):
+                return
+            external_id = intent.receipt.get("externalId")
+            if not external_id:
+                # A late submission/reconciliation receipt enqueues a fresh cancellation.
+                # An unknown provider outcome retains its reservation until reconciled.
+                return
+        if self.client:
+            await self.client.cancel(external_id)
+        else:
+            import modal
+            await modal.FunctionCall.from_id(external_id).cancel.aio(terminate_containers=True)
+        self.ledger.finish(intent_id, {"cancelRequired": False, "cancelled": True,
+                                      "failure": "training_inputs_changed"}, status="failed")
 
     async def start_training(self, principal, funding_project_id, operation_id, model_id):
         """Explicit operator action, separate from consent, dataset creation and model promotion."""
         principal.require_admin()
         learning = LearningService(self.db, self.settings, self.store)
         with self.db.transaction() as session:
+            lock_training_organization(session, principal.tenant_id)
             get_project(session, funding_project_id, principal, write=True)
             model = session.get(TrainedModel, model_id)
             if not model or model.status != "candidate":
@@ -510,10 +594,14 @@ class ModalCompute:
         if not url:
             raise DomainError("Modal training needs scoped S3 dataset access", 503, "storage_unconfigured")
         request = {"modelId": model_id, "datasetId": dataset_id, "datasetSha256": materialized["sha256"],
-                   "baseModelPath": config["baseModelPath"], "maxGpuSeconds": config["maxGpuSeconds"]}
+                   "baseModelPath": config["baseModelPath"], "maxGpuSeconds": config["maxGpuSeconds"],
+                   "datasetBinding": materialized["datasetBinding"]}
         intent_id, fresh = self.ledger.begin(principal, funding_project_id, operation_id, "training", request,
                                             reserve=float(config["budgetUsd"]))
         if fresh:
+            # This durable claim is the dispatch authorization boundary. A later
+            # withdrawal fences the in-flight result and requests cancellation.
+            self.ledger.claim_training_dispatch(principal, intent_id)
             try:
                 invocation = {**request, "jobId": intent_id, "dataset": {"url": url, "sha256": materialized["sha256"]}}
                 if self.client:

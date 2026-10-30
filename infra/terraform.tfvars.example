@@ -8,6 +8,7 @@ frontend_url    = "https://app.example.com"
 # Replace with the actual digest pushed to ECR. Never use this example as an image.
 control_image   = "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/kleos9-demo/control@sha256:0000000000000000000000000000000000000000000000000000000000000000"
 native_images   = {}
+engineering_tools = []
 activate_services  = false
 activate_conductor = false
 project_budget_usd = 0

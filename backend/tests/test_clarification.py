@@ -2,7 +2,13 @@ import pytest
 from pydantic import ValidationError
 from test_control_plane import command, create, engine
 
-from kleos.clarification import answer_context, get_clarification_questions
+from kleos.clarification import (
+    MAX_NEW_QUESTIONS_PER_TURN,
+    MAX_PLANNING_QUESTIONS,
+    answer_context,
+    get_clarification_questions,
+    retain_unanswered_questions,
+)
 from kleos.contracts import AgentOutput, ClarificationQuestion, DomainError
 from kleos.db import Project
 
@@ -291,3 +297,26 @@ def test_cleared_resolved_required_choice_becomes_an_active_question_again(platf
     assert current["resolvedQuestions"] == []
     assert current["remainingRequired"] == ["power"] and current["requiredCount"] == 1
     assert current["readyToConfirm"] is False
+
+
+def asked(count, start=0):
+    return [question(id=f"q{i}", prompt=f"Question {i}?") for i in range(start, start + count)]
+
+
+def test_new_questions_are_limited_per_turn_but_open_decisions_never_are():
+    context = {"clarification": {"questions": [question(id="open")], "answers": []}}
+    output = {"clarificationQuestions": [question(id="open"), *asked(MAX_NEW_QUESTIONS_PER_TURN + 2)]}
+    ids = [q["id"] for q in retain_unanswered_questions(output, context)]
+    assert ids[0] == "open" and len(ids) == 1 + MAX_NEW_QUESTIONS_PER_TURN
+
+
+def test_total_question_budget_ends_the_conversation_without_dropping_answers_or_open_decisions():
+    history = asked(MAX_PLANNING_QUESTIONS - 1)
+    answers = [{"questionId": q["id"], "values": ["usb"]} for q in history[1:]]
+    context = {"clarification": {"questions": history, "answers": answers}}
+    output = {"clarificationQuestions": [*history[:1], *asked(3, start=100)]}
+    ids = [q["id"] for q in retain_unanswered_questions(output, context)]
+    assert ids == ["q0", "q100"]  # one slot of budget remains; q0 is still unanswered
+    context["clarification"]["questions"] = [*history, *asked(1, start=100)]
+    ids = [q["id"] for q in retain_unanswered_questions(output, context)]
+    assert ids == ["q0", "q100"]  # q100 is now known, so nothing further may open
