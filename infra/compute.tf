@@ -96,7 +96,8 @@ resource "aws_ecs_task_definition" "native" {
     name = "native", image = each.value, essential = true,
     user = "0", readonlyRootFilesystem = each.key != "application",
     # Fargate only permits adding SYS_PTRACE; retain the default UID-switching capabilities.
-    linuxParameters = { capabilities = { drop = ["NET_RAW", "SYS_CHROOT", "MKNOD", "SETFCAP", "AUDIT_WRITE", "SETPCAP", "NET_BIND_SERVICE"] } },
+    linuxParameters = { capabilities = { add = [], drop = ["NET_RAW", "SYS_CHROOT", "MKNOD", "SETFCAP", "AUDIT_WRITE", "SETPCAP", "NET_BIND_SERVICE"] } },
+    environment     = [], portMappings = [], volumesFrom = [], systemControls = [],
     mountPoints     = [{ sourceVolume = "work", containerPath = "/tmp", readOnly = false }],
     logConfiguration = { logDriver = "awslogs", options = merge(local.log_options, {
       "awslogs-stream-prefix" = "native-${each.key}"

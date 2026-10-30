@@ -1,6 +1,8 @@
-name: Deploy backend manually
+name: Deploy Kleos9 to AWS
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -17,13 +19,17 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-${{ inputs.environment }}
+  group: deploy-${{ inputs.environment || 'production' }}
   cancel-in-progress: false
 
 jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
   release:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment || 'production' }}
     timeout-minutes: 120
     env:
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -31,11 +37,30 @@ jobs:
       CONTROL_REPOSITORY: ${{ vars.CONTROL_ECR_REPOSITORY }}
       API_URL: ${{ vars.API_URL }}
       INITIAL_DEPLOYMENT: ${{ inputs.initial_deployment }}
+      FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET }}
+      FRONTEND_DISTRIBUTION_ID: ${{ vars.FRONTEND_DISTRIBUTION_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+          cache: true
+      - name: Verify and build production frontend
+        working-directory: kleos-ui
+        run: |
+          test -n "$API_URL"
+          test -n "$FRONTEND_BUCKET"
+          test -n "$FRONTEND_DISTRIBUTION_ID"
+          flutter pub get --enforce-lockfile
+          python3 tool/generate_transport.py --check
+          flutter analyze
+          flutter test
+          flutter build web --release --no-web-resources-cdn \
+            --dart-define=KLEOS_BACKEND=production \
+            --dart-define=API_BASE_URL="$API_URL/api/v1"
       - name: Install locked runtime and checks
         run: |
           python -m pip install --require-hashes -r backend/requirements-dev.lock
@@ -57,6 +82,17 @@ jobs:
             --repository "$CONTROL_REPOSITORY" --api-url "$API_URL" \
             --version "$GITHUB_SHA" --release-id "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             "${args[@]}"
+      - name: Publish frontend after healthy backend release
+        run: |
+          aws s3 sync kleos-ui/build/web/ "s3://$FRONTEND_BUCKET/" \
+            --exclude index.html --cache-control 'public,max-age=300'
+          aws s3 cp kleos-ui/build/web/index.html "s3://$FRONTEND_BUCKET/index.html" \
+            --cache-control 'no-cache,no-store,must-revalidate' --content-type text/html
+          invalidation=$(aws cloudfront create-invalidation \
+            --distribution-id "$FRONTEND_DISTRIBUTION_ID" --paths '/*' \
+            --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$FRONTEND_DISTRIBUTION_ID" --id "$invalidation"
       - name: Preserve release and reconciliation evidence
         if: always()
         uses: actions/upload-artifact@v4

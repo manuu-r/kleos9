@@ -1,8 +1,10 @@
-# Manual backend releases
+# AWS releases
 
-The GitHub workflow deploy.yml targets an already provisioned environment. It is
-manual-only and does not apply Terraform or bootstrap account credentials. No
-AWS deployment was run while implementing this workflow.
+The GitHub workflow deploy.yml deploys the production environment on pushes to main,
+including merged pull requests. It also supports manual runs from main. It runs the
+full reusable CI workflow before releasing. Terraform and initial database bootstrap
+remain operator steps. Infrastructure changes require a reviewed Terraform apply;
+qualified native tool images remain pinned and follow their qualification procedure.
 
 Create a GitHub deployment environment with these variables:
 
@@ -13,9 +15,17 @@ Create a GitHub deployment environment with these variables:
 | ECS_CLUSTER | Provisioned cluster ARN |
 | CONTROL_ECR_REPOSITORY | Full private ECR control repository URI |
 | API_URL | Public HTTPS API origin |
+| FRONTEND_BUCKET | Terraform frontend_bucket output |
+| FRONTEND_DISTRIBUTION_ID | Terraform frontend_distribution_id output |
 
-Restrict the role's OIDC trust to this repository and GitHub environment, and
-restrict the environment's allowed deployment branches. The deployment identity
+Terraform creates the dedicated github_deploy role with OIDC trust restricted to
+github_repository and github_environment. If the account already has the GitHub
+OIDC provider, set github_oidc_provider_arn to reuse it. Configure the GitHub
+environment to allow only main deployments before enabling the role; environment
+OIDC subjects do not include the branch. Use production for automatic releases.
+No AWS access keys are stored in GitHub. Restrict repository write access and protect
+main with required CI checks. For unattended releases, do not require manual
+environment approval. The deployment identity
 needs push access only to the control ECR repository, ECS describe/register/run/
 update/stop permissions for the environment, and PassRole only for its trusted
 control and execution roles. It does not need provider API keys, application
@@ -91,3 +101,19 @@ The native callback token currently derives from the persistent session signing
 key. Keep that key stable while pending, running or uncertain native jobs remain.
 Drain before rotation; a versioned signing-key ring is not implemented. Bootstrap
 preserves existing session keys rather than silently rotating them.
+
+## Frontend delivery
+
+Terraform provisions a private, versioned S3 bucket, CloudFront with origin access
+control, a DNS-validated ACM certificate in us-east-1 and the frontend Route53
+record. frontend_url must be an HTTPS hostname in public_zone_id and on the same
+site as the API for cookie authentication. After a healthy backend release, the
+workflow uploads the production Flutter bundle, publishes index.html last, then
+invalidates CloudFront and waits for completion. Old objects are retained to
+support clients with older bundles. Frontend failure does not roll back a migrated
+backend; rerun the release after investigating.
+
+Initial provisioning still requires DNS/TLS inputs, control and qualified native
+image digests, encrypted remote Terraform state, bootstrap, runtime provider keys,
+migrations and activation as described in infra/README.md. Do not enable automatic
+releases until that first deployment is healthy and GitHub variables are configured.

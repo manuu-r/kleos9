@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.6"
+  required_version = ">= 1.10"
   required_providers {
     aws    = { source = "hashicorp/aws", version = "~> 6.0" }
     random = { source = "hashicorp/random", version = "~> 3.7" }
@@ -33,7 +33,8 @@ variable "base_domain" {
 }
 variable "public_zone_id" {
   type        = string
-  description = "Existing Route53 hosted zone for base_domain."
+  default     = ""
+  description = "Route53 public zone ID, or empty when public DNS is managed externally (for example Cloudflare)."
 }
 variable "certificate_arn" {
   type        = string
