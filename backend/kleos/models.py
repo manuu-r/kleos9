@@ -5,7 +5,7 @@ from decimal import Decimal
 from importlib.metadata import version
 
 from pydantic import ValidationError
-from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext
+from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext, capture_run_messages
 from pydantic_ai.capabilities import NativeTool
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelResponse, NativeToolCallPart
@@ -276,7 +276,7 @@ class ModelRegistry:
              "creditBalance": None,
              "contextCharacterCeiling": self.settings.max_context_chars,
              "pricingVersion": f"genai-prices-{version('genai-prices')}", "contextLimit": None}
-            for provider, models in self.models.items() for model in models
+            for provider, models in self.models.items() for model in dict.fromkeys(models)
         ], "defaultPolicy": self.default_policy(), "billing": "operator-funded allowances"}
 
 
@@ -295,7 +295,7 @@ class ModelGateway:
         for provider, model_ids in self.registry.models.items():
             if not self.registry.configured(provider):
                 continue
-            for model_id in model_ids:
+            for model_id in dict.fromkeys(model_ids):
                 self._register(provider, model_id, durable)
 
     def _build_model(self, provider, model_id):
@@ -371,12 +371,18 @@ class ModelGateway:
         if retries is None:
             retries = self.settings.modal_rate_limit_retries if provider == "modal" else 0
         for attempt in range(retries + 1):
-            try:
-                return await agent.run(prompt, **kwargs)
-            except ModelHTTPError as exc:
-                if exc.status_code != 429 or attempt == retries:
-                    raise
-                await asyncio.sleep(min(30, 2 ** attempt) + random.random())
+            with capture_run_messages() as messages:
+                try:
+                    return await agent.run(prompt, **kwargs)
+                except ModelHTTPError as exc:
+                    if exc.status_code == 429 and any(isinstance(message, ModelResponse) for message in messages):
+                        # Restarting after a billed response would reset usage limits,
+                        # repeat work and cross providers with a partially completed turn.
+                        raise DomainError("Provider capacity changed after a response; reconcile this attempt before retrying",
+                                          503, "provider_partial_response") from exc
+                    if exc.status_code != 429 or attempt == retries:
+                        raise
+            await asyncio.sleep(min(30, 2 ** attempt) + random.random())
 
     async def generate(self, provider, model, context):
         if (provider, model) not in self.agents:
@@ -386,16 +392,18 @@ class ModelGateway:
         if context.get("lane") == "research" and provider not in WEB_SEARCH_PROVIDERS:
             raise DomainError("Research needs web search, which this provider does not offer", 409,
                               "provider_unsupported")
-        fallback = self.capacity_fallback(provider, context.get("lane"))
-        try:
-            # With a fallback available, one short wait is enough before moving on.
-            return await self._generate(provider, model, context, retries=1 if fallback else None)
-        except ModelHTTPError as exc:
-            if exc.status_code != 429 or not fallback:
-                raise
-        output, usage, transcript = await self._generate(*fallback, context)
-        usage["fallbackFrom"] = {"provider": provider, "model": model, "reason": "rate_limited"}
-        return output, usage, transcript
+        # One deadline covers initial waits and any permitted provider fallback.
+        async with asyncio.timeout(self.settings.model_timeout_seconds):
+            fallback = self.capacity_fallback(provider, context.get("lane"))
+            try:
+                # With a fallback available, one short wait is enough before moving on.
+                return await self._generate(provider, model, context, retries=1 if fallback else None)
+            except ModelHTTPError as exc:
+                if exc.status_code != 429 or not fallback:
+                    raise
+            output, usage, transcript = await self._generate(*fallback, context)
+            usage["fallbackFrom"] = {"provider": provider, "model": model, "reason": "rate_limited"}
+            return output, usage, transcript
 
     async def _generate(self, provider, model, context, retries=None):
         planning = is_planning_context(context)

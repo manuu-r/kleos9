@@ -1,4 +1,5 @@
 """Adapter contract tests use SDK response objects; they never make paid requests."""
+import asyncio
 import json
 
 import httpx
@@ -21,16 +22,41 @@ def settings(**overrides):
 
 @pytest.fixture(autouse=True)
 def no_provider_override(monkeypatch):
-    monkeypatch.delenv("KLEOS_DEFAULT_MODEL_PROVIDER", raising=False)
+    for name in ("KLEOS_DEFAULT_MODEL_PROVIDER", "KLEOS_META_API_KEY", "KLEOS_GEMINI_API_KEY",
+                 "GEMINI_API_KEY", "KLEOS_MODAL_LLM_URL", "KLEOS_MODAL_LLM_KEY"):
+        monkeypatch.delenv(name, raising=False)
 
 
-@pytest.fixture
-def gateway(monkeypatch):
+@pytest.fixture(autouse=True)
+def no_provider_network(monkeypatch):
     async def no_network(*args, **kwargs):
         raise AssertionError("Provider contract tests must never access the network")
     monkeypatch.setattr(httpx.AsyncClient, "send", no_network)
     monkeypatch.setattr(httpx2.AsyncClient, "send", no_network)
+
+
+@pytest.fixture
+def gateway():
     return ModelGateway(settings(modal_fallback_to_meta=False))
+
+
+def test_identical_meta_aliases_register_once_without_duplicate_catalog_choices():
+    config = settings(meta_wonder_model="muse-spark-1.3")
+    gateway = ModelGateway(config)
+    choices = [(row["provider"], row["model"]) for row in gateway.registry.catalog()["models"]]
+    assert len(choices) == len(set(choices)) == 3
+    assert len(gateway.agents) == len(gateway.planning_agents) == 3
+    assert gateway.registry.model_for("meta", "firmware") == "muse-spark-1.3"
+
+
+async def test_model_deadline_bounds_the_entire_invocation(gateway, monkeypatch):
+    gateway.settings.model_timeout_seconds = .01
+    model = gateway.registry.models["modal"][0]
+    async def stalled(*args, **kwargs):
+        await asyncio.Event().wait()
+    monkeypatch.setattr(gateway.agents[("modal", model)], "run", stalled)
+    with pytest.raises(TimeoutError):
+        await gateway.generate("modal", model, {"lane": "coordination"})
 
 
 def payload():
@@ -314,6 +340,24 @@ async def test_rate_limited_modal_call_is_answered_by_the_model_api_and_recorded
     assert len(modal_calls) == 2  # the first call plus one short wait, not the full retry ladder
     assert (usage["provider"], usage["model"]) == ("meta", spark)
     assert usage["fallbackFrom"] == {"provider": "modal", "model": modal, "reason": "rate_limited"}
+
+
+@pytest.mark.parametrize("fallback", [True, False])
+async def test_rate_limit_after_a_billed_response_cannot_restart_or_switch_provider(monkeypatch, fallback):
+    gateway = ModelGateway(settings(modal_fallback_to_meta=fallback))
+    model = gateway.registry.models["modal"][0]
+    def reply(number):
+        if number == 1:
+            # A real SDK response is billed, but fails the coordination output guard.
+            return chat_reply(model, {**payload(), "files": [{"path": "wrong.py", "content": "x = 1"}]})
+        raise ModelHTTPError(429, model, "Later turn is at capacity")
+    requests = patch_replies(monkeypatch, gateway, "modal", model, reply)
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("A partially answered turn cannot change provider")
+    monkeypatch.setattr(gateway.agents[("meta", gateway.registry.models["meta"][0])], "run", forbidden)
+    with pytest.raises(DomainError) as exc:
+        await gateway.generate("modal", model, {"lane": "coordination"})
+    assert exc.value.code == "provider_partial_response" and len(requests) == 2
 
 
 async def test_code_lanes_fall_back_to_the_matching_model_api_model(fallback_gateway, monkeypatch):

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "provider-review-smoke-v1",
+  "checkedAt": "2026-10-30T21:49:29.551986+00:00",
+  "status": "passed",
+  "scope": "Tiny JSON checks only. Initial attempts capped at 128 tokens; two explicit rechecks capped at 512 for reasoning headroom. No automatic retries, fallback, search, engineering generation or customer project changes.",
+  "checks": [
+    {
+      "provider": "meta",
+      "model": "muse-spark-1.3",
+      "outputTokenCeiling": 512,
+      "requestCeiling": 1,
+      "reason": "Initial 128-token response failed validation; one explicit recheck with more output headroom",
+      "status": "passed",
+      "inputTokens": 180,
+      "outputTokens": 28,
+      "requests": 1,
+      "estimatedUsd": 0.000344
+    },
+    {
+      "provider": "meta",
+      "model": "muse-wonder-1.0",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "passed",
+      "inputTokens": 183,
+      "outputTokens": 21,
+      "requests": 1,
+      "estimatedUsd": 0.001152
+    },
+    {
+      "provider": "modal",
+      "model": "meta-models/Muse-Spark-Open-816B-A42B",
+      "outputTokenCeiling": 512,
+      "requestCeiling": 1,
+      "reason": "Initial 128-token response failed validation; one explicit recheck with more output headroom",
+      "status": "passed",
+      "inputTokens": 235,
+      "outputTokens": 128,
+      "requests": 1,
+      "estimatedUsd": 0.00083775
+    },
+    {
+      "provider": "google",
+      "model": "gemini-3.8-flash",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "passed",
+      "inputTokens": 158,
+      "outputTokens": 75,
+      "requests": 1,
+      "estimatedUsd": 0.00039975
+    }
+  ],
+  "knownEstimatedUsd": 0.0027335,
+  "initialChecks": [
+    {
+      "provider": "meta",
+      "model": "muse-spark-1.3",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "failed",
+      "errorType": "UnexpectedModelBehavior",
+      "statusCode": null
+    },
+    {
+      "provider": "meta",
+      "model": "muse-wonder-1.0",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "passed",
+      "inputTokens": 183,
+      "outputTokens": 21,
+      "requests": 1,
+      "estimatedUsd": 0.001152
+    },
+    {
+      "provider": "modal",
+      "model": "meta-models/Muse-Spark-Open-816B-A42B",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "failed",
+      "errorType": "UnexpectedModelBehavior",
+      "statusCode": null
+    },
+    {
+      "provider": "google",
+      "model": "gemini-3.8-flash",
+      "outputTokenCeiling": 128,
+      "requestCeiling": 1,
+      "status": "passed",
+      "inputTokens": 158,
+      "outputTokens": 75,
+      "requests": 1,
+      "estimatedUsd": 0.00039975
+    }
+  ],
+  "additionalAttempts": 2,
+  "maximumTotalOutputTokens": 1536,
+  "completedAt": "2026-10-30T22:00:06.468117+00:00",
+  "attemptCount": 6,
+  "knownEstimateExcludesInitialFailures": true,
+  "initialFailuresWithUnknownCost": [
+    {
+      "provider": "meta",
+      "model": "muse-spark-1.3",
+      "outputTokenCeiling": 128,
+      "errorType": "UnexpectedModelBehavior"
+    },
+    {
+      "provider": "modal",
+      "model": "meta-models/Muse-Spark-Open-816B-A42B",
+      "outputTokenCeiling": 128,
+      "errorType": "UnexpectedModelBehavior"
+    }
+  ],
+  "sdkVersions": {
+    "pydantic-ai-slim": "2.63.0",
+    "openai": "3.41.0",
+    "genai-prices": "0.2.1"
+  }
+}

@@ -462,6 +462,10 @@ class EngineeringEngine:
                 attempt = session.get(Attempt, invocation.attempt_id)
                 invocation.provider = attempt.provider = usage["provider"]
                 invocation.model = attempt.model = usage["model"]
+                emit(session, project, "model.providerFallback", {
+                    "invocationId": invocation.id, "attemptId": attempt.id,
+                    "from": usage["fallbackFrom"], "provider": invocation.provider, "model": invocation.model,
+                    "appliesTo": "this_attempt_only"})
             invocation.estimated_usd = usage.get("estimatedUsd") if usage.get("estimatedUsd") is not None else amount
             invocation.usage = {**invocation.usage, **usage, "costBasis": "conservative_reservation",
                                 "allowanceDebitUsd": amount}

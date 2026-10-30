@@ -44,7 +44,7 @@ def normalize_policies(connection, gemini_model):
 
 
 def upgrade():
-    # Gemini was removed from the settings later; this historical migration pins its last default.
+    # Historical migrations must not depend on later application configuration.
     normalize_policies(op.get_bind(), "gemini-3.8-flash")
 
 

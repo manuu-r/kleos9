@@ -26,6 +26,11 @@ firmware/application); the invocation, attempt and artifact provenance record th
 the usage notes `fallbackFrom`. Set it to `false` to retry up to `KLEOS_MODAL_RATE_LIMIT_RETRIES` times and
 then fail. Only Modal rate limits trigger this; other errors and Model API throttling never switch provider.
 Tokens are priced from the `KLEOS_MODAL_*_USD_PER_MTOK` rates when genai-prices has no entry.
+Retries and fallback are allowed only before the first model response. If a later turn hits
+a capacity error, the invocation remains blocked for reconciliation instead of replaying billed
+work or resetting its usage budget. One model deadline covers waits and fallback together.
+The event stream emits `model.providerFallback` when an allowed switch actually happens;
+the project policy stays unchanged for the next attempt.
 
 Gemini (`KLEOS_GEMINI_MODEL`, default `gemini-3.8-flash`) is a third, opt-in provider enabled by
 `GEMINI_API_KEY`. It is never a default for any lane; pick it per lane in Providers when you want

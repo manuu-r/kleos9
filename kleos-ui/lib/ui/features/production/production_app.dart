@@ -621,9 +621,9 @@ class ModelPolicyEditor extends StatelessWidget {
                 model.configured &&
                 engineeringLanes.keys.every(model.lanes.contains)))
               KButton(
-                  key: ValueKey('provider-preset-${model.choice.model}'),
-                  label:
-                      'Use ${model.choice.model} for all lanes',
+                  key: ValueKey(
+                      'provider-preset-${model.choice.provider}-${model.choice.model}'),
+                  label: 'Use ${model.choice.model} for all lanes',
                   compact: true,
                   onPressed: enabled
                       ? () => onChanged({
@@ -647,7 +647,8 @@ class ModelPolicyEditor extends StatelessWidget {
                 KeyedSubtree(
                     key: ValueKey('provider-${lane.key}'),
                     child: DropdownButtonFormField<String>(
-                      key: ValueKey(lane.key + (selected?.model ?? '')),
+                      key: ValueKey(
+                          '${lane.key}-${selected?.provider}-${selected?.model}'),
                       initialValue: current == null
                           ? null
                           : choices.indexOf(current).toString(),
@@ -660,7 +661,7 @@ class ModelPolicyEditor extends StatelessWidget {
                               child: Text(
                                   '${providerLabel(model.choice.provider)} · ${model.choice.model}',
                                   key: ValueKey(
-                                      'provider-option-${lane.key}-${model.choice.model}'),
+                                      'provider-option-${lane.key}-${model.choice.provider}-${model.choice.model}'),
                                   overflow: TextOverflow.ellipsis))
                       ],
                       onChanged: !enabled

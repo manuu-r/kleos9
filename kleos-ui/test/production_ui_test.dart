@@ -16,12 +16,17 @@ import 'package:kleos_ui/ui/features/production/production_app.dart';
 
 const choices = [
   ModelChoice('meta', 'muse-spark-1.3'),
-  ModelChoice('modal', 'muse-spark-open')
+  ModelChoice('modal', 'muse-spark-open'),
+  ModelChoice('google', 'gemini-3.8-flash')
 ];
 final testCatalog = ModelCatalog([
   for (final choice in choices)
     CatalogModel(
-        choice, choice.provider != 'meta', engineeringLanes.keys.toList()),
+        choice,
+        choice.provider != 'meta',
+        engineeringLanes.keys
+            .where((lane) => choice.provider != 'modal' || lane != 'research')
+            .toList()),
 ], {
   for (final lane in engineeringLanes.keys) lane: choices.first
 });
@@ -280,7 +285,8 @@ void main() {
     api.close();
   });
 
-  testWidgets('all seven lanes switch providers independently on a phone',
+  testWidgets(
+      'phone selects Modal coordination and a search provider for research',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -300,7 +306,7 @@ void main() {
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(7));
     for (final entry in [
       (0, 'Muse on Modal · muse-spark-open', 'modal'),
-      (1, 'Muse on Modal · muse-spark-open', 'modal')
+      (1, 'Gemini · gemini-3.8-flash', 'google')
     ]) {
       final picker = find.byType(DropdownButtonFormField<String>).at(entry.$1);
       await tester.ensureVisible(picker);
@@ -570,8 +576,10 @@ void main() {
     await tester.tap(settings);
     await tester.pumpAndSettle();
     expect(repository.commands, isEmpty);
-    expect(find.byKey(const ValueKey('provider-preset-muse-spark-1.3')), findsNothing);
-    final preset = find.byKey(const ValueKey('provider-preset-muse-spark-open'));
+    expect(find.byKey(const ValueKey('provider-preset-meta-muse-spark-1.3')),
+        findsNothing);
+    final preset =
+        find.byKey(const ValueKey('provider-preset-google-gemini-3.8-flash'));
     await tester.ensureVisible(preset);
     await tester.tap(preset);
     await tester.pumpAndSettle();
@@ -586,9 +594,66 @@ void main() {
     expect(saved['revision'], 9);
     final policy = asMap(asMap(saved['payload'])['modelPolicy']);
     expect(policy.keys.toSet(), engineeringLanes.keys.toSet());
-    expect(policy.values.every((value) => asMap(value)['provider'] == 'modal'),
+    expect(policy.values.every((value) => asMap(value)['provider'] == 'google'),
         isTrue);
     await tester.pumpWidget(const SizedBox());
     repository.dispose();
+  });
+
+  testWidgets(
+      'provider identity survives identical model names and research excludes Modal',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const meta = ModelChoice('meta', 'shared-model');
+    const modal = ModelChoice('modal', 'shared-model');
+    final catalog = ModelCatalog([
+      CatalogModel(meta, true, engineeringLanes.keys.toList()),
+      CatalogModel(modal, true,
+          engineeringLanes.keys.where((lane) => lane != 'research').toList()),
+    ], {
+      for (final lane in engineeringLanes.keys) lane: meta
+    });
+    var policy = catalog.defaults;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SingleChildScrollView(
+                child: StatefulBuilder(
+                    builder: (_, setState) => ModelPolicyEditor(
+                        catalog: catalog,
+                        policy: policy,
+                        enabled: true,
+                        onChanged: (next) =>
+                            setState(() => policy = next)))))));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('provider-preset-modal-shared-model')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('provider-coordination')));
+    await tester.pumpAndSettle();
+    await tester.tap(find
+        .byKey(
+            const ValueKey('provider-option-coordination-modal-shared-model'))
+        .last);
+    await tester.pumpAndSettle();
+    expect(policy['coordination']!.provider, 'modal');
+    final field = find.descendant(
+        of: find.byKey(const ValueKey('provider-coordination')),
+        matching: find.byType(DropdownButtonFormField<String>));
+    expect(tester.widget<DropdownButtonFormField<String>>(field).initialValue,
+        '1');
+    await tester
+        .tap(find.byKey(const ValueKey('provider-preset-meta-shared-model')));
+    await tester.pumpAndSettle();
+    expect(policy['coordination']!.provider, 'meta');
+    expect(tester.widget<DropdownButtonFormField<String>>(field).initialValue,
+        '0');
+    await tester.tap(find.byKey(const ValueKey('provider-research')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(
+            const ValueKey('provider-option-research-modal-shared-model')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

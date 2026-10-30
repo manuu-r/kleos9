@@ -171,7 +171,8 @@ Future<void> main() async {
         for (final lane in defaults.keys) {
           if ((defaults[lane] as Json)['model'] == spark) continue;
           await tap(find.byValueKey('provider-$lane'));
-          await driver.tap(find.byValueKey('provider-option-$lane-$spark'));
+          await driver
+              .tap(find.byValueKey('provider-option-$lane-meta-$spark'));
         }
         await screenshot('02-provider-choices');
         await tap(find.text('Create project'));
@@ -279,7 +280,7 @@ Future<void> main() async {
         await tap(find.text('AI provider settings'));
         await tap(find.byValueKey('provider-coordination'));
         await driver
-            .tap(find.byValueKey('provider-option-coordination-$wonder'));
+            .tap(find.byValueKey('provider-option-coordination-meta-$wonder'));
         await tap(find.text('Save provider choices'));
         await until(
             workspacePath,
@@ -287,7 +288,7 @@ Future<void> main() async {
                 j['project']['modelPolicy']['coordination']['model'] == wonder);
         await driver.waitForAbsent(find.text('Save provider choices'),
             timeout: const Duration(seconds: 30));
-        await tap(find.byValueKey('provider-preset-$spark'));
+        await tap(find.byValueKey('provider-preset-meta-$spark'));
         await tap(find.text('Save provider choices'));
         await until(
             workspacePath,
