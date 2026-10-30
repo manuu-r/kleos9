@@ -223,3 +223,8 @@ kleos9-production/setup-token-784e0469580b874a970eaafc44. Do not commit the toke
 
 All three ECS services completed their initial rollout with one healthy replica
 each. The final provider-backed Terraform plan reported no changes.
+
+For this repository, github_oidc_subject_prefix is
+repo:manuu-r@13869998/kleos9@1438875917. Obtain the exact value using
+`gh api repos/manuu-r/kleos9/actions/oidc/customization/sub --jq .sub_claim_prefix`.
+Newer GitHub repositories include immutable IDs; name-only trust does not match.

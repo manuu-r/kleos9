@@ -17,3 +17,5 @@ activate_conductor       = false
 # Provider calls stay disabled until runtime keys and budgets are configured.
 project_budget_usd = 0
 daily_budget_usd   = 0
+
+github_oidc_subject_prefix = "repo:manuu-r@13869998/kleos9@1438875917"

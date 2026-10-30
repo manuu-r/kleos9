@@ -11,6 +11,11 @@ variable "github_environment" {
   type    = string
   default = "production"
 }
+variable "github_oidc_subject_prefix" {
+  type        = string
+  default     = ""
+  description = "Exact sub_claim_prefix from GitHub's repository OIDC customization API; includes immutable owner/repository IDs for newer repositories. Empty preserves the legacy name-only prefix."
+}
 variable "github_oidc_provider_arn" {
   type        = string
   default     = ""
@@ -31,7 +36,7 @@ resource "aws_iam_role" "github_deploy" {
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = { StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:${var.github_environment}"
+        "token.actions.githubusercontent.com:sub" = "${var.github_oidc_subject_prefix != "" ? var.github_oidc_subject_prefix : "repo:${var.github_repository}"}:environment:${var.github_environment}"
       } }
     }]
   })
