@@ -206,9 +206,10 @@ health and database readiness return HTTP 200, first-owner setup is required,
 and public internal routes return HTTP 404. Qdrant reports HTTP 200 health.
 The CloudFront distribution serves the Flutter bundle with HTTP 200.
 
-Public DNS routing and GitHub CLI authentication remain deployment setup steps.
-The GitHub OIDC role exists but release permissions remain disabled until the
-production environment has main-only branch restrictions and deployment variables.
+Public Cloudflare app/api CNAMEs are configured. The GitHub production environment
+allows deployments from the main branch only and contains the seven deployment
+variables below. The dedicated GitHub OIDC role receives its release permissions
+with enable_github_deploy=true after this branch restriction is verified.
 AWS_DEPLOY_ROLE_ARN is arn:aws:iam::750420487076:role/kleos9-production-github-deploy;
 ECS_CLUSTER is arn:aws:ecs:us-east-1:750420487076:cluster/kleos9-production;
 CONTROL_ECR_REPOSITORY is 750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control;
