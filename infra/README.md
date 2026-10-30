@@ -1,8 +1,9 @@
 # Kleos9 AWS deployment
 
-This Terraform module provisions the initial us-east-1 deployment. It does not
-deploy by running tests. Existing Route53 DNS and an issued ACM certificate
-covering api.DOMAIN and jobs.DOMAIN are inputs. Use encrypted remote Terraform
+This Terraform module provisions the us-east-1 deployment. It does not
+deploy by running tests. Public DNS may use Route53 or an external provider such
+as Cloudflare. An issued ACM certificate covering api.DOMAIN and jobs.DOMAIN is
+an input. Use encrypted remote Terraform
 state with locking; generated Qdrant credentials are sensitive state.
 
 ## Deployment sequence
@@ -78,7 +79,7 @@ before requiring continuous availability.
 
 ## Operations and recovery
 
-Control releases use the manual workflow and version-aware worker drain described
+Control and frontend releases use the automatic main-branch workflow and version-aware worker drain described
 in [DEPLOYMENT.md](../backend/docker/DEPLOYMENT.md). Terraform owns provisioning;
 the release workflow owns service task-definition revisions. Native tool images
 remain separately qualified and pinned through infrastructure inputs.
@@ -114,3 +115,110 @@ Conductor configuration follows the
 All credentials, provider quotas, engineering tool qualifications and actual AWS
 permissions still require deployment-time checks. No cloud resources are created
 by the repository's unit tests.
+
+## Cloudflare DNS and the production deployment role
+
+Public DNS can stay on Cloudflare. Set public_zone_id="" to skip public Route53
+records (private VPC DNS remains on Route53). Use sibling app and api subdomains
+for cookie authentication. Request the backend ACM certificate in the deployment
+region for api.DOMAIN and jobs.DOMAIN, and copy its validation CNAMEs into Cloudflare
+with DNS only. The frontend certificate is managed by this module in us-east-1.
+When provisioning it, inspect ACM's validation records and add them to Cloudflare
+while Terraform waits for certificate validation. Keep validation records for renewal.
+Point app to frontend_dns_target and api to api_dns_target using DNS-only CNAMEs.
+The jobs hostname stays private and requires no public routing record.
+
+The role kleos9-production-github-deploy was created separately in account
+750420487076. Before the first full apply, use these inputs:
+
+```hcl
+name = "kleos9-production"
+environment = "production"
+github_environment = "production"
+github_oidc_provider_arn = "arn:aws:iam::750420487076:oidc-provider/token.actions.githubusercontent.com"
+public_zone_id = ""
+```
+
+After initializing encrypted remote state and supplying the remaining deployment
+inputs, import the existing role rather than recreating it:
+
+```sh
+terraform import aws_iam_role.github_deploy kleos9-production-github-deploy
+```
+
+Terraform then attaches the scoped release policy. The role has no deployment
+permissions until that policy is applied. Its creation trust policy is recorded in
+[github-production-trust.json](iam/github-production-trust.json).
+Create the GitHub production environment and restrict its deployment branches to
+main before enabling deployment permissions. Set AWS_DEPLOY_ROLE_ARN to
+arn:aws:iam::750420487076:role/kleos9-production-github-deploy and configure the other
+variables documented in backend/docker/DEPLOYMENT.md. Never create access keys for
+this role or place root credentials in GitHub.
+
+Production inputs for kleos9.com are recorded in production.tfvars.example.
+The ACM certificate requested for app.kleos9.com also covers api.kleos9.com and
+jobs.kleos9.com. After supplying complete inputs and initializing remote state,
+import it before planning, so Terraform owns renewal and preserves the certificate:
+
+```sh
+terraform import aws_acm_certificate.frontend arn:aws:acm:us-east-1:750420487076:certificate/49bca7a9-d159-4f0f-8756-634ea0e2fedc
+```
+
+As of certificate creation, it is pending validation. In Cloudflare add all three
+ACM CNAMEs with DNS only (grey cloud), retaining them for certificate renewals:
+
+| Name (within kleos9.com) | Target |
+|---|---|
+| _d57cfe347a8dc92b7868d95d813c561b.app | _d9934c326fe8f7f7575e0e1abb8e502f.wzccmgtwzk.acm-validations.aws |
+| _7bcf1ea31782bb827ce949ca59172bc7.api | _777f22c441d950673f3c86ca2cbc086a.wzccmgtwzk.acm-validations.aws |
+| _f455aa18a2187f127431f181a2117185.jobs | _79973871d546feae717e3856c12fe151.wzccmgtwzk.acm-validations.aws |
+
+These validate ownership; they do not route application traffic. Add the app and
+api routing CNAMEs only after their AWS endpoints are provisioned.
+
+The production stack uses encrypted S3 state in
+kleos9-tfstate-750420487076-us-east-1/kleos9/terraform.tfstate with native S3 lockfiles
+(Terraform >=1.10). Public endpoint targets are:
+
+- app.kleos9.com: d2efa1tqsh06nz.cloudfront.net (Cloudflare DNS-only CNAME)
+- api.kleos9.com: kleos9-production-api-1206920013.us-east-1.elb.amazonaws.com (DNS-only CNAME)
+
+Trusted private subnets use a separate S3 gateway endpoint that also permits
+read access to Amazon Linux package repositories. Native worker subnets retain
+the restrictive artifact/ECR endpoint. Qdrant provisioning waits for private routes
+and its trusted endpoint before installing Docker.
+
+Keep enable_github_deploy=false until the production GitHub environment has a
+main-only branch policy. Set it to true and apply only after that restriction is
+verified; the dedicated OIDC role otherwise has no release policy attached.
+
+## Current production deployment
+
+The kleos9-production stack is provisioned in account 750420487076, us-east-1.
+Database bootstrap and Alembic migrations succeeded. The production web bundle
+is published to the private frontend bucket. The initial six immutable ECR image
+references are recorded in production-images.json. Conductor is not activated;
+paid model generation remains disabled with zero project/daily allowances until
+provider credentials and approved allowances are configured.
+
+Verified through the AWS load balancer using the api.kleos9.com TLS hostname:
+health and database readiness return HTTP 200, first-owner setup is required,
+and public internal routes return HTTP 404. Qdrant reports HTTP 200 health.
+The CloudFront distribution serves the Flutter bundle with HTTP 200.
+
+Public DNS routing and GitHub CLI authentication remain deployment setup steps.
+The GitHub OIDC role exists but release permissions remain disabled until the
+production environment has main-only branch restrictions and deployment variables.
+AWS_DEPLOY_ROLE_ARN is arn:aws:iam::750420487076:role/kleos9-production-github-deploy;
+ECS_CLUSTER is arn:aws:ecs:us-east-1:750420487076:cluster/kleos9-production;
+CONTROL_ECR_REPOSITORY is 750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control;
+API_URL is https://api.kleos9.com; FRONTEND_BUCKET is
+kleos9-production-frontend-2d2857147b01fba8c793513c91; FRONTEND_DISTRIBUTION_ID is
+E3LRD5F7XEDJ82; AWS_REGION is us-east-1.
+
+After DNS is configured, open https://app.kleos9.com and use Set up Kleos9 for the
+first owner. Retrieve its one-time token from the AWS Secrets Manager console:
+kleos9-production/setup-token-784e0469580b874a970eaafc44. Do not commit the token.
+
+All three ECS services completed their initial rollout with one healthy replica
+each. The final provider-backed Terraform plan reported no changes.

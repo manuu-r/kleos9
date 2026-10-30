@@ -1,0 +1,8 @@
+{
+  "mechanics": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/mechanics@sha256:1d1c90e1210dbb21463ac1b6affa80dc20cb51522704891fcc788b4c8003e0e0",
+  "electronics": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/electronics@sha256:68c72a72965a0e64760ec48ce063b78d8e477ad250807de7e2ab634935e30099",
+  "firmware": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/firmware@sha256:7de430a8305c6562022aec4898a07f311ea44d7639f6356bfd9bd6b043148665",
+  "application": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/application@sha256:69a2ef638977e939fff28e337de92eeff67257229fca242ab2cdd8f8e0148043",
+  "validate": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/validate@sha256:20caac6bc1c679d706161bf024330e38a0362b5f3025cd07c532d1f588b41c0e",
+  "control": "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control@sha256:e0d58fd9757894f02c63e66920730ddc0bae259e3a6d5d9c0b89f3d38fa3f32b"
+}

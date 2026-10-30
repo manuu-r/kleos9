@@ -82,6 +82,7 @@ resource "aws_lb_listener_rule" "native_api" {
   }
 }
 resource "aws_route53_record" "api" {
+  count   = var.public_zone_id == "" ? 0 : 1
   zone_id = var.public_zone_id
   name    = local.api_hostname
   type    = "A"
@@ -111,3 +112,5 @@ resource "aws_route53_record" "jobs" {
     evaluate_target_health = true
   }
 }
+
+output "api_dns_target" { value = aws_lb.api.dns_name }

@@ -146,7 +146,7 @@ resource "aws_vpc_endpoint" "interface" {
 resource "aws_vpc_endpoint" "s3" {
   vpc_id          = aws_vpc.main.id
   service_name    = "com.amazonaws.${var.region}.s3"
-  route_table_ids = [aws_route_table.private.id, aws_route_table.native.id]
+  route_table_ids = [aws_route_table.native.id]
   # Native code cannot use this endpoint to exfiltrate to an arbitrary S3 bucket.
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Principal = "*", Action = ["s3:GetObject"],
@@ -154,6 +154,22 @@ resource "aws_vpc_endpoint" "s3" {
     { Effect = "Allow", Principal = "*", Action = ["s3:*"],
     Resource = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"] }
   ] })
+}
+resource "aws_vpc_endpoint" "s3_trusted" {
+  vpc_id          = aws_vpc.main.id
+  service_name    = "com.amazonaws.${var.region}.s3"
+  route_table_ids = [aws_route_table.private.id]
+  # Trusted hosts need Amazon Linux packages; native jobs retain the stricter endpoint.
+  policy = jsonencode({ Version = "2012-10-17", Statement = [
+    { Effect = "Allow", Principal = "*", Action = ["s3:GetObject"], Resource = [
+      "arn:${data.aws_partition.current.partition}:s3:::prod-${var.region}-starport-layer-bucket/*",
+      "arn:${data.aws_partition.current.partition}:s3:::al2023-repos-${var.region}-*/*",
+      "arn:${data.aws_partition.current.partition}:s3:::docker-images-prod/*"
+    ] },
+    { Effect = "Allow", Principal = "*", Action = ["s3:*"],
+    Resource = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"] }
+  ] })
+  depends_on = [aws_vpc_endpoint.s3]
 }
 resource "aws_security_group_rule" "native_s3_image_layers" {
   type              = "egress"

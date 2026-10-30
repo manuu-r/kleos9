@@ -211,7 +211,7 @@ resource "aws_instance" "qdrant" {
     bucket     = aws_s3_bucket.artifacts.id
     region     = var.region
   })
-  depends_on = [aws_secretsmanager_secret_version.qdrant, aws_nat_gateway.main, aws_iam_role_policy.qdrant]
+  depends_on = [aws_secretsmanager_secret_version.qdrant, aws_nat_gateway.main, aws_iam_role_policy.qdrant, aws_vpc_endpoint.s3_trusted, aws_route_table_association.private]
   tags       = { Name = "${var.name}-qdrant" }
 }
 resource "aws_volume_attachment" "qdrant" {
