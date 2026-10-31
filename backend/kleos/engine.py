@@ -555,10 +555,9 @@ class EngineeringEngine:
             key = f"transcripts/{invocation.tenant_id}/{project.id}/{invocation.id}.json"
             messages = json.loads(transcript) if isinstance(transcript, str) else transcript
             self.store.put_json(key, redact({"output": output, "messages": messages}))
-            # Until a billing reconciliation is available, retain a conservative allowance debit.
+            from .usage_accounting import invocation_debit
             reserved = invocation.reserved_usd
-            # estimatedUsd covers tokens plus search; unpriced models still owe the search fee.
-            amount = max(reserved, usage.get("estimatedUsd") or usage.get("searchUsd") or 0)
+            amount, cost_basis = invocation_debit(reserved, usage)
             daily = session.get(DailyBudget, invocation.usage["reservationDay"])
             project.reserved_usd = max(0, project.reserved_usd - reserved)
             project.spent_usd += amount
@@ -573,8 +572,8 @@ class EngineeringEngine:
                     "invocationId": invocation.id, "attemptId": attempt.id,
                     "from": usage["fallbackFrom"], "provider": invocation.provider, "model": invocation.model,
                     "appliesTo": "this_attempt_only"})
-            invocation.estimated_usd = usage.get("estimatedUsd") if usage.get("estimatedUsd") is not None else amount
-            invocation.usage = {**invocation.usage, **usage, "costBasis": "conservative_reservation",
+            invocation.estimated_usd = amount
+            invocation.usage = {**invocation.usage, **usage, "costBasis": cost_basis,
                                 "allowanceDebitUsd": amount}
             emit(session, project, "model.completed", {"invocationId": invocation.id, "usage": usage,
                                                       "allowanceDebitUsd": amount})
