@@ -82,7 +82,7 @@ void main() {
         greaterThanOrEqualTo(44));
   });
 
-  testWidgets('cards are borderless tonal surfaces with continuous corners',
+  testWidgets('cards are outlined panels with two cut corners, not rounded',
       (tester) async {
     await _mount(tester, const KCard(child: Text('Body')));
     final box = tester.widget<AnimatedContainer>(find
@@ -91,9 +91,24 @@ void main() {
         .first);
     final decoration = box.decoration as ShapeDecoration;
     expect(decoration.color, KColors.surface);
-    expect(decoration.shape, isA<RoundedSuperellipseBorder>());
+    final shape = decoration.shape as BeveledRectangleBorder;
+    // Opposite corners are cut; the other two stay square.
     expect(
-        (decoration.shape as RoundedSuperellipseBorder).side, BorderSide.none);
+        shape.borderRadius,
+        BorderRadius.only(
+            topRight: Radius.circular(KRadius.card),
+            bottomLeft: Radius.circular(KRadius.card)));
+    expect(shape.side.color, KColors.border);
+    expect(shape.side.width, 1);
+  });
+
+  testWidgets('controls are sharp rectangles with a tiny radius',
+      (tester) async {
+    await _mount(tester, KButton(label: 'Go', primary: true, onPressed: () {}));
+    final style = tester.widget<TextButton>(find.byType(TextButton)).style!;
+    final shape = style.shape!.resolve({}) as RoundedRectangleBorder;
+    expect(shape.borderRadius, BorderRadius.circular(KRadius.control));
+    expect(KRadius.control, lessThanOrEqualTo(4));
   });
 
   testWidgets('selected pills invert and the rest stay tonal', (tester) async {
@@ -203,8 +218,8 @@ void main() {
           (label: 'Two', value: '2', sub: null),
           (label: 'Three', value: '3', sub: null),
         ]));
-    final one = tester.getRect(find.text('One'));
-    final three = tester.getRect(find.text('Three'));
+    final one = tester.getRect(find.text('ONE'));
+    final three = tester.getRect(find.text('THREE'));
     expect(three.top, greaterThan(one.top));
     // The lone cell sits under the first column and is not squeezed narrower.
     expect(three.left, closeTo(one.left, .5));

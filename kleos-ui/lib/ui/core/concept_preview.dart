@@ -164,7 +164,7 @@ class _ConceptPreviewState extends State<ConceptPreview>
             child: DecoratedBox(
               decoration: BoxDecoration(
                   color: KColors.surface,
-                  borderRadius: BorderRadius.circular(KRadius.card),
+                  borderRadius: BorderRadius.circular(KRadius.control),
                   border: Border.all(color: KColors.border)),
               child: _scene.parts.isEmpty
                   ? const Center(
@@ -194,7 +194,8 @@ class _ConceptPreviewState extends State<ConceptPreview>
                                 'Drag to rotate. Pinch or use zoom controls. Select a part below. Arrow keys rotate; Space assembles or separates.',
                             image: true,
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(KRadius.card),
+                              borderRadius:
+                                  BorderRadius.circular(KRadius.control),
                               child: Stack(children: [
                                 Positioned.fill(
                                   child: GestureDetector(

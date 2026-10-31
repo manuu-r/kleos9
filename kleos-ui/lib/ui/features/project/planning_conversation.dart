@@ -139,10 +139,10 @@ class _PlanningConversationState extends State<PlanningConversation> {
         decoration: BoxDecoration(
           color: user ? KColors.surface3 : KColors.surface,
           borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(user ? 16 : 4),
-              topRight: Radius.circular(user ? 4 : 16),
-              bottomLeft: const Radius.circular(16),
-              bottomRight: const Radius.circular(16)),
+              topLeft: Radius.circular(user ? 3 : 0),
+              topRight: Radius.circular(user ? 0 : 3),
+              bottomLeft: const Radius.circular(3),
+              bottomRight: const Radius.circular(3)),
         ),
         child: pColumn([
           pText(user ? 'You' : 'Kleos', muted: true, small: true),

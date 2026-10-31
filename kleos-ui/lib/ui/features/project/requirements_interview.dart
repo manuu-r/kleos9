@@ -261,7 +261,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
         button: true,
         child: InkWell(
             key: ValueKey('requirement-option-$value'),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(KRadius.control),
             onTap: !enabled
                 ? null
                 : () => setState(() {
@@ -283,9 +283,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                     color: checked ? KColors.surface3 : KColors.surface,
                     borderRadius: BorderRadius.circular(KRadius.control),
                     border: Border.all(
-                        color: checked
-                            ? KColors.text.withValues(alpha: .85)
-                            : Colors.transparent,
+                        color: checked ? KColors.actionInk : Colors.transparent,
                         width: 1.5)),
                 child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

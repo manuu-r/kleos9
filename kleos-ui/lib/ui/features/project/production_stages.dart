@@ -545,7 +545,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                       height: 34,
                       decoration: BoxDecoration(
                           color: KColors.surface2,
-                          borderRadius: BorderRadius.circular(9),
+                          borderRadius: BorderRadius.circular(KRadius.control),
                           border: Border.all(color: KColors.border)),
                       child: Icon(_artifactIcon('${artifact['name']}'),
                           size: 16, color: KColors.muted)),
@@ -713,7 +713,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
               color: KColors.surface,
-              borderRadius: BorderRadius.circular(KRadius.card),
+              borderRadius: BorderRadius.circular(KRadius.control),
               border: Border.all(color: KColors.border)),
           child: pColumn([
             LayoutBuilder(builder: (context, c) {

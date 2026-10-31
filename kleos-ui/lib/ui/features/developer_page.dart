@@ -226,7 +226,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                         color: KColors.bg,
-                        borderRadius: BorderRadius.circular(9),
+                        borderRadius: BorderRadius.circular(KRadius.control),
                         border: Border.all(color: KColors.border)),
                     child: SingleChildScrollView(
                         controller: terminal,

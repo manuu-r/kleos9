@@ -719,7 +719,7 @@ class _Explorer extends StatelessWidget {
                           : hovered
                               ? KColors.surface2
                               : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(KRadius.control)),
                   child: Row(children: [
                     Icon(_fileIcon('${file['lane']}', '${file['name']}'),
                         size: 14,
@@ -785,7 +785,7 @@ class CircuitContractNotice extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
         decoration: BoxDecoration(
             color: color.withValues(alpha: .06),
-            borderRadius: BorderRadius.circular(KRadius.card - 4),
+            borderRadius: BorderRadius.circular(KRadius.control),
             border: Border.all(color: color.withValues(alpha: .28))),
         child: Material(
             type: MaterialType.transparency,
@@ -1478,7 +1478,8 @@ class _AppPreviewState extends State<_AppPreview>
                               height: 5,
                               decoration: BoxDecoration(
                                   color: KColors.surface3,
-                                  borderRadius: BorderRadius.circular(8)))),
+                                  borderRadius:
+                                      BorderRadius.circular(KRadius.control)))),
                       const SizedBox(height: 18),
                       Text('${app['title'] ?? 'Your device'}',
                           maxLines: 2,
@@ -1497,7 +1498,8 @@ class _AppPreviewState extends State<_AppPreview>
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                                 color: KColors.surface2,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(KRadius.control),
                                 border: Border.all(color: KColors.border)),
                             child: pColumn([
                               pText(item['label'] ?? item['kind'],

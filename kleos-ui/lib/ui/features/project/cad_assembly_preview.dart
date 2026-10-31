@@ -134,12 +134,13 @@ class _CadAssemblyPreviewState extends State<CadAssemblyPreview>
               tooltip: tooltip,
               onPressed: onPressed,
               style: IconButton.styleFrom(
-                  backgroundColor: KColors.surface3.withValues(alpha: .92),
+                  backgroundColor: KColors.surface.withValues(alpha: .94),
                   disabledBackgroundColor:
                       KColors.surface2.withValues(alpha: .8),
                   foregroundColor: KColors.text,
                   disabledForegroundColor: KColors.faint.withValues(alpha: .6),
-                  shape: KShape.border(KRadius.control)),
+                  side: const BorderSide(color: KColors.borderStrong),
+                  shape: KShape.control()),
               icon: Icon(icon, size: 19)));
 
   void _openFullscreen() => Navigator.of(context).push(MaterialPageRoute<void>(
@@ -225,8 +226,8 @@ class _CadAssemblyPreviewState extends State<CadAssemblyPreview>
                   onPressed: _reset),
             ])),
         Positioned(
-            left: 12,
-            bottom: 8,
+            left: 28,
+            bottom: 16,
             right: 64,
             child: IgnorePointer(
                 child: Text(
@@ -265,13 +266,18 @@ class _CadAssemblyPreviewState extends State<CadAssemblyPreview>
                                 height: 40,
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 14),
-                                decoration: KShape.surface(
-                                    on
-                                        ? KColors.text
+                                decoration: ShapeDecoration(
+                                    color: on
+                                        ? KColors.surface3
                                         : hovered
-                                            ? const Color(0xff343438)
-                                            : KColors.surface3,
-                                    radius: KRadius.pill),
+                                            ? KColors.surface2
+                                            : Colors.transparent,
+                                    shape: KShape.control(
+                                        side: BorderSide(
+                                            width: on ? 1.5 : 1,
+                                            color: on
+                                                ? KColors.actionInk
+                                                : KColors.borderStrong))),
                                 child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -290,7 +296,7 @@ class _CadAssemblyPreviewState extends State<CadAssemblyPreview>
                                                   ? FontWeight.w600
                                                   : FontWeight.w400,
                                               color: on
-                                                  ? KColors.bg
+                                                  ? KColors.text
                                                   : KColors.muted)),
                                     ])))));
               })),

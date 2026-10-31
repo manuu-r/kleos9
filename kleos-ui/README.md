@@ -102,36 +102,32 @@ Open http://127.0.0.1:5180. Existing hash routes and `?s=` project-stage links a
 
 ## Design system
 
-The UI is phone first and built on restraint: tonal depth, continuous corners, one gliding
-selection mark and tactile feedback. Tokens live in `lib/ui/core/theme.dart` and shared widgets in
-`lib/ui/core/widgets.dart`; use them instead of ad-hoc colours, radii or sizes.
+The look lives in one folder, `lib/ui/theme/` ("Signal"): tokens, corner shapes, HUD ornaments,
+Flutter's `ThemeData` and the shared `K*` widgets. Screens only use those; see
+[`lib/ui/theme/README.md`](lib/ui/theme/README.md) for the map and the rules. To iterate on the look
+without a backend, run `flutter run -t lib/theme_gallery.dart -d chrome` (every token and component on
+one page; hot reload works).
 
-- **Depth is lightness, not lines.** A warm near-black ground, then card, nested well and raised
-  control, each one step lighter. Cards, panels, fields and buttons have no outline and no shadow.
-  Only floating things (menus, dialogs) cast a shadow.
-- **Continuous corners.** Surfaces use superellipse corners through `KShape` (concentric radii:
-  20 outer, 14 inner, 10 small, full pills for controls), never plain circular arcs.
-- **One selection mark.** Every tab row (`KTabStrip` / `KSegmented`, the stage tabs, the desktop
-  nav) shares one white 2px indicator that glides to the selected label on a gentle spring. The
-  bottom bar and chips simply brighten or invert (white fill, dark ink). Copper (`KColors.accent`)
-  is reserved for live activity: running work, the part you are touching in a 3D view, focus, and
-  the brand dot. Status keeps its own hues (`pass`, `fail`, `unknown`, `human`, `warn`).
-- **Type.** Geist for text, Geist Mono for ids and figures; off-white text with two greys, titles
-  at most 30px, body 15px, nothing under 12px, a headline figure at most 40px. Every text colour
-  clears 4.5:1 on the surfaces it is used on (`test/design_system_test.dart` enforces it).
-- **Touch.** Controls are at least 44px, page margins 16px on a phone (`KSpace.gutter`), tables
-  become two-line rows below 600px, tab rows scroll sideways inside their own frame. `KTap` gives
-  slightly under the finger and springs back; `KHaptics` ticks on navigation and primary actions on
-  native (a no-op on web).
+- **Flat and sharp.** Near-black panels outlined by a 1px line, no shadows or gradients in chrome.
+  Controls are 3px rectangles; panels have two opposite corners cut at 45 degrees (`KShape.panel`).
+- **Two hues, two jobs.** Blue is action and selection (primary button, the single tab indicator that
+  glides between labels, sliders, focus); coral is the product and live work (running loaders, the
+  part you touch in a 3D view). Status keeps its own hues and is always paired with a word.
+- **Readouts.** Small uppercase mono labels (`KLabel`) for stat labels and meta lines; viewfinder
+  brackets and a faint grid behind products (`KGridBackdrop`).
+- **Type.** Geist for text, Geist Mono for ids, figures and readouts; warm off-white text, body 15px,
+  nothing under 11.5px. Every text colour clears 4.5:1 (`test/design_system_test.dart`).
+- **Touch.** Controls are at least 44px, page margins 16px on a phone (`KSpace.gutter`), tables become
+  two-line rows below 600px, tab rows scroll sideways inside their own frame. `KTap` gives slightly
+  under the finger; `KHaptics` ticks on navigation and primary actions on native.
 - **Loading.** Show the final layout with flat placeholder bars at their real size (`KPulse` +
   `KSkeletonBar` / `KSkeletonRows` / `KPageSkeleton`), never a shimmer. Work in progress uses
-  `KLineLoader` (2px sweeping line) or `KSpinner`; `KButton(loading: true)` shows a spinner and
-  ignores taps. All of it stands still under reduced motion. Errors and empty states stay inside
-  their block (`KNotice`, `KErrorState`, `KEmptyState`).
-- **Products are lit, not diagrammed.** `KGridBackdrop` is the stage a device sits on: a soft
-  spotlight from above on a flat card. `CadAssemblyPreview` orbits with one finger (with inertia),
-  pinch-zooms with two, zooms with the wheel, resets on double tap and opens full screen on a
-  phone; `ConceptPreview` shares the 44px controls. Rendered product visuals keep their own shading.
+  `KLineLoader` or `KSpinner`; `KButton(loading: true)` ignores taps. All of it stands still under
+  reduced motion. Errors and empty states stay inside their block (`KNotice`, `KErrorState`,
+  `KEmptyState`).
+- **3D.** `CadAssemblyPreview` orbits with one finger (with inertia), pinch-zooms with two, zooms with
+  the wheel, resets on double tap and opens full screen on a phone; `ConceptPreview` shares the 44px
+  controls. Rendered product visuals keep their own shading.
 
 Because the shell shows a live loader while any project runs, tests that include a running project
 pump a bounded time instead of `pumpAndSettle`.

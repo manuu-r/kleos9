@@ -153,7 +153,7 @@ class _SegmentPainter extends CustomPainter {
     for (var i = 0; i < tones.length; i++) {
       final x = i * (w + gap);
       final rect =
-          RRect.fromLTRBR(x, 0, x + w, size.height, const Radius.circular(3));
+          RRect.fromLTRBR(x, 0, x + w, size.height, const Radius.circular(1));
       var color = tones[i] == '' || tones[i] == 'unknown'
           ? KColors.surface3
           : toneColor(tones[i]);
@@ -257,7 +257,7 @@ class ContractTile extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
         decoration: BoxDecoration(
             color: KColors.surface,
-            borderRadius: BorderRadius.circular(KRadius.card - 4),
+            borderRadius: BorderRadius.circular(KRadius.control),
             border: Border.all(color: KColors.border)),
         child: pColumn([
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -421,7 +421,7 @@ class _TerminalPanelState extends State<TerminalPanel> {
       constraints: BoxConstraints(maxHeight: widget.maxHeight),
       decoration: BoxDecoration(
           color: KColors.bg,
-          borderRadius: BorderRadius.circular(KRadius.card - 4),
+          borderRadius: BorderRadius.circular(KRadius.control),
           border: Border.all(color: KColors.border)),
       child: ListView.builder(
           controller: _scroll,
@@ -478,7 +478,7 @@ class _CodePanelState extends State<CodePanel> {
         width: double.infinity,
         decoration: BoxDecoration(
             color: KColors.bg,
-            borderRadius: BorderRadius.circular(KRadius.card - 4),
+            borderRadius: BorderRadius.circular(KRadius.control),
             border: Border.all(color: KColors.border)),
         child: Stack(children: [
           ConstrainedBox(
@@ -549,7 +549,7 @@ class PillTabs extends StatelessWidget {
                               borderRadius: BorderRadius.circular(KRadius.pill),
                               border: Border.all(
                                   color: label == selected
-                                      ? KColors.text.withValues(alpha: .8)
+                                      ? KColors.actionInk
                                       : Colors.transparent)),
                           child: Text(label,
                               style: TextStyle(

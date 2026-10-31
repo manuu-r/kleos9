@@ -27,17 +27,23 @@ class ChoicePill extends StatelessWidget {
               duration: KMotion.base,
               curve: KMotion.out,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: KShape.surface(
-                  selected
-                      ? KColors.text
+              decoration: ShapeDecoration(
+                  color: selected
+                      ? KColors.surface3
                       : hovered
-                          ? const Color(0xff343438)
-                          : KColors.surface3,
-                  radius: KRadius.pill),
+                          ? KColors.surface2
+                          : Colors.transparent,
+                  shape: KShape.control(
+                      side: BorderSide(
+                          width: selected ? 1.5 : 1,
+                          color: selected
+                              ? KColors.actionInk
+                              : KColors.borderStrong))),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (multi) ...[
                   Icon(selected ? Icons.check : Icons.add,
-                      size: 14, color: selected ? KColors.bg : KColors.faint),
+                      size: 14,
+                      color: selected ? KColors.actionInk : KColors.faint),
                   const SizedBox(width: 7),
                 ],
                 Flexible(
@@ -46,7 +52,7 @@ class ChoicePill extends StatelessWidget {
                             fontSize: 14,
                             fontWeight:
                                 selected ? FontWeight.w600 : FontWeight.w400,
-                            color: selected ? KColors.bg : KColors.muted))),
+                            color: selected ? KColors.text : KColors.muted))),
               ]))));
 }
 

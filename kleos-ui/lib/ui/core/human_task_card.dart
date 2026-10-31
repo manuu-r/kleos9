@@ -95,7 +95,7 @@ class _HumanTaskCardState extends State<HumanTaskCard> {
         child: pColumn([
       InkWell(
           onTap: () => setState(() => _open = !_open),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(KRadius.control),
           child: Semantics(
             button: true,
             expanded: _open,
@@ -135,7 +135,7 @@ class _HumanTaskCardState extends State<HumanTaskCard> {
                 height: 4,
                 decoration: BoxDecoration(
                     color: i <= flowIndex ? KColors.text : KColors.surface3,
-                    borderRadius: BorderRadius.circular(3)),
+                    borderRadius: BorderRadius.circular(KRadius.control)),
               ),
           ]),
         if (state == 'WAITING_FOR_CONNECTOR')
@@ -205,7 +205,7 @@ class _HumanTaskCardState extends State<HumanTaskCard> {
                     decoration: BoxDecoration(
                         color: KColors.bg,
                         border: Border.all(color: KColors.border),
-                        borderRadius: BorderRadius.circular(9)),
+                        borderRadius: BorderRadius.circular(KRadius.control)),
                     child: Center(
                         child: pColumn([
                       const Icon(Icons.photo_outlined,

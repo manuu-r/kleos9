@@ -324,7 +324,7 @@ class _ProviderPageState extends State<ProviderPage> {
               for (final j in jobs)
                 InkWell(
                     onTap: () => setState(() => selected = '${j['id']}'),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(KRadius.control),
                     child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(

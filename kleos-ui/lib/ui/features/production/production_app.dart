@@ -259,7 +259,8 @@ class _SignInPageState extends ConsumerState<_SignInPage> {
                             decoration: BoxDecoration(
                                 color: KColors.surface3,
                                 border: Border.all(color: KColors.borderStrong),
-                                borderRadius: BorderRadius.circular(8)),
+                                borderRadius:
+                                    BorderRadius.circular(KRadius.control)),
                             child: const Text('K9',
                                 style: TextStyle(
                                     fontFamily: 'GeistMono',

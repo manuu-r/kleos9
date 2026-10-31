@@ -94,11 +94,9 @@ class AppShell extends ConsumerWidget {
 
   /// Labelled bottom bar. The copper line over the selected icon comes from
   /// the navigation theme; nothing is filled.
-  Widget _bottomNav(BuildContext context) => ClipPath(
-      clipper: ShapeBorderClipper(
-          shape: RoundedSuperellipseBorder(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)))),
+  Widget _bottomNav(BuildContext context) => DecoratedBox(
+      decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: KColors.border))),
       child: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) {
@@ -153,7 +151,9 @@ class AppShell extends ConsumerWidget {
     final gutter = KSpace.gutter(context);
     final header = Container(
         height: phone ? 56 : 64,
-        color: KColors.bg,
+        decoration: const BoxDecoration(
+            color: KColors.bg,
+            border: Border(bottom: BorderSide(color: KColors.border))),
         child: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1200),
@@ -194,6 +194,7 @@ class AppShell extends ConsumerWidget {
                                     height: 64,
                                     child: KTabStrip(
                                         rule: false,
+                                        fill: false,
                                         height: 64,
                                         gap: 14,
                                         selected: index,
@@ -360,7 +361,8 @@ class _BrandMark extends StatelessWidget {
             width: 30,
             height: 30,
             alignment: Alignment.center,
-            decoration: KShape.surface(KColors.surface3, radius: 9),
+            decoration: ShapeDecoration(
+                color: KColors.surface3, shape: KShape.panel(cut: 7)),
             child: const Text('K9',
                 style: TextStyle(
                     fontFamily: 'GeistMono',

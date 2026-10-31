@@ -116,7 +116,7 @@ class StageTrack extends StatelessWidget {
                   curve: KMotion.out,
                   height: 4,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(KRadius.control),
                       color: finished || i < stage
                           ? KColors.text.withValues(alpha: .42)
                           : i == stage
@@ -414,7 +414,7 @@ class _HomeLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
       onTap: () => context.go(route),
-      borderRadius: BorderRadius.circular(KRadius.card),
+      borderRadius: BorderRadius.circular(KRadius.control),
       child: KCard(
           child: kColumn([
         Row(children: [

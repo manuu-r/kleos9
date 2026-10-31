@@ -263,9 +263,10 @@ class _RailStop extends StatelessWidget {
                             curve: KMotion.out,
                             height: 3,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius:
+                                  BorderRadius.circular(KRadius.control),
                               color: current
-                                  ? KColors.accent
+                                  ? KColors.actionInk
                                   : finished || reached
                                       ? KColors.text
                                           .withValues(alpha: hovered ? .6 : .38)
