@@ -5,6 +5,273 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/printers/bambu/catalog": {
+      "get": {
+        "summary": "Bambu Catalog",
+        "operationId": "bambu_catalog_api_v1_printers_bambu_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuCatalogView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations": {
+      "post": {
+        "summary": "Prepare Print",
+        "operationId": "prepare_print_api_v1_projects__project_id__print_preparations_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreparePrint"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Prints",
+        "operationId": "list_prints_api_v1_projects__project_id__print_preparations_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations/{ident}": {
+      "get": {
+        "summary": "Read Print",
+        "operationId": "read_print_api_v1_projects__project_id__print_preparations__ident__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel Print",
+        "operationId": "cancel_print_api_v1_projects__project_id__print_preparations__ident__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations/{ident}/complete": {
+      "post": {
+        "summary": "Complete Print",
+        "operationId": "complete_print_api_v1_projects__project_id__print_preparations__ident__complete_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreparedPrint"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/connectors": {
       "get": {
         "summary": "Connectors",
@@ -2905,13 +3172,107 @@
         ],
         "title": "AttemptView"
       },
+      "BambuCatalogView": {
+        "properties": {
+          "studioVersion": {
+            "type": "string",
+            "title": "Studioversion"
+          },
+          "models": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "profiles": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "studioVersion",
+          "models",
+          "profiles",
+          "limitations"
+        ],
+        "title": "BambuCatalogView"
+      },
+      "BambuProfile": {
+        "properties": {
+          "printerModelId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Printermodelid"
+          },
+          "nozzleMm": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Nozzlemm"
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Material"
+          },
+          "studioVersion": {
+            "type": "string",
+            "const": "2.8.2.61",
+            "title": "Studioversion",
+            "default": "2.8.2.61"
+          },
+          "bundleSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Bundlesha256"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][A-Za-z0-9._/:-]*@sha256:[a-f0-9]{64})$",
+            "title": "Image"
+          },
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "printerModelId",
+          "nozzleMm",
+          "material",
+          "bundleSha256",
+          "image"
+        ],
+        "title": "BambuProfile"
+      },
       "BridgeTelemetry": {
         "properties": {
           "kind": {
             "type": "string",
             "enum": [
               "octoprint",
-              "moonraker"
+              "moonraker",
+              "bambu"
             ],
             "title": "Kind"
           },
@@ -4076,6 +4437,170 @@
           "expectedEngineeringRevision"
         ],
         "title": "PortalObservation"
+      },
+      "PreparePrint": {
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Releaseid"
+          },
+          "artifactId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Artifactid"
+          },
+          "profileId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Profileid"
+          },
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "releaseId",
+          "artifactId",
+          "profileId",
+          "expectedEngineeringRevision"
+        ],
+        "title": "PreparePrint"
+      },
+      "PreparedPrint": {
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Artifactid"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          },
+          "bundleSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Bundlesha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "artifactId",
+          "sha256",
+          "bundleSha256"
+        ],
+        "title": "PreparedPrint"
+      },
+      "PrintPreparationView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "projectId": {
+            "type": "string",
+            "title": "Projectid"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "sourceArtifactId": {
+            "type": "string",
+            "title": "Sourceartifactid"
+          },
+          "sourceSha256": {
+            "type": "string",
+            "title": "Sourcesha256"
+          },
+          "profileId": {
+            "type": "string",
+            "title": "Profileid"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/BambuProfile"
+          },
+          "preparedArtifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparedartifactid"
+          },
+          "preparedSha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparedsha256"
+          },
+          "measurements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Measurements"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "engineeringRevision",
+          "status",
+          "sourceArtifactId",
+          "sourceSha256",
+          "profileId",
+          "profile",
+          "preparedArtifactId",
+          "preparedSha256",
+          "measurements"
+        ],
+        "title": "PrintPreparationView"
+      },
+      "PrintPreparationsView": {
+        "properties": {
+          "preparations": {
+            "items": {
+              "$ref": "#/components/schemas/PrintPreparationView"
+            },
+            "type": "array",
+            "title": "Preparations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preparations"
+        ],
+        "title": "PrintPreparationsView"
       },
       "ProjectAccessRequest": {
         "properties": {

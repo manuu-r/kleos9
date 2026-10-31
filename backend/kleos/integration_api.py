@@ -10,6 +10,14 @@ from pydantic import Field, StrictBool
 from sqlalchemy import select
 
 from .auth import Principal, authenticate
+from .bambu_contracts import (
+    BambuCatalogView,
+    PreparedPrint,
+    PreparePrint,
+    PrintPreparationsView,
+    PrintPreparationView,
+)
+from .bambu_print import BambuPrintService
 from .connectors import ConnectorService, DigiKeyCatalog, RemoteConnector, ResearchService
 from .contracts import ConnectorManifest, DomainError, WireModel
 from .db import Connector, Source
@@ -29,7 +37,7 @@ class RetrievalRequest(WireModel):
 
 
 class BridgeTelemetry(WireModel):
-    kind: Literal["octoprint", "moonraker"]
+    kind: Literal["octoprint", "moonraker", "bambu"]
     connected: StrictBool
     state: str = Field(max_length=500)
     profile: dict = Field(default_factory=dict)
@@ -104,6 +112,32 @@ def register_routes(app, db, settings, store):
                                catalog=DigiKeyCatalog(settings), learning=LearningService(db, settings, store),
                                compute=ModalCompute(db, settings, store))
     app.state.integrations = services
+    printing = BambuPrintService(db, settings, store)
+
+    @app.get("/api/v1/printers/bambu/catalog", response_model=BambuCatalogView)
+    def bambu_catalog(principal: Principal = Depends(authenticate)):
+        return printing.catalog()
+
+    @app.post("/api/v1/projects/{project_id}/print-preparations", response_model=PrintPreparationView)
+    def prepare_print(project_id: str, body: PreparePrint, principal: Principal = Depends(authenticate),
+                      idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=64)):
+        return printing.create(principal, project_id, body, idempotency_key)
+
+    @app.get("/api/v1/projects/{project_id}/print-preparations", response_model=PrintPreparationsView)
+    def list_prints(project_id: str, principal: Principal = Depends(authenticate)):
+        return printing.list(principal, project_id)
+
+    @app.get("/api/v1/projects/{project_id}/print-preparations/{ident}", response_model=PrintPreparationView)
+    def read_print(project_id: str, ident: str, principal: Principal = Depends(authenticate)):
+        return printing.read(principal, project_id, ident)
+
+    @app.delete("/api/v1/projects/{project_id}/print-preparations/{ident}", response_model=PrintPreparationView)
+    def cancel_print(project_id: str, ident: str, principal: Principal = Depends(authenticate)):
+        return printing.cancel(principal, project_id, ident)
+
+    @app.post("/api/v1/projects/{project_id}/print-preparations/{ident}/complete", response_model=PrintPreparationView)
+    def complete_print(project_id: str, ident: str, body: PreparedPrint, principal: Principal = Depends(authenticate)):
+        return printing.complete(principal, project_id, ident, body)
 
     def memory():
         # Construct the client lazily so API startup does not require a reachable Qdrant node.

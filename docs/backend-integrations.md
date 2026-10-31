@@ -18,6 +18,10 @@ The production API uses authenticated, organization-scoped adapters. Default tes
 | `POST /api/v1/webhooks/{id}` | Verify, deduplicate, and persist a provider observation for durable processing |
 | `POST /api/v1/bridges/{id}/token` | Administrator creates/rotates the local bridge token; return it once |
 | `POST /api/v1/bridges/{id}/telemetry` | Accept current read-only printer observations; never dispatch printer commands |
+| `GET /api/v1/printers/bambu/catalog` | Authenticated pinned model/nozzle catalog and operator-qualified slicing profiles |
+| `GET/POST /api/v1/projects/{id}/print-preparations` | List or durably prepare a current accepted-release STL for local offline slicing |
+| `GET/DELETE /api/v1/projects/{id}/print-preparations/{preparationId}` | Inspect or cancel a revision-fenced digital preparation |
+| `POST /api/v1/projects/{id}/print-preparations/{preparationId}/complete` | Validate bounded uploaded package structure and save a separate prepared artifact; no physical acceptance |
 | `GET /api/v1/projects/{id}/portal/tasks` | Current simulated fulfillment assignments |
 | `POST /api/v1/portal/tasks/{id}/observations` | Record synthetic human-task progress without changing engineering acceptance |
 | `GET/POST /api/v1/learning/datasets` | Administrator views/creates versioned, consent-aware dataset manifests |
@@ -108,6 +112,16 @@ Set `KLEOS_PRINTER_API_KEY` and `KLEOS_BRIDGE_TOKEN` in that machine's protected
 ```
 
 OctoPrint reads `/api/printer` and `/api/printerprofiles`; Moonraker reads `/printer/info`. The bridge pins a local validated address and sends no credentials to redirected or rebound destinations. Its only outbound platform operation submits telemetry. It neither polls for commands nor executes response commands, files, scripts, G-code, or action URLs. Telemetry older than the configured freshness threshold is shown as disconnected. Reported printer state is never physical acceptance evidence.
+
+The [Bambu adapter](../backend/docs/bambu-printers.md) adds local read-only MQTT/TLS
+status with an owner-verified certificate pin, reported model detection and a
+14-model dropdown fallback. A separate authenticated local preparation client
+slices an accepted binary STL in the pinned offline image and uploads the real
+single-plate `.gcode.3mf`. The platform records a digital adapter report; it does
+not independently establish printability or permit physical acceptance. Operator
+review/start happens in Bambu Connect. Defaults contain no qualified slicing
+profiles; printer/firmware/material qualification is separate. No direct printer
+control, FTP upload or cloud-signature bypass is implemented.
 
 The provider portal is currently organization-scoped for invited users. Assignments and observations are visibly simulated and stay tied to their engineering revision. Vendor-specific authentication, real labor commitments, printing and payments need separately qualified live adapters; the current server blocks those effects.
 

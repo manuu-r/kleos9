@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 82e48a0e01b9f3537f0e15cf6ac743cc33c5363fb2060cd8b7955ed9477234d3
+// Schema SHA-256: 5d27c4d8b69bdfded95e81c1335eb3a038c36414ac0d01f637d51e2cc3ec4d4f
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -123,6 +123,76 @@ class ApiAttemptView {
         'contextManifest': contextManifest,
         'output': output,
         'calls': calls.map((v) => v.toJson()).toList(growable: false),
+      };
+}
+
+class ApiBambuCatalogView {
+  const ApiBambuCatalogView({
+    required this.studioVersion,
+    required this.models,
+    required this.profiles,
+    required this.limitations,
+  });
+  factory ApiBambuCatalogView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuCatalogView(
+        studioVersion: json['studioVersion'] as String,
+        models: List<Map<String, dynamic>>.unmodifiable((json['models'] as List)
+            .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
+        profiles: List<Map<String, dynamic>>.unmodifiable(
+            (json['profiles'] as List)
+                .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
+        limitations: List<String>.unmodifiable(
+            (json['limitations'] as List).map((v) => v as String)),
+      );
+  final String studioVersion;
+  final List<Map<String, dynamic>> models;
+  final List<Map<String, dynamic>> profiles;
+  final List<String> limitations;
+  Map<String, dynamic> toJson() => {
+        'studioVersion': studioVersion,
+        'models': models.map((v) => v).toList(growable: false),
+        'profiles': profiles.map((v) => v).toList(growable: false),
+        'limitations': limitations.map((v) => v).toList(growable: false),
+      };
+}
+
+class ApiBambuProfile {
+  const ApiBambuProfile({
+    required this.printerModelId,
+    required this.nozzleMm,
+    required this.material,
+    this.studioVersion,
+    required this.bundleSha256,
+    required this.image,
+    this.qualified,
+  });
+  factory ApiBambuProfile.fromJson(Map<String, dynamic> json) =>
+      ApiBambuProfile(
+        printerModelId: json['printerModelId'] as String,
+        nozzleMm: (json['nozzleMm'] as num).toDouble(),
+        material: json['material'] as String,
+        studioVersion: json['studioVersion'] == null
+            ? null
+            : json['studioVersion'] as String,
+        bundleSha256: json['bundleSha256'] as String,
+        image: json['image'] as String,
+        qualified: json['qualified'] == null ? null : json['qualified'] as bool,
+      );
+  final String printerModelId;
+  final double nozzleMm;
+  final String material;
+  final String? studioVersion;
+  final String bundleSha256;
+  final String image;
+  final bool? qualified;
+  Map<String, dynamic> toJson() => {
+        'printerModelId': printerModelId,
+        'nozzleMm': nozzleMm,
+        'material': material,
+        if (studioVersion != null) 'studioVersion': studioVersion,
+        'bundleSha256': bundleSha256,
+        'image': image,
+        if (qualified != null) 'qualified': qualified,
       };
 }
 
@@ -458,6 +528,138 @@ class ApiModelView {
         'contextCharacterCeiling': contextCharacterCeiling,
         'pricingVersion': pricingVersion,
         'contextLimit': contextLimit,
+      };
+}
+
+class ApiPreparePrint {
+  const ApiPreparePrint({
+    required this.releaseId,
+    required this.artifactId,
+    required this.profileId,
+    required this.expectedEngineeringRevision,
+  });
+  factory ApiPreparePrint.fromJson(Map<String, dynamic> json) =>
+      ApiPreparePrint(
+        releaseId: json['releaseId'] as String,
+        artifactId: json['artifactId'] as String,
+        profileId: json['profileId'] as String,
+        expectedEngineeringRevision:
+            (json['expectedEngineeringRevision'] as num).toInt(),
+      );
+  final String releaseId;
+  final String artifactId;
+  final String profileId;
+  final int expectedEngineeringRevision;
+  Map<String, dynamic> toJson() => {
+        'releaseId': releaseId,
+        'artifactId': artifactId,
+        'profileId': profileId,
+        'expectedEngineeringRevision': expectedEngineeringRevision,
+      };
+}
+
+class ApiPreparedPrint {
+  const ApiPreparedPrint({
+    required this.artifactId,
+    required this.sha256,
+    required this.bundleSha256,
+  });
+  factory ApiPreparedPrint.fromJson(Map<String, dynamic> json) =>
+      ApiPreparedPrint(
+        artifactId: json['artifactId'] as String,
+        sha256: json['sha256'] as String,
+        bundleSha256: json['bundleSha256'] as String,
+      );
+  final String artifactId;
+  final String sha256;
+  final String bundleSha256;
+  Map<String, dynamic> toJson() => {
+        'artifactId': artifactId,
+        'sha256': sha256,
+        'bundleSha256': bundleSha256,
+      };
+}
+
+class ApiPrintPreparationView {
+  const ApiPrintPreparationView({
+    required this.id,
+    required this.projectId,
+    required this.engineeringRevision,
+    required this.status,
+    required this.sourceArtifactId,
+    required this.sourceSha256,
+    required this.profileId,
+    required this.profile,
+    required this.preparedArtifactId,
+    required this.preparedSha256,
+    required this.measurements,
+    this.physicalAcceptance,
+  });
+  factory ApiPrintPreparationView.fromJson(Map<String, dynamic> json) =>
+      ApiPrintPreparationView(
+        id: json['id'] as String,
+        projectId: json['projectId'] as String,
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        status: json['status'] as String,
+        sourceArtifactId: json['sourceArtifactId'] as String,
+        sourceSha256: json['sourceSha256'] as String,
+        profileId: json['profileId'] as String,
+        profile: ApiBambuProfile.fromJson(_object(json['profile'])),
+        preparedArtifactId: json['preparedArtifactId'] == null
+            ? null
+            : json['preparedArtifactId'] as String,
+        preparedSha256: json['preparedSha256'] == null
+            ? null
+            : json['preparedSha256'] as String,
+        measurements:
+            Map<String, dynamic>.unmodifiable(_object(json['measurements'])),
+        physicalAcceptance: json['physicalAcceptance'] == null
+            ? null
+            : json['physicalAcceptance'] as bool,
+      );
+  final String id;
+  final String projectId;
+  final int engineeringRevision;
+  final String status;
+  final String sourceArtifactId;
+  final String sourceSha256;
+  final String profileId;
+  final ApiBambuProfile profile;
+  final String? preparedArtifactId;
+  final String? preparedSha256;
+  final Map<String, dynamic> measurements;
+  final bool? physicalAcceptance;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'projectId': projectId,
+        'engineeringRevision': engineeringRevision,
+        'status': status,
+        'sourceArtifactId': sourceArtifactId,
+        'sourceSha256': sourceSha256,
+        'profileId': profileId,
+        'profile': profile.toJson(),
+        'preparedArtifactId': preparedArtifactId,
+        'preparedSha256': preparedSha256,
+        'measurements': measurements,
+        if (physicalAcceptance != null)
+          'physicalAcceptance': physicalAcceptance,
+      };
+}
+
+class ApiPrintPreparationsView {
+  const ApiPrintPreparationsView({
+    required this.preparations,
+  });
+  factory ApiPrintPreparationsView.fromJson(Map<String, dynamic> json) =>
+      ApiPrintPreparationsView(
+        preparations: List<ApiPrintPreparationView>.unmodifiable(
+            (json['preparations'] as List)
+                .map((v) => ApiPrintPreparationView.fromJson(_object(v)))),
+      );
+  final List<ApiPrintPreparationView> preparations;
+  Map<String, dynamic> toJson() => {
+        'preparations':
+            preparations.map((v) => v.toJson()).toList(growable: false),
       };
 }
 

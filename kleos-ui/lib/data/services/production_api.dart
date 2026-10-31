@@ -72,6 +72,24 @@ class ProductionApi {
               '/projects/${Uri.encodeComponent(projectId)}/circuit-simulation',
               organizationId: organizationId))
           .toJson();
+  Future<JsonMap> bambuCatalog({String? organizationId}) async =>
+      ApiBambuCatalogView.fromJson(await get('/printers/bambu/catalog',
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> printPreparations(String projectId,
+          {String? organizationId}) async =>
+      ApiPrintPreparationsView.fromJson(await get(
+              '/projects/${Uri.encodeComponent(projectId)}/print-preparations',
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> prepareBambuPrint(String projectId, JsonMap body,
+          {required String key, String? organizationId}) async =>
+      ApiPrintPreparationView.fromJson(await post(
+              '/projects/${Uri.encodeComponent(projectId)}/print-preparations',
+              ApiPreparePrint.fromJson(body).toJson(),
+              idempotencyKey: key,
+              organizationId: organizationId))
+          .toJson();
   Future<JsonMap> companionPreview(String projectId,
           {required String artifactId, String? organizationId}) =>
       post('/projects/${Uri.encodeComponent(projectId)}/companion-preview',

@@ -8,6 +8,18 @@ Build from the repository's backend directory:
 
 The other native targets are electronics, firmware, and application.
 
+The separate [Bambu plate preparation image](../docs/bambu-printers.md) is built
+with `docker build --platform linux/amd64 -f docker/Dockerfile.bambu-slicer -t
+kleos-bambu:2.8.2.61 .`. It pins and verifies the vendor AppImage checksum and uses
+the existing unprivileged supervisor, offline with a read-only root. It is a
+customer-run digital adapter, not a cloud native-job target or printer controller.
+`docker/smoke_bambu.py --profiles <resolved-bundle> --bundle-sha256 <hash> --image
+<immutable-id>` exercises a trusted cube through those runtime limits; run it with
+`.venv/bin/python` from `backend/`. Exact command, profile resolution and separate
+operator qualification steps are in the linked guide. A smoke result never
+qualifies a physical printer. [Current verification](../verification/bambu-printer-connector.md)
+records image execution as not run while Docker's daemon is unavailable.
+
 The shared validation/electronics toolchain pins Debian ngspice `39.3+ds-1`
 (authenticated APT package hashes). Qualify each built image offline:
 

@@ -12,6 +12,13 @@ production transport. Physical fulfillment is explicitly simulated and live disp
 The code is runnable locally. AWS/account provisioning, real provider qualification and the
 complete smartwatch acceptance run remain deployment checks; tests do not establish those outcomes.
 
+The optional [Bambu Lab connector](docs/bambu-printers.md) adds accepted-STL print
+preparation, a pinned offline slicer image, local read-only TLS telemetry and
+operator handoff to Bambu Connect. All 14 pinned models are selectable, with
+reported-model detection and a manual fallback. Exact profiles/image/hardware
+need qualification; the default profile registry is empty. See its
+[verification record](verification/bambu-printer-connector.md).
+
 The optional [circuit simulation](docs/circuit-simulation.md) deterministically
 compiles explicitly bound accepted circuit/power interfaces and runs ngspice in
 independent native validation. It records advisory digital checks and hashed

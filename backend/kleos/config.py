@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .bambu_contracts import BambuProfile
 from .contracts import EngineeringToolDefinition, Lane
 from .native_resources import NativeResources, default_profiles
 
@@ -20,6 +21,8 @@ class Settings(BaseSettings):
     conductor_url: str | None = None
     conductor_key: SecretStr | None = None
     demo_mode: bool = True
+    # Operator-qualified complete profile bundles; never supplied by generated code.
+    bambu_slice_profiles: dict[str, BambuProfile] = Field(default_factory=dict)
     auth_mode: Literal["password", "development"] = "password"
     development_token: SecretStr | None = None
     development_no_login: bool = False

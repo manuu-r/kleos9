@@ -11,6 +11,9 @@ backend, a separate simulation backend, isolated native builders, and AWS
 infrastructure. **Physical fabrication, human acceptance, purchases, printing,
 packing and shipping remain explicitly simulated.** Digital outputs and supported
 checks are real; an attractive concept preview is not manufacturing approval.
+The optional [Bambu Lab adapter](backend/docs/bambu-printers.md) adds real offline
+plate preparation and a local Bambu Connect handoff. Operators review and start
+their prints in Connect; this does not unlock platform physical acceptance.
 
 ## Documentation map
 
@@ -44,7 +47,7 @@ they do not certify arbitrary devices, providers or deployments.
 | Firmware | Qualified Zephyr templates/toolchains and supported protocol/simulation checks; unsupported peripherals remain visible |
 | Companion apps | Separate Flutter template, BLE permissions/connection/notifications, real web build, ARM64 development-signed APK and portable source package |
 | Validation/releases | Independent checks, exact artifact closures, source hashes, evidence applicability and downloadable release packages |
-| Integrations | Versioned connector contracts, configured research/catalog adapters, printer status/bridge contracts and explicitly simulated fulfillment |
+| Integrations | Versioned connector contracts, research/catalog adapters, read-only printer bridges, Bambu offline plate preparation and explicitly simulated fulfillment |
 | Operations | Durable command/event ledgers, DBOS recovery, traces, redacted AI/tool records, native metrics and run inspection |
 | Learning | Modal compute contracts and consent/provenance/promotion foundations; growth does not automatically start training |
 

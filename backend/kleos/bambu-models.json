@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "bambu-models-v1",
+  "studioVersion": "2.8.2.61",
+  "source": "https://github.com/bambulab/BambuStudio/tree/v02.08.02.61/resources/profiles/BBL",
+  "indexSha256": "a84ed53d624dabe3367abe82583c54e61bc7ea6fb496766e1ae74d1bae594a6d",
+  "license": "AGPL-3.0 (Bambu Studio profile metadata)",
+  "models": [
+    {
+      "id": "BL-P001",
+      "name": "Bambu Lab X1 Carbon",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab X1 Carbon.json",
+      "sourceSha256": "d2707971f7c2d070cfebce42e29f9cb718c7de2dc759964844b19b5f0f43f491"
+    },
+    {
+      "id": "BL-P002",
+      "name": "Bambu Lab X1",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab X1.json",
+      "sourceSha256": "7df82483d8114a4b555c3e516abc40a9a710f6bb16e4b165dda861fe9670f42c"
+    },
+    {
+      "id": "C13",
+      "name": "Bambu Lab X1E",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab X1E.json",
+      "sourceSha256": "198e418285137e6ead42ac87f04e5688b9ba2db4e2ddb6530b681c37759e24fc"
+    },
+    {
+      "id": "C11",
+      "name": "Bambu Lab P1P",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab P1P.json",
+      "sourceSha256": "6d3fbb62ea11519427c82e711f558f615f59590a572710c31175a5fc6dd76791"
+    },
+    {
+      "id": "C12",
+      "name": "Bambu Lab P1S",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab P1S.json",
+      "sourceSha256": "9c06ddffe0f724a6c69b4360c2a695ef7cf0d23016f2b007ac4c530ff6aecee6"
+    },
+    {
+      "id": "N1",
+      "name": "Bambu Lab A1 mini",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab A1 mini.json",
+      "sourceSha256": "1ca393576f933ec39bad8e17b6fd72b7b4363ba97a8bfc396560389544ceae32"
+    },
+    {
+      "id": "N2S",
+      "name": "Bambu Lab A1",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab A1.json",
+      "sourceSha256": "8515a94ae9c1a626abbf806a1e26d149c2be9ce6b1f52abc8a3355afb011a61b"
+    },
+    {
+      "id": "O1D",
+      "name": "Bambu Lab H2D",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab H2D.json",
+      "sourceSha256": "9ede2673c374c8222c9a1d68771f75d33c9c1a27a0cc2b4e98eca36a81dbdcd4"
+    },
+    {
+      "id": "O1E",
+      "name": "Bambu Lab H2D Pro",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab H2D Pro.json",
+      "sourceSha256": "167faca34bf88f5c1df450dc6dc3a00fa8d3c84b730e1d0c9dab200a7f3a6e91"
+    },
+    {
+      "id": "O1S",
+      "name": "Bambu Lab H2S",
+      "nozzlesMm": [
+        0.2,
+        0.4,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab H2S.json",
+      "sourceSha256": "f9f694efa8e8509eb0e8471559c97d1a7eeb08b7a334f9bc40801db80e3a566a"
+    },
+    {
+      "id": "N7",
+      "name": "Bambu Lab P2S",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab P2S.json",
+      "sourceSha256": "315158b42c8518fc90e3c011adfd6c5b30eb40127594e6b0802366f9ea210a0b"
+    },
+    {
+      "id": "O1C2",
+      "name": "Bambu Lab H2C",
+      "nozzlesMm": [
+        0.2,
+        0.4,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab H2C.json",
+      "sourceSha256": "b3f0d2db0ff6fe5b64a60bca2b17cd88dd4388bceda8438a188a8320119e3ded"
+    },
+    {
+      "id": "N6",
+      "name": "Bambu Lab X2D",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab X2D.json",
+      "sourceSha256": "02db23de231242faf869775bb6b23ae3aab334b9fbac9991dd58d573717d03f6"
+    },
+    {
+      "id": "N9",
+      "name": "Bambu Lab A2L",
+      "nozzlesMm": [
+        0.4,
+        0.2,
+        0.6,
+        0.8
+      ],
+      "sourcePath": "machine/Bambu Lab A2L.json",
+      "sourceSha256": "698ded0b12566632eeec433c7abdc6a25e66af67d78424d2f87820c37e87d18e"
+    }
+  ],
+  "qualification": "Model identification only; slicing profiles and physical printers require separate qualification."
+}

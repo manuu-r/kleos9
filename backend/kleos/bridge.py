@@ -139,7 +139,12 @@ def main():
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
-    printer = ReadOnlyPrinter(config["kind"], config["printerOrigin"], os.environ["KLEOS_PRINTER_API_KEY"])
+    if config["kind"] == "bambu":
+        from .bambu_telemetry import BambuPrinter
+        printer = BambuPrinter(config["printerIp"], config["serial"], os.environ["KLEOS_BAMBU_ACCESS_CODE"],
+                               config["certificateSha256"])
+    else:
+        printer = ReadOnlyPrinter(config["kind"], config["printerOrigin"], os.environ["KLEOS_PRINTER_API_KEY"])
     bridge = PrinterBridge(printer, config["platformUrl"], config["connectorId"],
                            os.environ["KLEOS_BRIDGE_TOKEN"])
     asyncio.run(bridge.once() if args.once else bridge.run(config.get("intervalSeconds", 30)))

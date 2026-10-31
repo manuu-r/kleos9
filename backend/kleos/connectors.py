@@ -407,7 +407,7 @@ class ConnectorService:
             return {"connectorId": connector.id, "bridgeToken": token, "readOnly": True}
 
     def bridge_telemetry(self, connector_id, token, payload):
-        if not isinstance(payload, dict) or payload.get("kind") not in {"octoprint", "moonraker"}:
+        if not isinstance(payload, dict) or payload.get("kind") not in {"octoprint", "moonraker", "bambu"}:
             raise DomainError("Invalid printer telemetry", 422)
         allowed = {"kind", "state", "profile", "observedAt", "connected"}
         if set(payload) - allowed or len(json.dumps(payload)) > 50_000:

@@ -14,7 +14,8 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 ROOTS = ["ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
          "EventView", "ArtifactDownloadView", "Command", "CommandAccepted",
-         "CompanionPreviewRequest", "CompanionPreviewView", "CircuitSimulationView"]
+         "CompanionPreviewRequest", "CompanionPreviewView", "CircuitSimulationView",
+         "BambuCatalogView", "PrintPreparationView", "PrintPreparationsView", "PreparePrint", "PreparedPrint"]
 
 
 def name(value):

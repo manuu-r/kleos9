@@ -4,6 +4,13 @@ Flutter frontend for the Kleos9 engineering workbench, with separate production 
 
 The default mock mode preserves the existing design fixtures and simulated journey against `mock-backend`. Production mode connects to the sibling `backend` service and uses scoped Riverpod state, authenticated REST commands, and reconnectable project events. Physical fulfillment remains explicitly simulated in both modes.
 
+Production CAD and home-print views also expose [real Bambu plate preparation](../backend/docs/bambu-printers.md):
+reported-model selection or a dropdown, qualified nozzle/material profiles,
+accepted STL selection, durable preparation status and authenticated sliced-plate
+download/share. A customer-run local adapter performs offline slicing and can
+open Bambu Connect for manual review/start. No fake printing progress or physical
+acceptance is derived from preparation; absent profiles stay visibly unavailable.
+
 ## Production backend
 
 Start `backend` using its README, then run:

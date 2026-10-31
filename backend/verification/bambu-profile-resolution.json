@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "bambu-profile-resolution-v1",
+  "date": "2026-11-01",
+  "vendorCommit": "926a7192574bcb9b3a732e1ec59a46d79cb45466",
+  "studioVersion": "2.8.2.61",
+  "scope": "Real public vendor JSON resolution only. No slicer/image execution, printer connection or physical qualification. Image identity was a fixture placeholder, never executed.",
+  "profiles": [
+    {
+      "modelId": "BL-P001",
+      "machine": "Bambu Lab X1 Carbon 0.4 nozzle",
+      "process": "0.20mm Standard @BBL X1C",
+      "filament": "Bambu PLA Basic @BBL X1C",
+      "bundleSha256": "6ac1e519b5b0484f8ba562ea998da4dca46abb1271d5d871d018b5f3e9f8beb8",
+      "files": {
+        "filament.json": "80bca441b42f0ff5f5acce98674e34b28f86756f1e4845f76e80f649289522b5",
+        "machine.json": "0adcc4004954e8d3a85ef0e4d83c1c65ee499a3b770ffaec330e002246db51f0",
+        "process.json": "faa2553acc9ee15fc538dd79f6b8e18fd4dd2e239d6257e0a0e8ce56cb40a114"
+      },
+      "machineStartGcodeSha256": "f07c63df70798baaa1182058684d5e204d6aaf9521ec4f92122736d4fa3891c5",
+      "qualified": false
+    },
+    {
+      "modelId": "BL-P002",
+      "machine": "Bambu Lab X1 0.4 nozzle",
+      "process": "0.20mm Standard @BBL X1C",
+      "filament": "Bambu PLA Basic @BBL X1",
+      "bundleSha256": "0b31c00ffa1c9473ab25784ba2bf904a17544cb1676119b2d177333a4651e5f4",
+      "files": {
+        "filament.json": "571e1998cc4a8664cedf1e8e81963dd3d88d6fc47f2ca7c0c11fa77fd3695bfb",
+        "machine.json": "d79f56a505b68361b285e9fabd90ece2f0af52cb1285efaeec52773c3728d40b",
+        "process.json": "faa2553acc9ee15fc538dd79f6b8e18fd4dd2e239d6257e0a0e8ce56cb40a114"
+      },
+      "machineStartGcodeSha256": "f07c63df70798baaa1182058684d5e204d6aaf9521ec4f92122736d4fa3891c5",
+      "qualified": false
+    },
+    {
+      "modelId": "C13",
+      "machine": "Bambu Lab X1E 0.4 nozzle",
+      "process": "0.20mm Standard @BBL X1C",
+      "filament": "Bambu PLA Basic @BBL X1C",
+      "bundleSha256": "26493f5c64a6841aab84de7dc606ab3566a4c17010cdbb46fe271af44a69d4d6",
+      "files": {
+        "filament.json": "80bca441b42f0ff5f5acce98674e34b28f86756f1e4845f76e80f649289522b5",
+        "machine.json": "cfbb0aacf3f875060d2a3a89f469742596726f7ab3edfdbe4c9136c5916c9158",
+        "process.json": "faa2553acc9ee15fc538dd79f6b8e18fd4dd2e239d6257e0a0e8ce56cb40a114"
+      },
+      "machineStartGcodeSha256": "c635e59ac68643cb85825a0d71e956b3f7853f4986fec1ed287007717440376b",
+      "qualified": false
+    },
+    {
+      "modelId": "C11",
+      "machine": "Bambu Lab P1P 0.4 nozzle",
+      "process": "0.20mm Standard @BBL P1P",
+      "filament": "Bambu PLA Basic @BBL P1P",
+      "bundleSha256": "3f74afba65dd70a534a255e6f0dbce2278f08a2282f8ad6d3a86b91f7f35f3ea",
+      "files": {
+        "filament.json": "4fb7e1038f82b81809bc12cd616f82aa8a779ee8622882f63af12059a92e2c06",
+        "machine.json": "62f7cc89de980b1c51e7db31c1f04de5f58350e10885cb2f7741960100a7e1ae",
+        "process.json": "77ffcc89e7fd01b6b21fc95cb8e79dd6f2ebe1792024c4e084acc4d524edf3f0"
+      },
+      "machineStartGcodeSha256": "cc3c162c0c53ef0b26c7eb87543b2cb19dab94301e2a44f0b9f3f798f2c56c70",
+      "qualified": false
+    },
+    {
+      "modelId": "C12",
+      "machine": "Bambu Lab P1S 0.4 nozzle",
+      "process": "0.20mm Standard @BBL X1C",
+      "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle",
+      "bundleSha256": "b8e76c2f0a8c62231f4029e3c67a304a1c1b227d78138e4aeebe9c09a6c0eff9",
+      "files": {
+        "filament.json": "8c18dd588c6cfc676c8f9ed38891e93652d3ba7a69a956f3866006387e173d2c",
+        "machine.json": "8fa54347a157f2123bdf85bfc79fa8b54ad743e8e29958c11bb2411ce440442b",
+        "process.json": "faa2553acc9ee15fc538dd79f6b8e18fd4dd2e239d6257e0a0e8ce56cb40a114"
+      },
+      "machineStartGcodeSha256": "56fb536fe829fae567678cccb190cb438d26f15242f4eefe9737c9f305ffa5f0",
+      "qualified": false
+    },
+    {
+      "modelId": "N1",
+      "machine": "Bambu Lab A1 mini 0.4 nozzle",
+      "process": "0.20mm Standard @BBL A1M",
+      "filament": "Bambu PLA Basic @BBL A1M",
+      "bundleSha256": "a5353bc82ef80956a52fc5925b1aacfc9760f19ae3fd068b2db98b5177d50b0d",
+      "files": {
+        "filament.json": "ede0f7c7dff590b2d706052f936e7afd7cc59e1a4760044b0c8d5c5f2828224e",
+        "machine.json": "4a02f8f5f907166a140cee826bbc984b4c52ed29573417f3af9f31b91f011b3d",
+        "process.json": "629ee7f558237a205e4bc120025df9e9f3f82e5352ce1fc57a8b7adb7581f013"
+      },
+      "machineStartGcodeSha256": "98b77ddf8f9dd85612adf93c87d82cb6618e952968ff12ada7f7109bfe4a977e",
+      "qualified": false
+    },
+    {
+      "modelId": "N2S",
+      "machine": "Bambu Lab A1 0.4 nozzle",
+      "process": "0.20mm Standard @BBL A1",
+      "filament": "Bambu PLA Basic @BBL A1",
+      "bundleSha256": "2892cafe317bf2f5971f3979054aa7cf5ea4b6d447d2228507e12f5bab57f0db",
+      "files": {
+        "filament.json": "b6cd7212f5e4ac780c6617b25cda534d2535340c1028c108cfdc4cf1b52f0f0c",
+        "machine.json": "693a86118deeba604ef069bd52adb6b8bef5c33c45856d855af63781dbd9943b",
+        "process.json": "3b4910299708848ee7334a70e62da442c52d146bbecb10cbab5143b43045dfc3"
+      },
+      "machineStartGcodeSha256": "bd4564f6473fd7cc01a5d98a312d5eab6c46db9892027baac092dbb092521936",
+      "qualified": false
+    },
+    {
+      "modelId": "O1D",
+      "machine": "Bambu Lab H2D 0.4 nozzle",
+      "process": "0.20mm Standard @BBL H2D",
+      "filament": "Bambu PLA Basic @BBL H2D",
+      "bundleSha256": "cae3df80c6bd9c08e71c8f532cdf0889f578310ab0a99e74f1cad5dfd794aa61",
+      "files": {
+        "filament.json": "56254c6cbf8e72dfeb907198cf15a030c51e74183005e5c688df476a1ec7c7c8",
+        "machine.json": "3bd189d91b32ee3c6dd3fc2cb62e8012a0e5d446aa7a663a8b4e0fd602abb8f1",
+        "process.json": "9a453af0c3cdd9e34744c99f1484b808c7422563d20eef922bf66edf5b65edb2"
+      },
+      "machineStartGcodeSha256": "72ae17954111701b3844506f180f6d740a9d2006e8ba601674bc87ffb56eb4c3",
+      "qualified": false
+    },
+    {
+      "modelId": "O1E",
+      "machine": "Bambu Lab H2D Pro 0.4 nozzle",
+      "process": "0.20mm Standard @BBL H2DP",
+      "filament": "Bambu PLA Basic @BBL H2DP",
+      "bundleSha256": "143268d39c3cb214b2739b8b81f9700a9bfbb46ff68123a7c2449ef8fad38be5",
+      "files": {
+        "filament.json": "42a4c4514e71cebf233b97be481e1de8083f461eb61970602e80e2e60d6f9d1f",
+        "machine.json": "d48d04cfcd973e4dc2121fe5b5ab726d212556e533b55f847586fdd89a33048c",
+        "process.json": "9e64e843c2152d46169d973afdaadbb8d51ff1acd6aecd32f1f1bb878e176356"
+      },
+      "machineStartGcodeSha256": "2a5a55a92cc50babc565292378f3e1aa491b369e9e3e3efcf85b6e9a0403e25e",
+      "qualified": false
+    },
+    {
+      "modelId": "O1S",
+      "machine": "Bambu Lab H2S 0.4 nozzle",
+      "process": "0.20mm Standard @BBL H2S",
+      "filament": "Bambu PLA Basic @BBL H2S",
+      "bundleSha256": "19a693ccac3eccf1dd6f5a4b77db7d57e7dfb7c7d0802d5bb1dfe1aa9936c15d",
+      "files": {
+        "filament.json": "6d2afe659c5fb8980dab7286a24f3ae4fa2fb6c4d8029374f8dac9d50a9fb289",
+        "machine.json": "dc6c0e98db860570db6460e7c3e5736eaacf9fd6dc93818b8107a061e93abb0c",
+        "process.json": "18b4ed6b5be5afdb6d02ee9e492efbb9867aedef3b81e759bb80b42f9a6d5d6a"
+      },
+      "machineStartGcodeSha256": "fd8640438deaae8da80d795f91c6ab1b9927fe3464d030d01ef81f3a38fb9aaa",
+      "qualified": false
+    },
+    {
+      "modelId": "N7",
+      "machine": "Bambu Lab P2S 0.4 nozzle",
+      "process": "0.20mm Standard @BBL P2S",
+      "filament": "Bambu PLA Basic @BBL P2S",
+      "bundleSha256": "9aaf23b826ac82a7068e5dfac6f0b799032a43041e8869ce0fbf942e5dc599b9",
+      "files": {
+        "filament.json": "0e8c7e8379fad63341d36d94ebb31ee95b576eca268287b74d536279eadbf08a",
+        "machine.json": "75d014cbaae386cdad7872af5f49b89bb062f7d47cbd85f09f1df04bb4fd8522",
+        "process.json": "fcec4b15158fb5a7123285c68fbf976f3a185c12d6fd9d7354af3a7ca57281cb"
+      },
+      "machineStartGcodeSha256": "8836752c3394b66b6c2ce73acc38dc472e793e806c80cb1e1e4745a9d8090219",
+      "qualified": false
+    },
+    {
+      "modelId": "O1C2",
+      "machine": "Bambu Lab H2C 0.4 nozzle",
+      "process": "0.20mm Standard @BBL H2C",
+      "filament": "Bambu PLA Basic @BBL H2C",
+      "bundleSha256": "69c3f2419bfd092ff06b5dc3e36a06618ba99bb38021bed5250f6c5763efd20c",
+      "files": {
+        "filament.json": "29263dec40e1e31fc693e3926721cdcca0fde7936efeaa43f84e466ab3e164ed",
+        "machine.json": "b0c33613fdb6eed06a2bc92b2549be0510fbed0c8077ce3dc330089ab6bf8b8e",
+        "process.json": "72c78e911af3ddf02a658e74ba5664c9763d264a0a9a9eae4441b40765c32f45"
+      },
+      "machineStartGcodeSha256": "69195dc5b4ba63df63e6355f52a201c0cce28a1e9e62bcfa2a599aae8c476df4",
+      "qualified": false
+    },
+    {
+      "modelId": "N6",
+      "machine": "Bambu Lab X2D 0.4 nozzle",
+      "process": "0.20mm Standard @BBL X2D",
+      "filament": "Bambu PLA Basic @BBL X2D 0.4 nozzle",
+      "bundleSha256": "4bb1f3d0b4ae3274132caec4275d137e323234ea17615be739887012ed518daa",
+      "files": {
+        "filament.json": "47b678fb8b2eb08c342a55a7017a4580cf1d7746c2d6835234e35f45cc9f3b72",
+        "machine.json": "6aba25c13883e1a79f3b3391914d8ee4ea827250e1ca072d304f6c67c35653e0",
+        "process.json": "5da7e375dd9fc0e509a77bb4e9fb7e4797dff9093c0b4da4af98753cbf3d0ee1"
+      },
+      "machineStartGcodeSha256": "d52532b1b503a8614d7070e2db8d37f6c6ddf4040b746181dc86ddb6e944336b",
+      "qualified": false
+    },
+    {
+      "modelId": "N9",
+      "machine": "Bambu Lab A2L 0.4 nozzle",
+      "process": "0.20mm Standard @BBL A2L",
+      "filament": "Bambu PLA Basic @BBL A2L 0.4 nozzle",
+      "bundleSha256": "14c1144070aa73690b59b30cbdddc5aef8313a2ffbbd3b93623f5bbdc87c98f4",
+      "files": {
+        "filament.json": "d56d5e2ec4b05bfe9f290756223b74692fc92bd3d35236df7f66b328a68db9d1",
+        "machine.json": "68bc47813c4060539e13247923a0b30cc1a4c22c0bbc0af7e04a24e88c392efe",
+        "process.json": "727ef424a7b2bbc75c1c19987fbe005d6d8de621cb841bc9b7dc60a2896e8ed1"
+      },
+      "machineStartGcodeSha256": "354f2f158984c4deb597dc0632efcb2316c1fb2a400cd9486c07dca777785c66",
+      "qualified": false
+    }
+  ]
+}

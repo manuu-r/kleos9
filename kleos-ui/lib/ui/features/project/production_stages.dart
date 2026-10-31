@@ -18,6 +18,7 @@ import 'approved_design_reference.dart';
 import 'requirements_interview.dart';
 import 'planning_conversation.dart';
 import 'engineering_preview.dart';
+import 'bambu_print.dart';
 
 /// Real engineering records presented inside the original stage workspace.
 class ProductionStage extends ConsumerStatefulWidget {
@@ -461,10 +462,14 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
       _ => ['shipment', 'activation'],
     };
     return pColumn([
+      if (widget.stage == 6 && state['printMode'] == 'home')
+        BambuPrintPanel(
+            projectId: '${project['id']}',
+            revision: number(workspace['revision']).toInt()),
       pCallout(pColumn([
         const KBadge('Simulated physical workflow', tone: 'sim'),
         pText(
-            'No live purchases, printing, shipping, or physical acceptance occur. Synthetic receipts cannot satisfy a live physical gate.',
+            'Supplier orders, shipping and physical acceptance below remain simulated. Home Bambu preparation uses the separate real adapter; synthetic receipts do not approve a physical part.',
             small: true),
       ])),
       if (keys.every((key) => state[key] == null))
