@@ -67,11 +67,15 @@ the S3 gateway exists for ECR image layers. Generated processes run under a
 different UID from the supervisor and receive no callback or provider credentials.
 Tool output is always a candidate; only the authoritative quality service publishes.
 
-The application tool image needs a writable Flutter SDK cache. Its fresh task has
-a writable root filesystem; source code still runs as UID 10001 without root or
-an AWS role. Other native tasks use a read-only root and a writable temporary
-volume. Native CPU/memory, tool-specific timeouts and global admission limits are
-independently enforced.
+All native tasks, including application builds, use a read-only root and a private
+writable `/tmp` volume. Application jobs copy their pinned Flutter/pub/Gradle
+working set there and scope Java home/temp writes to the job. Generated processes
+run as UID 10001 without root or an AWS role. CPU/memory profiles, process limits,
+deadlines and global/per-project admission are independently enforced. Local
+Docker application jobs use disposable disk scratch; Fargate uses task-local
+ephemeral storage. See [native capacity](native-capacity.md),
+[network hardening/migration](native-network.md) and the
+[Android toolchain](../backend/docker/android-toolchain.md).
 
 Qdrant uses a private EC2 instance, encrypted persistent EBS, authenticated HTTP
 within the VPC and daily S3 snapshots. It is initially a single node; this is not

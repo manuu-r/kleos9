@@ -14,7 +14,14 @@ flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5180 \
   --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-Use the development access token configured on the backend when its sign-in screen requests one. No credentials are compiled into Flutter. Native development tokens are stored in secure device storage; browser development tokens remain in memory. Production sign-in is invite-only email and password. A person redeems a single-use invite code once to create an account (the "I have an invite code" form), then signs in with email and password. Web sessions use HttpOnly cookies plus a CSRF token, so deploy the web app and API on the same site (the same origin by default, or sibling subdomains with `API_BASE_URL`). Native apps receive a session bearer token and keep it in secure device storage. On a new deployment the sign-in page first offers a one-time "Set up Kleos9" form for the first owner. Owners and admins then manage invites, roles and passwords from the Admin page in the account menu. `python -m kleos.cli create-invite` remains as an operator fallback.
+The local no-login setup uses backend settings `KLEOS_AUTH_MODE=development` and
+`KLEOS_DEVELOPMENT_NO_LOGIN=true`; it opens without a development token. See the
+[root setup guide](../README.md#start-the-real-backend-locally). If token-based
+development authentication is deliberately selected instead, use its configured
+access token when prompted. Native development tokens use secure device storage;
+browser development tokens remain in memory. No credentials are compiled into Flutter.
+
+Production sign-in is invite-only email and password. A person redeems a single-use invite code once to create an account (the "I have an invite code" form), then signs in with email and password. Web sessions use HttpOnly cookies plus a CSRF token, so deploy the web app and API on the same site (the same origin by default, or sibling subdomains with `API_BASE_URL`). Native apps receive a session bearer token and keep it in secure device storage. On a new deployment the sign-in page first offers a one-time "Set up Kleos9" form for the first owner. Owners and admins then manage invites, roles and passwords from the Admin page in the account menu. `python -m kleos.cli create-invite` remains as an operator fallback.
 
 For a production web bundle:
 
@@ -26,7 +33,7 @@ On HTTPS web the API defaults to `/api/v1` on the same origin. Set `API_BASE_URL
 
 Production includes project creation, per-lane Muse/Gemini settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
 
-Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse) shortcut. It changes the editable choices only; creating the project or saving settings persists them. There is no automatic provider fallback.
+Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse) shortcut. It changes the editable choices only; creating the project or saving settings persists them. The backend's explicitly configured Modal rate-limit fallback to Meta is the only provider fallback exception; it is recorded on the invocation and event stream. Other outages or missing credits do not silently switch providers.
 
 The organization menu switches between invited memberships. Its remembered choice is scoped to the signed-in account; revoking that choice requires explicit reselection. In-flight commands remain pinned to their original organization. Accepted release ZIPs can be downloaded from the workspace, including a previous accepted baseline after revisions. The run inspector includes native job inputs, tool versions, limitations, and administrator-only redacted engineering logs.
 
@@ -47,7 +54,13 @@ The deterministic generator follows response component references, retains typed
 
 ## Live production UI check
 
-`test_driver/production_live_test.dart` drives the real production application in headless Chrome against the running backend. It does not mock HTTP, authentication, command handling, or model responses. Use it only with a disposable local test project and an authorized model allowance: the create flow can make up to three Gemini calls for research, clarification, and interfaces. All seven lanes are explicitly assigned to Gemini. Training consent is switched on and back off on the test project only.
+`test_driver/production_live_test.dart` drives the real production application in headless Chrome against the running backend. It does not mock HTTP, authentication, command handling, or model responses. Its current fixture requires the Meta Model API (Spark/Wonder), and the create flow can make billed calls. Use it only with a disposable local test project and an authorized model allowance. Training consent is switched on and back off on the test project only.
+
+This existing driver exercises token-based development sign-in and requires
+`KLEOS_E2E_TOKEN_FILE`; it cannot run unchanged against the ordinary no-login
+setup. For no-login API acceptance without paid calls, use the backend's opt-in
+`tests/test_http_runtime.py`. Do not change a working environment's authentication
+just to run a documentation check.
 
 Run a ChromeDriver matching the installed Chrome release on local port 4444, then stop any Flutter preview using port 5180 and run:
 

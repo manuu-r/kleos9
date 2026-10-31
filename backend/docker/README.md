@@ -31,8 +31,12 @@ The application build is offline. Pre-cache any selected Flutter template's
 dependencies in the image; arbitrary generated package dependencies remain
 unsupported. The firmware profile uses the GNU Arm Embedded toolchain and a
 pinned Zephyr tree. Board and peripheral support must be qualified separately.
-See templates/ELECTRONICS.md for the pinned atopile configuration, required
-exports and the explicit circuit-correspondence qualification blocker.
+The default `atopile-kicad@2` profile compiles accepted `interfaces.circuit` into
+KiCad sources/placement, routes with pinned Freerouting, then runs ERC/DRC and
+manufacturing exports. Its vetted catalog initially covers passives, LEDs and
+pin headers. Unsupported parts and incomplete contracts stay blocked.
+See [electronics contracts](templates/ELECTRONICS.md) for this scope and the
+separate legacy `atopile-kicad@1` source workflow.
 An accepted watch-telemetry-v1 scope enables bounded independent C/Dart protocol
 tests alongside real compiled outputs. Templates and the exact API contract are
 in templates/watch-telemetry-v1. BLE, sensor/display and physical validation remain

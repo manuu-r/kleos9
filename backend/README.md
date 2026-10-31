@@ -1,5 +1,9 @@
 # Kleos9 backend
 
+For repository-wide setup, current local no-login configuration and the documentation
+map, start with the [root README](../README.md). Coding-agent guidance is in
+[AGENTS.md](../AGENTS.md).
+
 This is the production backend alongside the existing mock. It implements durable commands,
 engineering attempts, direct Muse adapters (Model API and Modal), isolated native job contracts,
 independent release gates, scoped retrieval, connectors, Modal compute, and the Flutter
@@ -45,6 +49,11 @@ choices explicitly through Providers. Nothing falls back to another provider whe
 credits are unavailable; the Modal rate-limit case above is the only exception. The `d8e2f4a61c37`
 migration only rewrites lane choices naming a provider the registry no longer offers.
 Configure the local identity/signing secrets and operator allowances shown in `.env.example`.
+For local no-login access, set `KLEOS_AUTH_MODE=development` and
+`KLEOS_DEVELOPMENT_NO_LOGIN=true`; a development access token is then unnecessary.
+Keep a persistent random session key and a separate preview signing key. These
+local authentication settings are rejected in staging/production. Recreate
+services after changing environment values.
 Development Compose enables `KLEOS_DEVELOPMENT_UNLIMITED_USAGE` by default; set it to `false`
 to exercise production-style usage limits. Outside Compose the setting defaults to `false`, and
 staging/production reject `true`. Unlimited development skips monetary ceilings, project admission
@@ -78,7 +87,9 @@ Actual CAD parts support an exploded view and exact per-part manufacturing files
 see [physical CAD parts](docs/cad-physical-parts.md).
 Confirmed capture designs are pinned as engineering shape/layout references;
 see [approved design constraints](docs/approved-design-reference.md).
-The development token authenticates the local application only; never use it as a provider key.
+When token-based development authentication is enabled, that token authenticates
+the local application only; it is never a provider key. No-login development does
+not require a token.
 Generation and embedding reservations are separate configured allowances, not account credit balances.
 When unlimited development is off, set `KLEOS_DAILY_BUDGET_USD=unlimited` to disable only the daily ceiling for models, embeddings,
 native jobs and custom compute while retaining usage accounting. Zero blocks unconfigured paid
@@ -126,7 +137,9 @@ Then start the existing Flutter application from `kleos-ui`:
 flutter run -d chrome --web-port 5180 --dart-define=KLEOS_BACKEND=production
 ```
 
-Enter the local development token in the sign-in screen. The mock remains the default when
+With local no-login enabled, the application opens without a sign-in token. If
+token-based development authentication is selected instead, enter its configured
+token on the sign-in screen. The mock remains the default when
 `KLEOS_BACKEND` is omitted. See [Flutter setup](../kleos-ui/README.md) for mobile host addresses,
 secure storage and invite-based password sign-in. No provider credential belongs in Flutter.
 

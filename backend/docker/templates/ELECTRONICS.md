@@ -1,5 +1,24 @@
 # Electronics tool contract and current qualification limit
 
+## Default: deterministic KiCad compiler (`atopile-kicad@2`)
+
+New project defaults use accepted `interfaces.circuit` JSON as the source. The
+fixed compiler emits a schematic and placed board, exports DSN, runs pinned
+Freerouting 2.1.0, imports SES, and runs KiCad ERC/DRC plus Gerber/drill exports.
+Independent validation checks fresh netlist/PCB pin correspondence against the
+accepted contract. Model-written success reports cannot supply that evidence.
+
+The image includes pinned KiCad 9 libraries and a hash-verified catalog of
+resistors, capacitors, LEDs and pin headers. Additional component/footprint pairs
+need qualification; incomplete or unsupported contracts remain visible blockers.
+See the [native engineering review](../../docs/reviews/2026-10-31-native-engineering.md)
+and [compiled circuit evidence](../../verification/compiled-circuit-runtime.json).
+
+## Legacy: atopile source workflow (`atopile-kicad@1`)
+
+The following configuration and historical failures describe the separately
+selectable legacy workflow, not the default deterministic compiler.
+
 The local image actually runs atopile 0.12.5 in an isolated Python 3.13.7 tool
 environment and KiCad CLI 9.0.8. This verifies tool availability, not a supported
 smartwatch circuit, parts library, routing flow or interface correspondence.
