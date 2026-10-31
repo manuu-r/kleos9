@@ -9,7 +9,8 @@ import 'package:flutter/services.dart' show HapticFeedback;
 // widget visuals in components.dart, and Flutter's ThemeData in theme_data.dart.
 // Preview any change with `flutter run -t lib/theme_gallery.dart`.
 //
-// Direction: a flat engineering console. Neutral near-black panels outlined by
+// Direction: a flat engineering console. Cool graphite panels (blue-tinted
+// neutrals, so the coral product colour is a true complement) outlined by
 // 1px lines, sharp corners with cut (chamfered) panel corners, small mono
 // readout labels, and two hues with separate jobs:
 //   * blue  (action)  = what you can do and what you have selected;
@@ -21,58 +22,89 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 abstract final class KColors {
   /// Page ground.
-  static const bg = Color(0xff141414);
+  static const bg = Color(0xff0d0f13);
 
   /// Panels and cards: one step darker than the ground, drawn by a 1px line.
-  static const surface = Color(0xff0f0f10);
+  static const surface = Color(0xff0a0c10);
 
   /// Nested wells, fields and hover fills.
-  static const surface2 = Color(0xff1b1b1c);
+  static const surface2 = Color(0xff14181e);
 
   /// Raised and selected fills.
-  static const surface3 = Color(0xff262627);
+  static const surface3 = Color(0xff1d222a);
 
   /// Panel and control outlines.
-  static const border = Color(0xff2c2c2e);
-  static const borderStrong = Color(0xff444447);
+  static const border = Color(0xff232932);
+  static const borderStrong = Color(0xff3b4452);
 
-  /// Warm off-white, as on the HUD reference, never pure white.
-  static const text = Color(0xffede9e2);
-  static const muted = Color(0xffa5a29a);
-  static const faint = Color(0xff94918a);
+  /// Cool white, never pure white: it sits on the blue-tinted graphite.
+  static const text = Color(0xffe9edf4);
+  static const muted = Color(0xff9aa4b5);
+  static const faint = Color(0xff808b9d);
 
   /// Action blue: the primary button fill, switches, sliders.
-  static const action = Color(0xff2f5bea);
+  static const action = Color(0xff3563f0);
 
   /// Ink for text on [action].
   static const onAction = Color(0xffffffff);
 
   /// Action blue for lines and glyphs on dark: selection, focus, links.
-  static const actionInk = Color(0xff7b9dff);
+  static const actionInk = Color(0xff7fa4ff);
 
   /// Coral: the product and live work. Never a button or a selection mark.
-  static const accent = Color(0xffff7a59);
+  static const accent = Color(0xffff7f5c);
 
   /// Ink for text that sits on [accent].
   static const onAccent = Color(0xff1a0c08);
 
   // Status. Each is always paired with a word or glyph, never colour alone.
-  static const pass = Color(0xff56c28a);
-  static const fail = Color(0xfff46277);
-  static const unknown = Color(0xffb8b4ab);
-  static const warn = Color(0xffe3b341);
+  static const pass = Color(0xff3fd391);
+  static const fail = Color(0xffff5c75);
+  static const unknown = Color(0xffaab2c0);
+  static const warn = Color(0xfff2b84b);
 
   /// "Needs a person".
-  static const human = Color(0xff47c2c9);
+  static const human = Color(0xff3ec6d6);
 
   /// Row rules inside panels.
-  static const hairline = Color(0x1affffff);
+  static const hairline = Color(0x1aaecbff);
 
   /// Kept for older call sites; there is no lit edge in a flat design.
   static const highlight = Color(0x00ffffff);
 
   /// Pale status tint for pills inside rows.
   static Color tint(Color c) => c.withValues(alpha: .14);
+}
+
+/// What the 3D and PCB viewers draw. Kept apart from the interface colours so
+/// the product renders can be tuned on their own. Parts get a tonal family
+/// (metals and mask colours), not a rainbow.
+abstract final class KViz {
+  /// CAD part colours, assigned in order; muted so the lighting does the work.
+  static const parts = <Color>[
+    Color(0xffc8d0dc), // aluminium
+    Color(0xff7597c4), // anodised blue
+    Color(0xffe0875e), // copper
+    Color(0xff6fbf9f), // sage
+    Color(0xffd4b676), // brass
+    Color(0xffc78a9c), // rose
+    Color(0xff62bcc7), // teal
+    Color(0xff8e9ab0), // slate
+  ];
+
+  /// CAD lighting: ambient floor and the cool tint that fills the shadows.
+  static const ambient = .34;
+  static const shadowTint = Color(0xff0f1722);
+
+  /// PCB: solder mask, its edge, copper layers, pads, silkscreen, part bodies.
+  static const mask = Color(0xff0e2a26);
+  static const maskEdge = Color(0xff2f7a68);
+  static const copperTop = Color(0xffe8b45f);
+  static const copperBottom = Color(0xff58a6dc);
+  static const pad = Color(0xfff0c978);
+  static const silk = Color(0xffe9edf4);
+  static const partBody = Color(0xff171c23);
+  static const partEdge = Color(0xff4a5566);
 }
 
 /// Corner language: sharp. Controls are 3px, small marks 2px, and panels are

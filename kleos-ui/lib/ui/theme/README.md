@@ -7,9 +7,10 @@ radii, type sizes or motion; screens use the tokens and the `K*` components.
 |---|---|
 | `tokens.dart` | Colour, spacing, type scale, motion. **Edit this to change the look.** |
 | `shape.dart` | The corner language: chamfered panels, sharp 3px controls. |
+| `smooth_scroll.dart` | `KSmoothController`: eased mouse-wheel scrolling for web and desktop (touch keeps native momentum). |
 | `ornaments.dart` | HUD detail: mono readout label (`KLabel`), corner brackets, faint grid. |
 | `theme_data.dart` | Flutter's `ThemeData` (fields, dialogs, menus, switches, sliders) built from the tokens. |
-| `components.dart` | The widgets: `KCard`, `KPanel`, `KButton`, `KBadge`, `KTabStrip`/`KSegmented`, loaders, notices, the stage. |
+| `components.dart` | The widgets: `KCard`, `KPanel`, `KButton`, `KBadge`, `KTabStrip`/`KSegmented`, loaders, notices, the stage, and the shared viewer controls (`KToolButton`, `KToolTile`, `KChip`). |
 | `theme.dart` | Barrel. `core/theme.dart` and `core/widgets.dart` re-export it so older imports keep working. |
 
 ## Iterate fast
@@ -39,7 +40,31 @@ A flat engineering console, drawn from a HUD-style poster and a pro CAD tablet a
   (`pass`, `fail`, `warn`, `human`, `unknown`) is always paired with a word.
 - **Readout detail, sparingly.** Mono uppercase labels (`KLabel`) for stat labels and meta lines,
   viewfinder brackets and a grid behind products (`KGridBackdrop`). A few per screen at most.
-- **Type.** Geist for text, Geist Mono for ids, figures and readouts. Warm off-white text.
+- **Type.** Geist for text, Geist Mono for ids, figures and readouts. Cool-white text.
+- **Palette.** Cool, blue-tinted graphite neutrals so the coral product colour is a true complement.
+  What the CAD and PCB viewers draw has its own palette, `KViz` (metal and mask tones, copper layers,
+  lighting), so the renders can be tuned without touching the interface colours.
+
+## Viewers
+
+Both viewers (`features/project/cad_assembly_preview.dart`, `pcb_preview.dart`) are built to be handled
+on a phone and share the tool tiles and chips above.
+
+- **CAD.** One finger orbits (with inertia), two fingers pinch and pan, the wheel zooms, tapping a part
+  selects it and the others fall back. A views menu snaps to Front/Back/Left/Right/Top/Bottom/Iso with an
+  animated camera. Key and fill light follow the camera, with a specular highlight; a ground grid and soft
+  contact shadow anchor the model; an axis gizmo shows orientation. Faces are depth-sorted and drawn in one
+  batched `drawVertices` call per frame. Taps are instant: double-tap is detected by hand, since the
+  platform recogniser delays every single tap by 300ms.
+- **PCB.** Pinch, drag with inertia, wheel and double-tap zoom, drawn in board millimetres with a grid,
+  dimensions and a scale bar. Tapping a component (or its chip) selects it, flies the camera to it and
+  lights its traces; the layers menu toggles top copper, bottom copper, components and labels.
+
+## Feel
+
+Wheel scrolling eases toward a target and accumulates, trackpads pass through untouched, taps respond on
+touch-down with a slight give and a spring back, selection moves with one gliding indicator, and navigation
+and primary actions tick on native. Everything stands still under reduced motion.
 
 ## Rules that are tested
 

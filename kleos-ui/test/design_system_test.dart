@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
@@ -245,5 +246,68 @@ void main() {
         of: find.byType(KProgress),
         matching: find.byType(FractionallySizedBox)));
     expect(fill.width, 0);
+  });
+
+  group('wheel scrolling', () {
+    Future<KSmoothController> mountScroller(WidgetTester tester) async {
+      final controller = KSmoothController();
+      addTearDown(controller.dispose);
+      tester.view.physicalSize = const Size(400, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+          theme: kTheme(),
+          home: Scaffold(
+              body: SingleChildScrollView(
+                  controller: controller,
+                  child:
+                      const SizedBox(height: 4000, width: double.infinity)))));
+      return controller;
+    }
+
+    testWidgets('a wheel notch eases toward its target instead of jumping',
+        (tester) async {
+      final c = await mountScroller(tester);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(200, 300)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(c.offset, greaterThan(0));
+      expect(c.offset, lessThan(100), reason: 'still travelling');
+      await tester.pumpAndSettle();
+      expect(c.offset, closeTo(100, .5));
+    });
+
+    testWidgets('notches that arrive mid-flight extend the same glide',
+        (tester) async {
+      final c = await mountScroller(tester);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(200, 300)));
+      for (var i = 0; i < 3; i++) {
+        await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+      await tester.pumpAndSettle();
+      expect(c.offset, closeTo(300, .5));
+    });
+
+    testWidgets('trackpad-sized deltas pass straight through', (tester) async {
+      final c = await mountScroller(tester);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(200, 300)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, 12)));
+      await tester.pump();
+      expect(c.offset, closeTo(12, .01));
+    });
+
+    testWidgets('it never scrolls past the ends', (tester) async {
+      final c = await mountScroller(tester);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(200, 300)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, -500)));
+      await tester.pumpAndSettle();
+      expect(c.offset, 0);
+    });
   });
 }

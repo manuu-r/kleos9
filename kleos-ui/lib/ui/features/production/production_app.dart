@@ -1539,11 +1539,25 @@ class _JsonDetails extends StatelessWidget {
       );
 }
 
-class _Page extends StatelessWidget {
+class _Page extends StatefulWidget {
   const _Page({required this.children});
   final List<Widget> children;
   @override
+  State<_Page> createState() => _PageState();
+}
+
+class _PageState extends State<_Page> {
+  final _scroll = KSmoothController();
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  List<Widget> get children => widget.children;
+  @override
   Widget build(BuildContext context) => ListView(
+        controller: _scroll,
         key: const ValueKey('production-page-scroll'),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding:

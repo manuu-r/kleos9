@@ -125,9 +125,10 @@ one page; hot reload works).
   `KLineLoader` or `KSpinner`; `KButton(loading: true)` ignores taps. All of it stands still under
   reduced motion. Errors and empty states stay inside their block (`KNotice`, `KErrorState`,
   `KEmptyState`).
-- **3D.** `CadAssemblyPreview` orbits with one finger (with inertia), pinch-zooms with two, zooms with
-  the wheel, resets on double tap and opens full screen on a phone; `ConceptPreview` shares the 44px
-  controls. Rendered product visuals keep their own shading.
+- **Viewers.** `CadAssemblyPreview` (lit, with a ground grid, axis gizmo, view presets, tap-to-select and an
+  animated camera) and `PcbViewer` (pinch/pan/zoom with inertia, layers, component selection that lights
+  its traces, scale bar) share the 44px tool tiles and chips; both open full screen on a phone. Their
+  colours live in `KViz`. `KSmoothController` gives web and desktop eased wheel scrolling.
 
 Because the shell shows a live loader while any project runs, tests that include a running project
 pump a bounded time instead of `pumpAndSettle`.

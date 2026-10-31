@@ -314,14 +314,29 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-class AppPage extends StatelessWidget {
+class AppPage extends StatefulWidget {
   const AppPage({super.key, required this.child});
   final Widget child;
+  @override
+  State<AppPage> createState() => _AppPageState();
+}
+
+class _AppPageState extends State<AppPage> {
+  // Eased mouse-wheel scrolling on web and desktop; native momentum on touch.
+  final _scroll = KSmoothController();
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Widget get child => widget.child;
   @override
   Widget build(BuildContext context) {
     final gutter = KSpace.gutter(context);
     final phone = KSpace.phone(context);
     return SingleChildScrollView(
+      controller: _scroll,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       key: ValueKey(GoRouterState.of(context).uri.toString()),
       child: Center(

@@ -482,16 +482,21 @@ class KPage extends StatelessWidget {
 /// The stage a product sits on: a flat panel with a faint engineering grid and
 /// viewfinder brackets in the corners. Flat tone, no light, no shadow.
 class KGridBackdrop extends StatelessWidget {
-  const KGridBackdrop({super.key, this.child, this.radius = 14});
+  const KGridBackdrop(
+      {super.key, this.child, this.radius = 14, this.grid = true});
   final Widget? child;
   final double radius;
+
+  /// Paint the faint fixed grid. Viewers that draw their own grid in model
+  /// units (the PCB) turn it off.
+  final bool grid;
   @override
   Widget build(BuildContext context) => RepaintBoundary(
       child: Container(
           clipBehavior: Clip.antiAlias,
           decoration: KShape.surface(KColors.surface, radius: radius),
           child: CustomPaint(
-              painter: const KGridPaint(),
+              painter: grid ? const KGridPaint() : null,
               child: KBrackets(child: child ?? const SizedBox.expand()))));
 }
 
@@ -1281,4 +1286,123 @@ class _PressableState extends State<_Pressable> {
           duration: KMotion.fast,
           curve: KMotion.out,
           child: widget.child));
+}
+
+// ---------------------------------------------------------------------------
+// Viewer controls: shared by the CAD and PCB viewers so they look and feel the
+// same, and so both are tuned in one place.
+// ---------------------------------------------------------------------------
+
+/// The visual of a 44px square tool tile floating over a viewport.
+class KToolTile extends StatelessWidget {
+  const KToolTile({super.key, required this.icon, this.enabled = true});
+  final IconData icon;
+  final bool enabled;
+  @override
+  Widget build(BuildContext context) => Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: ShapeDecoration(
+          color: KColors.surface.withValues(alpha: enabled ? .94 : .8),
+          shape: KShape.control(
+              side: const BorderSide(color: KColors.borderStrong))),
+      child: Icon(icon,
+          size: 19,
+          color: enabled ? KColors.text : KColors.faint.withValues(alpha: .6)));
+}
+
+/// A 44px square icon button for a viewport: zoom, reset, expand.
+class KToolButton extends StatelessWidget {
+  const KToolButton(
+      {super.key,
+      required this.icon,
+      required this.tooltip,
+      required this.onPressed});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: 44,
+      height: 44,
+      child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed == null
+              ? null
+              : () {
+                  KHaptics.select();
+                  onPressed!();
+                },
+          style: IconButton.styleFrom(
+              backgroundColor: KColors.surface.withValues(alpha: .94),
+              disabledBackgroundColor: KColors.surface.withValues(alpha: .8),
+              foregroundColor: KColors.text,
+              disabledForegroundColor: KColors.faint.withValues(alpha: .6),
+              side: const BorderSide(color: KColors.borderStrong),
+              shape: KShape.control()),
+          icon: Icon(icon, size: 19)));
+}
+
+/// A 40px selectable chip for a list of parts or components: outlined, with a
+/// blue outline when selected, and an optional colour dot.
+class KChip extends StatelessWidget {
+  const KChip(
+      {super.key,
+      required this.label,
+      required this.selected,
+      required this.onTap,
+      this.dot,
+      this.semanticLabel});
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  final Color? dot;
+  final String? semanticLabel;
+  @override
+  Widget build(BuildContext context) => Semantics(
+      label: semanticLabel ?? label,
+      selected: selected,
+      child: ExcludeSemantics(
+          child: KTap(
+              flat: true,
+              onTap: onTap == null
+                  ? null
+                  : () {
+                      KHaptics.select();
+                      onTap!();
+                    },
+              builder: (context, hovered) => AnimatedContainer(
+                  duration: KMotion.base,
+                  curve: KMotion.out,
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: ShapeDecoration(
+                      color: selected
+                          ? KColors.surface3
+                          : hovered
+                              ? KColors.surface2
+                              : Colors.transparent,
+                      shape: KShape.control(
+                          side: BorderSide(
+                              width: selected ? 1.5 : 1,
+                              color: selected
+                                  ? KColors.actionInk
+                                  : KColors.borderStrong))),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (dot != null) ...[
+                      Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                              color: dot, shape: BoxShape.circle)),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w400,
+                            color: selected ? KColors.text : KColors.muted)),
+                  ])))));
 }

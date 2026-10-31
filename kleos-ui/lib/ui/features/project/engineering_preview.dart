@@ -11,6 +11,7 @@ import '../../core/widgets.dart';
 import 'common.dart';
 import 'companion_app_preview.dart';
 import 'cad_assembly_preview.dart';
+import 'pcb_preview.dart';
 import 'engineering_views.dart';
 
 typedef EngineeringPreviewRequest = ({String projectId, int revision});
@@ -260,7 +261,15 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                 envelope: envelope,
                 height: inner,
                 actual: source && mesh.isNotEmpty)),
-        'electronics' => _PcbPreview(pcb: asMap(current['pcb']), height: inner),
+        'electronics' => PcbViewer(
+            pcb: asMap(current['pcb']),
+            height: inner,
+            fallback: SizedBox(
+                height: inner,
+                child: const _WaitingPreview(
+                    icon: Icons.memory_outlined,
+                    text:
+                        'Board dimensions and component placements will appear here.'))),
         'firmware' => const _WaitingPreview(
             icon: Icons.code,
             text: 'Generated firmware source will appear here.'),
@@ -1210,215 +1219,6 @@ class _MeshPainter extends CustomPainter {
       old.elevation != elevation ||
       old.zoom != zoom ||
       old.actual != actual;
-}
-
-class _PcbPreview extends StatefulWidget {
-  const _PcbPreview({required this.pcb, this.height = 290});
-  final JsonMap pcb;
-  final double height;
-  @override
-  State<_PcbPreview> createState() => _PcbPreviewState();
-}
-
-class _PcbPreviewState extends State<_PcbPreview>
-    with TickerProviderStateMixin, _Entrance {
-  @override
-  Widget build(BuildContext context) {
-    final pcb = widget.pcb;
-    final board = asMap(pcb['board']);
-    final w = _positive(board['width']), h = _positive(board['height']);
-    return SizedBox(
-      height: widget.height,
-      width: double.infinity,
-      child: w == null || h == null
-          ? const _WaitingPreview(
-              icon: Icons.memory_outlined,
-              text:
-                  'Board dimensions and component placements will appear here.')
-          : Stack(children: [
-              Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  bottom: 46,
-                  child: Semantics(
-                    label: 'PCB board and component placement preview',
-                    child: CustomPaint(
-                        key: const ValueKey('pcb-geometry-canvas'),
-                        painter: _PcbPainter(pcb, w, h, arrive)),
-                  )),
-              Positioned(
-                  left: 4,
-                  bottom: 4,
-                  child: _overlayChip(Text(
-                      '${_dimension(w)} × ${_dimension(h)} mm · ${asMaps(pcb['components']).length} components',
-                      style: const TextStyle(
-                          fontFamily: 'GeistMono',
-                          fontSize: 12,
-                          color: KColors.muted)))),
-            ]),
-    );
-  }
-}
-
-class _PcbPainter extends CustomPainter {
-  _PcbPainter(this.pcb, this.width, this.height, this.progress)
-      : super(repaint: progress);
-  final JsonMap pcb;
-  final double width, height;
-  final Animation<double> progress;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final t = progress.value;
-    final scale =
-        math.min((size.width - 34) / width, (size.height - 32) / height) *
-            (.94 + .06 * t);
-    final rect = Rect.fromCenter(
-        center: size.center(Offset.zero),
-        width: width * scale,
-        height: height * scale);
-    final radius = Radius.circular(math.min(rect.shortestSide * .08, 10));
-    final outline = RRect.fromRectAndRadius(rect, radius);
-    canvas.saveLayer(rect.inflate(30),
-        Paint()..color = Colors.white.withValues(alpha: t.clamp(0, 1)));
-    // Soldermask with a faint diagonal sheen, then a bright copper edge.
-    canvas.drawRRect(
-        outline.shift(const Offset(0, 8)),
-        Paint()
-          ..color = const Color(0xff050507).withValues(alpha: .5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
-    canvas.drawRRect(
-        outline,
-        Paint()
-          ..shader = const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xff17493a), Color(0xff0e2f26)])
-              .createShader(rect));
-    canvas.drawRRect(
-        outline,
-        Paint()
-          ..color = const Color(0xff6fb08f).withValues(alpha: .7)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
-    canvas.save();
-    canvas.clipRRect(outline);
-    Offset at(double x, double y) =>
-        Offset(rect.left + x * scale, rect.top + y * scale);
-    // Mounting holes in the corners.
-    for (final c in [
-      rect.topLeft + const Offset(9, 9),
-      rect.topRight + const Offset(-9, 9),
-      rect.bottomLeft + const Offset(9, -9),
-      rect.bottomRight + const Offset(-9, -9),
-    ]) {
-      canvas.drawCircle(c, 3.2, Paint()..color = KColors.bg);
-      canvas.drawCircle(
-          c,
-          3.2,
-          Paint()
-            ..color = const Color(0xff9fd0b5).withValues(alpha: .6)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-    }
-    // Copper traces draw themselves from their first point.
-    final drawn = Curves.easeOutCubic.transform(((t - .15) / .85).clamp(0, 1));
-    for (final trace in asMaps(pcb['traces']).take(256)) {
-      final points = asMaps(trace['points'])
-          .take(256)
-          .map((p) {
-            final x = _finite(p['x']), y = _finite(p['y']);
-            return x == null || y == null ? null : at(x, y);
-          })
-          .whereType<Offset>()
-          .toList();
-      if (points.length < 2) continue;
-      final path = Path()..addPolygon(points, false);
-      final metric =
-          path.computeMetrics().fold<double>(0, (a, m) => a + m.length);
-      final visible = Path();
-      var remaining = metric * drawn;
-      for (final m in path.computeMetrics()) {
-        if (remaining <= 0) break;
-        visible.addPath(
-            m.extractPath(0, math.min(m.length, remaining)), Offset.zero);
-        remaining -= m.length;
-      }
-      final copper = trace['layer'] == 'B.Cu'
-          ? const Color(0xff72a9c6)
-          : const Color(0xffe0b866);
-      canvas.drawPath(
-          visible,
-          Paint()
-            ..color = copper.withValues(alpha: .16)
-            ..style = PaintingStyle.stroke
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..strokeWidth = 5);
-      canvas.drawPath(
-          visible,
-          Paint()
-            ..color = copper
-            ..style = PaintingStyle.stroke
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..strokeWidth = 1.6);
-    }
-    for (final component in asMaps(pcb['components']).take(128)) {
-      final x = _finite(component['x']), y = _finite(component['y']);
-      final w = _positive(component['width']),
-          h = _positive(component['height']);
-      if (x == null || y == null || w == null || h == null) continue;
-      final r = Rect.fromCenter(
-          center: at(x, y), width: w * scale, height: h * scale);
-      // Pads along the long edges give each package a footprint.
-      final horizontal = r.width >= r.height;
-      final pads = ((horizontal ? r.width : r.height) / 5).floor().clamp(0, 10);
-      final pad = Paint()..color = const Color(0xffe0b866);
-      for (var i = 0; i < pads; i++) {
-        final f = (i + .5) / pads;
-        if (horizontal) {
-          final px = r.left + r.width * f;
-          canvas.drawRect(Rect.fromLTWH(px - 1, r.top - 2.5, 2, 3), pad);
-          canvas.drawRect(Rect.fromLTWH(px - 1, r.bottom - .5, 2, 3), pad);
-        } else {
-          final py = r.top + r.height * f;
-          canvas.drawRect(Rect.fromLTWH(r.left - 2.5, py - 1, 3, 2), pad);
-          canvas.drawRect(Rect.fromLTWH(r.right - .5, py - 1, 3, 2), pad);
-        }
-      }
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(2.5)),
-          Paint()..color = const Color(0xff262d34));
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(r.deflate(.5), const Radius.circular(2.5)),
-          Paint()
-            ..color = const Color(0xffd7d3b4).withValues(alpha: .85)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      if (r.width > 18 && r.height > 11) {
-        final label = '${component['label'] ?? component['id'] ?? ''}';
-        final text = TextPainter(
-            text: TextSpan(
-                text: label.length > 16 ? '${label.substring(0, 15)}…' : label,
-                style: const TextStyle(
-                    color: Color(0xffefecd8),
-                    fontSize: 12,
-                    fontFamily: 'GeistMono')),
-            textDirection: TextDirection.ltr,
-            maxLines: 1,
-            ellipsis: '…')
-          ..layout(maxWidth: math.max(1, r.width - 3));
-        text.paint(canvas, r.center - Offset(text.width / 2, text.height / 2));
-      }
-    }
-    canvas.restore();
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _PcbPainter old) =>
-      old.pcb != pcb || old.width != width || old.height != height;
 }
 
 class _AppPreview extends StatefulWidget {

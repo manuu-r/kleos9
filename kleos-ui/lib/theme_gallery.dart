@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'ui/features/project/cad_assembly_preview.dart';
+import 'ui/features/project/pcb_preview.dart';
 import 'ui/theme/components.dart';
 
 void main() => runApp(const ThemeGalleryApp());
@@ -70,6 +71,52 @@ Map<String, dynamic> _part(String id, String label, double w, double d,
         'translation': {'x': 0, 'y': 0, 'z': z}
       },
     };
+
+const _samplePcb = <String, dynamic>{
+  'board': {'width': 60, 'height': 40},
+  'components': [
+    {'id': 'U1', 'label': 'MCU', 'x': 24, 'y': 18, 'width': 9, 'height': 9},
+    {'id': 'J1', 'label': 'USB-C', 'x': 52, 'y': 20, 'width': 8, 'height': 7},
+    {
+      'id': 'Y1',
+      'label': 'XTAL',
+      'x': 14,
+      'y': 10,
+      'width': 3.2,
+      'height': 1.8
+    },
+    {'id': 'C1', 'label': '100n', 'x': 20, 'y': 9, 'width': 1.8, 'height': 1},
+    {'id': 'R1', 'label': '10k', 'x': 14, 'y': 28, 'width': 1.8, 'height': 1},
+  ],
+  'traces': [
+    {
+      'layer': 'F.Cu',
+      'width': .3,
+      'points': [
+        {'x': 24, 'y': 18},
+        {'x': 24, 'y': 12},
+        {'x': 14, 'y': 10}
+      ]
+    },
+    {
+      'layer': 'F.Cu',
+      'width': .4,
+      'points': [
+        {'x': 24, 'y': 18},
+        {'x': 38, 'y': 18},
+        {'x': 52, 'y': 20}
+      ]
+    },
+    {
+      'layer': 'B.Cu',
+      'width': .3,
+      'points': [
+        {'x': 14, 'y': 28},
+        {'x': 24, 'y': 18}
+      ]
+    },
+  ],
+};
 
 class ThemeGallery extends StatefulWidget {
   const ThemeGallery({super.key});
@@ -153,6 +200,25 @@ class _ThemeGalleryState extends State<ThemeGallery> {
                                       on: KColors.onAction),
                                   _swatch('accent', KColors.accent,
                                       on: KColors.onAccent),
+                                ]),
+                                Wrap(spacing: 6, runSpacing: 6, children: [
+                                  for (final c in [
+                                    ...KViz.parts,
+                                    KViz.mask,
+                                    KViz.copperTop,
+                                    KViz.copperBottom,
+                                    KViz.pad,
+                                    KViz.partBody,
+                                  ])
+                                    Container(
+                                        width: 40,
+                                        height: 24,
+                                        decoration: ShapeDecoration(
+                                            color: c,
+                                            shape: KShape.control(
+                                                side: const BorderSide(
+                                                    color: KColors
+                                                        .borderStrong)))),
                                 ]),
                                 Wrap(spacing: 8, runSpacing: 8, children: [
                                   for (final (n, _) in [
@@ -327,6 +393,10 @@ class _ThemeGalleryState extends State<ThemeGallery> {
                                     assembly: assembly,
                                     height: 420,
                                     fallback: const Text('fallback')),
+                                const PcbViewer(
+                                    pcb: _samplePcb,
+                                    height: 420,
+                                    fallback: Text('fallback')),
                               ]),
                             ]))))));
   }
