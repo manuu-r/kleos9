@@ -35,7 +35,7 @@ class BuildActionsMenu extends ConsumerWidget {
                 _DeleteBuildDialog(project: project, controller: controller));
         // The menu can disappear when the accepted deletion updates the list.
         // Let the surviving caller decide whether navigation is still valid.
-        if (deleted == true) onDeleted?.call();
+        if (deleted ?? false) onDeleted?.call();
       },
       itemBuilder: (_) => [
         const PopupMenuItem(

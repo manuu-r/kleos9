@@ -16,13 +16,13 @@ import 'package:kleos_ui/ui/features/production/production_app.dart';
 class _Owner extends AccountController {
   @override
   Future<AccountSession?> build() async => AccountSession.fromJson(
-      {'subject': 'user', 'tenantId': 'org', 'role': 'owner'});
+      const {'subject': 'user', 'tenantId': 'org', 'role': 'owner'});
 }
 
 class _Viewer extends AccountController {
   @override
   Future<AccountSession?> build() async => AccountSession.fromJson(
-      {'subject': 'user', 'tenantId': 'org', 'role': 'viewer'});
+      const {'subject': 'user', 'tenantId': 'org', 'role': 'viewer'});
 }
 
 class _Repository extends ProductionRepository {
@@ -53,7 +53,7 @@ RunRecord _run(List<Map<String, dynamic>> jobs) => RunRecord({
         {
           'lane': 'mechanics',
           'status': 'succeeded',
-          'attempts': <dynamic>[],
+          'attempts': const <dynamic>[],
           'nativeJobs': jobs,
         }
       ]

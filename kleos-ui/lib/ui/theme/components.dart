@@ -385,7 +385,7 @@ class KTable extends StatelessWidget {
                             if (cell > 0 &&
                                 cell < headers.length &&
                                 headers[cell].isNotEmpty)
-                              KMuted(headers[cell], size: 12),
+                              KMuted(headers[cell]),
                             rows[row][cell],
                           ], gap: 2),
                         ),
@@ -412,8 +412,8 @@ class KTable extends StatelessWidget {
                                     fontSize: 12, color: KColors.muted))))
                         .toList(),
                     rows: rows
-                        .map((r) =>
-                            DataRow(cells: r.map((c) => DataCell(c)).toList()))
+                        .map(
+                            (r) => DataRow(cells: r.map(DataCell.new).toList()))
                         .toList())));
       });
 }
@@ -584,7 +584,7 @@ class KStats extends StatelessWidget {
                                               ? 17
                                               : 24)),
                                   if (rows[r][i].sub != null)
-                                    KMuted(rows[r][i].sub!, size: 12)
+                                    KMuted(rows[r][i].sub!)
                                 ], gap: 6)))
                       ],
                       // A short last row keeps its cells on the same grid.
@@ -970,15 +970,15 @@ class KPageSkeleton extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 1136),
                     child: kColumn([
                       const KSkeletonBar(height: 26, width: 160),
-                      const KSkeletonBar(height: 14, width: 260),
+                      const KSkeletonBar(width: 260),
                       const SizedBox(height: 4),
                       const KSkeletonBar(height: 48, radius: 24),
                       const SizedBox(height: 8),
                       Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: KShape.surface(KColors.surface),
-                          child: const KSkeletonRows(rows: 4)),
-                    ], gap: 12)))));
+                          child: const KSkeletonRows()),
+                    ])))));
   }
 }
 

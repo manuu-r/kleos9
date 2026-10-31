@@ -288,7 +288,7 @@ class _ProjectStageState extends State<ProjectStage> {
                           onPressed: _picked.isEmpty || pending
                               ? null
                               : () => _answer(current, _picked.toList())),
-                  ], gap: 14)),
+                  ])),
             ],
             if (current == null && !_done(0))
               _chat('Summarizing your requirements…'),
@@ -421,7 +421,7 @@ class _ProjectStageState extends State<ProjectStage> {
                     primary: true,
                     icon: Icons.arrow_forward,
                     onPressed: widget.onNext)
-              ], gap: 14)),
+              ])),
         ]),
       ],
     ], gap: 28);
@@ -581,9 +581,9 @@ class _ProjectStageState extends State<ProjectStage> {
           child: pColumn([
         GroupLabel('Acceptance criteria',
             trailing: const KBadge('Owned by Quality')),
-        const KMuted('Generators cannot change these.', size: 12),
+        const KMuted('Generators cannot change these.'),
         CriteriaList(items: criteria, satisfied: agreed),
-      ], gap: 14)),
+      ])),
       if (agreed) _next('Generate designs'),
     ], gap: 36);
   }
@@ -617,11 +617,11 @@ class _ProjectStageState extends State<ProjectStage> {
             Expanded(
                 child: pColumn([
               Text(lane, style: Theme.of(context).textTheme.titleMedium),
-              KMuted(status, size: 12),
+              KMuted(status),
             ], gap: 2)),
           ]),
           if (lane == 'App')
-            const KMuted('Kleos9 App (built in)', size: 12)
+            const KMuted('Kleos9 App (built in)')
           else
             Builder(builder: (context) {
               final candidates = connectors
@@ -711,14 +711,13 @@ class _ProjectStageState extends State<ProjectStage> {
         if (p['generation'] == 'idle')
           pActions([
             const KMuted(
-                'Default Kleos9 tools run unless you pick another for a lane.',
-                size: 12),
+                'Default Kleos9 tools run unless you pick another for a lane.'),
             KButton(
                 label: 'Plug in more tools',
                 compact: true,
                 onPressed: () => context.go('/connections?tab=tools'))
           ]),
-      ], gap: 14),
+      ]),
       EngineeringPreviewPanel(
           key: ValueKey('studio-${p['id']}-files'),
           data: mockPreviewData(p),
@@ -729,7 +728,7 @@ class _ProjectStageState extends State<ProjectStage> {
           GroupLabel('Generation log',
               trailing: running ? const KBadge('Live', tone: 'accent') : null),
           TerminalPanel(lines: log, live: running),
-        ], gap: 14),
+        ]),
       if (done)
         pColumn([
           GroupLabel('Candidate artifacts',
@@ -777,7 +776,7 @@ class _ProjectStageState extends State<ProjectStage> {
                       }))
                 ]
               ])),
-        ], gap: 14),
+        ]),
     ], gap: 36);
   }
 
@@ -890,7 +889,7 @@ class _ProjectStageState extends State<ProjectStage> {
                   enabled: !busy && blocking.isEmpty),
             ],
           ]),
-        ], gap: 14)),
+        ])),
       if (accepted)
         KPanel(
             child: pColumn([
@@ -898,7 +897,7 @@ class _ProjectStageState extends State<ProjectStage> {
               'Release ${shortHash(p['manifestHash'])} covers ${artifacts.length} artifacts. ${unknowns.length} unknown result(s) go to physical testing.',
               muted: true),
           _next('Procure prototype')
-        ], gap: 14)),
+        ])),
     ], gap: 28);
   }
 
@@ -1414,7 +1413,7 @@ class _ProjectStageState extends State<ProjectStage> {
               pText(
                   'Spares and rebuilds route back to the same providers when you mark them as preferred.',
                   muted: true),
-            ], gap: 14)),
+            ])),
     ], gap: 28);
   }
 }

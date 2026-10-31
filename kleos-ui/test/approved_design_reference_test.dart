@@ -131,7 +131,7 @@ void main() {
           projectId: 'one',
           approvedDesign: _approved('Approved round watch'),
           designIntent: _intent(),
-          check: {
+          check: const {
             'status': 'FAIL',
             'details': {
               'reason':
@@ -160,7 +160,7 @@ void main() {
           projectId: 'one',
           approvedDesign: _approved('Approved round watch'),
           designIntent: _intent(),
-          check: {
+          check: const {
             'status': 'UNKNOWN',
             'details': {
               'reasonCode': 'awaiting_engineering_checks',
@@ -187,7 +187,7 @@ void main() {
           projectId: 'one',
           approvedDesign: _approved('Approved round watch'),
           designIntent: _intent(),
-          check: {
+          check: const {
             'status': 'UNKNOWN',
             'details': {
               'scope':

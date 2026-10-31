@@ -266,7 +266,7 @@ class _ProviderPageState extends State<ProviderPage> {
     return KPage(children: [
       if (production) tabs,
       kColumn([
-        const KMuted('Provider portal, signed in as', size: 12),
+        const KMuted('Provider portal, signed in as'),
         KSectionHeader(
             title: '${summary['name'] ?? 'Provider portal'}',
             description:
@@ -298,11 +298,10 @@ class _ProviderPageState extends State<ProviderPage> {
                             color: i <= level ? KColors.pass : KColors.faint),
                         KBadge(_ladder[i].$1)
                       ]),
-                      KMuted(_ladder[i].$2, size: 12)
+                      KMuted(_ladder[i].$2)
                     ], gap: 4)),
               const KMuted(
-                  'Next: Preferred after 50 jobs with ≥ 95% on-time and quality ≥ 92.',
-                  size: 12)
+                  'Next: Preferred after 50 jobs with ≥ 95% on-time and quality ≥ 92.')
             ])),
         KCard(
             title: 'Where your jobs came from',
@@ -341,8 +340,7 @@ class _ProviderPageState extends State<ProviderPage> {
                             KBadge('${j['state']}'.replaceAll('_', ' '),
                                 tone: _jobTone(j))
                           ]),
-                          KMuted('${j['projectRef']} · Due ${j['due']}',
-                              size: 12)
+                          KMuted('${j['projectRef']} · Due ${j['due']}')
                         ], gap: 5)))
             ])),
         if (job != null)
@@ -405,8 +403,7 @@ class _JobDetailState extends State<_JobDetail> {
             KBadge('${j['state']}'.replaceAll('_', ' '), tone: _jobTone(j)),
         child: kColumn([
           KMuted(
-              '${j['capability']} · ${j['projectRef']} · Qty ${j['qty']} · Due ${j['due']}',
-              size: 12),
+              '${j['capability']} · ${j['projectRef']} · Qty ${j['qty']} · Due ${j['due']}'),
           const Text('Why this was routed to you',
               style: TextStyle(fontWeight: FontWeight.w500)),
           for (final reason in asList(j['why']))
@@ -416,11 +413,11 @@ class _JobDetailState extends State<_JobDetail> {
             ]),
           KResponsive(children: [
             kColumn([
-              const KMuted('Files (exact revision, minimum packet)', size: 12),
+              const KMuted('Files (exact revision, minimum packet)'),
               for (final file in asList(j['files'])) KCode('$file')
             ], gap: 6),
             kColumn([
-              const KMuted('Acceptance criteria', size: 12),
+              const KMuted('Acceptance criteria'),
               for (final item in asList(j['acceptance'])) KMuted('• $item')
             ], gap: 6)
           ]),

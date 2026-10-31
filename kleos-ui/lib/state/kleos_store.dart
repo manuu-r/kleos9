@@ -120,7 +120,7 @@ class KleosStore extends Notifier<KleosController> {
           _timer?.cancel();
         }
       });
-      Future.microtask(start);
+      unawaited(Future.microtask(start));
     }
     return KleosController._(this);
   }

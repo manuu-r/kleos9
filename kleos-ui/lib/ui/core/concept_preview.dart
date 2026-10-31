@@ -137,7 +137,7 @@ class _ConceptPreviewState extends State<ConceptPreview>
               child: Text('Device concept',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
           if (widget.updating) ...[
-            const KSpinner(size: 13, color: KColors.muted),
+            const KSpinner(size: 13),
             const SizedBox(width: 7),
             const Text('Updating',
                 style: TextStyle(color: KColors.muted, fontSize: 12)),

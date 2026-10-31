@@ -15,7 +15,7 @@ import 'package:kleos_ui/ui/features/project/engineering_preview.dart';
 class _Owner extends AccountController {
   @override
   Future<AccountSession?> build() async => AccountSession.fromJson(
-      {'subject': 'test-user', 'tenantId': 'test-org', 'role': 'owner'});
+      const {'subject': 'test-user', 'tenantId': 'test-org', 'role': 'owner'});
 }
 
 class _Service extends ApiService {

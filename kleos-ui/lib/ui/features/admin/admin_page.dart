@@ -205,7 +205,7 @@ class _InviteList extends ConsumerWidget {
                                         .read(adminActionsProvider)
                                         .revokeInvite(invite.id)
                                         .then((_) => true));
-                                if (done == true) {
+                                if (done ?? false) {
                                   ref.invalidate(adminInvitesProvider);
                                 }
                               })
@@ -281,7 +281,7 @@ class _MemberList extends ConsumerWidget {
                                 : member.label),
                             if (member.email != null &&
                                 member.email != member.label)
-                              KMuted(member.email!, size: 12),
+                              KMuted(member.email!),
                           ])),
                       if (member.locked) const KBadge('Locked'),
                       const SizedBox(width: 8),

@@ -92,7 +92,7 @@ class _Hero extends StatelessWidget {
           ], gap: 10),
         ], gap: 14);
         if (!showStage) return copy;
-        return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        return Row(children: [
           Expanded(flex: 5, child: copy),
           const SizedBox(width: 48),
           const Expanded(flex: 6, child: _Stage(height: 340)),
@@ -221,19 +221,16 @@ class _Builds extends StatelessWidget {
               KCard(
                   onTap: () => context.go('/projects/${p['id']}'),
                   child: kColumn([
-                    Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                              child: Text('${p['name']}',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium)),
-                          BuildActionsMenu(project: p, controller: controller),
-                          const Icon(Icons.chevron_right,
-                              size: 18, color: KColors.faint)
-                        ]),
+                    Row(children: [
+                      Expanded(
+                          child: Text('${p['name']}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium)),
+                      BuildActionsMenu(project: p, controller: controller),
+                      const Icon(Icons.chevron_right,
+                          size: 18, color: KColors.faint)
+                    ]),
                     Text('${p['brief']}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -247,7 +244,7 @@ class _Builds extends StatelessWidget {
                       status(p),
                     ])
                   ], gap: 14)),
-          ], gap: 12);
+          ]);
         }),
       ], gap: 16);
 }
@@ -329,12 +326,12 @@ class _PlugIns extends StatelessWidget {
             SizedBox(
                 width: 170,
                 child: kColumn([
-                  KMuted(lane, size: 12),
+                  KMuted(lane),
                   for (final tool in tools
                       .where((t) => t['domain'] == lane && t['linked'] == true))
                     KBadge('${tool['name']}',
                         tone: tool['builtIn'] == true ? null : 'accent'),
-                  const KMuted('Your tool', size: 12)
+                  const KMuted('Your tool')
                 ], gap: 8))
         ]));
     final servicesTile = _HomeLink(
@@ -370,7 +367,7 @@ class _PlugIns extends StatelessWidget {
             const KBadge('In review', tone: 'accent')
           ]),
           const KProgress(70),
-          const KMuted('Evidence received, validator running', size: 12)
+          const KMuted('Evidence received, validator running')
         ]));
     const devTile = _HomeLink(
         title: 'Build a connector in minutes',
@@ -506,12 +503,11 @@ class _NewBuildPageState extends State<NewBuildPage> {
                             hintText:
                                 'A desk air-quality monitor with a small screen…'))),
                 LayoutBuilder(builder: (context, constraints) {
-                  final help = KMuted(
-                      widget.controller.state['production'] == true &&
-                              !_simulate
-                          ? 'AI models are configured in Providers.'
-                          : 'Scripted around an air-quality monitor in this prototype.',
-                      size: 12);
+                  final help = KMuted(widget.controller.state['production'] ==
+                              true &&
+                          !_simulate
+                      ? 'AI models are configured in Providers.'
+                      : 'Scripted around an air-quality monitor in this prototype.');
                   final submit = KButton(
                       label: _simulate ? 'Start demo build' : 'Start build',
                       primary: true,
@@ -521,7 +517,7 @@ class _NewBuildPageState extends State<NewBuildPage> {
                           ? null
                           : start);
                   if (constraints.maxWidth < 400) {
-                    return kColumn([help, submit], gap: 12);
+                    return kColumn([help, submit]);
                   }
                   return Row(children: [
                     Expanded(child: help),
@@ -531,7 +527,7 @@ class _NewBuildPageState extends State<NewBuildPage> {
                 }),
               ], gap: 14)),
           kColumn([
-            const KMuted('Or start from a sample', size: 12),
+            const KMuted('Or start from a sample'),
             for (final sample in sampleBriefs)
               KTap(
                   radius: KRadius.control,

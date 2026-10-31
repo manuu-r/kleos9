@@ -334,8 +334,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                   top: 40,
                   child: Material(
                       type: MaterialType.transparency,
-                      child: Align(
-                          alignment: Alignment.center, child: view.visual))),
+                      child: Align(child: view.visual))),
               Positioned(
                   top: 10,
                   left: 12,

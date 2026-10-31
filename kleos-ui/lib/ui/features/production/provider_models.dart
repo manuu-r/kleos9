@@ -70,7 +70,8 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
         .toList();
     final current =
         projects.where((project) => project['id'] == selected).firstOrNull;
-    final canWrite = ref.watch(accountProvider).asData?.value?.canWrite == true;
+    final canWrite =
+        ref.watch(accountProvider).asData?.value?.canWrite ?? false;
     return kColumn([
       const KSectionHeader(
           title: 'AI model providers',
@@ -96,7 +97,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
                       : 'Not configured'),
                   for (final model in models.models
                       .where((m) => m.choice.provider == provider))
-                    KMuted(model.choice.model, size: 12),
+                    KMuted(model.choice.model),
                 ])),
         ]),
       ),

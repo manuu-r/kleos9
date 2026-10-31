@@ -299,7 +299,7 @@ void main() {
     };
     await _mount(
         tester,
-        EngineeringPreviewPanel(data: data, fallbackScene: {
+        EngineeringPreviewPanel(data: data, fallbackScene: const {
           'schemaVersion': 'concept-scene-v1',
           'title': 'Workshop sensor',
           'parts': [

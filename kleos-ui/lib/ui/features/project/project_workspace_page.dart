@@ -314,7 +314,7 @@ class _StageTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
       label: 'Project stages',
-      child: KTabStrip(selected: view, gap: 24, textSize: 14, tabs: [
+      child: KTabStrip(selected: view, tabs: [
         for (var i = 0; i < stageNames.length; i++)
           KTab(
               label: stageNames[i],

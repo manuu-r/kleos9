@@ -12,3 +12,5 @@ analyzer:
 linter:
   rules:
     avoid_print: true
+    unawaited_futures: true
+    avoid_redundant_argument_values: true

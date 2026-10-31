@@ -182,7 +182,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
               if (!valid)
                 Text(parseError,
                     style: const TextStyle(color: KColors.fail, fontSize: 12)),
-              const KMuted('Operations Kleos9 will call', size: 12),
+              const KMuted('Operations Kleos9 will call'),
               KCode(valid
                   ? operations.isEmpty
                       ? '(no operations)'
@@ -232,7 +232,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                         controller: terminal,
                         child: kColumn([
                           if (asList(dev['terminal']).isEmpty)
-                            const KMuted('Run kleos init to start.', size: 12),
+                            const KMuted('Run kleos init to start.'),
                           for (final line in asList(dev['terminal']))
                             SelectableText(
                                 '$line'
@@ -320,8 +320,7 @@ class AgentAccessPage extends StatelessWidget {
                     ? null
                     : () => controller.execute('agent.nextMessage')),
             const KMuted(
-                'The customer still confirms the concept on Kleos9 before any design or spending happens.',
-                size: 12),
+                'The customer still confirms the concept on Kleos9 before any design or spending happens.'),
           ], gap: 17)),
     ]);
   }

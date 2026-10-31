@@ -208,7 +208,6 @@ ThemeData kTheme() {
         decoration: ShapeDecoration(
             color: KColors.surface3,
             shape: KShape.control(
-                radius: 3,
                 side: const BorderSide(color: KColors.borderStrong))),
         textStyle: const TextStyle(
             fontFamily: 'Geist', fontSize: 12.5, color: KColors.text)),

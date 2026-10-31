@@ -130,11 +130,10 @@ class AppShell extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ListenableBuilder(
-      listenable: FocusManager.instance,
-      builder: (context, _) => _build(context, ref));
+  Widget build(BuildContext context, WidgetRef ref) => _TextEditing(
+      builder: (context, editing) => _build(context, ref, editing));
 
-  Widget _build(BuildContext context, WidgetRef ref) {
+  Widget _build(BuildContext context, WidgetRef ref, bool editing) {
     final controller = ref.watch(kleosProvider);
     final running = _runningWork(ref);
     final width = MediaQuery.sizeOf(context).width;
@@ -144,9 +143,6 @@ class AppShell extends ConsumerWidget {
         mobile && width >= 700 && MediaQuery.sizeOf(context).height >= 600;
     final phone = mobile && !rail;
     final detail = !(_nav.any((item) => item.path == uri.path));
-    final editing = FocusManager.instance.primaryFocus?.context
-            ?.findAncestorWidgetOfExactType<EditableText>() !=
-        null;
     final keyboardOpen = editing && MediaQuery.viewInsetsOf(context).bottom > 0;
     final gutter = KSpace.gutter(context);
     final header = Container(
@@ -189,7 +185,6 @@ class AppShell extends ConsumerWidget {
                       else
                         Expanded(
                             child: Align(
-                                alignment: Alignment.center,
                                 child: SizedBox(
                                     height: 64,
                                     child: KTabStrip(
@@ -314,6 +309,45 @@ class AppShell extends ConsumerWidget {
   }
 }
 
+/// Reports whether a text field has focus. It rebuilds only when that answer
+/// changes, not on every focus move.
+class _TextEditing extends StatefulWidget {
+  const _TextEditing({required this.builder});
+  final Widget Function(BuildContext context, bool editing) builder;
+  @override
+  State<_TextEditing> createState() => _TextEditingState();
+}
+
+class _TextEditingState extends State<_TextEditing> {
+  bool _editing = false;
+
+  static bool _focusInTextField() =>
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<EditableText>() !=
+      null;
+
+  @override
+  void initState() {
+    super.initState();
+    _editing = _focusInTextField();
+    FocusManager.instance.addListener(_focusChanged);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeListener(_focusChanged);
+    super.dispose();
+  }
+
+  void _focusChanged() {
+    final editing = _focusInTextField();
+    if (editing != _editing) setState(() => _editing = editing);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _editing);
+}
+
 class AppPage extends StatefulWidget {
   const AppPage({super.key, required this.child});
   final Widget child;
@@ -352,13 +386,11 @@ class _AppPageState extends State<AppPage> {
                 child,
                 SizedBox(height: phone ? 40 : 64),
                 const Center(
-                    child: KMuted(
-                        String.fromEnvironment('KLEOS_BACKEND',
-                                    defaultValue: 'mock') ==
-                                'production'
-                            ? 'Prototype. Choose real engineering or a simulated demo for new builds. Physical fulfillment remains simulated.'
-                            : 'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.',
-                        size: 12)),
+                    child: KMuted(String.fromEnvironment('KLEOS_BACKEND',
+                                defaultValue: 'mock') ==
+                            'production'
+                        ? 'Prototype. Choose real engineering or a simulated demo for new builds. Physical fulfillment remains simulated.'
+                        : 'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.')),
               ])),
         ),
       )),
@@ -410,10 +442,9 @@ class _RunningChip extends StatelessWidget {
               for (var i = 0; i < running.length; i++)
                 PopupMenuItem(
                     value: i,
-                    child: kColumn([
-                      Text(running[i].label),
-                      KMuted(running[i].detail, size: 12)
-                    ], gap: 3))
+                    child: kColumn(
+                        [Text(running[i].label), KMuted(running[i].detail)],
+                        gap: 3))
             ],
         child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -553,7 +584,7 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                         if (q.length > 3) ...[
                           const Padding(
                               padding: EdgeInsets.all(10),
-                              child: KMuted('Ask Kleos9', size: 12)),
+                              child: KMuted('Ask Kleos9')),
                           ListTile(
                               minVerticalPadding: 10,
                               leading: const Icon(Icons.auto_awesome,
@@ -567,7 +598,7 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                               matches[i - 1].group != matches[i].group)
                             Padding(
                                 padding: const EdgeInsets.all(10),
-                                child: KMuted(matches[i].group, size: 12)),
+                                child: KMuted(matches[i].group)),
                           ListTile(
                               minVerticalPadding: 10,
                               title: Text(matches[i].label,

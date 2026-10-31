@@ -70,7 +70,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             controller: widget.controller, connector: matches.first));
     dialogOpen = false;
     if (mounted) {
-      context.go(saved == true && widget.back != null
+      context.go((saved ?? false) && widget.back != null
           ? widget.back!
           : '/connections?tab=${widget.tab}');
     }
@@ -174,20 +174,17 @@ class _ConnectorTile extends StatelessWidget {
                 child: kColumn([
               Text('${c['name']}',
                   style: Theme.of(context).textTheme.titleMedium),
-              KMuted(
-                  [
-                    c['domain'],
-                    c['builtIn'] == true
-                        ? 'Built in'
-                        : c['kind'] == 'printer'
-                            ? 'Printer driver'
-                            : c['author'] != null
-                                ? 'by ${c['author']}'
-                                : c['integration'],
-                    if (c['builtIn'] != true && c['kind'] != 'printer')
-                      c['level']
-                  ].where((x) => x != null).join(', '),
-                  size: 12),
+              KMuted([
+                c['domain'],
+                c['builtIn'] == true
+                    ? 'Built in'
+                    : c['kind'] == 'printer'
+                        ? 'Printer driver'
+                        : c['author'] != null
+                            ? 'by ${c['author']}'
+                            : c['integration'],
+                if (c['builtIn'] != true && c['kind'] != 'printer') c['level']
+              ].where((x) => x != null).join(', ')),
             ], gap: 2)),
           ]),
           KMuted(printer.isNotEmpty
@@ -197,8 +194,7 @@ class _ConnectorTile extends StatelessWidget {
             kRow([
               KBadge('${c['level'] ?? 'unqualified'}'),
               KBadge('${c['mode'] ?? 'unavailable'}'),
-              KMuted(c['enabled'] == true ? 'Enabled' : 'Not enabled',
-                  size: 12),
+              KMuted(c['enabled'] == true ? 'Enabled' : 'Not enabled'),
             ])
           else if (c['linked'] != true)
             KButton(
@@ -212,7 +208,7 @@ class _ConnectorTile extends StatelessWidget {
                 icon: c['kind'] == 'printer' ? Icons.print : Icons.power,
                 onPressed: onConnect)
           else if (c['builtIn'] == true || c['integration'] == 'Built-in')
-            const KMuted('On by default', size: 12)
+            const KMuted('On by default')
           else
             kRow([
               Text(
@@ -247,7 +243,7 @@ class _ConnectorTile extends StatelessWidget {
                   onPressed: () => controller.execute(
                       'connector.disconnect', {'connectorId': c['id']}))
             ]),
-        ], gap: 12)));
+        ])));
   }
 }
 
@@ -403,12 +399,11 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
                                   style: const TextStyle(
                                       fontFamily: 'GeistMono', fontSize: 12)),
                               value: capabilities.contains(cap),
-                              onChanged: (v) => setState(() => v == true
+                              onChanged: (v) => setState(() => v ?? false
                                   ? capabilities.add('$cap')
                                   : capabilities.remove(cap))),
                         const KMuted(
-                            'Tool descriptions are untrusted data. Any change triggers requalification.',
-                            size: 12),
+                            'Tool descriptions are untrusted data. Any change triggers requalification.'),
                         KButton(
                             label: 'Run read-only tests',
                             primary: true,

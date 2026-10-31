@@ -629,7 +629,7 @@ class _ScenePainter extends CustomPainter {
     final depth = Float64List(n);
     final cols = Int32List(n * 3);
     final has = selected != null;
-    final dim = KColors.surface;
+    const dim = KColors.surface;
     final off = scene.offsets;
     final selIndex = has ? scene.parts.indexWhere((p) => p.id == selected) : -1;
     final base = [for (final p in scene.parts) p.color];

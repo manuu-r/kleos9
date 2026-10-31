@@ -322,7 +322,7 @@ void main() {
 
   test('SSE decodes arbitrary byte chunks, UTF8, multiline data and heartbeats',
       () async {
-    final text =
+    const text =
         ': heartbeat\r\nid: 8\r\nevent: progress\r\ndata: {"sequence":8,\r\n'
         'data: "id":"event","createdAt":"2026-10-30","traceId":null,"type":"task.completed","data":{"summary":"µ device"}}\r\n\r\n';
     final bytes = utf8.encode(text);

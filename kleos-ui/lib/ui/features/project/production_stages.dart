@@ -71,7 +71,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           .firstOrNull?['label']
           ?.toString();
   bool get canWrite =>
-      ref.watch(accountProvider).asData?.value?.canWrite == true;
+      ref.watch(accountProvider).asData?.value?.canWrite ?? false;
   VoidCallback? get reviseCircuit =>
       canWrite && !active && asMap(project['interfaces']).isNotEmpty
           ? () => command('project.solveInterfaces')
@@ -389,11 +389,9 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                         child: pColumn([
                       Text(lane.value,
                           style: Theme.of(context).textTheme.titleMedium),
-                      KMuted(
-                          count == 0
-                              ? (active ? 'Working' : 'No artifacts yet')
-                              : '$count recorded artifact${count == 1 ? '' : 's'}',
-                          size: 12),
+                      KMuted(count == 0
+                          ? (active ? 'Working' : 'No artifacts yet')
+                          : '$count recorded artifact${count == 1 ? '' : 's'}'),
                     ], gap: 2)),
                   ]),
                   Container(
@@ -413,7 +411,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                         pText(asMap(policy[lane.key])['model'],
                             small: true, muted: true, mono: true),
                       ], gap: 2)),
-                ], gap: 14));
+                ]));
           }),
       ]),
       EngineeringPreview(
@@ -743,14 +741,14 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                       const SizedBox(width: 16),
                       actions
                     ])
-                  : pColumn([status, actions], gap: 14);
+                  : pColumn([status, actions]);
             }),
             if (liveError != null) connectionError(liveError),
             if (latest?['blocker'] != null)
               pCallout(pText(latest!['blocker'], color: KColors.fail)),
             if (active)
               SegmentBar(tones: List.filled(16, 'accent'), sweeping: true),
-          ], gap: 14)),
+          ])),
       if (widget.stage == 3)
         interfaceRecords()
       else if (widget.stage == 4)

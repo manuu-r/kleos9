@@ -84,7 +84,7 @@ JsonMap mockPreviewData(JsonMap project) {
 /// The simulated assembly, drawn by the same exploded-device painter the home
 /// page uses so the CAD view always has something real to show.
 Widget mockAssembly(JsonMap project, double height) =>
-    DeviceVisual(exploded: true, finish: finishOf(project), guideStep: null);
+    DeviceVisual(finish: finishOf(project));
 
 Map<String, dynamic> _board(List<JsonMap> parts) {
   const slots = <String, (double, double, double, double, String)>{

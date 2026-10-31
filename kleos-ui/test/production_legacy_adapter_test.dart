@@ -18,7 +18,7 @@ ProjectRecord project(String id, int revision) => ProjectRecord({
       'revision': revision,
       'stage': 2,
       'status': 'blocked',
-      'state': {
+      'state': const {
         'proposal': {'summary': 'Real proposal'}
       },
     });
@@ -59,9 +59,9 @@ class Repository extends ProductionRepository {
     return Workspace.fromJson({
       'project': project(id, revision).data,
       'eventCursor': revision,
-      'runs': <JsonMap>[],
-      'artifacts': <JsonMap>[],
-      'checks': <JsonMap>[]
+      'runs': const <JsonMap>[],
+      'artifacts': const <JsonMap>[],
+      'checks': const <JsonMap>[]
     });
   }
 
@@ -80,8 +80,12 @@ class Repository extends ProductionRepository {
       {int? revision}) async {
     commands.add({'type': type, 'payload': payload, 'revision': revision});
     if (failCommands) throw const ProductionApiException('Real run rejected');
-    return AcceptedCommand.fromJson(
-        {'commandId': 'c', 'projectId': 'p', 'runId': 'r', 'revision': 5});
+    return AcceptedCommand.fromJson(const {
+      'commandId': 'c',
+      'projectId': 'p',
+      'runId': 'r',
+      'revision': 5
+    });
   }
 
   void close() {
@@ -365,7 +369,7 @@ void main() {
       }
     });
     repository.revision = 6;
-    final event = ProjectEvent.fromJson({
+    final event = ProjectEvent.fromJson(const {
       'sequence': 6,
       'type': 'run.updated',
       'data': <String, dynamic>{},

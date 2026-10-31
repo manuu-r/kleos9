@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 /// A scroll controller with premium wheel scrolling.
@@ -58,11 +59,11 @@ class _SmoothPosition extends ScrollPositionWithSingleContext {
     // continuous glide rather than a series of short hops.
     final distance = (target - pixels).abs();
     final ms = (200 + distance * .18).clamp(220, 520).round();
-    animateTo(target,
+    unawaited(animateTo(target,
             duration: Duration(milliseconds: ms), curve: Curves.easeOutCubic)
         .whenComplete(() {
       if (_target == target) _target = null;
-    });
+    }));
   }
 
   @override

@@ -413,8 +413,7 @@ class _SignInPageState extends ConsumerState<_SignInPage> {
                             ]);
                           }),
                       const KMuted(
-                          'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.',
-                          size: 12),
+                          'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.'),
                     ], gap: 20))),
           ),
         ))
@@ -505,8 +504,7 @@ class _PendingRequestState extends ConsumerState<_PendingRequest> {
   Widget build(BuildContext context) => kColumn([
         Text(widget.command.body['type'].toString()),
         const KMuted(
-            'This request may already be accepted. Retry checks it using the original request identifier.',
-            size: 12),
+            'This request may already be accepted. Retry checks it using the original request identifier.'),
         if (error != null) _Notice(error!, error: true),
         KButton(
             label: busy ? 'Checking…' : 'Check request',
@@ -689,13 +687,11 @@ class ModelPolicyEditor extends StatelessWidget {
                     )),
                 if (current != null && !current.configured)
                   const KMuted(
-                      'Not connected yet. An administrator must configure this provider before it can run.',
-                      size: 12),
+                      'Not connected yet. An administrator must configure this provider before it can run.'),
               ], gap: 8);
             }),
           const KMuted(
-              'Provider credentials stay on the server. Engineering acceptance always comes from independent checks.',
-              size: 12),
+              'Provider credentials stay on the server. Engineering acceptance always comes from independent checks.'),
         ], gap: 20),
       );
 }
@@ -720,7 +716,8 @@ class ProductionWorkspacePage extends ConsumerWidget {
     final workspace = value.workspace;
     final project = workspace.project;
     final controller = ref.read(productionProjectProvider(projectId).notifier);
-    final canWrite = ref.watch(accountProvider).asData?.value?.canWrite == true;
+    final canWrite =
+        ref.watch(accountProvider).asData?.value?.canWrite ?? false;
     final proposal = asMap(project.state['proposal']);
     final proposedRequirements = asMap(proposal['requirements']);
     return _Page(children: [
@@ -812,7 +809,7 @@ class ProductionWorkspacePage extends ConsumerWidget {
                       KBadge(check['status'].toString(),
                           tone: check['status'] == 'PASS' ? 'pass' : 'unknown'),
                       Text(check['name'].toString()),
-                      KMuted(check['evidenceKind'].toString(), size: 12),
+                      KMuted(check['evidenceKind'].toString()),
                     ]),
                     _JsonDetails(
                         'Check evidence and limitations', check['details'])
@@ -1308,7 +1305,7 @@ class _ProductionRunPageState extends ConsumerState<ProductionRunPage> {
                                 'Output and changes', attempt['output']),
                             for (final call in asMaps(attempt['calls']))
                               _CallRecord(call: call),
-                          ], gap: 12),
+                          ]),
                         for (final job in asMaps(task['nativeJobs']))
                           _NativeJobRecord(
                               job: job,
@@ -1455,17 +1452,16 @@ class _NativeJobRecordState extends ConsumerState<_NativeJobRecord> {
         if (widget.job['purpose'] == 'build' &&
             const {'succeeded', 'failed', 'unsupported'}
                 .contains(widget.job['status']) &&
-            ref.watch(accountProvider).asData?.value?.canWrite == true) ...[
+            (ref.watch(accountProvider).asData?.value?.canWrite ?? false)) ...[
           const KMuted(
-              'Rebuilds the saved sources using compute allowance only. No new AI generation.',
-              size: 12),
+              'Rebuilds the saved sources using compute allowance only. No new AI generation.'),
           KButton(
               key: ValueKey('rebuild-native-${widget.job['id']}'),
               label: rebuilding ? 'Starting rebuild…' : 'Rebuild saved sources',
               onPressed: rebuilding ? null : rebuildSources),
         ],
         if (rebuildError != null) _Notice(rebuildError!, error: true),
-      ], gap: 12);
+      ]);
 }
 
 class _CallRecord extends ConsumerStatefulWidget {
@@ -1601,7 +1597,7 @@ class _Metric extends StatelessWidget {
   final String value;
   @override
   Widget build(BuildContext context) => kColumn([
-        KMuted(label, size: 12),
+        KMuted(label),
         Text(value, style: KType.numeral.copyWith(fontSize: 20)),
       ], gap: 6);
 }
