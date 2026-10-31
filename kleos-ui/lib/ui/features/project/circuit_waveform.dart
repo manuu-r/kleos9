@@ -154,6 +154,7 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
           if (mounted) setState(() {});
         });
   int selected = 0;
+  bool startupZoom = true;
   JsonMap? parsedResult;
   CircuitWaveData? parsedData;
 
@@ -164,6 +165,7 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
       replay.stop();
       replay.value = 0;
       selected = 0;
+      startupZoom = true;
     }
   }
 
@@ -191,9 +193,12 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
     if (reduced && replay.isAnimating) replay.stop();
     final checks = asMaps(widget.result['checks']);
     final signal = data.signals.isEmpty ? null : data.signals[selected];
-    final index = data.times.isEmpty
-        ? 0
-        : (replay.value * (data.times.length - 1)).round();
+    final startupEnd = data.times.lastIndexWhere((t) => t <= 0.005001);
+    final canZoom = startupEnd >= 2 && startupEnd < data.times.length - 1;
+    final end = canZoom && startupZoom ? startupEnd : data.times.length - 1;
+    final visibleTimes =
+        data.times.take(math.max(0, end + 1)).toList(growable: false);
+    final index = data.times.isEmpty ? 0 : (replay.value * end).round();
     return pColumn([
       Wrap(
           spacing: 8,
@@ -231,16 +236,17 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
             child: LayoutBuilder(
                 builder: (context, box) => GestureDetector(
                     key: const ValueKey('waveform-plot'),
-                    onTapDown: (event) =>
-                        scrub(event.localPosition.dx / box.maxWidth),
-                    onHorizontalDragUpdate: (event) =>
-                        scrub(event.localPosition.dx / box.maxWidth),
+                    onTapDown: (event) => scrub((event.localPosition.dx - 50) /
+                        math.max(1, box.maxWidth - 62)),
+                    onHorizontalDragUpdate: (event) => scrub(
+                        (event.localPosition.dx - 50) /
+                            math.max(1, box.maxWidth - 62)),
                     child: SizedBox(
                         height: box.maxWidth < 500 ? 210 : 270,
                         width: double.infinity,
                         child: CustomPaint(
                             painter:
-                                _WavePainter(data.times, signal, index)))))),
+                                _WavePainter(visibleTimes, signal, index)))))),
         Wrap(spacing: 16, runSpacing: 8, children: [
           pText('${(data.times[index] * 1000).toStringAsFixed(2)} ms',
               mono: true),
@@ -262,7 +268,7 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
             value: replay.value,
             onChanged: scrub,
             semanticFormatterCallback: (value) =>
-                '${(value * 100).toStringAsFixed(1)} milliseconds'),
+                '${(value * visibleTimes.last * 1000).toStringAsFixed(1)} milliseconds'),
         Wrap(spacing: 10, runSpacing: 8, children: [
           KButton(
               label: replay.isAnimating ? 'Pause' : 'Replay power-on',
@@ -281,6 +287,15 @@ class _CircuitWaveformViewerState extends State<CircuitWaveformViewer>
               label: 'Reset time',
               icon: Icons.replay,
               onPressed: () => scrub(0)),
+          if (canZoom)
+            KButton(
+                label:
+                    startupZoom ? 'Show full 100 ms' : 'Zoom to startup 5 ms',
+                icon: Icons.zoom_in,
+                onPressed: () => setState(() {
+                      startupZoom = !startupZoom;
+                      scrub(0);
+                    })),
         ]),
         if (reduced)
           pText('Reduced motion: scrub manually to inspect the power-on.',
@@ -384,8 +399,8 @@ class _WavePainter extends CustomPainter {
         Rect.fromLTWH(50, 14, math.max(1, size.width - 62), size.height - 44);
     final extent = [
       0.0,
-      ...signal.low,
-      ...signal.high,
+      ...signal.low.take(times.length),
+      ...signal.high.take(times.length),
       ...signal.limits.values
     ];
     var low = extent.reduce(math.min), high = extent.reduce(math.max);

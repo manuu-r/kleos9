@@ -1,0 +1,350 @@
+{
+  "cases": {
+    "divider": {
+      "artifactSha256": "c1a282dab0fd95862d9097e6a5ee7be6dd4f938e2d4aa5a502a7ea607ab0a282",
+      "checks": {
+        "circuit_dc_rails": "PASS",
+        "circuit_led_current": "NOT_APPLICABLE",
+        "circuit_startup": "PASS",
+        "circuit_total_current": "PASS"
+      },
+      "commands": 6,
+      "decks": [
+        {
+          "corner": [
+            0,
+            0
+          ],
+          "outputSha256": {
+            "linear": "37b26171d696ea91e57ae79f3bd6333525e35ab5611d6624afbfc079889ce127",
+            "op": "e230acd9b33a1b06a704758d5fa5cd2cb4128efb273a173340079cf35826b716",
+            "raw": "f2b925a3e9428a95cecdd97b628d5986216a2189f07e77704116f0c75460555d"
+          },
+          "sha256": "273b18665b089fcde1d9fa14ccd5aa188dc97036e1a6e9975726d9176e24daeb"
+        },
+        {
+          "corner": [
+            -1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "55557c805362422381cb9c752d2b2912167ce3795d499329bc8c0c3f3d269810",
+            "op": "1e195a6077eb94b1aa6428b641b508237ecf4e36c4e0ae97c57e218e1a46bc4a",
+            "raw": "57806ae3619eb1eb24c58dd424b18f6c0912fd8e420dff7bc96df7eb40d66f04"
+          },
+          "sha256": "8236ae99142fa60b2dc35f49c2dbc3543e11eb063c048be1c3256f94e7b8c5e4"
+        },
+        {
+          "corner": [
+            -1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "a8c65e9b78259b1f3008a53248fed8eea87395b48bed9d5a079b3cef5a77e0ca",
+            "op": "ae07871d81fdc6d8784c511d6b584b59fee0baded17d01558e63724eaf0a6098",
+            "raw": "982676bb41195782d941468b938f6390f29c5bf238a3f034a423e33171293d83"
+          },
+          "sha256": "6820d26d252b94c3b9f15b526cdf6925f3503c3078e118df99168e89bb6b3c73"
+        },
+        {
+          "corner": [
+            1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "62407edfdd17cc9f90337f343130a4a28013b45592b325cd4c06507a0e3f7aa7",
+            "op": "0c999bc78edb251ae4a8ad14fc1060e950e7af267527f6834b3b12195b931c6b",
+            "raw": "d72aabb527c04d9719b472c7a92a279c617b966ae708819008438560434e944e"
+          },
+          "sha256": "05cfcc606cf42f0a5140118a6b252b43627ada961dafdc0df39c30685d220cb7"
+        },
+        {
+          "corner": [
+            1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "bbdb8a7da93e5e074f8254da3aa07b0b568e7e0c4ef3691b9bd92ad2a0550a14",
+            "op": "a8344df14c193688eb74e6815a59bf73ef0825a350491987f0e5bc741c1ba619",
+            "raw": "cd59ccf51ce1e7c15d8ac5fca2242dbf8b6c45c44d4e0f209181c9afd5a3ccb3"
+          },
+          "sha256": "a14d42b78f8249aafc42e81ea24964af2604bc9944e0b035da6bdefaafb9ddcc"
+        }
+      ],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "b05c2e865a939264a5a16a1d99a15f3ff74c9d5c1b452512e209ac15cb7d8731",
+      "samples": 501,
+      "toolVersion": "** ngspice-47 : Circuit level simulation program"
+    },
+    "led": {
+      "artifactSha256": "f6d819e1dff22c82147c4b1ad0b1052a46d94a9f593b39b241b3b4dffa37b3d2",
+      "checks": {
+        "circuit_dc_rails": "PASS",
+        "circuit_led_current": "PASS",
+        "circuit_startup": "PASS",
+        "circuit_total_current": "PASS"
+      },
+      "commands": 4,
+      "decks": [
+        {
+          "corner": [
+            0
+          ],
+          "outputSha256": {
+            "linear": "e2bbb87da4d492a1770098286b8111efe7e5101939710acbaf9432eb4d2b55af",
+            "op": "502f2cc88b305af0a2a3fa81156958eebf4029ddcaaf013c1d818418b40583d2",
+            "raw": "e8a6b3d586b4cbe14cc851f9f9af532c592312d842596ddf5d75426c749be39a"
+          },
+          "sha256": "482ad657cdb1e31a64f9918f51b1ca588c73942e19e090531dd442b1419bb00d"
+        },
+        {
+          "corner": [
+            -1
+          ],
+          "outputSha256": {
+            "linear": "1285ce5ec949e0aecce506ff8c3f4d52f638efa13973e1a7af79577f91cf6bf4",
+            "op": "7bf6ca3e892e1a05aa32bffb9e5184a6d4df2a8b93158edd946c1b701d85e821",
+            "raw": "bd812145122239b315dd501ba7c262b0a9f827c5565444c4d0abcadbac359b3d"
+          },
+          "sha256": "4a41b8e973a5480997fd301bd1947e2fa4957a46d84a536acb41a8a9c48cb760"
+        },
+        {
+          "corner": [
+            1
+          ],
+          "outputSha256": {
+            "linear": "083eabd95848f2c25e7da1e424292997b6d8579d2f3c2e909496ca2526893d55",
+            "op": "f1fae1a6764079699e458da1f5e08c6955ba124c8c6b26150877a5d7b62adb84",
+            "raw": "4c3b351fecf16fb59747c56d068895d43a5d611490d9591d77e24ac887c6d249"
+          },
+          "sha256": "90c0386a266c9f9ea41e8e4d69ba56822f0c0677163154f6e191017c6938f19d"
+        }
+      ],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "adeea1be283006c1db731c590a54c7fd66d3d6f3e1f96637ee1f68616676ac78",
+      "samples": 501,
+      "toolVersion": "** ngspice-47 : Circuit level simulation program"
+    },
+    "led-bad": {
+      "artifactSha256": "b9209e1b272f2f4b664bc37fb7fe13405c3e687bd6c81062e7d7cb05ad926bb8",
+      "checks": {
+        "circuit_dc_rails": "PASS",
+        "circuit_led_current": "FAIL",
+        "circuit_startup": "PASS",
+        "circuit_total_current": "PASS"
+      },
+      "commands": 4,
+      "decks": [
+        {
+          "corner": [
+            0
+          ],
+          "outputSha256": {
+            "linear": "bc5b5b7e120be8c44a59a1c49aa808436c7a0f02bbcddbd0cdbe80cb2ced1c8b",
+            "op": "90ec9c5b49292dd74711f7a9c805c808f751ad37ed65fb93792cf30540ce7545",
+            "raw": "11a1bd28cdc7fec2df44d4bea38394081b33ce45d690b37e6d092949924874c5"
+          },
+          "sha256": "4d81e8cb7315a280e1147d03679da2632f8ee28c0a00ba92408336c9ae44e215"
+        },
+        {
+          "corner": [
+            -1
+          ],
+          "outputSha256": {
+            "linear": "7c239b90dd643b3af4f07e7676b7879f930322c713101cca018e60adf45cd4f2",
+            "op": "09368e510eb2dddfe3cd0832c6de0435db5cfde1a99383e5cac518baf0f4e078",
+            "raw": "5176d0fd7fd899fc87e5be24981aa53cc37fb1b81c62c697278ebbed003b964a"
+          },
+          "sha256": "2e152bfee707c0f5f062e6a33ac84e30f4fbde168bc3debe15000743cf83a038"
+        },
+        {
+          "corner": [
+            1
+          ],
+          "outputSha256": {
+            "linear": "fecb2975e1f3cbb883edff44152dd8e8227800f00b388bcc2779c741a515bb08",
+            "op": "51004326726a5a1dae27ea7a5def466a5b60e2fd154e7fc7c34f54f2c82bdba7",
+            "raw": "095f63ea9ddcea2d94efb05a265816680d28bf3887272ad03c30d0e9e8e23d63"
+          },
+          "sha256": "86cebcc739ee730180e47e98c691d3a8af6f2093191289377a1884b21c7c645e"
+        }
+      ],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "d30e9b27c53f693ea39fdc2f2a340b0334f94010efc238a425ef72bd91bc231b",
+      "samples": 501,
+      "toolVersion": "** ngspice-47 : Circuit level simulation program"
+    },
+    "power-on": {
+      "artifactSha256": "36ac9cff9d0af1074c27383d547b696bfb91690a5b49046635f6ad16d5dfd15b",
+      "checks": {
+        "circuit_dc_rails": "PASS",
+        "circuit_led_current": "PASS",
+        "circuit_startup": "PASS",
+        "circuit_total_current": "PASS"
+      },
+      "commands": 6,
+      "decks": [
+        {
+          "corner": [
+            0,
+            0
+          ],
+          "outputSha256": {
+            "linear": "151fdf697b4d1d79069462ad53550aa47cad0d7ec91ec4508758e5e64580e1cd",
+            "op": "502f2cc88b305af0a2a3fa81156958eebf4029ddcaaf013c1d818418b40583d2",
+            "raw": "1d9db65974e5ba7f3d83f6c6f0f93fc151a91a4c5859b4646add8fc6f5777778"
+          },
+          "sha256": "8e6b3e46d81172f7e0186e19894eaa6a0234cf93d0ed0f00528bd5cc52592ca0"
+        },
+        {
+          "corner": [
+            -1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "68b1ff66b4d019820c56e35e0a049e831233985740abe31121e37b5524ae19b6",
+            "op": "7bf6ca3e892e1a05aa32bffb9e5184a6d4df2a8b93158edd946c1b701d85e821",
+            "raw": "28aec2c7e373a37b9644694084a6d5c4901bdf305f9f7fbf4f0374da0aac7544"
+          },
+          "sha256": "fa2f9699e96e97b491185a9b20f6cf2357e51a1884008297a070e29d9bd4e232"
+        },
+        {
+          "corner": [
+            -1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "5363b8c6534ba2f5b57c1eadefbfda290915eca1e0e70978d579cb1e1422df34",
+            "op": "f1fae1a6764079699e458da1f5e08c6955ba124c8c6b26150877a5d7b62adb84",
+            "raw": "e3a7b0e9c3b3ed335399de764295bca2a4e97f67f72d54fe09812b61dcb1d7e5"
+          },
+          "sha256": "14b7ff6d8d6ec31cd8608741686e7cf6c5076c988c4ea9c4532d09adb4879f95"
+        },
+        {
+          "corner": [
+            1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "2ae0acf3145a341a1228d96bb918bbf810c770433c4fb5b4908dff71ab0660b3",
+            "op": "7bf6ca3e892e1a05aa32bffb9e5184a6d4df2a8b93158edd946c1b701d85e821",
+            "raw": "44bcd44f5c12dfa31fa6ed7c5ad3480640a6854b417fba2f520566953421ef39"
+          },
+          "sha256": "bf0b10cb3520ce73249fb6d0a3d42574aac4e38cda9436ded43327028a7fa20b"
+        },
+        {
+          "corner": [
+            1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "5a63ce8f0fef363f57af85d59d373822a5807d33de732bd278197db0badbb012",
+            "op": "f1fae1a6764079699e458da1f5e08c6955ba124c8c6b26150877a5d7b62adb84",
+            "raw": "8527b912e0f45978d30207dc53ba874ce0756635e3501eb4cbfdccea1d103d19"
+          },
+          "sha256": "ec854dc246ac048085e1776b41b87a69f00fe14719eab96b28a93fd06eb59d51"
+        }
+      ],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "bcabdbbf0d5d66e2b2d5c0c1f9a09bc7c0465456cc945f371adf0cb03fc8c6ce",
+      "samples": 501,
+      "toolVersion": "** ngspice-47 : Circuit level simulation program"
+    },
+    "rc": {
+      "artifactSha256": "4f55ad052b0d9ff044bf4b68d92f8bd01f6701a3e3004ac28e3555189f71b64c",
+      "checks": {
+        "circuit_dc_rails": "PASS",
+        "circuit_led_current": "NOT_APPLICABLE",
+        "circuit_startup": "PASS",
+        "circuit_total_current": "PASS"
+      },
+      "commands": 6,
+      "decks": [
+        {
+          "corner": [
+            0,
+            0
+          ],
+          "outputSha256": {
+            "linear": "cf0fcaae1370ec499149a5fdb30dee6d202309000db904dcb8b09cd7d951e80b",
+            "op": "f99cdc78850df678c1f7e8c443cd4a1be96eeecd7cb719f780a86942167258ed",
+            "raw": "44009f7fb34f139baa15e58a459e074a014451071a78688c14e5f8793fed4bfd"
+          },
+          "sha256": "575f3e7f11d8d0f7b64d6286bea634d8226232e796613f407b90b70068f06e70"
+        },
+        {
+          "corner": [
+            -1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "9af892211609ab95123005df06a28b8d23532b682b9658962f894a4469f070a0",
+            "op": "b3563665390895d5aa8c9a6bf5214ad0ab5eefd26b907f13d8c75025b1261169",
+            "raw": "cd339b0ffc3680460001abd2c7079d177e88eedeca88431414fe92ef203ecbbd"
+          },
+          "sha256": "218fa1b141f5fe46b5ed6880ef6c0f8a219237d6b19ca810c7ad57ca3cd6442a"
+        },
+        {
+          "corner": [
+            -1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "a90a3698833831778ca0c18a43178a8959ad8d000046f4611849fd6fda12d4fe",
+            "op": "012d17f8ff2a42fdce458889533e28b7d484c9e622da788b0dcc7c635d7dfaf1",
+            "raw": "6b5e58bc9e0c38d8cba200670a5828b43c8742c279a4a4e1ade43c885245d953"
+          },
+          "sha256": "1a295e8d03b908458bb944f8337b65312542dfe7c62967d046c35a35e76b7008"
+        },
+        {
+          "corner": [
+            1,
+            -1
+          ],
+          "outputSha256": {
+            "linear": "56c187d1e30e9b796ad47c7974f3ceaa31c646ecc09b221bd4bc3038446a8168",
+            "op": "b3563665390895d5aa8c9a6bf5214ad0ab5eefd26b907f13d8c75025b1261169",
+            "raw": "9d1a3e25bc561906e22e9d31da2c1d557ee3a2769cfe2fff51997ab8ffa011eb"
+          },
+          "sha256": "e3c8d53aaa6442916c51507c0dbe02b77dffa62d64428d208f34bf77ca8146e5"
+        },
+        {
+          "corner": [
+            1,
+            1
+          ],
+          "outputSha256": {
+            "linear": "d65f8204a2cd93cd7c472f320dc95d677abc10c15130d8c348583c9437e11a1c",
+            "op": "012d17f8ff2a42fdce458889533e28b7d484c9e622da788b0dcc7c635d7dfaf1",
+            "raw": "7cbd5ba4bb8e8247780134be9f203c2d2469e1e61efff144aefcb64a2c2677d8"
+          },
+          "sha256": "a4e1d2e6aa028b61e318ebd9aefd469f2eadef847301fd6dfde8bf839e1bc2ca"
+        }
+      ],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "3d69ecfe73307ac43afe657071fa94b8fe4c9e483fea9777721b95b7151302e3",
+      "samples": 501,
+      "toolVersion": "** ngspice-47 : Circuit level simulation program"
+    },
+    "unknown": {
+      "artifactSha256": "963175466e07a9dc2cf4cbf382104f5dab3bf954a7f170ed9b32d8fd97c3062d",
+      "checks": {
+        "circuit_dc_rails": "UNKNOWN",
+        "circuit_led_current": "UNKNOWN",
+        "circuit_startup": "UNKNOWN",
+        "circuit_total_current": "UNKNOWN"
+      },
+      "commands": 0,
+      "decks": [],
+      "nativeOverallStatus": "unsupported",
+      "resultsSha256": "129206e979b01cf991d78bd93cacd1f53bc7a308b8aa6696a97e1504d023ed70",
+      "samples": 0,
+      "toolVersion": null
+    }
+  },
+  "date": "2026-11-01",
+  "fullDeviceRelease": "NOT_QUALIFIED: other engineering lanes and PCB correspondence remain UNKNOWN",
+  "imageSmoke": "NOT_RUN: Docker daemon unavailable",
+  "mode": "real direct ngspice; temporary SQLite/API; model/project setup fixtures",
+  "python": "3.12.11"
+}

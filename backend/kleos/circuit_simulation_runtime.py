@@ -3,6 +3,7 @@
 import hashlib
 import json
 import math
+import re
 import time
 
 from .circuit_simulation import (
@@ -164,8 +165,8 @@ def simulate_circuit(interfaces, directory, execute):
             code, version = execute(["ngspice", "--version"], directory, TIMEOUT_SECONDS)
             if code:
                 raise RuntimeError("ngspice version command failed")
-            if not ("ngspice-39" in version or "ngspice-47" in version):
-                raise UnsupportedTool("ngspice version is outside the tested 39/47 parser policy")
+            if not re.search(r"\bngspice-(?:39(?:\.3)?|47)(?=[\s:]|$)", version):
+                raise UnsupportedTool("ngspice version is outside the pinned 39 / direct 47 policy")
             payload["toolVersion"] = next(line.strip() for line in version.splitlines() if "ngspice-" in line)
             runs = []
             for index, deck in enumerate(plan.decks):

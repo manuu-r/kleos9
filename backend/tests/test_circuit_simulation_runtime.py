@@ -116,6 +116,14 @@ def test_no_model_never_executes(tmp_path):
     assert all(c.status == "UNKNOWN" for c in checks)
 
 
+@pytest.mark.parametrize("version", ["ngspice-390", "ngspice-470", "ngspice-47evil"])
+def test_similar_version_prefix_is_not_accepted(tmp_path, version):
+    def execute(*_args):
+        return 0, version
+    checks, _ = simulate_circuit(example("rc"), tmp_path / "sim", execute)
+    assert all(c.status == "UNKNOWN" for c in checks)
+
+
 def test_advisory_fail_does_not_fail_validation_but_required_fail_still_does(tmp_path, monkeypatch):
     from kleos import circuit_simulation_runtime, native_runner
     check = CheckResult(name=CHECK_NAMES[0], status="FAIL", details={"required": False, "scopeExcluded": True})

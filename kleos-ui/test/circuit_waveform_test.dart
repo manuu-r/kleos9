@@ -192,6 +192,30 @@ void main() {
     expect(find.byKey(const ValueKey('waveform-plot')), findsNothing);
   });
 
+  testWidgets('recorded real ngspice power-on renders, replays and zooms',
+      (tester) async {
+    final recorded = asMap(jsonDecode(
+        File('../backend/verification/ngspice-power-on-sample.json')
+            .readAsStringSync()));
+    await mount(tester, CircuitWaveformViewer(result: recorded), width: 320);
+    expect(find.text('PASS'), findsNWidgets(4));
+    tester
+        .widget<Slider>(find.byKey(const ValueKey('waveform-time')))
+        .onChanged!(1);
+    await tester.pump();
+    expect(find.text('5.00 ms'), findsOneWidget);
+    expect(find.textContaining('LED on'), findsOneWidget);
+    await tester.ensureVisible(find.text('Show full 100 ms'));
+    await tester.tap(find.text('Show full 100 ms'));
+    await tester.pump();
+    tester
+        .widget<Slider>(find.byKey(const ValueKey('waveform-time')))
+        .onChanged!(1);
+    await tester.pump();
+    expect(find.text('100.00 ms'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('phone visual specimen', (tester) async {
     const output = String.fromEnvironment('WAVEFORM_SCREENSHOT_PATH');
     if (output.isNotEmpty) {
