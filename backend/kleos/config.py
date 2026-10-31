@@ -63,6 +63,12 @@ class Settings(BaseSettings):
         "muse-spark-1.3": (1.25, .15, 4.25), "muse-wonder-1.0": (4, .20, 20)}
     development_unlimited_usage: bool = False
     # Limits are operator allowances, never claims about provider credit balances.
+    spending_limits_enabled: bool = True
+
+    @property
+    def unlimited_spending(self) -> bool:
+        return self.development_unlimited_usage or not self.spending_limits_enabled
+
     project_budget_usd: float = Field(default=0, ge=0, allow_inf_nan=False)
     daily_budget_usd: float | None = Field(default=0, ge=0, allow_inf_nan=False)
 

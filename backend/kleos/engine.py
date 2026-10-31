@@ -173,7 +173,7 @@ class EngineeringEngine:
                 "inputArtifacts": [{"id": a.id, "sha256": a.sha256, "name": a.name} for a in artifacts],
                 "acceptanceCriteria": ["requirements coverage", "shared interfaces", "independent tool validation"],
                 "failures": [{"name": c.name, "status": c.status, "details": c.details} for c in failures],
-                "remainingAllowanceUsd": None if self.settings.development_unlimited_usage else (
+                "remainingAllowanceUsd": None if self.settings.unlimited_spending else (
                     project.budget_usd - project.spent_usd - project.reserved_usd),
                 "pivotReason": task.result.get("pivotReason"),
                 "retrieval": {"method": "qdrant" if retrieved and retrieved.get("sources") else "bounded_source_records",
@@ -316,16 +316,16 @@ class EngineeringEngine:
             if not self.models.registry.configured(attempt.provider):
                 raise DomainError(f"{attempt.provider} API credentials are not configured", 503, "provider_unconfigured")
             reserve = self.settings.invocation_reservation_usd
-            if not self.settings.development_unlimited_usage and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
+            if not self.settings.unlimited_spending and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
                 raise DomainError("An operator must configure project and daily allowances", 409, "budget_unconfigured")
             day = datetime.now(UTC).date().isoformat()
             daily = session.get(DailyBudget, day)
             if not daily:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if not self.settings.development_unlimited_usage and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
+            if not self.settings.unlimited_spending and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
                 raise DomainError("Project allowance exhausted", 409, "budget_exhausted")
-            if (not self.settings.development_unlimited_usage and self.settings.daily_budget_usd is not None
+            if (not self.settings.unlimited_spending and self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
                 raise DomainError("Daily allowance exhausted", 409, "budget_exhausted")
             project.reserved_usd += reserve
@@ -761,7 +761,7 @@ class EngineeringEngine:
                         # repair chain remains finite within its original task.
                         used = session.scalar(select(func.count(Attempt.id)).where(Attempt.task_id == task.id))
                     if used < min(3, self.settings.max_attempts) and task.kind != "project.pivot" and (
-                            self.settings.development_unlimited_usage or project.spent_usd + project.reserved_usd
+                            self.settings.unlimited_spending or project.spent_usd + project.reserved_usd
                             + self.settings.invocation_reservation_usd <= project.budget_usd):
                         task.status = "queued"
                         session.add(Outbox(key=f"repair:{task.id}:{task.attempt_count + 1}", kind="task",

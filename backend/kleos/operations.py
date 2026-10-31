@@ -34,8 +34,8 @@ def report(db, settings):
         values["ValidationPassPercent"] = 100*coverage.get("PASS", 0)/max(1, sum(coverage.values()))
         budget = session.get(DailyBudget, now().date().isoformat())
         values["DailyAllowanceUsedUsd"] = budget.spent+budget.reserved if budget else 0
-        values["DailyAllowanceLimited"] = int(not settings.development_unlimited_usage and settings.daily_budget_usd is not None)
-        if not settings.development_unlimited_usage and settings.daily_budget_usd is not None:
+        values["DailyAllowanceLimited"] = int(not settings.unlimited_spending and settings.daily_budget_usd is not None)
+        if not settings.unlimited_spending and settings.daily_budget_usd is not None:
             values["DailyAllowanceRemainingUsd"] = max(0, settings.daily_budget_usd-values["DailyAllowanceUsedUsd"])
     for name, value in values.items():
         metric(name, value, "Seconds" if name.endswith("Seconds") else "Percent" if name.endswith("Percent") else "Count",

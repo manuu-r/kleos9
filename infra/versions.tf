@@ -165,6 +165,11 @@ variable "database_multi_az" {
   type    = bool
   default = false
 }
+variable "spending_limits_enabled" {
+  type        = bool
+  default     = true
+  description = "Enforce project and daily spending caps. Disable explicitly to retain usage tracking without these caps."
+}
 variable "project_budget_usd" {
   type    = number
   default = 0

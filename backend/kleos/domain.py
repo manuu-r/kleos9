@@ -132,7 +132,7 @@ def get_project(session, project_id, principal=None, write=False, lock=True):
 
 
 def project_view(project, settings=None):
-    unlimited = bool(settings and settings.development_unlimited_usage)
+    unlimited = bool(settings and settings.unlimited_spending)
     return redact({
         "id": project.id, "name": project.name, "brief": project.brief,
         "revision": project.revision, "engineeringRevision": project.engineering_revision,

@@ -249,3 +249,10 @@ seed data on reset or redeployment. GitHub release permissions cover its ECR
 repository and ECS service and may pass only the existing no-secret native
 execution role for it. The frontend exposes an explicit Simulated demo switch
 on New build so future real integrations can replace the reference flow gradually.
+
+Operators can disable project and daily spending caps with
+`spending_limits_enabled = false` (`KLEOS_SPENDING_LIMITS_ENABLED=false` in ECS).
+Usage and reservations remain recorded, including conservative per-call debits.
+This setting does not change authentication, concurrency, retry ceilings or
+individual native-job bounds. It applies to existing projects without resetting
+their spending history. The default is `true`.
