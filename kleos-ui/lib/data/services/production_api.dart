@@ -67,9 +67,11 @@ class ProductionApi {
       get('/projects/${Uri.encodeComponent(projectId)}/engineering-preview',
           organizationId: organizationId);
   Future<JsonMap> circuitSimulation(String projectId,
-      {String? organizationId}) async => ApiCircuitSimulationView.fromJson(
-          await get('/projects/${Uri.encodeComponent(projectId)}/circuit-simulation',
-              organizationId: organizationId)).toJson();
+          {String? organizationId}) async =>
+      ApiCircuitSimulationView.fromJson(await get(
+              '/projects/${Uri.encodeComponent(projectId)}/circuit-simulation',
+              organizationId: organizationId))
+          .toJson();
   Future<JsonMap> companionPreview(String projectId,
           {required String artifactId, String? organizationId}) =>
       post('/projects/${Uri.encodeComponent(projectId)}/companion-preview',
