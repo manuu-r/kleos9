@@ -29,7 +29,19 @@ DEFAULT_LANE_MODELS = {
 # Modal-hosted Spark Open has no web search, so the research lane needs the Model API or Gemini.
 WEB_SEARCH_PROVIDERS = {"meta", "google"}
 
-INSTRUCTIONS = """You are an engineering contributor to Kleos9.
+INSTRUCTIONS = """
+context.baseFiles contains vetted starter source files for the accepted validation
+profile. They are already staged. Companion application targets default to web
+and Android ARM64 (interfaces.application.targets=["web","android"]); iOS is
+source-only and requires a future macOS/signing worker. Preserve the vetted BLE
+package pins and protocol APIs. Physical BLE/peripheral behavior stays UNKNOWN
+until independently tested. Do not generate machine-specific local.properties.
+ previousSourceFiles and sourceArtifacts describe
+the current complete source closure. Preserve unchanged files: return only new or
+changed files in files[], with complete content for each changed file. An empty
+files[] keeps all existing sources. Do not repeat starter sources or regenerate a
+whole project to repair one error. Keep protocol APIs and accepted interfaces.
+You are an engineering contributor to Kleos9.
 Do only the task and lane in the provided context. The lane-specific rules below apply ONLY
 when you are assigned that lane. Research and coordination tasks return files=[]: propose
 requirements, questions, cited sources, interfaces and limitations, but do not generate code.
@@ -205,6 +217,12 @@ def validate_lane_output(ctx: RunContext[dict], output: AgentOutput) -> AgentOut
     return output
 
 
+def validate_session_output(ctx: RunContext[dict], output: AgentOutput) -> AgentOutput:
+    if output.files:
+        raise ModelRetry("Use patch to change session files; final output must have files=[]")
+    return validate_lane_output(ctx, output)
+
+
 def validate_planning_scene(ctx: RunContext[dict], output):
     """Ask once for a repaired scene, then publish it with the fault disclosed."""
     previous = None if ctx.deps.get("task") == "project.capture" else ctx.deps.get("concept", {}).get("scene")
@@ -285,6 +303,13 @@ def count_web_searches(messages):
                for message in messages if isinstance(message, ModelResponse) for part in message.parts)
 
 
+async def drain_model_events(_ctx, events):
+    # Consume the complete streamed response, including usage. Chunks are never
+    # accepted as artifacts or exposed as private reasoning in the activity feed.
+    async for _ in events:
+        pass
+
+
 class ModelGateway:
     """One configured agent per provider model, registered before DBOS launch."""
     def __init__(self, settings, durable=False):
@@ -292,6 +317,8 @@ class ModelGateway:
         self.registry = ModelRegistry(settings)
         self.agents = {}
         self.planning_agents = {}
+        self.session_agents = {}
+        self.session_bridge = None
         for provider, model_ids in self.registry.models.items():
             if not self.registry.configured(provider):
                 continue
@@ -323,8 +350,7 @@ class ModelGateway:
         capabilities = [search]
         if durable:
             from pydantic_ai.durable_exec.dbos import DBOSDurability
-            capabilities.append(DBOSDurability(model_step_config={
-                "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1, "backoff_rate": 2}))
+            capabilities.append(DBOSDurability(model_step_config={"retries_allowed": False}))
         # Keep dynamic requirement/interface dictionaries intact in typed outputs.
         agent = Agent(model, name=f"kleos_{name}", output_type=PromptedOutput(AgentOutput),
                       instructions=INSTRUCTIONS, retries=1, deps_type=dict, capabilities=capabilities)
@@ -345,8 +371,24 @@ class ModelGateway:
         planning_agent.output_validator(validate_planning_scene)
         self.agents[(provider, model_id)] = agent
         self.planning_agents[(provider, model_id)] = planning_agent
+        from pydantic_ai.capabilities import ProcessHistory
 
-    def estimate_cost(self, provider, usage, messages):
+        from .session_tools import SessionBudget, bounded_session_history, tools_for
+        session_capabilities = [SessionBudget(self, provider, model_id), ProcessHistory(bounded_session_history)]
+        if durable:
+            session_capabilities.append(DBOSDurability(model_step_config={"retries_allowed": False}))
+        session_agent = Agent(model, name=f"kleos_{name}_session", output_type=PromptedOutput(AgentOutput),
+            instructions=INSTRUCTIONS + "\nYou have a private native build session. Use read, patch, build, analyze and render. "
+            "Read the file/hash before patching; null expectedSha256 creates a missing file. Only patch changed files. "
+            "Inspect actual build errors and CAD views, repair within the remaining step/time/spend limits. "
+            "Do not run arbitrary shell commands, edit accepted interfaces, or assert independent PASS. "
+            "Finish with a concise candidate summary and files=[]; the worker collects actual session files. "
+            "If unsupported components/interfaces prevent progress, explain the blocker instead of changing the accepted design.",
+            tools=tools_for(self), deps_type=dict, capabilities=session_capabilities, retries=1)
+        session_agent.output_validator(validate_session_output)
+        self.session_agents[(provider, model_id)] = session_agent
+
+    def estimate_cost(self, provider, usage, messages, model=None):
         """Token cost plus the search fee; None when tokens cannot be priced."""
         settings = self.settings
         tokens = usage.cost
@@ -355,6 +397,11 @@ class ModelGateway:
             tokens = (Decimal(str(settings.modal_input_usd_per_mtok)) * (usage.input_tokens - cached)
                       + Decimal(str(settings.modal_cached_input_usd_per_mtok)) * cached
                       + Decimal(str(settings.modal_output_usd_per_mtok)) * usage.output_tokens) / 1_000_000
+        if tokens is None and provider == "meta" and model in settings.meta_token_prices:
+            fresh, cached_rate, output = settings.meta_token_prices[model]
+            cached = min(usage.input_tokens, usage.cache_read_tokens)
+            tokens = (Decimal(str(fresh)) * (usage.input_tokens-cached) + Decimal(str(cached_rate))*cached
+                      + Decimal(str(output))*usage.output_tokens) / 1_000_000
         # Only the Model API bills searches at the configured rate; Gemini grounding is priced by its own table.
         searches = count_web_searches(messages) if provider == "meta" else 0
         search_usd = Decimal(str(settings.web_search_usd_per_1k)) * searches / 1000
@@ -371,11 +418,18 @@ class ModelGateway:
         if retries is None:
             retries = self.settings.modal_rate_limit_retries if provider == "modal" else 0
         for attempt in range(retries + 1):
+            stream_opened = False
+            handler = kwargs.get("event_stream_handler")
+            async def observe_stream(ctx, events):
+                nonlocal stream_opened
+                stream_opened = True
+                await handler(ctx, events)
+            run_kwargs = {**kwargs, **({"event_stream_handler": observe_stream} if handler else {})}
             with capture_run_messages() as messages:
                 try:
-                    return await agent.run(prompt, **kwargs)
+                    return await agent.run(prompt, **run_kwargs)
                 except ModelHTTPError as exc:
-                    if exc.status_code == 429 and any(isinstance(message, ModelResponse) for message in messages):
+                    if exc.status_code == 429 and (stream_opened or any(isinstance(message, ModelResponse) for message in messages)):
                         # Restarting after a billed response would reset usage limits,
                         # repeat work and cross providers with a partially completed turn.
                         raise DomainError("Provider capacity changed after a response; reconcile this attempt before retrying",
@@ -393,7 +447,7 @@ class ModelGateway:
             raise DomainError("Research needs web search, which this provider does not offer", 409,
                               "provider_unsupported")
         # One deadline covers initial waits and any permitted provider fallback.
-        async with asyncio.timeout(self.settings.model_timeout_seconds):
+        async with asyncio.timeout(self.deadline(context)):
             fallback = self.capacity_fallback(provider, context.get("lane"))
             try:
                 # With a fallback available, one short wait is enough before moving on.
@@ -405,23 +459,46 @@ class ModelGateway:
             usage["fallbackFrom"] = {"provider": provider, "model": model, "reason": "rate_limited"}
             return output, usage, transcript
 
+    def deadline(self, context):
+        if is_planning_context(context) or context.get("lane") not in {"mechanics", "electronics", "firmware", "application"}:
+            configured = self.settings.model_timeout_seconds
+        else:
+            configured = self.settings.engineering_model_timeout_seconds
+        session = context.get("nativeSession")
+        if session:
+            # Native admission and model-capacity waits consume the same session
+            # lifetime. Never start a fresh full inference timeout near its end.
+            return min(configured, self.settings.native_session_max_seconds,
+                       self.session_bridge.remaining_seconds(session["jobId"]))
+        return configured
+
     async def _generate(self, provider, model, context, retries=None):
         planning = is_planning_context(context)
-        agent = (self.planning_agents if planning else self.agents)[(provider, model)]
-        output_ceiling = self.settings.planning_max_output_tokens if planning else 12000
+        session = context.get("nativeSession")
+        agent = (self.session_agents if session else self.planning_agents if planning else self.agents)[(provider, model)]
+        engineering = context.get("lane") in {"mechanics", "electronics", "firmware", "application"}
+        output_ceiling = (self.settings.planning_max_output_tokens if planning else
+                          self.settings.engineering_max_output_tokens if engineering else 12000)
+        deadline = self.deadline(context)
+        streaming = self.settings.engineering_streaming and engineering
+        timeout = min(deadline, self.settings.native_session_max_seconds) if session else deadline
         request_ceiling = min(self.settings.max_model_turns, self.settings.planning_max_model_turns) if planning else self.settings.max_model_turns
+        from .planning import model_packet
         result = await self.run_agent(
-            provider, agent, json.dumps(context, sort_keys=True, default=str), retries=retries,
+            provider, agent, json.dumps(model_packet(context), sort_keys=True, default=str), retries=retries,
             deps=context,
             usage_limits=UsageLimits(request_limit=request_ceiling,
-                                     cost_limit=Decimal(str(self.settings.invocation_reservation_usd)),
+                                     cost_limit=Decimal(str(min(self.settings.invocation_reservation_usd, session['maxSpendUsd'])
+                                                            if session else self.settings.invocation_reservation_usd)),
+                                     tool_calls_limit=min(self.settings.native_session_max_steps, session.get("maxSteps", self.settings.native_session_max_steps))-1 if session else None,
                                      output_tokens_limit=output_ceiling * 2),
-            timeout=self.settings.model_timeout_seconds,
-            model_settings={"max_tokens": output_ceiling, "timeout": self.settings.model_timeout_seconds},
+            timeout=timeout,
+            **({"event_stream_handler": drain_model_events} if streaming else {}),
+            model_settings={"max_tokens": output_ceiling, "timeout": timeout},
         )
         usage = result.usage
         messages = result.all_messages()
-        searches, search_usd, estimated = self.estimate_cost(provider, usage, messages)
+        searches, search_usd, estimated = self.estimate_cost(provider, usage, messages, model=model)
         output = (AgentOutput.model_validate(result.output.model_dump(mode="json", by_alias=True))
                   if planning else result.output)
         return output, {
@@ -431,5 +508,5 @@ class ModelGateway:
             "estimatedUsd": estimated,
             "pricingVersion": f"genai-prices-{version('genai-prices')}",
             "agentMode": "concept_planning" if planning else "engineering",
-            "outputTokenCeiling": output_ceiling,
+            "outputTokenCeiling": output_ceiling, "deadlineSeconds": timeout, "streaming": streaming,
         }, result.all_messages_json().decode()

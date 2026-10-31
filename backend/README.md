@@ -189,7 +189,7 @@ targeted repairs; one additional pivot needs a recorded justification. Provider 
 run IDs do not reset this engineering-attempt allowance. Infrastructure outages and unsupported
 tools do not trigger speculative engineering repairs.
 
-`project.retryNative` rebuilds exact current sources using `{projectId, jobId}` for a completed build,
+`project.retryNative` rebuilds exact current sources using `{projectId, jobId}` for a completed build/session,
 or `{projectId, sourceAttemptId}` when a recorded model response produced complete current sources
 but native submission never started. The latter rejects missing files, stale contracts, unrecorded
 responses and attempts that already have a native job. Flutter exposes this as **Rebuild saved sources**.

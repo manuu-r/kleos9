@@ -15,7 +15,7 @@ from .circuit_validation import validate_circuit_contract
 from .companion_preview import built_companion
 from .contracts import DomainError
 from .db import Artifact, Task
-from .domain import get_project
+from .domain import MAX_WORKSPACE_ARTIFACTS, get_project
 from .storage import digest
 
 MAX_PREVIEW_BYTES = 16 * 1024 * 1024
@@ -239,7 +239,8 @@ class EngineeringPreview:
             artifacts = session.scalars(select(Artifact).where(
                 Artifact.tenant_id == principal.tenant_id, Artifact.project_id == project_id,
                 Artifact.revision == project.engineering_revision,
-                Artifact.status.in_(['candidate', 'accepted'])).order_by(Artifact.created_at.desc()).limit(200)).all()
+                Artifact.status.in_(['candidate', 'accepted'])).order_by(
+                    Artifact.created_at.desc(), Artifact.id.desc()).limit(MAX_WORKSPACE_ARTIFACTS)).all()
             tasks = session.scalars(select(Task).where(Task.project_id == project_id,
                 Task.revision == project.engineering_revision).order_by(Task.created_at.desc()).limit(50)).all()
             states = {}

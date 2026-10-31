@@ -1,0 +1,44 @@
+{
+  "image": "kleos-application:session-qualified",
+  "imageId": "sha256:1b3f13184b898ea2e58e1af601954f5442fe7f7b4e2103d49f0a7f9610050119",
+  "imageSizeBytes": 4215876720,
+  "sourceOverride": false,
+  "profile": {
+    "cpuUnits": 4096,
+    "memoryMiB": 8192,
+    "tmpMiB": 6144,
+    "pidsLimit": 256,
+    "ephemeralStorageGiB": 40
+  },
+  "checkedAt": "2026-10-31T00:21:39.831880+00:00",
+  "containerWallSeconds": 110.60570554199512,
+  "status": "blocked",
+  "failure": "",
+  "blocker": "local_host_memory_pressure_during_private_toolchain_clone",
+  "stoppedOnlyOwnedProof": true,
+  "modelCalls": 0,
+  "nativeResourceUsage": null,
+  "nativeExecutionSeconds": null,
+  "nativeFinalResultAvailable": false,
+  "memoryPressureEvidence": {
+    "scope": "actual Docker VM /proc/meminfo and owned container memory.current",
+    "hostMemTotalBytes": 8218034176,
+    "stopThresholdMemAvailableBytes": 734003200,
+    "samples": [
+      {
+        "hostMemAvailableBytes": 741285888,
+        "ownMemoryBytes": 6088396800
+      },
+      {
+        "hostMemAvailableBytes": 952037376,
+        "ownMemoryBytes": 5802274816
+      },
+      {
+        "hostMemAvailableBytes": 416800768,
+        "ownMemoryBytes": 6423539712
+      }
+    ],
+    "stoppedOwnedContainer": "kleos-apk-proof-1db920d798014b249b3c43fcac80d516"
+  },
+  "limitation": "No APK success or final native resource counters: stopped to protect existing backend services before local host exhaustion; retry qualification with private disk-backed scratch"
+}

@@ -9,7 +9,7 @@ import hmac
 import json
 import re
 import shutil
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import boto3
@@ -20,7 +20,10 @@ from .contracts import DomainError, JobResult
 from .db import Artifact, Attempt, DailyBudget, Invocation, NativeJob, Project, Run, Task, now, uid
 from .domain import contract_hash, emit, get_project, lock_platform, settle_native_reservation
 from .engineering_tools import DEFAULT_TOOL_POLICY, EngineeringToolRegistry
+from .native_resources import NativeResources
+from .source_closure import current_sources, reference, resolve_sources
 from .storage import digest
+from .telemetry import metric
 
 TERMINAL = {"succeeded", "failed", "unsupported", "cancelled"}
 INFLIGHT = {"dispatching", "submitted", "running"}
@@ -98,7 +101,8 @@ class ECSExecution:
                     or source_task.kind not in {"project.generate", "project.repair", "project.pivot"}
                     or source_task.status not in {"succeeded", "blocked", "failed", "cancelled"}
                     or source_attempt.status not in {"succeeded", "blocked", "failed"} or not recorded_model
-                    or not source_attempt.output.get("files") or source_attempt.context.get("retentionExpired")
+                    or not (source_attempt.context.get("sourceArtifacts") or source_attempt.output.get("files"))
+                    or source_attempt.context.get("retentionExpired")
                     or retry.get("contractHash") != current_contract
                     or contract_hash(source_attempt.context.get("requirements", {}),
                                      source_attempt.context.get("interfaces", {})) != current_contract):
@@ -109,12 +113,12 @@ class ECSExecution:
             source_task = session.get(Task, source.task_id) if source else None
             if (not source or not source_task or source.tenant_id != project.tenant_id
                     or source_task.project_id != project.id or source_task.lane != task.lane
-                    or source.purpose != "build" or source.status not in {"succeeded", "failed", "unsupported"}
+                    or source.purpose not in {"build", "session"} or source.status not in {"succeeded", "failed", "unsupported"}
                     or source_task.revision != task.revision or source.request.get("revision") != task.revision
                     or source.attempt_id != retry.get("sourceAttemptId") or source.task_id != retry.get("sourceTaskId")
                     or retry.get("contractHash") != current_contract
                     or contract_hash(source.request.get("requirements", {}), source.request.get("interfaces", {})) != current_contract
-                    or retry.get("inputArtifacts") != source.request.get("inputArtifacts")):
+                    or retry.get("inputArtifacts") != source.result.get("sourceArtifacts", source.request.get("inputArtifacts"))):
                 raise DomainError("Native retry source is no longer applicable", 409, "stale_artifacts")
             root_attempt = source.request.get("nativeRetry", {}).get("rootSourceAttemptId", source.attempt_id)
         refs = retry["inputArtifacts"]
@@ -126,26 +130,21 @@ class ECSExecution:
             output_files = source_attempt.output.get("files")
             if (not isinstance(output_files, list) or any(not isinstance(item, dict) for item in output_files)
                     or len({item.get("path") for item in output_files}) != len(output_files)
-                    or {item.get("path") for item in output_files} != {ref.get("name") for ref in refs}):
+                    or not {item.get("path") for item in output_files}.issubset({ref.get("name") for ref in refs})):
                 raise DomainError("Native retry source output closure changed", 409, "stale_artifacts")
-        artifacts = []
-        for ref in refs:
-            artifact = session.get(Artifact, ref["id"])
-            expected = {"id": artifact.id, "name": artifact.name, "lane": artifact.lane,
-                        "sha256": artifact.sha256, "size": artifact.size, "mediaType": artifact.media_type,
-                        "provenance": artifact.provenance} if artifact else None
-            if (not artifact or artifact.tenant_id != project.tenant_id or artifact.project_id != project.id
-                    or artifact.revision != task.revision or artifact.lane != task.lane
-                    or artifact.attempt_id != root_attempt or artifact.status not in {"candidate", "accepted"}
-                    or artifact.name.startswith("native/") or artifact.provenance.get("nativeJobId")
-                    or expected != ref):
-                raise DomainError("Native retry input closure changed", 409, "stale_artifacts")
-            artifacts.append(artifact)
-        return artifacts
+        if retry.get("sourceKind") == "attempt" and source_attempt.context.get("sourceArtifacts") is not None:
+            if refs != source_attempt.context["sourceArtifacts"]:
+                raise DomainError("Native source manifest changed", 409, "stale_artifacts")
+        try:
+            return resolve_sources(session, project, task.lane, refs)
+        except DomainError as exc:
+            raise DomainError("Native retry input closure changed", exc.status, exc.code) from exc
 
     def submit(self, attempt_id, purpose):
-        if purpose not in {"build", "validate"}:
+        if purpose not in {"build", "validate", "session"}:
             raise DomainError("Unsupported native operation", 422)
+        if purpose == "session" and not self.settings.native_sessions_enabled:
+            raise DomainError("Native sessions are disabled", 409, "session_disabled")
         with self.db.transaction() as session:
             lock_platform(session)
             attempt = session.get(Attempt, attempt_id)
@@ -159,7 +158,7 @@ class ECSExecution:
                 return previous.id
             image_kind = "validate" if purpose == "validate" else task.lane
             engineering_tool = None
-            if purpose == "build" and task.lane in DEFAULT_TOOL_POLICY:
+            if purpose in {"build", "session"} and task.lane in DEFAULT_TOOL_POLICY:
                 registry = EngineeringToolRegistry(self.settings)
                 pinned = attempt.context.get("engineeringTool")
                 profile = registry.pinned(pinned, project.tenant_id, task.lane)
@@ -185,12 +184,18 @@ class ECSExecution:
                 Artifact.project_id == project.id, Artifact.revision == task.revision,
                 Artifact.status.in_(["candidate", "accepted"]),
             )
-            if purpose == "build":
-                q = q.where(Artifact.attempt_id == attempt.id, Artifact.lane == task.lane)
-            artifacts = (self._retry_inputs(session, task, attempt, project, purpose)
-                         if task.kind == "project.retryNative"
-                         else session.scalars(q.order_by(Artifact.name)).all())
-            if not artifacts:
+            if task.kind == "project.retryNative":
+                artifacts = self._retry_inputs(session, task, attempt, project, purpose)
+            elif purpose in {"build", "session"}:
+                refs = attempt.context.get("sourceArtifacts")
+                artifacts = (resolve_sources(session, project, task.lane, refs) if refs is not None
+                             else current_sources(session, project, task.lane))
+                attempt.context = {**attempt.context, "sourceArtifacts": [reference(a) for a in artifacts]}
+            else:
+                artifacts = session.scalars(q.order_by(Artifact.name)).all()
+            deterministic_circuit = (purpose == "build" and task.lane == "electronics" and engineering_tool
+                                     and engineering_tool.get("id") == "atopile-kicad" and engineering_tool.get("version") == "2")
+            if not artifacts and not deterministic_circuit and purpose != "session":
                 raise DomainError("No input artifacts are available for this native task", 409)
             if sum(a.size for a in artifacts) > MAX_INPUT_BYTES:
                 raise DomainError("Native input exceeds the 32 MiB transfer limit; split the task", 413)
@@ -217,7 +222,9 @@ class ECSExecution:
                 "taskId": task.id, "attemptId": attempt.id, "revision": task.revision,
                 "traceId": session.get(Run, task.run_id).trace_id,
                 "fence": attempt.fence, "lane": task.lane, "purpose": purpose,
-                "schemaVersion": 1, "toolVersion": definition,
+                "schemaVersion": 1, "sandboxPolicyVersion": 3, "toolVersion": definition,
+                "resources": NativeResources.model_validate(self.settings.native_resource_profiles.get(
+                    image_kind, self.settings.native_resource_profiles["_default"])).model_dump(),
                 "reservation": {"day": day, "reservedUsd": reserve, "settled": False, "dispatchAttempted": False},
                 "modelPolicyVersion": attempt.policy_revision,
                 "model": {"provider": attempt.provider, "id": attempt.model},
@@ -234,6 +241,9 @@ class ECSExecution:
             if task.kind == "project.retryNative":
                 request["nativeRetry"] = {key: value for key, value in attempt.context["nativeRetry"].items()
                                           if key != "inputArtifacts"}
+            if purpose == "session":
+                request["sessionLimits"] = {"maxSteps": self.settings.native_session_max_steps,
+                                            "maxSeconds": self.settings.native_session_max_seconds}
             if engineering_tool:
                 request["engineeringTool"] = engineering_tool
             session.add(NativeJob(
@@ -268,6 +278,22 @@ class ECSExecution:
                 raise DomainError("Native job cancelled", 409)
             return job
 
+    def cancel_session(self, job_id):
+        """Fence this attempt's session only; reconciliation observes actual termination."""
+        with self.db.transaction() as session:
+            lock_platform(session)
+            job = session.get(NativeJob, job_id)
+            if job and job.purpose == "session" and job.status not in TERMINAL - {"cancelled"}:
+                project = session.get(Project, session.get(Task, job.task_id).project_id)
+                if project:
+                    settle_native_reservation(
+                        session, job, project,
+                        refund=not job.request.get("reservation", {}).get("dispatchAttempted", False),
+                    )
+                job.status = "cancelled"
+                if project and not project.deleted_at:
+                    emit(session, project, "native.cancelled", {"jobId": job.id, "reason": "model_session_stopped"})
+
     def payload(self, job_id, token):
         job = self.authorize(job_id, token)
         request = dict(job.request)
@@ -292,23 +318,34 @@ class ECSExecution:
         while True:
             with self.db.transaction() as session:
                 lock_platform(session)
-                active = session.scalar(select(func.count(NativeJob.id)).where(or_(
+                occupied = or_(
                     NativeJob.status.in_(INFLIGHT),
                     and_(NativeJob.status == "cancelled",
                          NativeJob.request["reservation"]["dispatchAttempted"].as_boolean().is_(True),
-                         NativeJob.result["terminationObservedAt"].as_string().is_(None)),
-                )))
+                         NativeJob.result["terminationObservedAt"].as_string().is_(None)))
+                # Orphaned cancellation tombstones still hold global capacity.
+                active = session.scalar(select(func.count(NativeJob.id)).where(occupied))
                 if active >= self.settings.max_native_jobs:
                     return
-                job = session.scalar(select(NativeJob).where(
-                    NativeJob.status == "pending", NativeJob.expires_at > now(), self._job_scope()
-                ).order_by(NativeJob.created_at).with_for_update(skip_locked=True).limit(1))
+                projects = (select(Task.project_id.label("project_id"), func.count(NativeJob.id).label("active"))
+                    .select_from(NativeJob).join(Task, Task.id == NativeJob.task_id)
+                    .where(occupied).group_by(Task.project_id).subquery())
+                occupancy = func.coalesce(projects.c.active, 0)
+                job = session.scalar(select(NativeJob).join(Task, Task.id == NativeJob.task_id)
+                    .outerjoin(projects, projects.c.project_id == Task.project_id).where(
+                        NativeJob.status == "pending", NativeJob.expires_at > now(), self._job_scope(),
+                        occupancy < self.settings.max_native_jobs_per_project)
+                    .order_by(occupancy, NativeJob.created_at, NativeJob.id)
+                    .with_for_update(skip_locked=True, of=NativeJob).limit(1))
                 if not job:
                     return
                 if not self._dispatchable(session, job):
                     continue
                 job.status = "dispatching"
                 job_id = job.id
+                metric("NativeInFlight", active + 1)
+                metric("NativeQueueAgeSeconds", max(0, (now()-job.created_at.replace(tzinfo=UTC)).total_seconds()),
+                       unit="Seconds", Lane=job.request.get("lane", "unknown"))
             self._dispatch(job_id)
 
     def _dispatch(self, job_id):
@@ -335,7 +372,11 @@ class ECSExecution:
                 "securityGroups": dispatch.get("securityGroups", self.settings.ecs_security_groups),
                 "assignPublicIp": "DISABLED",
             }},
-            overrides={"containerOverrides": [{
+            overrides={**({"cpu": str(request["resources"]["cpuUnits"]),
+                           "memory": str(request["resources"]["memoryMiB"]),
+                           "ephemeralStorage": {"sizeInGiB": request["resources"]["ephemeralStorageGiB"]}}
+                          if request.get("resources") else {}),
+                       "containerOverrides": [{
                 "name": "native",
                 "environment": [
                     {"name": "KLEOS_JOB_ID", "value": job_id},
@@ -386,6 +427,34 @@ class ECSExecution:
             job.result = {**job.result, "cancellationReason": "Superseded project revision or run"}
             return False
 
+    def record_task_timing(self, job_id, observed):
+        """Infrastructure observations are diagnostics, never validation or a provider bill."""
+        values = {}
+        def timestamp(value):
+            if isinstance(value, str):
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if not isinstance(value, datetime):
+                raise ValueError("Missing task timestamp")
+            return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        for name, start, end in [("imagePullSeconds", "pullStartedAt", "pullStoppedAt"),
+                                 ("launchToStartSeconds", "createdAt", "startedAt"),
+                                 ("runningSeconds", "startedAt", "stoppedAt")]:
+            try:
+                seconds = (timestamp(observed.get(end))-timestamp(observed.get(start))).total_seconds()
+                if 0 <= seconds <= 7*86400:
+                    values[name] = round(seconds, 3)
+            except (ValueError, TypeError, OverflowError):
+                pass
+        if not values:
+            return
+        with self.db.transaction() as session:
+            lock_platform(session)
+            job = session.get(NativeJob, job_id)
+            if job:
+                job.result = {**job.result, "infrastructureUsage": {**job.result.get("infrastructureUsage", {}), **values}}
+        for key, value in values.items():
+            metric("Native"+key[0].upper()+key[1:], value, unit="Seconds", Backend=self.settings.execution_backend)
+
     def reconcile(self):
         """Return terminal infrastructure failures for the engine to record as job results."""
         self.receive_completion_hints()
@@ -407,6 +476,8 @@ class ECSExecution:
             elif job.external_id:
                 observed = self._client().describe_tasks(cluster=self._cluster(job), tasks=[job.external_id])
                 tasks = observed.get("tasks", [])
+                if tasks:
+                    self.record_task_timing(job.id, tasks[0])
                 if tasks and tasks[0].get("lastStatus") == "STOPPED":
                     failures.append((job.id, JobResult(
                         status="failed", limitations=["Native task stopped before a result was committed"],
@@ -568,21 +639,32 @@ class DockerTasks:
         temporary.write_bytes(content)
         temporary.chmod(0o600)
         temporary.replace(source)
+        resources = (NativeResources.model_validate(request["resources"]).model_dump() if request.get("resources") else
+                     {"cpuUnits": 1024, "memoryMiB": 1024, "tmpMiB": 2048, "pidsLimit": 256})
         specification = {
             "Image": request["toolVersion"], "Entrypoint": ["python", "-m", "kleos.native_runner"],
-            "Cmd": ["--local-files"], "Env": ["KLEOS_NATIVE_SANDBOX=1"],
+            "Cmd": ["--local-files"], "Env": ["KLEOS_NATIVE_SANDBOX=1", "KLEOS_NATIVE_DOCKER_NETWORK_NONE=1"],
             "User": "0", "Labels": {"kleos.job": job_id, "kleos.execution": "development"},
             "HostConfig": {
-                "NetworkMode": "none", "ReadonlyRootfs": request["lane"] != "application",
-                "Memory": 1024**3, "NanoCpus": 1_000_000_000, "PidsLimit": 256,
+                "NetworkMode": "none", "ReadonlyRootfs": request.get("sandboxPolicyVersion", 1) >= 2 or request["lane"] != "application",
+                "Memory": resources["memoryMiB"] * 1024**2, "NanoCpus": resources["cpuUnits"] * 1_000_000_000 // 1024,
+                "PidsLimit": resources["pidsLimit"],
                 "CapDrop": ["ALL"], "CapAdd": ["CHOWN", "SETUID", "SETGID", "KILL", "DAC_OVERRIDE"],
                 "SecurityOpt": ["no-new-privileges:true"],
-                "Tmpfs": {"/tmp": "rw,exec,nosuid,size=2147483648"},
+                "Tmpfs": {"/tmp": f"rw,exec,nosuid,size={resources['tmpMiB'] * 1024**2}"},
                 "Mounts": [{"Type": "volume", "Source": request["dispatch"]["volume"],
                             "Target": "/control", "VolumeOptions": {"Subpath": job_id}}],
                 "LogConfig": {"Type": "json-file", "Config": {"max-size": "1m", "max-file": "1"}},
             },
         }
+        if request["lane"] == "application" and request.get("sandboxPolicyVersion", 1) >= 3:
+            # Android's private toolchain is several GiB. Use disposable disk
+            # scratch, like Fargate, instead of charging that copy to RAM.
+            specification["HostConfig"]["Tmpfs"] = {}
+            specification["HostConfig"]["Mounts"].append({
+                "Type": "volume", "Target": "/tmp",
+                "VolumeOptions": {"NoCopy": True, "Labels": {"kleos.job": job_id, "kleos.role": "native-scratch"}},
+            })
         response = self.request("POST", "/containers/create", params={"name": name, "platform": "linux/amd64"},
                                 json=specification)
         if response.status_code == 409:
@@ -607,7 +689,8 @@ class DockerTasks:
         state = found["State"]
         return {"tasks": [{"taskArn": found["Id"], "lastStatus": "RUNNING" if state["Running"] else "STOPPED",
                            "stoppedReason": f"Container exit {state.get('ExitCode')}", "exitCode": state.get("ExitCode"),
-                           "oomKilled": state.get("OOMKilled", False)}]}
+                           "oomKilled": state.get("OOMKilled", False), "createdAt": found.get("Created"),
+                           "startedAt": state.get("StartedAt"), "stoppedAt": state.get("FinishedAt")}]}
 
     def logs(self, identity):
         response = self.request("GET", f"/containers/{identity}/logs",
@@ -698,6 +781,7 @@ class DockerExecution(ECSExecution):
             if not job.external_id:
                 continue
             observed = self._client().describe_tasks(tasks=[job.external_id])["tasks"][0]
+            self.record_task_timing(job.id, observed)
             if observed["lastStatus"] == "RUNNING":
                 with self.db.transaction() as session:
                     lock_platform(session)
@@ -724,8 +808,12 @@ class DockerExecution(ECSExecution):
                 if (envelope["jobId"] != job.id
                         or envelope["requestSha256"] != digest((folder / "request.json").read_bytes())):
                     raise ValueError("Local native result identity mismatch")
-                results.append((job.id, JobResult.model_validate(envelope["result"])))
-            except (ValueError, KeyError, OSError) as exc:
+                result = JobResult.model_validate(envelope["result"])
+                if job.purpose == "session":
+                    from .session_bridge import SessionBridge
+                    SessionBridge(self.db, self.settings, self).ingest_local_finish(job.id)
+                results.append((job.id, result))
+            except (ValueError, KeyError, OSError, DomainError) as exc:
                 results.append((job.id, JobResult(status="failed", limitations=[f"Invalid native result: {type(exc).__name__}"])))
         self.dispatch_pending()
         return results
@@ -734,7 +822,8 @@ class DockerExecution(ECSExecution):
         if job.result.get("localCleaned"):
             return
         if job.external_id:
-            response = self._client().request("DELETE", f"/containers/{job.external_id}", params={"force": "false"})
+            response = self._client().request("DELETE", f"/containers/{job.external_id}",
+                                             params={"force": "false", "v": "true"})
             if response.status_code not in {204, 404}:
                 return
         try:

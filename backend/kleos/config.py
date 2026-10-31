@@ -1,3 +1,4 @@
+import math
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -7,6 +8,7 @@ from pydantic import AliasChoices, Field, SecretStr, field_validator, model_vali
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .contracts import EngineeringToolDefinition, Lane
+from .native_resources import NativeResources, default_profiles
 
 
 class Settings(BaseSettings):
@@ -56,6 +58,9 @@ class Settings(BaseSettings):
     modal_cached_input_usd_per_mtok: float = Field(default=0.15, ge=0, allow_inf_nan=False)
     modal_output_usd_per_mtok: float = Field(default=4.25, ge=0, allow_inf_nan=False)
     web_search_usd_per_1k: float = Field(default=2.50, ge=0, allow_inf_nan=False)
+    # Verified Standard-mode rates, used when the installed pricing table lacks a model.
+    meta_token_prices: dict[str, tuple[float, float, float]] = {
+        "muse-spark-1.3": (1.25, .15, 4.25), "muse-wonder-1.0": (4, .20, 20)}
     development_unlimited_usage: bool = False
     # Limits are operator allowances, never claims about provider credit balances.
     project_budget_usd: float = Field(default=0, ge=0, allow_inf_nan=False)
@@ -70,17 +75,32 @@ class Settings(BaseSettings):
     max_active_projects: int = Field(default=10, ge=1)
     max_org_projects: int = Field(default=2, ge=1)
     max_model_calls: int = Field(default=10, ge=1)
-    max_native_jobs: int = Field(default=4, ge=1)
+    max_native_jobs: int = Field(default=8, ge=1)
+    max_native_jobs_per_project: int = Field(default=4, ge=1)
+    native_resource_profiles: dict[str, NativeResources] = Field(default_factory=default_profiles)
+
+    @field_validator("native_resource_profiles", mode="before")
+    @classmethod
+    def merge_native_profiles(cls, value):
+        return {**default_profiles(), **value}
+
     max_attempts: int = Field(default=4, ge=1, le=4)
     max_model_turns: int = Field(default=40, ge=1, le=40)
     max_context_chars: int = Field(default=80000, ge=2000)
+    engineering_max_output_tokens: int = Field(default=32768, ge=12000, le=65536)
+    engineering_model_timeout_seconds: int = Field(default=600, ge=1, le=1800)
+    engineering_streaming: bool = True
     planning_max_output_tokens: int = Field(default=5000, ge=1000, le=8000)
     planning_max_model_turns: int = Field(default=4, ge=1, le=8)
     invocation_reservation_usd: float = Field(default=1, gt=0, allow_inf_nan=False)
     embedding_reservation_usd: float = Field(default=0.01, gt=0, allow_inf_nan=False)
-    native_job_reservation_usd: float = Field(default=1, gt=0, allow_inf_nan=False)
+    native_job_reservation_usd: float = Field(default=0.10, gt=0, allow_inf_nan=False)
     model_timeout_seconds: int = Field(default=180, ge=1, le=1800)
     worker_timeout_seconds: int = Field(default=1800, ge=1, le=3600)
+    native_sessions_enabled: bool = False
+    native_session_max_steps: int = Field(default=32, ge=2, le=64)
+    native_session_max_seconds: int = Field(default=900, ge=30, le=1800)
+    native_session_max_spend_usd: float = Field(default=1, gt=0, allow_inf_nan=False)
     execution_backend: Literal["ecs", "docker", "disabled"] = "disabled"
     docker_socket: str = "/var/run/docker.sock"
     docker_jobs_volume: str = "kleos9_native_jobs"
@@ -106,6 +126,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def deployment_guards(self):
+        if any(not all(math.isfinite(rate) and rate >= 0 for rate in rates)
+               for rates in self.meta_token_prices.values()):
+            raise ValueError("Model token prices must be finite nonnegative rates")
         if self.companion_preview_base_url:
             preview = urlsplit(self.companion_preview_base_url)
             if (preview.scheme not in {'http', 'https'} or not preview.hostname or preview.username

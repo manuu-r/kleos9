@@ -1,5 +1,5 @@
 name: kleos_watch_companion
-description: Bounded telemetry protocol companion fixture.
+description: BLE telemetry companion with explicitly bounded digital verification.
 publish_to: none
 version: 0.1.0+1
 environment:
@@ -7,7 +7,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_reactive_ble: 5.4.2
+  permission_handler: 12.0.1
+  shared_preferences: 2.5.3
+  device_info_plus: 11.5.0
+# Newer BLE releases require Flutter/Dart versions beyond this qualified SDK.
+dependency_overrides:
+  reactive_ble_mobile: 5.4.2
+  reactive_ble_platform_interface: 5.4.2
 dev_dependencies:
+  flutter_lints: 5.0.0
   flutter_test:
     sdk: flutter
 flutter:

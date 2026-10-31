@@ -17,7 +17,7 @@ MODAL = {"modal_llm_url": "https://example--muse.modal.run", "modal_llm_key": "w
 
 
 def settings(**overrides):
-    return Settings(_env_file=None, meta_api_key="fixture", gemini_api_key="fixture", **{**MODAL, **overrides})
+    return Settings(_env_file=None, meta_api_key="fixture", gemini_api_key="fixture", **{**MODAL, "engineering_streaming": False, **overrides})
 
 
 @pytest.fixture(autouse=True)
@@ -49,14 +49,16 @@ def test_identical_meta_aliases_register_once_without_duplicate_catalog_choices(
     assert gateway.registry.model_for("meta", "firmware") == "muse-spark-1.3"
 
 
-async def test_model_deadline_bounds_the_entire_invocation(gateway, monkeypatch):
-    gateway.settings.model_timeout_seconds = .01
+@pytest.mark.parametrize("lane,field", [("coordination", "model_timeout_seconds"),
+                                        ("mechanics", "engineering_model_timeout_seconds")])
+async def test_model_deadline_bounds_the_entire_invocation(gateway, monkeypatch, lane, field):
+    setattr(gateway.settings, field, .01)
     model = gateway.registry.models["modal"][0]
     async def stalled(*args, **kwargs):
         await asyncio.Event().wait()
     monkeypatch.setattr(gateway.agents[("modal", model)], "run", stalled)
     with pytest.raises(TimeoutError):
-        await gateway.generate("modal", model, {"lane": "coordination"})
+        await gateway.generate("modal", model, {"lane": lane})
 
 
 def payload():

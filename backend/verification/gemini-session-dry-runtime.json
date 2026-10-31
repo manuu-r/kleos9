@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "gemini-session-runtime-v1",
+  "checkedAt": "2026-10-31T00:50:25.863405+00:00",
+  "imageId": "sha256:feff2f2efedd796d47c24ddda0fd4083a6272bca03a50f52a5dbf51aad61d999",
+  "nativeSourceHashes": {
+    "native_runner.py": "83b2deec4b83375d280b11559fa95bd0b88f6b61a5b315ae953e8be7bd752587",
+    "native_session.py": "beb8030ff07632a60a76312d350bada8f67b52f9f74df1572906188e7d06668a",
+    "native_network.py": "482f1207d23292a500661ae008b632ef491f3688d21aeb26d5606bdb89322b18",
+    "cad_render.py": "929a9289c9ccafc0809b877336590485e3350ae1ab2c1b767d6c117524e5f8e3",
+    "cad_parts.py": "49691aad1942a0b74f346746ac736a6268181fc19cb1eec1f69c2659868cdc02",
+    "contracts.py": "b5d7e9c5efe1b7c26f55680b1644cee3a2fa67599b0f1f6f61ae8e3e2f123167"
+  },
+  "trustedSourceHashes": {
+    "engine.py": "81298bb9a58222cd734977665814a1a7eb0efa26481c34333f47221cb030ac72",
+    "models.py": "e93a679bb7102ec875f2bfa650021fdb30ef9001d31387b37aef7d26997ac852",
+    "session_bridge.py": "54e997a5aa711ac7963f0eaead3f9a471e8bbeda97c5c18de469cba51e1e81b1",
+    "native_sessions.py": "133451d82624486a72fcf49473f0a04feeeb48e5361718b457637640bd5e180a",
+    "execution.py": "98a1b51e1bfe0cface128869d806729767da73ec68b8fab6d4290840d0f47db5"
+  },
+  "fixtureSha256": "ee612063650532fe55ff8f3718e7498d625aa45140e599bf96702f813d61ca35",
+  "paidAttempted": false,
+  "postFixQualification": false,
+  "status": "passed",
+  "mode": "dry",
+  "model": "gemini-3.8-flash",
+  "sdkMocked": true,
+  "fixtureIds": {
+    "org": "2fd4fcb0-ff08-493c-a785-a1b6656fe29b",
+    "project": "0e93a27d-3062-4756-9f10-1f6df79a6216",
+    "run": "6b417643-50c5-40b8-b71b-171a78223014",
+    "task": "070aacb1-701b-4b9e-94d8-9d95fc3ef0e2",
+    "attempt": "8aa6bda7-90a7-408c-8180-ff26ddf98864",
+    "artifact": "dcb7a535-a939-48ed-8907-fce48a53bf21"
+  },
+  "engineErrors": [],
+  "taskStatus": "succeeded",
+  "runStatus": "succeeded",
+  "taskBlocker": null,
+  "nativeJobStatus": [
+    "succeeded"
+  ],
+  "toolCounts": {
+    "read": 1,
+    "build": 1,
+    "render": 1
+  },
+  "nativeDiagnostics": [
+    {
+      "limitations": [
+        "Build outputs are candidates until independently validated",
+        "Session actions are diagnostic and candidate-only; independent release validation remains required"
+      ],
+      "log": {
+        "checks": [],
+        "limitations": [
+          "Build outputs are candidates until independently validated",
+          "Session actions are diagnostic and candidate-only; independent release validation remains required"
+        ],
+        "logs": "",
+        "measurements": {
+          "executionSeconds": 15.994,
+          "nativeSession": {
+            "attemptId": "8aa6bda7-90a7-408c-8180-ff26ddf98864",
+            "candidate": true,
+            "jobId": "f3f161f7-470e-4ea0-9dee-302c17ff7420",
+            "limits": {
+              "maxPatchBytes": 1048576,
+              "maxReadBytes": 262144,
+              "maxSeconds": 240,
+              "maxSourceBytes": 16777216,
+              "maxSteps": 8
+            },
+            "requestHash": "fdf0716097ad05905a79bcb21c0c234bc1c4c84e795cd637a2b4ea1b9395cb01",
+            "schemaVersion": "native-session-v1",
+            "sourceHashes": {
+              "enclosure.py": "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832"
+            },
+            "steps": 4
+          },
+          "resourceUsage": {
+            "cpuUsageSeconds": 13.216225,
+            "memoryPeakBytes": 929640448,
+            "pidsPeak": 11,
+            "scope": "task_cgroup"
+          }
+        },
+        "status": "succeeded"
+      }
+    }
+  ],
+  "validationCount": 0,
+  "releaseCount": 0,
+  "acceptedReleaseId": null,
+  "usage": [
+    {
+      "sessionObserved": {
+        "estimatedUsd": 0.0,
+        "requests": 3,
+        "inputTokens": 300,
+        "outputTokens": 75,
+        "provider": "google",
+        "model": "gemini-3.8-flash"
+      },
+      "inputTokens": 300,
+      "outputTokens": 75,
+      "requests": 3,
+      "searchCalls": 0,
+      "searchUsd": 0.0,
+      "estimatedUsd": 0.0,
+      "costBasis": "conservative_reservation",
+      "allowanceDebitUsd": 0.1
+    }
+  ],
+  "invocationStatus": [
+    "succeeded"
+  ],
+  "nativeRequestSecretFree": true,
+  "nativeEnvironment": [
+    {
+      "providerKeyNamesAbsent": true,
+      "inspected": true
+    }
+  ],
+  "sourceSha256": "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832",
+  "originalSourceSha256": "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832",
+  "currentSourceHashes": [
+    "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832"
+  ],
+  "outputs": [
+    {
+      "path": "native/outputs/model.step",
+      "sha256": "d811cac61e78417d82114b7e1c5c9b796f7c4297e950b642baa29326034348ce",
+      "size": 29402
+    },
+    {
+      "path": "native/outputs/model.stl",
+      "sha256": "62bb163ac1169de581aecbe6e63a349aab2965c9aee2c19b7a0e562b8bb82411",
+      "size": 1284
+    },
+    {
+      "path": "native/outputs/assembly-manifest.json",
+      "sha256": "ffddd1379a03c66cebbf01c2288f04d6c4df73e3ca344079c8255d74d66f6bcc",
+      "size": 2538
+    },
+    {
+      "path": "native/outputs/parts/solid-bc984e5abc4d15a07b60.step",
+      "sha256": "5946d14212f0a7e11b9740debc1b3c6fa9c703edc937243ec3c3f76f8d4289c1",
+      "size": 29396
+    },
+    {
+      "path": "native/outputs/parts/solid-bc984e5abc4d15a07b60.stl",
+      "sha256": "62bb163ac1169de581aecbe6e63a349aab2965c9aee2c19b7a0e562b8bb82411",
+      "size": 1284
+    }
+  ],
+  "toolSteps": [
+    {
+      "action": "read",
+      "status": "succeeded",
+      "sequence": 1
+    },
+    {
+      "action": "build",
+      "status": "succeeded",
+      "sequence": 2
+    },
+    {
+      "action": "render",
+      "status": "succeeded",
+      "sequence": 3
+    },
+    {
+      "action": "finish",
+      "status": "succeeded",
+      "sequence": 4
+    }
+  ],
+  "renderImages": [
+    {
+      "name": "front.png",
+      "mediaType": "image/png",
+      "sha256": "1581bd7e9871bdb3b6369f00156065ef7055e0da9571a93500d16e46bc536cdf",
+      "stepSha256": "d811cac61e78417d82114b7e1c5c9b796f7c4297e950b642baa29326034348ce"
+    },
+    {
+      "name": "top.png",
+      "mediaType": "image/png",
+      "sha256": "df3b85c8765304bc4e8fb83574ea0970ec848a5519849a3fe2909d6ef491b0d4",
+      "stepSha256": "d811cac61e78417d82114b7e1c5c9b796f7c4297e950b642baa29326034348ce"
+    },
+    {
+      "name": "isometric.png",
+      "mediaType": "image/png",
+      "sha256": "4c0288212345ac71baebea070e91a78101447c83b761539bf1a6b13cf265b169",
+      "stepSha256": "d811cac61e78417d82114b7e1c5c9b796f7c4297e950b642baa29326034348ce"
+    }
+  ],
+  "pricingProbeUsdPer1000InputAndOutput": null,
+  "limits": {
+    "maxModelRequests": 5,
+    "maxSteps": 8,
+    "maxSeconds": 240,
+    "modelDeadlineSeconds": 180,
+    "outputSchemaRetries": 1,
+    "maxOutputTokensPerResponse": 4096,
+    "maxSpendUsd": 0.1
+  },
+  "durableModels": false,
+  "customerStateTouched": false,
+  "providerFallback": false,
+  "providerRetries": 0,
+  "ownNativeControlsCleaned": true,
+  "nativeImageIds": [
+    "sha256:feff2f2efedd796d47c24ddda0fd4083a6272bca03a50f52a5dbf51aad61d999"
+  ],
+  "providerRequestsAttempted": false,
+  "wallSeconds": 17.23762063299364,
+  "modelCalls": 0
+}

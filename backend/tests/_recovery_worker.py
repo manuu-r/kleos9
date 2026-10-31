@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import traceback
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -29,14 +30,23 @@ class AuditedTestModel(TestModel):
             "limitations": ["Test model; no live inference or physical evidence"],
         }))
 
-    async def request(self, messages, model_settings, model_request_parameters):
+    def record_request(self):
         # External to either database: this proves provider transport is not
         # called twice even if application accounting is itself idempotent.
         with self.audit_file.open("a") as audit:
             audit.write("model.request\n")
             audit.flush()
             os.fsync(audit.fileno())
+
+    async def request(self, messages, model_settings, model_request_parameters):
+        self.record_request()
         return await super().request(messages, model_settings, model_request_parameters)
+
+    @asynccontextmanager
+    async def request_stream(self, messages, model_settings, model_request_parameters, run_context=None):
+        self.record_request()
+        async with super().request_stream(messages, model_settings, model_request_parameters, run_context) as response:
+            yield response
 
 
 class CrashBoundaryEngine(EngineeringEngine):

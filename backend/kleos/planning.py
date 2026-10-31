@@ -90,6 +90,26 @@ def planning_context(project, automatic):
     return {**planning_state(project), "automatic": automatic, "skill": skill_metadata()}
 
 
+def model_packet(context):
+    """Send useful file metadata once; keep full immutable provenance in the ledger."""
+    packet = {**context}
+    if context.get("baseFiles"):
+        packet["baseFiles"] = [{**{k: v for k, v in item.items() if k != "content"},
+                                "contentOmitted": True, "immutableDependencyLock": True}
+                               if item.get("name") == "pubspec.lock" else item for item in context["baseFiles"]]
+    if "sourceArtifacts" in context:
+        packet["sourceArtifacts"] = [{k: ref[k] for k in ("name", "sha256", "size") if k in ref}
+                                     for ref in context["sourceArtifacts"]]
+    if context.get("manifest"):
+        manifest = {**context["manifest"]}
+        refs = manifest.pop("sourceArtifacts", None)
+        if refs is not None:
+            manifest.update(sourceArtifactCount=len(refs), sourceManifestSha256=hashlib.sha256(
+                json.dumps(refs, sort_keys=True).encode()).hexdigest())
+        packet["manifest"] = manifest
+    return packet
+
+
 def context_manifest(context):
     """Diagnostic references contain hashes and IDs rather than prompt bodies."""
     concept = context.get("concept", {})
@@ -98,6 +118,12 @@ def context_manifest(context):
     selected = {k: v for k, v in context.items() if k in {
         "projectId", "revision", "task", "lane", "inputArtifacts", "acceptanceCriteria",
         "remainingAllowanceUsd", "pivotReason", "retrieval"}}
+    if context.get("baseFiles"):
+        selected["baseFiles"] = [{k: file[k] for k in ("name", "sha256", "templateId", "templateManifestSha256")}
+                                 for file in context["baseFiles"]]
+    if context.get("sourceArtifacts"):
+        selected["sourceArtifacts"] = [{k: ref[k] for k in ("id", "name", "sha256")}
+                                       for ref in context["sourceArtifacts"]]
     if context.get("engineeringTool"):
         selected["engineeringTool"] = {k: v for k, v in context["engineeringTool"].items()
                                        if k in {"id", "version", "definitionHash", "installationHash", "policyVersion",

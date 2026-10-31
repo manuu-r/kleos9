@@ -465,6 +465,9 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
         from .execution import execution_factory
         return execution_factory(db, settings, store)
 
+    from .native_sessions import NativeSessions, register_session_routes
+    register_session_routes(app, execution, NativeSessions(db, settings))
+
     @app.get("/api/v1/internal/jobs/{job_id}")
     def job_request(job_id: str, authorization: str = Header(default="")):
         token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""

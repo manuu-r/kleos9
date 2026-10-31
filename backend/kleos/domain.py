@@ -19,6 +19,7 @@ from .db import (
     ExternalIntent,
     Invocation,
     NativeJob,
+    NativeSessionStep,
     Organization,
     Outbox,
     Project,
@@ -42,6 +43,7 @@ from .planning import (
     seed_project_concept,
     validate_part_reference,
 )
+from .source_closure import is_source, reference, resolve_sources
 from .telemetry import redact
 from .telemetry import trace_id as current_trace_id
 
@@ -51,6 +53,7 @@ MODULES = (
 )
 ACTIVE = ("queued", "running", "waiting")
 ENGINEERING_LANES = ("mechanics", "electronics", "firmware", "application")
+MAX_WORKSPACE_ARTIFACTS = 2048  # Complete mobile scaffolds plus the other engineering lanes.
 ASYNC_LANES = {
     "project.capture": ["coordination"],
     "project.research": ["research"],
@@ -562,7 +565,7 @@ class ControlPlane:
                 or old_attempt.task_id != old_task.id):
             raise DomainError("Native build source not found", 404)
         if (old_task.status in ACTIVE or old_task.revision != project.engineering_revision or (job and (
-                job.purpose != "build" or job.status not in {"succeeded", "failed", "unsupported"}
+                job.purpose not in {"build", "session"} or job.status not in {"succeeded", "failed", "unsupported"}
                 or job.request.get("revision") != project.engineering_revision))):
             raise DomainError("Choose completed source from the current engineering revision", 409, "native_retry_invalid")
         if from_attempt:
@@ -572,7 +575,7 @@ class ControlPlane:
                 Invocation.operation == "generate", Invocation.status == "succeeded"))
             if (old_task.kind not in {"project.generate", "project.repair", "project.pivot"}
                     or old_attempt.status not in {"succeeded", "blocked", "failed"} or not recorded_model
-                    or not old_attempt.output.get("files")):
+                    or not (old_attempt.context.get("sourceArtifacts") or old_attempt.output.get("files"))):
                 raise DomainError("Choose a recorded model-generated source attempt awaiting native execution", 409, "native_retry_invalid")
         source_request = job.request if job else old_attempt.context
         current_contract = contract_hash(project.requirements, project.interfaces)
@@ -586,37 +589,26 @@ class ControlPlane:
         if used >= 2 and not self.settings.development_unlimited_usage:
             raise DomainError("Two native rebuilds were already requested for this source; review the blocker", 409,
                               "native_retry_exhausted")
-        refs = job.request.get("inputArtifacts") if job else [{
-            "id": artifact.id, "name": artifact.name, "lane": artifact.lane, "sha256": artifact.sha256,
-            "size": artifact.size, "mediaType": artifact.media_type, "provenance": deepcopy(artifact.provenance),
-        } for artifact in session.scalars(select(Artifact).where(
-            Artifact.attempt_id == old_attempt.id, Artifact.lane == old_task.lane,
-            Artifact.status.in_(["candidate", "accepted"])).order_by(Artifact.name))
-            if not artifact.name.startswith("native/") and not artifact.provenance.get("nativeJobId")]
+        refs = (job.result.get("sourceArtifacts", job.request.get("inputArtifacts")) if job else
+                old_attempt.context.get("sourceArtifacts", [reference(artifact) for artifact in session.scalars(
+                    select(Artifact).where(Artifact.attempt_id == old_attempt.id, Artifact.lane == old_task.lane,
+                    Artifact.status.in_(["candidate", "accepted"])).order_by(Artifact.name)) if is_source(artifact)]))
         if from_attempt:
             output_files = old_attempt.output.get("files")
             if (not isinstance(output_files, list) or any(not isinstance(item, dict) for item in output_files)
                     or len({item.get("path") for item in output_files}) != len(output_files)
-                    or {item.get("path") for item in output_files} != {ref["name"] for ref in refs}):
+                    or not {item.get("path") for item in output_files}.issubset({ref["name"] for ref in refs})):
                 raise DomainError("The complete generated source closure is no longer available", 409, "stale_artifacts")
-        if (not isinstance(refs, list) or not refs or len(refs) > 50
+        if (not isinstance(refs, list) or not refs or len(refs) > 256
                 or any(not isinstance(ref, dict) or not isinstance(ref.get("id"), str) for ref in refs)
                 or len({ref["id"] for ref in refs}) != len(refs)):
             raise DomainError("The native build has no complete reusable source manifest", 409, "stale_artifacts")
         source_ids = {ref["id"] for ref in refs}
-        for ref in refs:
-            artifact = session.get(Artifact, ref["id"])
-            expected = {"id": artifact.id, "name": artifact.name, "lane": artifact.lane, "sha256": artifact.sha256,
-                        "size": artifact.size, "mediaType": artifact.media_type, "provenance": artifact.provenance} if artifact else None
-            if (not artifact or artifact.tenant_id != project.tenant_id or artifact.project_id != project.id
-                    or artifact.revision != project.engineering_revision or artifact.lane != old_task.lane
-                    or artifact.attempt_id != root_attempt_id or artifact.status not in {"candidate", "accepted"}
-                    or artifact.name.startswith("native/") or artifact.provenance.get("nativeJobId") or expected != ref):
-                raise DomainError("Native source artifacts were changed or superseded", 409, "stale_artifacts")
+        resolve_sources(session, project, old_task.lane, refs)
         current = session.scalars(select(Artifact).where(Artifact.project_id == project.id,
             Artifact.revision == project.engineering_revision, Artifact.lane == old_task.lane,
             Artifact.status.in_(["candidate", "accepted"]))).all()
-        if any(a.id not in source_ids and not (a.name.startswith("native/") or a.provenance.get("nativeJobId")) for a in current):
+        if any(a.id not in source_ids and is_source(a) for a in current):
             raise DomainError("A newer source closure exists; choose its completed native job", 409, "stale_artifacts")
         run = Run(id=uid(), tenant_id=project.tenant_id, project_id=project.id, command_id=command_id,
                   kind="project.retryNative", revision=project.engineering_revision,
@@ -770,7 +762,10 @@ class ControlPlane:
                 return self._workspace_cache[cache_key]
             runs = session.scalars(select(Run).where(Run.project_id == project_id).order_by(
                 Run.created_at.desc()).limit(30)).all()
-            artifacts = session.scalars(select(Artifact).where(Artifact.project_id == project_id).limit(200)).all()
+            artifacts = session.scalars(select(Artifact).where(Artifact.project_id == project_id).order_by(
+                (Artifact.revision == project.engineering_revision).desc(),
+                Artifact.status.in_(["candidate", "accepted"]).desc(),
+                Artifact.created_at.desc(), Artifact.id.desc()).limit(MAX_WORKSPACE_ARTIFACTS)).all()
             consent = session.scalar(select(Consent).where(Consent.project_id == project_id))
             checks = session.scalars(select(Validation).where(
                 Validation.project_id == project_id, Validation.revision == project.engineering_revision)).all()
@@ -798,6 +793,8 @@ class ControlPlane:
                      "traceId": e.trace_id, "createdAt": e.created_at.isoformat()} for e in rows]
 
     def inspect_run(self, principal, run_id):
+        from .native_sessions import session_step_summary
+
         with self.db.transaction(read_only=True) as session:
             run = session.scalar(select(Run).where(Run.id == run_id, Run.tenant_id == principal.tenant_id))
             if not run:
@@ -830,8 +827,16 @@ class ControlPlane:
                     "nativeJobs": [{"id": j.id, "purpose": j.purpose, "status": j.status,
                                     "inputManifest": j.request.get("inputArtifacts", []),
                                     "toolVersion": j.request.get("toolVersion"),
+                                    "resources": j.request.get("resources", {}),
+                                    "resourceUsage": j.result.get("resourceUsage", {}),
+                                    "infrastructureUsage": j.result.get("infrastructureUsage", {}),
+                                    "executionSeconds": j.result.get("executionSeconds"),
                                     "hasLogs": bool(j.result.get("logKey")),
-                                    "limitations": j.result.get("limitations", [])} for j in jobs],
+                                    "limitations": j.result.get("limitations", []),
+                                    "sessionSteps": [session_step_summary(step) for step in session.scalars(
+                                        select(NativeSessionStep).where(NativeSessionStep.job_id == j.id,
+                                                                       NativeSessionStep.tenant_id == run.tenant_id)
+                                        .order_by(NativeSessionStep.sequence))]} for j in jobs],
                 })
             return redact(result)
 

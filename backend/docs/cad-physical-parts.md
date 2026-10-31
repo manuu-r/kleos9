@@ -30,7 +30,7 @@ instance transforms are identity. Exploding is a client-side display translation
 downloaded manufacturing geometry never acquires those translations.
 
 Exports are bounded to 20 parts (43 files including whole STEP/STL and manifest),
-below the existing 50-file result contract. Existing file/transfer limits still
+below the 256-file native result contract. Existing per-file/transfer limits still
 apply. A separate native validator checks the complete artifact hash closure,
 re-imports every STEP, checks bounds and positive-volume solid validity, and
 compares the actual part union with the assembly using symmetric-difference and

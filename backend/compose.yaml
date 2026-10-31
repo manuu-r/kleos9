@@ -19,6 +19,9 @@ x-control: &control
     KLEOS_QDRANT_URL: http://qdrant:6333
     KLEOS_LOCAL_ARTIFACT_DIR: /data/artifacts
     KLEOS_EXECUTION_BACKEND: docker
+    KLEOS_MAX_NATIVE_JOBS: ${KLEOS_MAX_NATIVE_JOBS:-4}
+    KLEOS_MAX_NATIVE_JOBS_PER_PROJECT: ${KLEOS_MAX_NATIVE_JOBS_PER_PROJECT:-4}
+    KLEOS_NATIVE_JOB_RESERVATION_USD: ${KLEOS_NATIVE_JOB_RESERVATION_USD:-0.10}
     KLEOS_DOCKER_JOBS_DIR: /native-jobs
     KLEOS_DOCKER_JOBS_VOLUME: kleos9_native_jobs
     KLEOS_CONDUCTOR_URL: ""
@@ -27,6 +30,7 @@ x-control: &control
     PYDANTIC_AI_NO_BANNER: "1"
   volumes:
     - ./kleos:/opt/kleos/kleos:ro
+    - ./docker/templates:/opt/kleos/templates:ro
     - ./.data/artifacts:/data/artifacts
     - native_jobs:/native-jobs
   logging:
@@ -81,6 +85,7 @@ services:
       - "${KLEOS_API_BIND_ADDRESS:-127.0.0.1}:8004:8004"
     volumes:
       - ./kleos:/opt/kleos/kleos:ro
+      - ./docker/templates:/opt/kleos/templates:ro
       - ./.data/artifacts:/data/artifacts:ro
     read_only: true
     depends_on:
@@ -107,6 +112,7 @@ services:
     command: ["python", "-m", "kleos.worker", "--kind", "engineering"]
     volumes:
       - ./kleos:/opt/kleos/kleos:ro
+      - ./docker/templates:/opt/kleos/templates:ro
       - ./.data/artifacts:/data/artifacts
       - native_jobs:/native-jobs
       - /var/run/docker.sock:/var/run/docker.sock
@@ -124,6 +130,7 @@ services:
     command: ["python", "-m", "kleos.worker", "--kind", "connectors"]
     volumes:
       - ./kleos:/opt/kleos/kleos:ro
+      - ./docker/templates:/opt/kleos/templates:ro
       - ./.data/artifacts:/data/artifacts
       - native_jobs:/native-jobs
       - /var/run/docker.sock:/var/run/docker.sock

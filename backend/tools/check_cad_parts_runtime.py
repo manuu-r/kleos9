@@ -16,7 +16,7 @@ def main():
     for image in args.images:
         identity = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', image], text=True).strip()
         process = subprocess.run([
-            'docker', 'run', '--rm', '--pull', 'never', '--platform', 'linux/amd64', '--network', 'none',
+            'docker', 'run', '--rm', '--pull', 'never', '--platform', 'linux/amd64', '--network', 'none', '--env', 'KLEOS_NATIVE_DOCKER_NETWORK_NONE=1',
             '--read-only', '--memory', '2g', '--cpus', '2', '--pids-limit', '256',
             '--tmpfs', '/tmp:rw,exec,nosuid,size=1073741824', '--cap-drop', 'ALL',
             '--cap-add', 'CHOWN', '--cap-add', 'SETUID', '--cap-add', 'SETGID', '--cap-add', 'KILL',

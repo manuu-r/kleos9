@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
     && useradd --uid 1000 --create-home kleos
 COPY pyproject.toml ./
 COPY kleos ./kleos
+COPY docker/templates ./templates
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY docker/bootstrap_database.py ./bootstrap_database.py

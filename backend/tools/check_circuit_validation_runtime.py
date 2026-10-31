@@ -16,7 +16,7 @@ def main():
     for name in args.images:
         identity = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", name], text=True).strip()
         result = subprocess.run([
-            "docker", "run", "--rm", "--pull", "never", "--platform", "linux/amd64", "--network", "none",
+            "docker", "run", "--rm", "--pull", "never", "--platform", "linux/amd64", "--network", "none", "--env", "KLEOS_NATIVE_DOCKER_NETWORK_NONE=1",
             "--read-only", "--memory", "2g", "--cpus", "2", "--pids-limit", "128",
             "--tmpfs", "/tmp:rw,size=256m", "--mount", f"type=bind,source={fixture},target=/smoke_circuit.py,readonly",
             "--entrypoint", "python", identity, "/smoke_circuit.py",

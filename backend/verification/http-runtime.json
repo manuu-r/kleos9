@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "startedAt": "2026-10-30T22:00:08.129101+00:00",
+  "startedAt": "2026-10-31T00:52:50.004390+00:00",
   "baseUrl": "http://127.0.0.1:8000",
   "transport": "Actual HTTP socket to Docker-hosted FastAPI",
   "loginRequired": false,
@@ -71,12 +71,12 @@
   ],
   "status": "passed",
   "apiVersion": "0.1.0",
-  "fixtureProjectId": "d14e12d2-bbe7-4e31-8e12-7ef3037c7b0d",
+  "fixtureProjectId": "d9e6d8c7-b91a-4dc9-9598-22b1775dbbfc",
   "cleanup": {
     "projectStatus": "purged",
     "pendingCheckpointReceipts": 0,
     "remainingArtifactRows": 0,
     "scope": "Created fixture only"
   },
-  "completedAt": "2026-10-30T22:00:11.702186+00:00"
+  "completedAt": "2026-10-31T00:52:51.664815+00:00"
 }

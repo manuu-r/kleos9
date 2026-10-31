@@ -67,7 +67,7 @@ def execution(tmp_path):
         execution_backend="ecs", ecs_cluster="cluster", ecs_subnets=["native-subnet"],
         ecs_security_groups=["native-sg"], ecs_task_definitions={"mechanics": "task:mechanics:17"},
         internal_base_url="https://jobs.example.test",
-        daily_budget_usd=100, project_budget_usd=10,
+        daily_budget_usd=100, project_budget_usd=10, native_job_reservation_usd=1,
     )
     db = Database(settings.database_url)
     Base.metadata.create_all(db.engine)
@@ -408,6 +408,25 @@ def test_cancelled_dispatched_job_debits_allowance_once(execution):
         assert project.reserved_usd == 0
 
 
+@pytest.mark.parametrize("dispatched", [False, True])
+def test_cancelled_session_settles_allowance_once(execution, dispatched):
+    execution.settings.native_sessions_enabled = True
+    job_id = execution.submit("attempt", "session")
+    if dispatched:
+        execution.dispatch_pending()
+    execution.cancel_session(job_id)
+    execution.cancel_session(job_id)
+    execution.reconcile()
+    with execution.db.transaction() as session:
+        project = session.get(Project, "project")
+        assert project.reserved_usd == 0
+        assert project.spent_usd == int(dispatched)
+        job = session.get(NativeJob, job_id)
+        assert job.status == "cancelled"
+        assert job.request["reservation"]["settled"]
+    assert len(execution.ecs.stops) == int(dispatched)
+
+
 def test_cancellation_reconciles_uncertain_submission_by_stable_identity(execution):
     job_id = execution.submit("attempt", "build")
     with execution.db.transaction() as session:
@@ -668,7 +687,10 @@ def test_renode_rejects_generator_supplied_or_mutated_elf(tmp_path, renode_contr
     assert validate_renode(request, tmp_path, never_execute, qualification).status == "FAIL"
 
 
-def test_local_docker_dispatch_has_scoped_mount_no_network_and_no_credentials(execution, tmp_path):
+@pytest.mark.parametrize(('lane', 'policy', 'disk_scratch'), [
+    ('mechanics', 3, False), ('application', 3, True), ('application', 2, False), ('application', 1, False),
+])
+def test_local_docker_dispatch_has_scoped_mount_no_network_and_no_credentials(execution, tmp_path, lane, policy, disk_scratch):
     import httpx
 
     from kleos.execution import DockerExecution
@@ -676,8 +698,11 @@ def test_local_docker_dispatch_has_scoped_mount_no_network_and_no_credentials(ex
     attempt_id = "attempt"
     settings = settings.model_copy(update={
         "execution_backend": "docker", "docker_jobs_dir": tmp_path / "jobs",
-        "docker_native_images": {"mechanics": "local-mechanics"},
+        "docker_native_images": {lane: "local-fixture"},
     })
+    with db.transaction() as session:
+        session.get(Task, 'task').lane = lane
+        session.get(Artifact, 'artifact').lane = lane
     requests, containers = [], {}
     identity = "a" * 64
     def handle(request):
@@ -700,22 +725,33 @@ def test_local_docker_dispatch_has_scoped_mount_no_network_and_no_credentials(ex
     client = httpx.Client(transport=httpx.MockTransport(handle), base_url="http://docker/v1.45")
     native = DockerExecution(db, settings, store, client)
     job_id = native.submit(attempt_id, "build")
+    with db.transaction() as session:
+        job = session.get(NativeJob, job_id)
+        assert job.request['sandboxPolicyVersion'] == 3
+        job.request = {**job.request, 'sandboxPolicyVersion': policy}
     native.dispatch_pending()
     with db.transaction() as session:
         job = session.get(NativeJob, job_id)
         assert job.external_id == identity
         assert job.request["toolVersion"] == "sha256:" + "b" * 64
     specification = next(json.loads(r.content) for r in requests if r.url.path.endswith("/containers/create"))
-    assert specification["Env"] == ["KLEOS_NATIVE_SANDBOX=1"]
+    assert specification["Env"] == ["KLEOS_NATIVE_SANDBOX=1", "KLEOS_NATIVE_DOCKER_NETWORK_NONE=1"]
     limits = specification["HostConfig"]
     assert limits["NetworkMode"] == "none"
-    assert limits["ReadonlyRootfs"] is True
-    assert "exec" in limits["Tmpfs"]["/tmp"].split(",")
-    assert limits["PidsLimit"] == 256 and limits["Memory"] == 1024**3
-    assert limits["Mounts"] == [{
+    assert limits["ReadonlyRootfs"] is (policy >= 2 or lane != 'application')
+    if disk_scratch:
+        assert limits['Tmpfs'] == {}
+    else:
+        assert "exec" in limits["Tmpfs"]["/tmp"].split(",")
+    assert limits["PidsLimit"] == 256 and limits["Memory"] == (8 if lane == 'application' else 2) * 1024**3
+    mounts = [{
         "Type": "volume", "Source": settings.docker_jobs_volume,
         "Target": "/control", "VolumeOptions": {"Subpath": job_id},
     }]
+    if disk_scratch:
+        mounts.append({'Type': 'volume', 'Target': '/tmp',
+                       'VolumeOptions': {'NoCopy': True, 'Labels': {'kleos.job': job_id, 'kleos.role': 'native-scratch'}}})
+    assert limits['Mounts'] == mounts
     assert "docker.sock" not in json.dumps(specification)
     folder = native.control_directory(job_id)
     assert folder.stat().st_mode & 0o777 == 0o700
@@ -732,6 +768,32 @@ def test_local_docker_rejects_cloud_environment_and_symlink_workspaces(execution
     (tmp_path / "jobs").symlink_to(tmp_path, target_is_directory=True)
     with pytest.raises(DomainError, match="Unsafe"):
         native.control_directory("12345678-1234-1234-1234-123456789012")
+
+
+def test_local_cleanup_removes_anonymous_scratch_without_deleting_shared_volume(execution, tmp_path):
+    import httpx
+
+    from kleos.execution import DockerExecution
+    job_id = execution.submit('attempt', 'build')
+    with execution.db.transaction() as session:
+        job = session.get(NativeJob, job_id)
+        job.external_id, job.status = 'owned-container', 'succeeded'
+    requests = []
+    def remove(request):
+        requests.append(request)
+        assert request.method == 'DELETE' and request.url.path == '/v1.45/containers/owned-container'
+        assert dict(request.url.params) == {'force': 'false', 'v': 'true'}
+        return httpx.Response(204)
+    client = httpx.Client(transport=httpx.MockTransport(remove), base_url='http://docker/v1.45')
+    settings = execution.settings.model_copy(update={'docker_jobs_dir': tmp_path / 'jobs'})
+    native = DockerExecution(execution.db, settings, execution.store, client)
+    native.control_directory(job_id).mkdir(parents=True)
+    native._cleanup(job)
+    with execution.db.transaction() as session:
+        current = session.get(NativeJob, job_id)
+        assert current.result['localCleaned']
+    native._cleanup(current)
+    assert len(requests) == 1  # No volumes API call can remove the shared named control volume.
 
 
 def test_local_docker_expired_job_holds_capacity_until_observed_stopped(execution, tmp_path):
@@ -776,13 +838,17 @@ def test_local_docker_cleanup_conflict_preserves_job_files(execution, tmp_path):
         assert not session.get(NativeJob, job_id).result.get("localCleaned")
 
 
-def test_native_resource_limit_is_not_classified_as_an_engineering_error(tmp_path):
+@pytest.mark.parametrize(('code', 'logs'), [
+    (137, 'Killed'), (1, 'java.io.FileNotFoundException: daemon.log (Too many open files)'),
+    (1, 'java.lang.OutOfMemoryError: Java heap space'),
+])
+def test_native_resource_limit_is_not_classified_as_an_engineering_error(tmp_path, code, logs):
     content = b"assembly = None"
     result = run_job({
         "schemaVersion": 1, "purpose": "build", "lane": "mechanics",
         "inputArtifacts": [{"id": "source", "lane": "mechanics", "name": "enclosure.py",
                             "sha256": digest(content), "contentBase64": base64.b64encode(content).decode()}],
-    }, tmp_path, execute=lambda *_: (137, "Killed"))
+    }, tmp_path, execute=lambda *_: (code, logs))
     assert result.status == "failed"
     assert result.measurements["failureKind"] == "resource"
 
@@ -809,7 +875,8 @@ def test_local_cleanup_does_not_claim_deleted_files_on_filesystem_error(executio
 
 def test_flutter_inner_thread_failure_does_not_trigger_source_repairs(tmp_path, monkeypatch):
     monkeypatch.setattr("kleos.native_runner.prepare_companion", lambda _: {"preparation": "fixture"})
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "inputArtifacts": []},
+    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
+    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
                      tmp_path, execute=lambda *_: (
                          1, "../../runtime/vm/os_thread.cc:348: Could not start thread DartWorker:11: "
                          "Resource temporarily unavailable\nanalysis server exited with -6"))
@@ -874,6 +941,7 @@ def test_companion_bundle_is_complete_and_rejects_symlink_output(tmp_path, escap
     import io
     import zipfile
     monkeypatch.setattr("kleos.native_runner.prepare_companion", lambda _: {"preparation": "fixture"})
+    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
     outside = tmp_path / "outside.txt"
     outside.write_text("must not escape")
     def compile_fixture(args, work, timeout):
@@ -888,7 +956,7 @@ def test_companion_bundle_is_complete_and_rejects_symlink_output(tmp_path, escap
             else:
                 (web / "asset.txt").write_text("bundled asset")
         return 0, "fixture process"
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "inputArtifacts": []},
+    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
                      tmp_path, compile_fixture)
     assert result.status == ("failed" if escape else "succeeded")
     if not escape:
@@ -933,6 +1001,7 @@ def test_companion_source_archive_matches_generated_build(tmp_path, monkeypatch,
         (work / "pubspec.yaml").write_text("original prepared source")
         return {"preparation": "fixture", "sourceHashes": {"pubspec.yaml": digest(b"original prepared source")}}
     monkeypatch.setattr("kleos.native_runner.prepare_companion", prepare)
+    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
     def generated_tool(args, work, timeout):
         if modify_source:
             (work / "pubspec.yaml").write_text("modified by generated tool")
@@ -942,7 +1011,7 @@ def test_companion_source_archive_matches_generated_build(tmp_path, monkeypatch,
             (web / "index.html").write_text("entrypoint")
             (web / "main.dart.js").write_text("compiled fixture")
         return 0, "fixture"
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "inputArtifacts": []},
+    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
                      tmp_path, generated_tool)
     assert result.status == ("failed" if modify_source else "succeeded")
     if modify_source:

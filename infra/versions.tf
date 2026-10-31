@@ -64,6 +64,57 @@ variable "native_images" {
     error_message = "Native images require default lane or id@version keys and immutable digests."
   }
 }
+variable "native_resource_overrides" {
+  type = map(object({
+    cpuUnits            = number
+    memoryMiB           = number
+    tmpMiB              = number
+    pidsLimit           = number
+    ephemeralStorageGiB = number
+  }))
+  default     = {}
+  description = "Complete resource profiles keyed by lane, _default or qualified tool id@version; merged over the shared native-resources.json defaults."
+  validation {
+    condition = alltrue([for key, profile in var.native_resource_overrides : try(
+      (contains(["_default", "mechanics", "electronics", "firmware", "application", "validate"], key)
+      || can(regex("^[a-z][a-z0-9.-]{0,79}@[A-Za-z0-9][A-Za-z0-9_.-]{0,49}$", key))) &&
+      alltrue([for value in values(profile) : value > 0 && floor(value) == value]) &&
+      contains(lookup(local.fargate_memory_mib, tostring(profile.cpuUnits), []), profile.memoryMiB) &&
+      profile.tmpMiB <= profile.memoryMiB && profile.pidsLimit >= 32 && profile.pidsLimit <= 1024 &&
+      profile.ephemeralStorageGiB >= 21 && profile.ephemeralStorageGiB <= 200,
+      false
+    )])
+    error_message = "Native profiles require valid keys, positive integers, a supported Fargate CPU/memory pair (CPU <=16384), tmpMiB <= memoryMiB, 32..1024 processes and 21..200 GiB ephemeral storage."
+  }
+}
+variable "max_native_jobs" {
+  type        = number
+  default     = 8
+  description = "Global concurrent native-job admission ceiling; queued work remains visible."
+  validation {
+    condition     = var.max_native_jobs >= 1 && floor(var.max_native_jobs) == var.max_native_jobs
+    error_message = "max_native_jobs must be a positive integer."
+  }
+}
+variable "max_native_jobs_per_project" {
+  type        = number
+  default     = 4
+  description = "Per-project concurrent native-job ceiling, no greater than the global limit."
+  validation {
+    condition = (var.max_native_jobs_per_project >= 1 && floor(var.max_native_jobs_per_project) == var.max_native_jobs_per_project
+    && var.max_native_jobs_per_project <= var.max_native_jobs)
+    error_message = "Per-project native capacity must be a positive integer no greater than max_native_jobs."
+  }
+}
+variable "native_job_reservation_usd" {
+  type        = number
+  default     = 0.10
+  description = "Conservative admission reservation per native attempt; an allowance debit, not an AWS price or billing estimate."
+  validation {
+    condition     = var.native_job_reservation_usd > 0
+    error_message = "Native-job allowance reservations must be positive."
+  }
+}
 variable "engineering_tools" {
   type = list(object({
     id                     = string
@@ -134,4 +185,10 @@ locals {
   api_hostname      = "api.${var.base_domain}"
   jobs_hostname     = "jobs.${var.base_domain}"
   conductor_enabled = var.conductor_license_secret_arn != "" && var.conductor_image != ""
+}
+
+variable "native_sessions_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable bounded model/tool sessions after qualifying images and draining incompatible workflow versions."
 }
