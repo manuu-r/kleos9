@@ -11,6 +11,12 @@ download/share. A customer-run local adapter performs offline slicing and can
 open Bambu Connect for manual review/start. No fake printing progress or physical
 acceptance is derived from preparation; absent profiles stay visibly unavailable.
 
+[RentAHuman.ai](../backend/docs/rentahuman.md) discovery appears in production
+Human tasks and Connections → Human tasks. The physical-check stage offers local
+task drafting, an explicit noncommitting provider preview, manual handoff and
+owned-job status observation. API keys stay on the trusted server. Simulated
+tasks remain labelled and provider completion cannot approve physical acceptance.
+
 ## Production backend
 
 Start `backend` using its README, then run:

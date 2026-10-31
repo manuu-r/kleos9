@@ -5,6 +5,7 @@ import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/widgets.dart';
 import 'production/engineering_tools.dart';
+import 'production/rentahuman.dart';
 
 const _tabs = {
   'tools': 'Engineering tools',
@@ -88,7 +89,9 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       'printers' =>
         'Have a 3D printer? Connect it and Kleos9 can print parts at home, no order needed. Without one, prints are ordered from qualified providers.',
       'human' =>
-        "When the AI can't do something (fit checks, functional tests, assembly trials), jobs are posted to a linked platform such as RentAHuman, or to the hosted portal.",
+        widget.controller.state['production'] == true
+          ? 'Find people and prepare work for RentAHuman.ai. Hiring and payment happen on RentAHuman; simulated connectors remain separate.'
+          : "When the AI can't do something (fit checks, functional tests, assembly trials), jobs are posted to a linked platform such as RentAHuman, or to the hosted portal.",
       _ =>
         'Fabrication, PCB assembly, components and logistics. Work is routed to qualified services by measured performance.'
     };
@@ -127,6 +130,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       ]),
       if (tab == 'tools' && widget.controller.state['production'] == true)
         EngineeringTools(controller: widget.controller),
+      if (tab == 'human' && widget.controller.state['production'] == true)
+        const RentAHumanDirectory(),
       KResponsive(
           columns: 3,
           children: list

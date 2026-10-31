@@ -19,6 +19,13 @@ reported-model detection and a manual fallback. Exact profiles/image/hardware
 need qualification; the default profile registry is empty. See its
 [verification record](verification/bambu-printer-connector.md).
 
+The [RentAHuman.ai integration](docs/rentahuman.md) provides public search,
+release-bound local drafts, forced dry-run previews and read-only owned-job
+observations. Account operations need an organization-scoped API key. The
+simulated human-task portal and live hiring/payment block remain intact; see
+[verification](verification/rentahuman-integration.md) for the live public probe
+and fixture-only authenticated coverage.
+
 The optional [circuit simulation](docs/circuit-simulation.md) deterministically
 compiles explicitly bound accepted circuit/power interfaces and runs ngspice in
 independent native validation. It records advisory digital checks and hashed

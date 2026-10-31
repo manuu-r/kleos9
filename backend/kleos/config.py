@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     # Operator-qualified complete profile bundles; never supplied by generated code.
     bambu_slice_profiles: dict[str, BambuProfile] = Field(default_factory=dict)
+    rentahuman_api_keys: dict[str, SecretStr] = Field(default_factory=dict)
     auth_mode: Literal["password", "development"] = "password"
     development_token: SecretStr | None = None
     development_no_login: bool = False

@@ -25,6 +25,17 @@ from .domain import get_project
 from .learning import LearningService, ModalCompute
 from .maintenance import Maintenance
 from .memory import MemoryIndex
+from .rentahuman import HumanTaskService
+from .rentahuman_contracts import (
+    HumanBountiesView,
+    HumanSearchView,
+    HumanTaskDraftAction,
+    HumanTaskDraftRequest,
+    HumanTaskDraftsView,
+    HumanTaskDraftView,
+    HumanTaskLinkRequest,
+    RentAHumanStatusView,
+)
 
 
 class SourceRequest(WireModel):
@@ -112,7 +123,58 @@ def register_routes(app, db, settings, store):
                                catalog=DigiKeyCatalog(settings), learning=LearningService(db, settings, store),
                                compute=ModalCompute(db, settings, store))
     app.state.integrations = services
+    services.human_tasks = HumanTaskService(db, settings)
     printing = BambuPrintService(db, settings, store)
+
+    @app.get("/api/v1/rentahuman/status", response_model=RentAHumanStatusView)
+    def human_service_status(principal: Principal = Depends(authenticate)):
+        return services.human_tasks.status(principal)
+
+    @app.get("/api/v1/rentahuman/humans", response_model=HumanSearchView)
+    async def search_humans(skill: str = Query(min_length=1, max_length=100),
+                            city: str = Query(default="", max_length=100),
+                            country: str = Query(default="", max_length=100),
+                            max_rate: float | None = Query(default=None, alias="maxRate", ge=0, le=10000, allow_inf_nan=False),
+                            limit: int = Query(default=10, ge=1, le=20),
+                            cursor: str | None = Query(default=None, max_length=1000),
+                            principal: Principal = Depends(authenticate)):
+        params = {"skill": skill, "limit": limit, **({"city": city} if city else {}),
+                  **({"country": country} if country else {}), **({"maxRate": max_rate} if max_rate is not None else {}),
+                  **({"cursor": cursor} if cursor else {})}
+        return await services.human_tasks.client(principal).search(params)
+
+    @app.get("/api/v1/rentahuman/bounties", response_model=HumanBountiesView)
+    async def own_human_bounties(cursor: str | None = Query(default=None, max_length=1000),
+                                 principal: Principal = Depends(authenticate)):
+        return await services.human_tasks.client(principal).bounties(cursor)
+
+    @app.post("/api/v1/projects/{project_id}/human-task-drafts", response_model=HumanTaskDraftView)
+    def create_human_task(project_id: str, body: HumanTaskDraftRequest, principal: Principal = Depends(authenticate),
+                          idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=64)):
+        return services.human_tasks.create(principal, project_id, body, idempotency_key)
+
+    @app.get("/api/v1/projects/{project_id}/human-task-drafts", response_model=HumanTaskDraftsView)
+    def human_task_drafts(project_id: str, principal: Principal = Depends(authenticate)):
+        return services.human_tasks.list(principal, project_id)
+
+    @app.delete("/api/v1/projects/{project_id}/human-task-drafts/{ident}", response_model=HumanTaskDraftView)
+    def cancel_human_draft(project_id: str, ident: str, principal: Principal = Depends(authenticate)):
+        return services.human_tasks.cancel(principal, project_id, ident)
+
+    @app.post("/api/v1/projects/{project_id}/human-task-drafts/{ident}/preview", response_model=HumanTaskDraftView)
+    async def preview_human_task(project_id: str, ident: str, body: HumanTaskDraftAction,
+                                 principal: Principal = Depends(authenticate)):
+        return await services.human_tasks.update(principal, project_id, ident, body, "preview")
+
+    @app.post("/api/v1/projects/{project_id}/human-task-drafts/{ident}/link", response_model=HumanTaskDraftView)
+    async def link_human_task(project_id: str, ident: str, body: HumanTaskLinkRequest,
+                              principal: Principal = Depends(authenticate)):
+        return await services.human_tasks.update(principal, project_id, ident, body, "link")
+
+    @app.post("/api/v1/projects/{project_id}/human-task-drafts/{ident}/sync", response_model=HumanTaskDraftView)
+    async def sync_human_task(project_id: str, ident: str, body: HumanTaskDraftAction,
+                              principal: Principal = Depends(authenticate)):
+        return await services.human_tasks.update(principal, project_id, ident, body, "sync")
 
     @app.get("/api/v1/printers/bambu/catalog", response_model=BambuCatalogView)
     def bambu_catalog(principal: Principal = Depends(authenticate)):

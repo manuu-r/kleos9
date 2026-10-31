@@ -78,9 +78,10 @@ class _PinnedHTTPS(http.client.HTTPSConnection):
 class RestrictedFetcher:
     """Public HTTPS only, DNS-pinned, bounded body, no proxies, cookies, credentials or redirects on POST."""
     def __init__(self, resolver=socket.getaddrinfo, connection_factory=_PinnedHTTPS,
-                 max_bytes=2_000_000, timeout=15):
+                 max_bytes=2_000_000, timeout=15, allow_redirects=True):
         self.resolver, self.connection_factory = resolver, connection_factory
         self.max_bytes, self.timeout = max_bytes, timeout
+        self.allow_redirects = allow_redirects
 
     async def request(self, url, method="GET", body=None, headers=None):
         with tracer.start_as_current_span("connector.public_fetch", attributes={"http.request.method": method}) as span:
@@ -117,7 +118,7 @@ class RestrictedFetcher:
                 response = connection.getresponse()
                 response_headers = {k.lower(): v for k, v in response.getheaders()}
                 if response.status in {301, 302, 303, 307, 308}:
-                    if method != "GET" or hop == 3 or not response_headers.get("location"):
+                    if not self.allow_redirects or method != "GET" or hop == 3 or not response_headers.get("location"):
                         raise DomainError("Connector redirect is unsupported", 502, "redirect_blocked")
                     url = urljoin(url, response_headers["location"])
                     continue

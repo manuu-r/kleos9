@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 5d27c4d8b69bdfded95e81c1335eb3a038c36414ac0d01f637d51e2cc3ec4d4f
+// Schema SHA-256: ad1a28c7463e575195a68a3b10fc4b08da6ec87e96dd96944164396682bd08d8
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -399,6 +399,270 @@ class ApiEventView {
       };
 }
 
+class ApiHumanBountiesView {
+  const ApiHumanBountiesView({
+    required this.bounties,
+    required this.hasMore,
+    required this.nextCursor,
+  });
+  factory ApiHumanBountiesView.fromJson(Map<String, dynamic> json) =>
+      ApiHumanBountiesView(
+        bounties: List<Map<String, dynamic>>.unmodifiable(
+            (json['bounties'] as List)
+                .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
+        hasMore: json['hasMore'] as bool,
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
+      );
+  final List<Map<String, dynamic>> bounties;
+  final bool hasMore;
+  final String? nextCursor;
+  Map<String, dynamic> toJson() => {
+        'bounties': bounties.map((v) => v).toList(growable: false),
+        'hasMore': hasMore,
+        'nextCursor': nextCursor,
+      };
+}
+
+class ApiHumanSearchView {
+  const ApiHumanSearchView({
+    required this.humans,
+    required this.hasMore,
+    required this.nextCursor,
+    this.source,
+  });
+  factory ApiHumanSearchView.fromJson(Map<String, dynamic> json) =>
+      ApiHumanSearchView(
+        humans: List<Map<String, dynamic>>.unmodifiable((json['humans'] as List)
+            .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
+        hasMore: json['hasMore'] as bool,
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
+        source: json['source'] == null ? null : json['source'] as String,
+      );
+  final List<Map<String, dynamic>> humans;
+  final bool hasMore;
+  final String? nextCursor;
+  final String? source;
+  Map<String, dynamic> toJson() => {
+        'humans': humans.map((v) => v).toList(growable: false),
+        'hasMore': hasMore,
+        'nextCursor': nextCursor,
+        if (source != null) 'source': source,
+      };
+}
+
+class ApiHumanTaskDraftAction {
+  const ApiHumanTaskDraftAction({
+    required this.draftSha256,
+  });
+  factory ApiHumanTaskDraftAction.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskDraftAction(
+        draftSha256: json['draftSha256'] as String,
+      );
+  final String draftSha256;
+  Map<String, dynamic> toJson() => {
+        'draftSha256': draftSha256,
+      };
+}
+
+class ApiHumanTaskDraftRequest {
+  const ApiHumanTaskDraftRequest({
+    required this.releaseId,
+    required this.expectedEngineeringRevision,
+    required this.task,
+  });
+  factory ApiHumanTaskDraftRequest.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskDraftRequest(
+        releaseId: json['releaseId'] as String,
+        expectedEngineeringRevision:
+            (json['expectedEngineeringRevision'] as num).toInt(),
+        task: ApiHumanTaskSpec.fromJson(_object(json['task'])),
+      );
+  final String releaseId;
+  final int expectedEngineeringRevision;
+  final ApiHumanTaskSpec task;
+  Map<String, dynamic> toJson() => {
+        'releaseId': releaseId,
+        'expectedEngineeringRevision': expectedEngineeringRevision,
+        'task': task.toJson(),
+      };
+}
+
+class ApiHumanTaskDraftView {
+  const ApiHumanTaskDraftView({
+    required this.id,
+    required this.projectId,
+    required this.engineeringRevision,
+    required this.releaseId,
+    required this.status,
+    required this.draftSha256,
+    required this.task,
+    required this.preview,
+    required this.observation,
+    required this.bountyId,
+    this.physicalAcceptance,
+  });
+  factory ApiHumanTaskDraftView.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskDraftView(
+        id: json['id'] as String,
+        projectId: json['projectId'] as String,
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        releaseId: json['releaseId'] as String,
+        status: json['status'] as String,
+        draftSha256: json['draftSha256'] as String,
+        task: ApiHumanTaskSpec.fromJson(_object(json['task'])),
+        preview: Map<String, dynamic>.unmodifiable(_object(json['preview'])),
+        observation:
+            Map<String, dynamic>.unmodifiable(_object(json['observation'])),
+        bountyId: json['bountyId'] == null ? null : json['bountyId'] as String,
+        physicalAcceptance: json['physicalAcceptance'] == null
+            ? null
+            : json['physicalAcceptance'] as bool,
+      );
+  final String id;
+  final String projectId;
+  final int engineeringRevision;
+  final String releaseId;
+  final String status;
+  final String draftSha256;
+  final ApiHumanTaskSpec task;
+  final Map<String, dynamic> preview;
+  final Map<String, dynamic> observation;
+  final String? bountyId;
+  final bool? physicalAcceptance;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'projectId': projectId,
+        'engineeringRevision': engineeringRevision,
+        'releaseId': releaseId,
+        'status': status,
+        'draftSha256': draftSha256,
+        'task': task.toJson(),
+        'preview': preview,
+        'observation': observation,
+        'bountyId': bountyId,
+        if (physicalAcceptance != null)
+          'physicalAcceptance': physicalAcceptance,
+      };
+}
+
+class ApiHumanTaskDraftsView {
+  const ApiHumanTaskDraftsView({
+    required this.drafts,
+  });
+  factory ApiHumanTaskDraftsView.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskDraftsView(
+        drafts: List<ApiHumanTaskDraftView>.unmodifiable(
+            (json['drafts'] as List)
+                .map((v) => ApiHumanTaskDraftView.fromJson(_object(v)))),
+      );
+  final List<ApiHumanTaskDraftView> drafts;
+  Map<String, dynamic> toJson() => {
+        'drafts': drafts.map((v) => v.toJson()).toList(growable: false),
+      };
+}
+
+class ApiHumanTaskLinkRequest {
+  const ApiHumanTaskLinkRequest({
+    required this.draftSha256,
+    required this.bountyId,
+  });
+  factory ApiHumanTaskLinkRequest.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskLinkRequest(
+        draftSha256: json['draftSha256'] as String,
+        bountyId: json['bountyId'] as String,
+      );
+  final String draftSha256;
+  final String bountyId;
+  Map<String, dynamic> toJson() => {
+        'draftSha256': draftSha256,
+        'bountyId': bountyId,
+      };
+}
+
+class ApiHumanTaskLocation {
+  const ApiHumanTaskLocation({
+    this.city,
+    this.country,
+    this.isRemoteAllowed,
+  });
+  factory ApiHumanTaskLocation.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskLocation(
+        city: json['city'] == null ? null : json['city'] as String,
+        country: json['country'] == null ? null : json['country'] as String,
+        isRemoteAllowed: json['isRemoteAllowed'] == null
+            ? null
+            : json['isRemoteAllowed'] as bool,
+      );
+  final String? city;
+  final String? country;
+  final bool? isRemoteAllowed;
+  Map<String, dynamic> toJson() => {
+        if (city != null) 'city': city,
+        if (country != null) 'country': country,
+        if (isRemoteAllowed != null) 'isRemoteAllowed': isRemoteAllowed,
+      };
+}
+
+class ApiHumanTaskSpec {
+  const ApiHumanTaskSpec({
+    required this.title,
+    required this.description,
+    required this.completionCriteria,
+    required this.price,
+    this.priceType,
+    required this.estimatedHours,
+    this.category,
+    this.skillsNeeded,
+    required this.evidenceTypes,
+    this.location,
+  });
+  factory ApiHumanTaskSpec.fromJson(Map<String, dynamic> json) =>
+      ApiHumanTaskSpec(
+        title: json['title'] as String,
+        description: json['description'] as String,
+        completionCriteria: json['completionCriteria'] as String,
+        price: (json['price'] as num).toDouble(),
+        priceType:
+            json['priceType'] == null ? null : json['priceType'] as String,
+        estimatedHours: (json['estimatedHours'] as num).toDouble(),
+        category: json['category'] == null ? null : json['category'] as String,
+        skillsNeeded: json['skillsNeeded'] == null
+            ? null
+            : List<String>.unmodifiable(
+                (json['skillsNeeded'] as List).map((v) => v as String)),
+        evidenceTypes: List<String>.unmodifiable(
+            (json['evidenceTypes'] as List).map((v) => v as String)),
+        location: json['location'] == null
+            ? null
+            : ApiHumanTaskLocation.fromJson(_object(json['location'])),
+      );
+  final String title;
+  final String description;
+  final String completionCriteria;
+  final double price;
+  final String? priceType;
+  final double estimatedHours;
+  final String? category;
+  final List<String>? skillsNeeded;
+  final List<String> evidenceTypes;
+  final ApiHumanTaskLocation? location;
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'description': description,
+        'completionCriteria': completionCriteria,
+        'price': price,
+        if (priceType != null) 'priceType': priceType,
+        'estimatedHours': estimatedHours,
+        if (category != null) 'category': category,
+        if (skillsNeeded != null)
+          'skillsNeeded': skillsNeeded?.map((v) => v).toList(growable: false),
+        'evidenceTypes': evidenceTypes.map((v) => v).toList(growable: false),
+        if (location != null) 'location': location?.toJson(),
+      };
+}
+
 class ApiInvocationView {
   const ApiInvocationView({
     required this.id,
@@ -759,6 +1023,45 @@ class ApiProjectsView {
   Map<String, dynamic> toJson() => {
         'projects': projects.map((v) => v.toJson()).toList(growable: false),
         'nextCursor': nextCursor,
+      };
+}
+
+class ApiRentAHumanStatusView {
+  const ApiRentAHumanStatusView({
+    this.provider,
+    required this.accountConfigured,
+    this.livePostingEnabled,
+    required this.capabilities,
+    this.setupUrl,
+    required this.limitations,
+  });
+  factory ApiRentAHumanStatusView.fromJson(Map<String, dynamic> json) =>
+      ApiRentAHumanStatusView(
+        provider: json['provider'] == null ? null : json['provider'] as String,
+        accountConfigured: json['accountConfigured'] as bool,
+        livePostingEnabled: json['livePostingEnabled'] == null
+            ? null
+            : json['livePostingEnabled'] as bool,
+        capabilities: List<String>.unmodifiable(
+            (json['capabilities'] as List).map((v) => v as String)),
+        setupUrl: json['setupUrl'] == null ? null : json['setupUrl'] as String,
+        limitations: List<String>.unmodifiable(
+            (json['limitations'] as List).map((v) => v as String)),
+      );
+  final String? provider;
+  final bool accountConfigured;
+  final bool? livePostingEnabled;
+  final List<String> capabilities;
+  final String? setupUrl;
+  final List<String> limitations;
+  Map<String, dynamic> toJson() => {
+        if (provider != null) 'provider': provider,
+        'accountConfigured': accountConfigured,
+        if (livePostingEnabled != null)
+          'livePostingEnabled': livePostingEnabled,
+        'capabilities': capabilities.map((v) => v).toList(growable: false),
+        if (setupUrl != null) 'setupUrl': setupUrl,
+        'limitations': limitations.map((v) => v).toList(growable: false),
       };
 }
 

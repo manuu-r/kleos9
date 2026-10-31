@@ -76,6 +76,57 @@ class ProductionApi {
       ApiBambuCatalogView.fromJson(await get('/printers/bambu/catalog',
               organizationId: organizationId))
           .toJson();
+  Future<JsonMap> rentAHumanStatus({String? organizationId}) async =>
+      ApiRentAHumanStatusView.fromJson(
+              await get('/rentahuman/status', organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> rentAHumanSearch(Map<String, String> filters,
+          {String? organizationId}) async =>
+      ApiHumanSearchView.fromJson(await get(
+              Uri(path: '/rentahuman/humans', queryParameters: filters)
+                  .toString(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> rentAHumanBounties(
+          {String? cursor, String? organizationId}) async =>
+      ApiHumanBountiesView.fromJson(await get(
+              Uri(
+                      path: '/rentahuman/bounties',
+                      queryParameters:
+                          cursor == null ? null : {'cursor': cursor})
+                  .toString(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> humanTaskDrafts(String projectId,
+          {String? organizationId}) async =>
+      ApiHumanTaskDraftsView.fromJson(await get(
+              '/projects/${Uri.encodeComponent(projectId)}/human-task-drafts',
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> createHumanTaskDraft(String projectId, JsonMap body,
+          {required String key, String? organizationId}) async =>
+      ApiHumanTaskDraftView.fromJson(await post(
+              '/projects/${Uri.encodeComponent(projectId)}/human-task-drafts',
+              ApiHumanTaskDraftRequest.fromJson(body).toJson(),
+              idempotencyKey: key,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> humanTaskAction(
+      String projectId, String id, String action, JsonMap body,
+      {String? organizationId}) async {
+    if (!const ['preview', 'link', 'sync'].contains(action)) {
+      throw ArgumentError('Unsupported task action');
+    }
+    final request = action == 'link'
+        ? ApiHumanTaskLinkRequest.fromJson(body).toJson()
+        : ApiHumanTaskDraftAction.fromJson(body).toJson();
+    return ApiHumanTaskDraftView.fromJson(await post(
+            '/projects/${Uri.encodeComponent(projectId)}/human-task-drafts/${Uri.encodeComponent(id)}/$action',
+            request,
+            organizationId: organizationId))
+        .toJson();
+  }
+
   Future<JsonMap> printPreparations(String projectId,
           {String? organizationId}) async =>
       ApiPrintPreparationsView.fromJson(await get(

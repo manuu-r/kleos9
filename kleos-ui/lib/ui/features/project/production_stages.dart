@@ -19,6 +19,7 @@ import 'requirements_interview.dart';
 import 'planning_conversation.dart';
 import 'engineering_preview.dart';
 import 'bambu_print.dart';
+import '../production/rentahuman.dart';
 
 /// Real engineering records presented inside the original stage workspace.
 class ProductionStage extends ConsumerStatefulWidget {
@@ -466,6 +467,10 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
         BambuPrintPanel(
             projectId: '${project['id']}',
             revision: number(workspace['revision']).toInt()),
+      if (widget.stage == 7)
+        RentAHumanProjectTasks(projectId: '${project['id']}',
+          revision: number(project['engineeringRevision']).toInt(),
+          releaseId: project['acceptedReleaseId'] as String?, canWrite: canWrite),
       pCallout(pColumn([
         const KBadge('Simulated physical workflow', tone: 'sim'),
         pText(

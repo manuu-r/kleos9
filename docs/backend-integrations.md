@@ -24,6 +24,12 @@ The production API uses authenticated, organization-scoped adapters. Default tes
 | `POST /api/v1/projects/{id}/print-preparations/{preparationId}/complete` | Validate bounded uploaded package structure and save a separate prepared artifact; no physical acceptance |
 | `GET /api/v1/projects/{id}/portal/tasks` | Current simulated fulfillment assignments |
 | `POST /api/v1/portal/tasks/{id}/observations` | Record synthetic human-task progress without changing engineering acceptance |
+| `GET /api/v1/rentahuman/status` | Organization-scoped account configuration and available read/preview capabilities |
+| `GET /api/v1/rentahuman/humans` | Real public worker search; no hiring or messaging |
+| `GET /api/v1/rentahuman/bounties` | Account-owned jobs only, using the organization's server-side key |
+| `GET/POST /api/v1/projects/{id}/human-task-drafts` | Current accepted-release-bound drafts / local task save |
+| `DELETE /api/v1/projects/{id}/human-task-drafts/{draftId}` | Cancel local preparation only |
+| `POST /api/v1/projects/{id}/human-task-drafts/{draftId}/{preview,link,sync}` | Forced dry-run preview / owner-authorized job observation; no committing provider action |
 | `GET/POST /api/v1/learning/datasets` | Administrator views/creates versioned, consent-aware dataset manifests |
 | `POST /api/v1/learning/datasets/{id}/rights-review` | Record the operator's data/model-output rights review |
 | `GET/POST /api/v1/learning/models` | List models or register a bounded training candidate |
@@ -124,6 +130,15 @@ profiles; printer/firmware/material qualification is separate. No direct printer
 control, FTP upload or cloud-signature bypass is implemented.
 
 The provider portal is currently organization-scoped for invited users. Assignments and observations are visibly simulated and stay tied to their engineering revision. Vendor-specific authentication, real labor commitments, printing and payments need separately qualified live adapters; the current server blocks those effects.
+
+The separate [RentAHuman.ai adapter](../backend/docs/rentahuman.md) supports real
+public discovery, saved local task drafts, a forced `dryRun: true` provider
+preview and explicitly linked owned-job observations. Keys are mapped by Kleos
+organization in the trusted API environment. It never posts live work, messages
+people, selects workers or funds/releases payments. Manual hiring remains on
+RentAHuman; provider status does not satisfy a physical gate. Authenticated
+qualification still requires an account/key. Its vendor webhook protocol is not
+interchangeable with the existing generic webhook route.
 
 ## Modal model lifecycle
 

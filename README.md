@@ -14,6 +14,9 @@ checks are real; an attractive concept preview is not manufacturing approval.
 The optional [Bambu Lab adapter](backend/docs/bambu-printers.md) adds real offline
 plate preparation and a local Bambu Connect handoff. Operators review and start
 their prints in Connect; this does not unlock platform physical acceptance.
+The [RentAHuman.ai adapter](backend/docs/rentahuman.md) adds real public discovery,
+local task preparation, noncommitting previews and owned-job observations;
+hiring and payment remain external operator actions.
 
 ## Documentation map
 

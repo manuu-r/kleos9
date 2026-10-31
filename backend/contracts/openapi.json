@@ -5,6 +5,500 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/rentahuman/status": {
+      "get": {
+        "summary": "Human Service Status",
+        "operationId": "human_service_status_api_v1_rentahuman_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RentAHumanStatusView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rentahuman/humans": {
+      "get": {
+        "summary": "Search Humans",
+        "operationId": "search_humans_api_v1_rentahuman_humans_get",
+        "parameters": [
+          {
+            "name": "skill",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Skill"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "City"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "Country"
+            }
+          },
+          {
+            "name": "maxRate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 10000,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Maxrate"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSearchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rentahuman/bounties": {
+      "get": {
+        "summary": "Own Human Bounties",
+        "operationId": "own_human_bounties_api_v1_rentahuman_bounties_get",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanBountiesView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts": {
+      "post": {
+        "summary": "Create Human Task",
+        "operationId": "create_human_task_api_v1_projects__project_id__human_task_drafts_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Human Task Drafts",
+        "operationId": "human_task_drafts_api_v1_projects__project_id__human_task_drafts_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}": {
+      "delete": {
+        "summary": "Cancel Human Draft",
+        "operationId": "cancel_human_draft_api_v1_projects__project_id__human_task_drafts__ident__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/preview": {
+      "post": {
+        "summary": "Preview Human Task",
+        "operationId": "preview_human_task_api_v1_projects__project_id__human_task_drafts__ident__preview_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/link": {
+      "post": {
+        "summary": "Link Human Task",
+        "operationId": "link_human_task_api_v1_projects__project_id__human_task_drafts__ident__link_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/sync": {
+      "post": {
+        "summary": "Sync Human Task",
+        "operationId": "sync_human_task_api_v1_projects__project_id__human_task_drafts__ident__sync_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/printers/bambu/catalog": {
       "get": {
         "summary": "Bambu Catalog",
@@ -4062,6 +4556,344 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HumanBountiesView": {
+        "properties": {
+          "bounties": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Bounties"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bounties",
+          "hasMore",
+          "nextCursor"
+        ],
+        "title": "HumanBountiesView"
+      },
+      "HumanSearchView": {
+        "properties": {
+          "humans": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Humans"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "rentahuman.ai"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "humans",
+          "hasMore",
+          "nextCursor"
+        ],
+        "title": "HumanSearchView"
+      },
+      "HumanTaskDraftAction": {
+        "properties": {
+          "draftSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Draftsha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draftSha256"
+        ],
+        "title": "HumanTaskDraftAction"
+      },
+      "HumanTaskDraftRequest": {
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Releaseid"
+          },
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          },
+          "task": {
+            "$ref": "#/components/schemas/HumanTaskSpec"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "releaseId",
+          "expectedEngineeringRevision",
+          "task"
+        ],
+        "title": "HumanTaskDraftRequest"
+      },
+      "HumanTaskDraftView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "projectId": {
+            "type": "string",
+            "title": "Projectid"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "releaseId": {
+            "type": "string",
+            "title": "Releaseid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "draftSha256": {
+            "type": "string",
+            "title": "Draftsha256"
+          },
+          "task": {
+            "$ref": "#/components/schemas/HumanTaskSpec"
+          },
+          "preview": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Preview"
+          },
+          "observation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Observation"
+          },
+          "bountyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bountyid"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "engineeringRevision",
+          "releaseId",
+          "status",
+          "draftSha256",
+          "task",
+          "preview",
+          "observation",
+          "bountyId"
+        ],
+        "title": "HumanTaskDraftView"
+      },
+      "HumanTaskDraftsView": {
+        "properties": {
+          "drafts": {
+            "items": {
+              "$ref": "#/components/schemas/HumanTaskDraftView"
+            },
+            "type": "array",
+            "title": "Drafts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "drafts"
+        ],
+        "title": "HumanTaskDraftsView"
+      },
+      "HumanTaskLinkRequest": {
+        "properties": {
+          "draftSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Draftsha256"
+          },
+          "bountyId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,100}$",
+            "title": "Bountyid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draftSha256",
+          "bountyId"
+        ],
+        "title": "HumanTaskLinkRequest"
+      },
+      "HumanTaskLocation": {
+        "properties": {
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "City",
+            "default": ""
+          },
+          "country": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^([A-Z]{2})?$",
+            "title": "Country",
+            "default": ""
+          },
+          "isRemoteAllowed": {
+            "type": "boolean",
+            "title": "Isremoteallowed",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HumanTaskLocation"
+      },
+      "HumanTaskSpec": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 10,
+            "title": "Description"
+          },
+          "completionCriteria": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Completioncriteria"
+          },
+          "price": {
+            "type": "number",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Price"
+          },
+          "priceType": {
+            "type": "string",
+            "const": "fixed",
+            "title": "Pricetype",
+            "default": "fixed"
+          },
+          "estimatedHours": {
+            "type": "number",
+            "maximum": 168.0,
+            "minimum": 0.083,
+            "title": "Estimatedhours"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "labor-gigs",
+              "computer-gigs",
+              "creative-gigs"
+            ],
+            "title": "Category",
+            "default": "labor-gigs"
+          },
+          "skillsNeeded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Skillsneeded"
+          },
+          "evidenceTypes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "text",
+                "photo",
+                "video",
+                "link"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Evidencetypes"
+          },
+          "location": {
+            "$ref": "#/components/schemas/HumanTaskLocation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "completionCriteria",
+          "price",
+          "estimatedHours",
+          "evidenceTypes"
+        ],
+        "title": "HumanTaskSpec"
+      },
       "InferenceRequest": {
         "properties": {
           "modelId": {
@@ -4804,6 +5636,51 @@
           "note"
         ],
         "title": "ReconciliationRequest"
+      },
+      "RentAHumanStatusView": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "rentahuman.ai"
+          },
+          "accountConfigured": {
+            "type": "boolean",
+            "title": "Accountconfigured"
+          },
+          "livePostingEnabled": {
+            "type": "boolean",
+            "title": "Livepostingenabled",
+            "default": false
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "setupUrl": {
+            "type": "string",
+            "title": "Setupurl",
+            "default": "https://rentahuman.ai/account/api-keys"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "accountConfigured",
+          "capabilities",
+          "limitations"
+        ],
+        "title": "RentAHumanStatusView"
       },
       "RetrievalRequest": {
         "properties": {
