@@ -134,7 +134,7 @@ class _HumanTaskCardState extends State<HumanTaskCard> {
                 width: 22,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: i <= flowIndex ? KColors.accent : KColors.border,
+                    color: i <= flowIndex ? KColors.text : KColors.surface3,
                     borderRadius: BorderRadius.circular(3)),
               ),
           ]),

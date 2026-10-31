@@ -315,12 +315,8 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
           curve: KMotion.out,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-              color: KColors.bg.withValues(alpha: .5),
-              borderRadius: BorderRadius.circular(KRadius.card - 4),
-              border: Border.all(
-                  color: hovered
-                      ? KColors.accent.withValues(alpha: .5)
-                      : KColors.border)),
+              color: hovered ? KColors.surface3 : KColors.surface2,
+              borderRadius: BorderRadius.circular(KRadius.control)),
           child: LayoutBuilder(builder: (context, c) {
             final inner = math.max(120.0, c.maxHeight - 50);
             final view = describe(id, code: false, inner: inner, tile: true);
@@ -336,7 +332,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                   left: 12,
                   right: 12,
                   child: Row(children: [
-                    Icon(icon, size: 14, color: KColors.accent),
+                    Icon(icon, size: 14, color: KColors.muted),
                     const SizedBox(width: 7),
                     Text(label,
                         style: const TextStyle(
@@ -355,7 +351,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                     const Spacer(),
                     Icon(Icons.north_east,
                         size: 14,
-                        color: hovered ? KColors.accent : KColors.faint),
+                        color: hovered ? KColors.text : KColors.faint),
                   ])),
             ]);
           })));
@@ -727,7 +723,7 @@ class _Explorer extends StatelessWidget {
                   child: Row(children: [
                     Icon(_fileIcon('${file['lane']}', '${file['name']}'),
                         size: 14,
-                        color: lane == id ? KColors.accent : KColors.faint),
+                        color: lane == id ? KColors.text : KColors.faint),
                     const SizedBox(width: 9),
                     Expanded(
                         child: Text(_baseName('${file['name']}'),

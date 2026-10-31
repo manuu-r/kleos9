@@ -74,7 +74,7 @@ class StageHeader extends StatelessWidget {
                   style: Theme.of(context)
                       .textTheme
                       .headlineLarge
-                      ?.copyWith(fontSize: c.maxWidth < 600 ? 22 : 26))),
+                      ?.copyWith(fontSize: c.maxWidth < 600 ? 20 : 22))),
           ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
               child: KMuted(description, size: 14)),
@@ -227,19 +227,6 @@ class _RingPainter extends CustomPainter {
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
       ..color = color;
-    if (glow) {
-      canvas.drawArc(
-          rect,
-          -math.pi / 2,
-          math.pi * 2 * v,
-          false,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = stroke + 4
-            ..strokeCap = StrokeCap.round
-            ..color = color.withValues(alpha: .18)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
-    }
     canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * v, false, arc);
   }
 
@@ -562,8 +549,8 @@ class PillTabs extends StatelessWidget {
                               borderRadius: BorderRadius.circular(KRadius.pill),
                               border: Border.all(
                                   color: label == selected
-                                      ? KColors.accent.withValues(alpha: .6)
-                                      : KColors.border)),
+                                      ? KColors.text.withValues(alpha: .8)
+                                      : Colors.transparent)),
                           child: Text(label,
                               style: TextStyle(
                                   fontSize: 12,

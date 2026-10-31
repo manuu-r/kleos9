@@ -167,7 +167,8 @@ class _ConnectorTile extends StatelessWidget {
                             ? Icons.construction_outlined
                             : Icons.hub_outlined,
                     size: 20,
-                    color: c['linked'] == true ? KColors.text : KColors.faint)),
+                    color:
+                        c['linked'] == true ? KColors.muted : KColors.faint)),
             const SizedBox(width: 12),
             Expanded(
                 child: kColumn([

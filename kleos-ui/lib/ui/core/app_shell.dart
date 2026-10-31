@@ -94,13 +94,17 @@ class AppShell extends ConsumerWidget {
 
   /// Labelled bottom bar. The copper line over the selected icon comes from
   /// the navigation theme; nothing is filled.
-  Widget _bottomNav(BuildContext context) => DecoratedBox(
-      decoration: const BoxDecoration(
-          color: KColors.bg,
-          border: Border(top: BorderSide(color: KColors.border))),
+  Widget _bottomNav(BuildContext context) => ClipPath(
+      clipper: ShapeBorderClipper(
+          shape: RoundedSuperellipseBorder(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)))),
       child: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (i) => context.go(_nav[i].path),
+        onDestinationSelected: (i) {
+          if (i != index) KHaptics.select();
+          context.go(_nav[i].path);
+        },
         destinations: [
           for (final item in _nav)
             NavigationDestination(
@@ -111,12 +115,12 @@ class AppShell extends ConsumerWidget {
         ],
       ));
 
-  Widget _rail(BuildContext context) => DecoratedBox(
-      decoration: const BoxDecoration(
-          border: Border(right: BorderSide(color: KColors.border))),
-      child: NavigationRail(
+  Widget _rail(BuildContext context) => NavigationRail(
         selectedIndex: index,
-        onDestinationSelected: (i) => context.go(_nav[i].path),
+        onDestinationSelected: (i) {
+          if (i != index) KHaptics.select();
+          context.go(_nav[i].path);
+        },
         destinations: [
           for (final item in _nav)
             NavigationRailDestination(
@@ -125,7 +129,7 @@ class AppShell extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 4),
             ),
         ],
-      ));
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListenableBuilder(
@@ -149,9 +153,7 @@ class AppShell extends ConsumerWidget {
     final gutter = KSpace.gutter(context);
     final header = Container(
         height: phone ? 56 : 64,
-        decoration: const BoxDecoration(
-            color: KColors.bg,
-            border: Border(bottom: BorderSide(color: KColors.border))),
+        color: KColors.bg,
         child: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1200),
@@ -186,17 +188,20 @@ class AppShell extends ConsumerWidget {
                         const Spacer()
                       else
                         Expanded(
-                            child: Center(
-                                child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
+                            child: Align(
+                                alignment: Alignment.center,
+                                child: SizedBox(
+                                    height: 64,
+                                    child: KTabStrip(
+                                        rule: false,
+                                        height: 64,
+                                        gap: 14,
+                                        selected: index,
+                                        tabs: [
                                           for (var i = 0; i < _nav.length; i++)
-                                            _NavItem(
+                                            KTab(
                                                 label: _nav[i].label,
                                                 icon: _nav[i].icon,
-                                                selected: i == index,
                                                 onTap: () =>
                                                     context.go(_nav[i].path))
                                         ])))),
@@ -352,13 +357,10 @@ class _BrandMark extends StatelessWidget {
   Widget build(BuildContext context) =>
       Stack(clipBehavior: Clip.none, children: [
         Container(
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-                color: KColors.surface3,
-                border: Border.all(color: KColors.borderStrong),
-                borderRadius: BorderRadius.circular(7)),
+            decoration: KShape.surface(KColors.surface3, radius: 9),
             child: const Text('K9',
                 style: TextStyle(
                     fontFamily: 'GeistMono',
@@ -372,58 +374,9 @@ class _BrandMark extends StatelessWidget {
             child: Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                    color: KColors.accent,
-                    borderRadius: BorderRadius.circular(1.5))))
+                decoration: const BoxDecoration(
+                    color: KColors.accent, shape: BoxShape.circle)))
       ]);
-}
-
-/// Desktop navigation: text tabs, the selected one underlined in copper.
-class _NavItem extends StatelessWidget {
-  const _NavItem(
-      {required this.label,
-      required this.icon,
-      required this.selected,
-      required this.onTap});
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => KTap(
-      flat: true,
-      radius: KRadius.control,
-      onTap: onTap,
-      builder: (context, hovered) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: IntrinsicWidth(
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                const SizedBox(height: 22),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(icon,
-                      size: 16,
-                      color:
-                          selected || hovered ? KColors.text : KColors.muted),
-                  const SizedBox(width: 8),
-                  Text(label,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight:
-                              selected ? FontWeight.w500 : FontWeight.w400,
-                          color: selected || hovered
-                              ? KColors.text
-                              : KColors.muted))
-                ]),
-                const SizedBox(height: 12),
-                AnimatedContainer(
-                    duration: KMotion.base,
-                    curve: KMotion.out,
-                    height: 2,
-                    color: selected ? KColors.accent : Colors.transparent),
-              ]))));
 }
 
 class _RunningChip extends StatelessWidget {

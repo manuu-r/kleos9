@@ -27,30 +27,26 @@ class ChoicePill extends StatelessWidget {
               duration: KMotion.base,
               curve: KMotion.out,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                  color: selected
-                      ? KColors.surface3
+              decoration: KShape.surface(
+                  selected
+                      ? KColors.text
                       : hovered
-                          ? KColors.surface2
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(KRadius.pill),
-                  border: Border.all(
-                      color: selected
-                          ? KColors.text
-                          : hovered
-                              ? KColors.faint
-                              : KColors.borderStrong)),
+                          ? const Color(0xff343438)
+                          : KColors.surface3,
+                  radius: KRadius.pill),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (multi) ...[
                   Icon(selected ? Icons.check : Icons.add,
-                      size: 14, color: selected ? KColors.text : KColors.faint),
+                      size: 14, color: selected ? KColors.bg : KColors.faint),
                   const SizedBox(width: 7),
                 ],
                 Flexible(
                     child: Text(label,
                         style: TextStyle(
                             fontSize: 14,
-                            color: selected ? KColors.text : KColors.muted))),
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w400,
+                            color: selected ? KColors.bg : KColors.muted))),
               ]))));
 }
 
@@ -259,13 +255,8 @@ class LetterTile extends StatelessWidget {
       width: 38,
       height: 38,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-          color: KColors.accent.withValues(alpha: .1),
-          borderRadius: BorderRadius.circular(KRadius.control),
-          border: Border.all(color: KColors.accent.withValues(alpha: .28))),
+      decoration: KShape.surface(KColors.surface3, radius: KRadius.small + 2),
       child: Text(letter,
           style: KType.mono.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: KColors.accent)));
+              fontSize: 14, fontWeight: FontWeight.w600, color: KColors.text)));
 }

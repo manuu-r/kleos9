@@ -197,13 +197,10 @@ class _ProjectStageState extends State<ProjectStage> {
                   width: 28,
                   height: 28,
                   margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: KColors.accent.withValues(alpha: .12),
-                      border: Border.all(
-                          color: KColors.accent.withValues(alpha: .3))),
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: KColors.surface3),
                   child: const Icon(Icons.auto_awesome,
-                      size: 14, color: KColors.accent)),
+                      size: 14, color: KColors.text)),
               const SizedBox(width: 12),
             ],
             Flexible(
@@ -211,13 +208,7 @@ class _ProjectStageState extends State<ProjectStage> {
               constraints: const BoxConstraints(maxWidth: 620),
               padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
               decoration: BoxDecoration(
-                  color: user
-                      ? KColors.accent.withValues(alpha: .1)
-                      : KColors.surface2.withValues(alpha: .6),
-                  border: Border.all(
-                      color: user
-                          ? KColors.accent.withValues(alpha: .24)
-                          : KColors.border),
+                  color: user ? KColors.surface3 : KColors.surface,
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(user ? 16 : 4),
                       topRight: Radius.circular(user ? 4 : 16),
@@ -648,20 +639,20 @@ class _ProjectStageState extends State<ProjectStage> {
               return Semantics(
                   label: '$lane tool',
                   child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                          color: KColors.bg,
-                          borderRadius: BorderRadius.circular(KRadius.control),
-                          border: Border.all(color: KColors.border)),
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.center,
+                      decoration: KShape.surface(KColors.surface2,
+                          radius: KRadius.control),
                       child: DropdownButton<String>(
                         value: value,
                         isExpanded: true,
                         underline: const SizedBox.shrink(),
-                        dropdownColor: KColors.surface2,
+                        dropdownColor: KColors.surface3,
                         borderRadius: BorderRadius.circular(KRadius.control),
                         icon: const Icon(Icons.unfold_more,
                             size: 16, color: KColors.faint),
-                        hint: const KMuted('Choose a tool', size: 12),
+                        hint: const KMuted('Choose a tool', size: 14),
                         items: [
                           for (final candidate in candidates)
                             DropdownMenuItem(
@@ -669,7 +660,7 @@ class _ProjectStageState extends State<ProjectStage> {
                                 child: Text(
                                     '${candidate['name']}${candidate['builtIn'] == true ? ' (default)' : ''}',
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 12)))
+                                    style: const TextStyle(fontSize: 14)))
                         ],
                         onChanged: locked
                             ? null
@@ -1034,15 +1025,15 @@ class _ProjectStageState extends State<ProjectStage> {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                           color: p['casePrint'] == mode
-                              ? KColors.accent.withValues(alpha: .06)
-                              : KColors.surface,
+                              ? KColors.surface3
+                              : hovered
+                                  ? KColors.surface2
+                                  : KColors.surface,
                           border: Border.all(
                               color: p['casePrint'] == mode
-                                  ? KColors.accent.withValues(alpha: .7)
-                                  : hovered
-                                      ? KColors.borderStrong
-                                      : KColors.border,
-                              width: p['casePrint'] == mode ? 1.5 : 1),
+                                  ? KColors.text.withValues(alpha: .85)
+                                  : Colors.transparent,
+                              width: 1.5),
                           borderRadius: BorderRadius.circular(KRadius.card)),
                       child: pColumn([
                         pActions([

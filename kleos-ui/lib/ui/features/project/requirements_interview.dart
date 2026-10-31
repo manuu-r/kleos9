@@ -280,12 +280,13 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: checked
-                        ? KColors.accent.withValues(alpha: .08)
-                        : KColors.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    color: checked ? KColors.surface3 : KColors.surface,
+                    borderRadius: BorderRadius.circular(KRadius.control),
                     border: Border.all(
-                        color: checked ? KColors.accent : KColors.border)),
+                        color: checked
+                            ? KColors.text.withValues(alpha: .85)
+                            : Colors.transparent,
+                        width: 1.5)),
                 child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -298,7 +299,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                                   ? Icons.check_box
                                   : Icons.check_box_outline_blank),
                           size: 20,
-                          color: checked ? KColors.accent : KColors.faint),
+                          color: checked ? KColors.text : KColors.faint),
                       const SizedBox(width: 12),
                       Expanded(
                           child: pColumn([

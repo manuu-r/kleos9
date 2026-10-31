@@ -534,24 +534,17 @@ class _NewBuildPageState extends State<NewBuildPage> {
             const KMuted('Or start from a sample', size: 12),
             for (final sample in sampleBriefs)
               KTap(
-                  radius: KRadius.control + 2,
+                  radius: KRadius.control,
                   onTap: () => setState(() => brief.text = sample),
                   builder: (context, hovered) => AnimatedContainer(
                       duration: KMotion.base,
                       curve: KMotion.out,
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                          color: hovered
-                              ? KColors.surface2
-                              : KColors.surface.withValues(alpha: .6),
-                          border: Border.all(
-                              color: hovered
-                                  ? KColors.borderStrong
-                                  : KColors.border),
-                          borderRadius:
-                              BorderRadius.circular(KRadius.control + 2)),
+                          horizontal: 18, vertical: 16),
+                      decoration: KShape.surface(
+                          hovered ? KColors.surface2 : KColors.surface,
+                          radius: KRadius.control),
                       child: Row(children: [
                         Expanded(
                             child: Text(sample,

@@ -155,8 +155,8 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                             Text('${project['name'] ?? 'Your build'}',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium),
+                                style: KType.h1.copyWith(
+                                    fontSize: KSpace.phone(context) ? 26 : 30)),
                             ConstrainedBox(
                                 constraints:
                                     const BoxConstraints(maxWidth: 720),
@@ -296,11 +296,11 @@ class _RailStop extends StatelessWidget {
                       ])))));
 }
 
-/// Phone and tablet stage navigation: every stage as a tab in one row that
-/// scrolls sideways inside its own frame. The current stage is white with a
-/// copper line as wide as its label, finished stages carry a check, stages not
-/// reached yet are dimmed and inert. The current tab scrolls into view.
-class _StageTabs extends StatefulWidget {
+/// Phone and tablet stage navigation: every stage is a tab in one row that
+/// scrolls sideways inside its own frame, with the same gliding indicator as
+/// every other tab row. Finished stages carry a check, stages not reached yet
+/// are dim and inert, and the current tab stays in view.
+class _StageTabs extends StatelessWidget {
   const _StageTabs(
       {required this.view,
       required this.latest,
@@ -309,105 +309,24 @@ class _StageTabs extends StatefulWidget {
   final int view, latest;
   final List<Object?> done;
   final ValueChanged<int> onSelect;
-  @override
-  State<_StageTabs> createState() => _StageTabsState();
-}
-
-class _StageTabsState extends State<_StageTabs> {
-  final _keys = List.generate(stageNames.length, (_) => GlobalKey());
-
-  @override
-  void initState() {
-    super.initState();
-    _reveal(animate: false);
-  }
-
-  @override
-  void didUpdateWidget(covariant _StageTabs old) {
-    super.didUpdateWidget(old);
-    if (old.view != widget.view) _reveal();
-  }
-
-  void _reveal({bool animate = true}) =>
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final context = _keys[widget.view].currentContext;
-        if (context == null || !mounted) return;
-        Scrollable.ensureVisible(context,
-            alignment: .5,
-            duration: animate && !MediaQuery.disableAnimationsOf(context)
-                ? KMotion.base
-                : Duration.zero,
-            curve: KMotion.out);
-      });
 
   @override
   Widget build(BuildContext context) => Semantics(
       label: 'Project stages',
-      child: Container(
-          decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: KColors.border))),
-          child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                for (var i = 0; i < stageNames.length; i++)
-                  _tab(i, reached: i <= widget.latest),
-              ]))));
-
-  Widget _tab(int i, {required bool reached}) {
-    final on = i == widget.view;
-    final finished = i < widget.done.length && widget.done[i] == true;
-    final ink = on
-        ? KColors.text
-        : reached
-            ? KColors.muted
-            : KColors.faint.withValues(alpha: .55);
-    return KTap(
-        key: _keys[i],
-        flat: true,
-        onTap: reached ? () => widget.onSelect(i) : null,
-        builder: (context, hovered) => Semantics(
-            button: true,
-            selected: on,
-            enabled: reached,
-            label: stageNames[i],
-            child: ExcludeSemantics(
-                child: Container(
-                    constraints:
-                        const BoxConstraints(minHeight: 48, minWidth: 44),
-                    padding: const EdgeInsets.only(right: 22),
-                    alignment: Alignment.center,
-                    child: IntrinsicWidth(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                          Row(mainAxisSize: MainAxisSize.min, children: [
-                            if (finished && !on)
-                              const Padding(
-                                  padding: EdgeInsets.only(right: 5),
-                                  child: Icon(Icons.check,
-                                      size: 13, color: KColors.pass))
-                            else
-                              Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: Text('${i + 1}',
-                                      style: KType.monoSmall
-                                          .copyWith(color: ink, fontSize: 12))),
-                            Text(stageNames[i],
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight:
-                                        on ? FontWeight.w500 : FontWeight.w400,
-                                    color: hovered && reached && !on
-                                        ? KColors.text
-                                        : ink)),
-                          ]),
-                          const SizedBox(height: 10),
-                          AnimatedContainer(
-                              duration: KMotion.base,
-                              curve: KMotion.out,
-                              height: 2,
-                              color: on ? KColors.accent : Colors.transparent),
-                        ]))))));
-  }
+      child: KTabStrip(selected: view, gap: 24, textSize: 14, tabs: [
+        for (var i = 0; i < stageNames.length; i++)
+          KTab(
+              label: stageNames[i],
+              onTap: i <= latest ? () => onSelect(i) : null,
+              leading: (ink) {
+                final finished = i < done.length && done[i] == true;
+                return Padding(
+                    padding: const EdgeInsets.only(right: 7),
+                    child: finished && i != view
+                        ? const Icon(Icons.check, size: 14, color: KColors.pass)
+                        : Text('${i + 1}',
+                            style: KType.monoSmall
+                                .copyWith(color: ink, fontSize: 12.5)));
+              }),
+      ]));
 }

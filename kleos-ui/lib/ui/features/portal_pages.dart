@@ -328,9 +328,10 @@ class _ProviderPageState extends State<ProviderPage> {
                     child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius:
+                                BorderRadius.circular(KRadius.control),
                             color: j['id'] == selected
-                                ? KColors.accent.withValues(alpha: .1)
+                                ? KColors.surface3
                                 : Colors.transparent),
                         child: kColumn([
                           kRow([

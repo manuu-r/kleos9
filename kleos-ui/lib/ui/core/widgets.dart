@@ -6,8 +6,9 @@ export 'theme.dart';
 
 bool _still(BuildContext context) => MediaQuery.disableAnimationsOf(context);
 
-/// Press physics for any tappable surface: settles to 0.985 on press. [flat]
-/// rows (tabs, list rows) only change their fill. There is no hover lift.
+/// Press physics for any tappable surface: it gives slightly under the finger
+/// and springs back with a hint of overshoot. [flat] rows (tabs, list rows)
+/// only change their fill. There is no hover lift.
 class KTap extends StatefulWidget {
   const KTap(
       {super.key,
@@ -29,7 +30,7 @@ class _KTapState extends State<KTap> {
   bool _hover = false, _down = false;
   @override
   Widget build(BuildContext context) {
-    final press = _down && !_still(context) && !widget.flat ? .985 : 1.0;
+    final press = _down && !_still(context) && !widget.flat ? .975 : 1.0;
     return Semantics(
         button: true,
         label: widget.semanticLabel,
@@ -47,13 +48,14 @@ class _KTapState extends State<KTap> {
                 onTapCancel: () => setState(() => _down = false),
                 child: AnimatedScale(
                     scale: press,
-                    duration: KMotion.fast,
-                    curve: KMotion.out,
+                    duration: _down ? KMotion.fast : KMotion.base,
+                    curve: _down ? KMotion.out : KMotion.spring,
                     child: widget.builder(context, _hover)))));
   }
 }
 
-/// A flat panel: one tone darker than the ground, one 1px edge, no shadow.
+/// A card: one tone above the ground, continuous corners, no outline and no
+/// shadow. Tapping one deepens its tone rather than lifting it.
 class KCard extends StatelessWidget {
   const KCard(
       {super.key,
@@ -73,22 +75,16 @@ class KCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   Widget _body(BuildContext context, bool hovered) {
     final phone = KSpace.phone(context);
+    final base = tint == null
+        ? KColors.surface
+        : Color.alphaBlend(tint!.withValues(alpha: .07), KColors.surface);
     return AnimatedContainer(
       duration: KMotion.base,
       curve: KMotion.out,
       width: double.infinity,
-      padding: padding ?? EdgeInsets.all(phone ? 16 : 20),
-      decoration: BoxDecoration(
-          color: tint == null
-              ? KColors.surface
-              : Color.alphaBlend(tint!.withValues(alpha: .06), KColors.surface),
-          borderRadius: BorderRadius.circular(KRadius.card),
-          border: Border.all(
-              color: hovered
-                  ? KColors.borderStrong
-                  : tint == null
-                      ? KColors.border
-                      : tint!.withValues(alpha: .28))),
+      padding: padding ?? EdgeInsets.all(phone ? 20 : 24),
+      decoration:
+          KShape.surface(hovered && onTap != null ? KColors.surface2 : base),
       child: Material(
           type: MaterialType.transparency,
           child: Column(
@@ -113,7 +109,7 @@ class KCard extends StatelessWidget {
                       if (trailing != null) trailing!
                     ]);
                   }),
-                  SizedBox(height: phone ? 12 : 16)
+                  SizedBox(height: phone ? 14 : 18)
                 ],
                 child
               ])),
@@ -169,11 +165,13 @@ class KButton extends StatelessWidget {
           ? (s.contains(WidgetState.disabled)
               ? KColors.surface3
               : s.contains(WidgetState.hovered)
-                  ? const Color(0xffe4e4e7)
+                  ? const Color(0xffdcdce0)
                   : KColors.text)
-          : (s.contains(WidgetState.hovered)
+          : (s.contains(WidgetState.disabled)
               ? KColors.surface2
-              : Colors.transparent)),
+              : s.contains(WidgetState.hovered)
+                  ? const Color(0xff343438)
+                  : KColors.surface3)),
       foregroundColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.disabled)
               ? KColors.faint
@@ -181,13 +179,10 @@ class KButton extends StatelessWidget {
                   ? KColors.bg
                   : KColors.text),
       side: WidgetStateProperty.resolveWith((s) => BorderSide(
+          width: 1.5,
           color: s.contains(WidgetState.focused)
-              ? KColors.accent
-              : primary
-                  ? Colors.transparent
-                  : s.contains(WidgetState.hovered)
-                      ? KColors.faint
-                      : KColors.borderStrong)),
+              ? KColors.text.withValues(alpha: .7)
+              : Colors.transparent)),
       shape: const WidgetStatePropertyAll(StadiumBorder()),
       textStyle: WidgetStatePropertyAll(TextStyle(
           fontFamily: 'Geist',
@@ -197,7 +192,12 @@ class KButton extends StatelessWidget {
     final button = _Pressable(
         enabled: enabled,
         child: TextButton(
-            onPressed: enabled ? onPressed : null,
+            onPressed: enabled
+                ? () {
+                    if (primary) KHaptics.tap();
+                    onPressed!();
+                  }
+                : null,
             style: style,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (loading) ...[
@@ -471,43 +471,40 @@ class KPage extends StatelessWidget {
   }
 }
 
-/// Drafting-table surface for engineering viewports: a faint 32px grid on a
-/// flat tone. No bloom, no vignette.
+/// The stage a product sits on: a card with soft studio light falling from
+/// above, so the object reads as lit rather than diagrammed. Flat tone, no
+/// outline, one gentle spotlight.
 class KGridBackdrop extends StatelessWidget {
-  const KGridBackdrop({super.key, this.child, this.radius = KRadius.card});
+  const KGridBackdrop({super.key, this.child, this.radius = 28});
   final Widget? child;
   final double radius;
   @override
   Widget build(BuildContext context) => RepaintBoundary(
-      child: ClipRRect(
-          borderRadius: BorderRadius.circular(radius),
-          child: CustomPaint(
-              painter: const _GridPainter(),
-              child: DecoratedBox(
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(radius),
-                      border: Border.all(color: KColors.border)),
-                  child: child))));
+      child: ClipPath(
+          clipper: ShapeBorderClipper(shape: KShape.border(radius)),
+          child: CustomPaint(painter: const _StagePainter(), child: child)));
 }
 
-class _GridPainter extends CustomPainter {
-  const _GridPainter();
+class _StagePainter extends CustomPainter {
+  const _StagePainter();
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = KColors.surface);
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: .03)
-      ..strokeWidth = 1;
-    for (var x = 0.0; x < size.width; x += 32) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
-    }
-    for (var y = 0.0; y < size.height; y += 32) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
-    }
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, Paint()..color = KColors.surface);
+    canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = RadialGradient(
+              center: const Alignment(0, -.55),
+              radius: .95,
+              colors: [
+                Colors.white.withValues(alpha: .085),
+                Colors.white.withValues(alpha: .0),
+              ]).createShader(rect));
   }
 
   @override
-  bool shouldRepaint(_GridPainter old) => false;
+  bool shouldRepaint(_StagePainter old) => false;
 }
 
 class KMuted extends StatelessWidget {
@@ -610,12 +607,12 @@ class KStats extends StatelessWidget {
       });
 }
 
-/// A flat bordered surface for regions that group content.
+/// A grouping surface: one tone above the ground, continuous corners.
 class KPanel extends StatelessWidget {
   const KPanel(
       {super.key,
       required this.child,
-      this.padding = const EdgeInsets.all(16),
+      this.padding = const EdgeInsets.all(20),
       this.radius = KRadius.card,
       this.color = KColors.surface});
   final Widget child;
@@ -628,16 +625,189 @@ class KPanel extends StatelessWidget {
           width: double.infinity,
           padding: padding,
           clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: KColors.border)),
+          decoration: KShape.surface(color, radius: radius),
           child: Material(type: MaterialType.transparency, child: child)));
 }
 
-/// Underline tabs. The selected option takes ink and a 2px copper line exactly
-/// as wide as its label; the others stay grey. The row scrolls sideways inside
-/// its own frame and never pushes the page. Used for every tab-like switch.
+/// One tab in a [KTabStrip].
+class KTab {
+  const KTab(
+      {required this.label,
+      this.icon,
+      this.leading,
+      this.onTap,
+      this.tabKey,
+      this.showLabel = true});
+  final String label;
+  final IconData? icon;
+
+  /// Optional leading mark (a step number, a check), given the tab's ink.
+  final Widget Function(Color ink)? leading;
+
+  /// Null makes the tab inert and dim.
+  final VoidCallback? onTap;
+  final Key? tabKey;
+  final bool showLabel;
+}
+
+/// Tabs with one indicator that glides. The selected tab is bright and a 2px
+/// line exactly as wide as its label travels to it on a gentle spring; the
+/// others stay grey. The row scrolls sideways inside its own frame and keeps
+/// the selected tab in view. One selection mark, one motion.
+class KTabStrip extends StatefulWidget {
+  const KTabStrip(
+      {super.key,
+      required this.tabs,
+      required this.selected,
+      this.height = 46,
+      this.gap = 24,
+      this.textSize = 14,
+      this.rule = true});
+  final List<KTab> tabs;
+  final int selected;
+  final double height, gap, textSize;
+
+  /// Draw the quiet hairline under the whole row.
+  final bool rule;
+  @override
+  State<KTabStrip> createState() => _KTabStripState();
+}
+
+class _KTabStripState extends State<KTabStrip> {
+  late List<GlobalKey> _labels = _keys();
+  final _stack = GlobalKey();
+  Rect? _rect;
+  bool _settled = false;
+  int _shown = -1;
+
+  List<GlobalKey> _keys() =>
+      List.generate(widget.tabs.length, (_) => GlobalKey());
+
+  @override
+  void didUpdateWidget(covariant KTabStrip old) {
+    super.didUpdateWidget(old);
+    if (old.tabs.length != widget.tabs.length) _labels = _keys();
+  }
+
+  void _measure(Duration _) {
+    if (!mounted || widget.tabs.isEmpty) return;
+    final i = widget.selected.clamp(0, widget.tabs.length - 1);
+    final label = _labels[i].currentContext, stack = _stack.currentContext;
+    if (label == null || stack == null) return;
+    final lb = label.findRenderObject() as RenderBox?;
+    final sb = stack.findRenderObject() as RenderBox?;
+    if (lb == null || sb == null || !lb.hasSize || !sb.hasSize) return;
+    final rect = lb.localToGlobal(Offset.zero, ancestor: sb) & lb.size;
+    if (_shown != i) {
+      _shown = i;
+      Scrollable.ensureVisible(label,
+          alignment: .5,
+          duration: _settled && !_still(context) ? KMotion.base : Duration.zero,
+          curve: KMotion.out);
+    }
+    if (_rect != rect) setState(() => _rect = rect);
+    _settled = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(_measure);
+    final touch = KSpace.phone(context) ||
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    final h = touch ? math.max(widget.height, 46.0) : widget.height;
+    final rect = _rect;
+    final strip = Container(
+        decoration: widget.rule
+            ? const BoxDecoration(
+                border: Border(bottom: BorderSide(color: KColors.hairline)))
+            : null,
+        child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Stack(key: _stack, children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                for (var i = 0; i < widget.tabs.length; i++) _tab(i, h),
+              ]),
+              if (rect != null)
+                AnimatedPositioned(
+                    key: const ValueKey('tab-indicator'),
+                    duration: _settled && !_still(context)
+                        ? KMotion.slow
+                        : Duration.zero,
+                    curve: KMotion.spring,
+                    left: rect.left,
+                    width: rect.width,
+                    bottom: 0,
+                    height: 2,
+                    child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                            color: KColors.text,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(1))))),
+            ])));
+    // Fill the row when the parent gives a bounded width, so the hairline
+    // reaches both edges instead of hugging the tabs.
+    return LayoutBuilder(
+        builder: (context, c) => c.hasBoundedWidth
+            ? SizedBox(width: c.maxWidth, child: strip)
+            : strip);
+  }
+
+  Widget _tab(int i, double h) {
+    final tab = widget.tabs[i];
+    final on = i == widget.selected;
+    final enabled = tab.onTap != null;
+    return Semantics(
+        button: true,
+        selected: on,
+        enabled: enabled,
+        label: tab.label,
+        child: ExcludeSemantics(
+            child: KTap(
+                key: tab.tabKey,
+                flat: true,
+                onTap: !enabled
+                    ? null
+                    : () {
+                        if (!on) KHaptics.select();
+                        tab.onTap!();
+                      },
+                builder: (context, hovered) {
+                  final ink = on
+                      ? KColors.text
+                      : !enabled
+                          ? KColors.faint.withValues(alpha: .5)
+                          : hovered
+                              ? KColors.text
+                              : KColors.muted;
+                  return Container(
+                      constraints: BoxConstraints(minHeight: h, minWidth: 44),
+                      padding: EdgeInsets.only(right: widget.gap),
+                      alignment: Alignment.center,
+                      child: Row(
+                          key: _labels[i],
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (tab.leading != null) tab.leading!(ink),
+                            if (tab.icon != null) ...[
+                              Icon(tab.icon, size: 16, color: ink),
+                              if (tab.showLabel) const SizedBox(width: 7),
+                            ],
+                            if (tab.showLabel)
+                              Text(tab.label,
+                                  style: TextStyle(
+                                      fontSize: widget.textSize,
+                                      letterSpacing: -.1,
+                                      fontWeight: on
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: ink)),
+                          ]));
+                })));
+  }
+}
+
+/// A switch between a few views; every tab-like control in the app uses it.
 class KSegmented<T> extends StatelessWidget {
   const KSegmented(
       {super.key,
@@ -654,87 +824,19 @@ class KSegmented<T> extends StatelessWidget {
   /// Narrow layouts: only the selected option keeps its label next to its icon.
   final bool compact;
   @override
-  Widget build(BuildContext context) {
-    final touch = KSpace.phone(context) ||
-        defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS;
-    return Container(
-        decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: KColors.border))),
-        child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              for (final o in options)
-                Semantics(
-                    button: true,
-                    selected: o.value == selected,
-                    label: o.label,
-                    child: ExcludeSemantics(
-                        child: KTap(
-                            key: keyPrefix == null
-                                ? null
-                                : ValueKey('$keyPrefix${o.value}'),
-                            flat: true,
-                            radius: KRadius.control,
-                            onTap: onSelected == null
-                                ? null
-                                : () => onSelected!(o.value),
-                            builder: (context, hovered) {
-                              final on = o.value == selected;
-                              final showLabel =
-                                  !compact || o.icon == null || on;
-                              return Container(
-                                  constraints: BoxConstraints(
-                                      minHeight: touch ? 44 : 38, minWidth: 44),
-                                  padding:
-                                      const EdgeInsets.only(right: 20, top: 2),
-                                  alignment: Alignment.center,
-                                  child: IntrinsicWidth(
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                        Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (o.icon != null) ...[
-                                                Icon(o.icon,
-                                                    size: 15,
-                                                    color: on
-                                                        ? KColors.text
-                                                        : hovered
-                                                            ? KColors.text
-                                                            : KColors.muted),
-                                                if (showLabel)
-                                                  const SizedBox(width: 7)
-                                              ],
-                                              if (showLabel)
-                                                Text(o.label,
-                                                    style: TextStyle(
-                                                        fontSize: 13.5,
-                                                        fontWeight: on
-                                                            ? FontWeight.w500
-                                                            : FontWeight.w400,
-                                                        color: on
-                                                            ? KColors.text
-                                                            : hovered
-                                                                ? KColors.text
-                                                                : KColors
-                                                                    .muted)),
-                                            ]),
-                                        const SizedBox(height: 9),
-                                        AnimatedContainer(
-                                            duration: KMotion.base,
-                                            curve: KMotion.out,
-                                            height: 2,
-                                            color: on
-                                                ? KColors.accent
-                                                : Colors.transparent),
-                                      ])));
-                            }))),
-            ])));
-  }
+  Widget build(BuildContext context) => KTabStrip(
+          selected: options.indexWhere((o) => o.value == selected),
+          tabs: [
+            for (final o in options)
+              KTab(
+                  label: o.label,
+                  icon: o.icon,
+                  showLabel: !compact || o.icon == null || o.value == selected,
+                  tabKey: keyPrefix == null
+                      ? null
+                      : ValueKey('$keyPrefix${o.value}'),
+                  onTap: onSelected == null ? null : () => onSelected!(o.value))
+          ]);
 }
 
 /// Flat page ground. Kept as a widget so call sites need not change; there is
@@ -879,11 +981,7 @@ class KPageSkeleton extends StatelessWidget {
                       const SizedBox(height: 8),
                       Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                              color: KColors.surface,
-                              border: Border.all(color: KColors.border),
-                              borderRadius:
-                                  BorderRadius.circular(KRadius.card)),
+                          decoration: KShape.surface(KColors.surface),
                           child: const KSkeletonRows(rows: 4)),
                     ], gap: 12)))));
   }
@@ -1104,10 +1202,7 @@ class KNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        decoration: BoxDecoration(
-            color: KColors.surface2,
-            borderRadius: BorderRadius.circular(KRadius.card),
-            border: Border.all(color: KColors.border)),
+        decoration: KShape.surface(KColors.surface2, radius: KRadius.control),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Padding(
               padding: const EdgeInsets.only(top: 1),
@@ -1156,9 +1251,7 @@ class KEmptyState extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(KRadius.card),
-          border: Border.all(color: KColors.border)),
+      decoration: KShape.surface(KColors.surface),
       child: kColumn([
         Text(title, style: KType.h3),
         if (body != null) KMuted(body!, size: 13.5),
