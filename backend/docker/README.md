@@ -7,6 +7,23 @@ Build from the repository's backend directory:
     docker build --platform linux/amd64 -f docker/Dockerfile.native --target validate -t kleos-validate:0.1.0 .
 
 The other native targets are electronics, firmware, and application.
+
+The shared validation/electronics toolchain pins Debian ngspice `39.3+ds-1`
+(authenticated APT package hashes). Qualify each built image offline:
+
+```sh
+docker run --rm --platform linux/amd64 --network none --read-only \
+  --cpus 1 --memory 512m --pids-limit 64 --tmpfs /tmp:rw,size=256m \
+  --cap-drop ALL --cap-add SETUID --cap-add SETGID \
+  --entrypoint python -v "$PWD/docker:/smoke:ro" \
+  kleos-validator:development /smoke/smoke_ngspice.py
+```
+
+Repeat with the electronics image. Use the repository's separately verified
+Docker Desktop network-filter compatibility path if needed; never enable it
+for ECS. If Docker is unavailable, `.venv/bin/python docker/smoke_ngspice.py
+--direct` runs numeric-only trusted decks with local CPU/time/file bounds. That
+fallback does not qualify either image or the native sandbox.
 An optional renode-validator target adds a pinned UART emulator adapter; its
 checked-in qualification manifest keeps it unavailable until the actual specimen
 has passed. See renode/README.md for the image checksum, board and promotion steps.

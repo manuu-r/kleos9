@@ -101,6 +101,9 @@ RUN --mount=type=cache,id=kleos-android-gradle-8.12-sdk36,target=/var/cache/kleo
     && rm -rf /root/.android /root/.gradle /root/.cache
 
 FROM mechanics-toolchain AS validate-toolchain
+ARG NGSPICE_VERSION=39.3+ds-1
+RUN apt-get update && apt-get install -y --no-install-recommends "ngspice=${NGSPICE_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
 ARG KICAD_VERSION=9.0.8+dfsg-1~bpo12+1
 ARG KICAD_LIBRARIES_VERSION=9.0.8-1~bpo12+1
 RUN echo 'deb https://deb.debian.org/debian bookworm-backports main' > /etc/apt/sources.list.d/backports.list \
