@@ -76,6 +76,11 @@ def test_sigkill_after_model_checkpoint_recovers_without_repeat_call_or_publicat
             invocation = session.scalar(select(Invocation))
             assert invocation.status == "succeeded"
             invocation_id = invocation.id
+            settled_cost = invocation.usage["estimatedUsd"]
+            assert 0 < settled_cost < postgres.settings.invocation_reservation_usd
+            assert invocation.usage["costBasis"] == "priced_usage"
+            assert invocation.usage["allowanceDebitUsd"] == pytest.approx(settled_cost)
+            assert session.get(Project, project["projectId"]).spent_usd == pytest.approx(settled_cost)
 
         first.kill()  # SIGKILL: no Python cleanup or graceful DBOS shutdown.
         assert first.wait(timeout=10) == -signal.SIGKILL
@@ -108,7 +113,12 @@ def test_sigkill_after_model_checkpoint_recovers_without_repeat_call_or_publicat
             assert current.stage == 5
             assert session.get(Task, task_id).result["summary"] == "Recovered candidate concept"
             assert current.accepted_release_id is None  # Generators cannot approve releases.
-            assert current.spent_usd == pytest.approx(postgres.settings.invocation_reservation_usd)
+            # Recovery must preserve the single priced debit, not the reservation
+            # or a second charge when the completed DBOS step is replayed.
+            recovered_call = session.get(Invocation, invocation_id)
+            assert recovered_call.estimated_usd == pytest.approx(settled_cost)
+            assert recovered_call.usage["allowanceDebitUsd"] == pytest.approx(settled_cost)
+            assert current.spent_usd == pytest.approx(settled_cost)
             assert current.reserved_usd == 0
             daily = session.scalar(select(DailyBudget))
             assert daily.spent == pytest.approx(current.spent_usd)
