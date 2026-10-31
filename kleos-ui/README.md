@@ -147,6 +147,14 @@ Form drafts, navigation and expansion state remain in widgets. Simulated outcome
 
 ## Verify
 
+The real build's PCB view includes a **Power-on** panel when independent circuit
+simulation evidence is available. It offers startup/full-record zoom, net/current
+selection, replay/pause/reset, time scrubbing, limit lines, a tolerance band and
+per-check status. LED indication follows recorded current. It is explicitly
+simulated, not measured, and advisory; missing/unsupported evidence stays visible.
+Reduced motion preserves manual inspection. The original mock simulation and
+PCB/CAD controls remain separate. See [supported circuit contracts and limits](../backend/docs/circuit-simulation.md).
+
 ```bash
 flutter analyze
 flutter test

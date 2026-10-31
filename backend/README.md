@@ -12,9 +12,12 @@ production transport. Physical fulfillment is explicitly simulated and live disp
 The code is runnable locally. AWS/account provisioning, real provider qualification and the
 complete smartwatch acceptance run remain deployment checks; tests do not establish those outcomes.
 
-The optional [circuit simulation compiler](docs/circuit-simulation.md) currently
-generates bounded numeric ngspice decks from explicitly bound accepted interfaces.
-This M1 compiler does not execute ngspice or produce authoritative validation evidence.
+The optional [circuit simulation](docs/circuit-simulation.md) deterministically
+compiles explicitly bound accepted circuit/power interfaces and runs ngspice in
+independent native validation. It records advisory digital checks and hashed
+waveforms for the Flutter PCB power-on viewer. Missing bindings/models remain
+UNKNOWN. See the [verification record](verification/ngspice-m7.md) for the real
+direct solver runs and the still-unrun exact-image qualification.
 
 ## Local Docker backend and Muse models
 

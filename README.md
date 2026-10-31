@@ -51,6 +51,11 @@ they do not certify arbitrary devices, providers or deployments.
 The initial offline PCB catalog qualifies passives, LEDs and pin headers. New
 symbols/footprints, active components, boards, layouts and peripheral scenarios
 need their own qualification. Unsupported work stays blocked or `UNKNOWN`.
+Independent [ngspice simulation](backend/docs/circuit-simulation.md) supports an
+explicitly bound ideal R/C/illustrative-LED subset with advisory digital checks
+and a Flutter power-on waveform viewer. It does not qualify arbitrary components
+or physical operation; [verification](backend/verification/ngspice-m7.md) separates
+real direct solver runs from unrun pinned-image qualification.
 Physical BLE has not been qualified by the local build checks. iOS companion
 delivery is unsigned source; compiled/signed iOS delivery needs a macOS worker
 and signing setup.

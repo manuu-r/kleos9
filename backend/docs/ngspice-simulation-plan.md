@@ -6,7 +6,9 @@ point; it does not claim simulation implementation or qualification.
 
 M1 implementation is documented in [circuit simulation](circuit-simulation.md).
 Its scoped checks are recorded in
-[M1 verification](../verification/ngspice-m1.md). M2–M7 remain outstanding.
+[M1 verification](../verification/ngspice-m1.md). M2–M7 implementation records are
+summarized in [final verification](../verification/ngspice-m7.md). Exact-image
+qualification remains outstanding; direct solver evidence is recorded separately.
 
 ## Verified starting point
 

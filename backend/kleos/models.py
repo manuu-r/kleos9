@@ -128,6 +128,14 @@ components:[{id:string,conceptPartId:string (required when an approved reference
 Positions are component minimum corners relative to the internal enclosure minimum corner.
 power: {supplyVoltageV:number,maxCurrentMa:number,
 loads:[{id:string,minVoltageV:number,maxVoltageV:number,currentMa:number}]}.
+For optional circuit simulation, also propose power.simulation only when terminals are known:
+{source:{componentId:string,positivePin:string,negativePin:string},
+loads:{acceptedLoadId:{componentId:string,positivePin:string,negativePin:string}}}.
+The source must bind a two-pin supply connector. Each load probe binds explicit pins of a component
+carrying that loadId. These are accepted circuit/interface bindings, never model-authored tests.
+Never write SPICE, simulation scripts or model/test files; the independent validator owns them.
+Do not rename a real part to an illustrative model to obtain a PASS. Generic LEDs and unsupported
+parts remain UNKNOWN until their actual models are qualified. Simulation is advisory and digital only.
 firmware: {board:string}. Use only supported board identifiers; state unknowns explicitly.
 For a supported electronics release also propose interfaces.circuit before generation:
 {schemaVersion:"circuit-netlist-v1",components:[{id:string,reference:"U1",symbol:"Library:Symbol",

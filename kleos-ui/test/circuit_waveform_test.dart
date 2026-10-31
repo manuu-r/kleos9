@@ -7,7 +7,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:kleos_ui/data/models/json.dart';
+import 'package:kleos_ui/data/services/production_api.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/project/circuit_waveform.dart';
 
@@ -253,5 +256,47 @@ void main() {
       });
     }
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'recorded solver envelope passes production HTTP DTO into the panel',
+      (tester) async {
+    final recorded = asMap(jsonDecode(
+        File('../backend/verification/ngspice-power-on-sample.json')
+            .readAsStringSync()));
+    var reads = 0;
+    final api = ProductionApi(
+        baseUrl: 'http://fixture/api/v1',
+        client: MockClient((request) async {
+          reads++;
+          expect(
+              request.url.path, '/api/v1/projects/project/circuit-simulation');
+          expect(request.headers['X-Organization-Id'], 'org-fixture');
+          return http.Response(
+              jsonEncode({
+                'revision': 3,
+                'engineeringRevision': 1,
+                'status': 'available',
+                'artifactId': 'recorded-fixture',
+                'artifactSha256': 'recorded-fixture-hash',
+                'result': recorded,
+                'reason': null,
+              }),
+              200);
+        }));
+    addTearDown(api.close);
+    await mount(
+        tester,
+        ProviderScope(
+            overrides: [
+              circuitSimulationProvider.overrideWith((ref, request) =>
+                  api.circuitSimulation(request.projectId,
+                      organizationId: 'org-fixture')),
+            ],
+            child: const CircuitSimulationPanel(
+                projectId: 'project', revision: 3)));
+    expect(reads, 1);
+    expect(find.byKey(const ValueKey('waveform-plot')), findsOneWidget);
+    expect(find.text('PASS'), findsNWidgets(4));
   });
 }

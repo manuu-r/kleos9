@@ -107,6 +107,16 @@ def test_invalid_table_rejected(tmp_path, rows):
         parse_table(path, ["v(1)"], transient=True)
 
 
+def test_sparse_and_oversized_output_is_not_evidence(tmp_path):
+    path = tmp_path / "response.dat"
+    path.write_text("time v(1)\n0 0\n0.05 1\n0.1 1\n")
+    with pytest.raises(ValueError, match="maximum timestep"):
+        parse_table(path, ["v(1)"], transient=True)
+    path.write_bytes(b"0" * 2_000_001)
+    with pytest.raises(ValueError, match="oversized"):
+        parse_table(path, ["v(1)"], transient=True)
+
+
 def test_no_model_never_executes(tmp_path):
     interfaces = example("led")
     interfaces["circuit"]["components"][-1]["value"] = "LED"

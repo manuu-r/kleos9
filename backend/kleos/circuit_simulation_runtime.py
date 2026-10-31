@@ -52,6 +52,8 @@ def parse_table(path, vectors, *, transient):
         if transient and (not 0 <= row[0] <= DURATION_SECONDS + 1e-8
                           or rows and row[0] <= rows[-1][0]):
             raise ValueError("Transient timestamps are not strictly ordered and bounded")
+        if transient and rows and row[0] - rows[-1][0] > 0.000101:
+            raise ValueError("Transient samples exceed the fixed maximum timestep")
         rows.append(row)
     if transient and (len(rows) < 3 or rows[0][0] > 1e-5 or abs(rows[-1][0] - DURATION_SECONDS) > 1e-8):
         raise ValueError("Transient output does not cover the observation window")
