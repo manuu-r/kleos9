@@ -9,6 +9,16 @@ class BudgetView(WireModel):
     reserved_usd: float
 
 
+class CircuitSimulationView(WireModel):
+    revision: int
+    engineering_revision: int
+    status: str
+    artifact_id: str | None
+    artifact_sha256: str | None
+    result: dict | None
+    reason: str | None
+
+
 class ProjectView(WireModel):
     id: str
     name: str

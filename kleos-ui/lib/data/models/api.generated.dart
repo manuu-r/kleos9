@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: a215725b3551c44281c54d295de88afc30e0e75e53c244cfe7c38224fbf3a344
+// Schema SHA-256: 82e48a0e01b9f3537f0e15cf6ac743cc33c5363fb2060cd8b7955ed9477234d3
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -150,6 +150,49 @@ class ApiBudgetView {
         if (unlimited != null) 'unlimited': unlimited,
         'spentEstimateUsd': spentEstimateUsd,
         'reservedUsd': reservedUsd,
+      };
+}
+
+class ApiCircuitSimulationView {
+  const ApiCircuitSimulationView({
+    required this.revision,
+    required this.engineeringRevision,
+    required this.status,
+    required this.artifactId,
+    required this.artifactSha256,
+    required this.result,
+    required this.reason,
+  });
+  factory ApiCircuitSimulationView.fromJson(Map<String, dynamic> json) =>
+      ApiCircuitSimulationView(
+        revision: (json['revision'] as num).toInt(),
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        status: json['status'] as String,
+        artifactId:
+            json['artifactId'] == null ? null : json['artifactId'] as String,
+        artifactSha256: json['artifactSha256'] == null
+            ? null
+            : json['artifactSha256'] as String,
+        result: json['result'] == null
+            ? null
+            : Map<String, dynamic>.unmodifiable(_object(json['result'])),
+        reason: json['reason'] == null ? null : json['reason'] as String,
+      );
+  final int revision;
+  final int engineeringRevision;
+  final String status;
+  final String? artifactId;
+  final String? artifactSha256;
+  final Map<String, dynamic>? result;
+  final String? reason;
+  Map<String, dynamic> toJson() => {
+        'revision': revision,
+        'engineeringRevision': engineeringRevision,
+        'status': status,
+        'artifactId': artifactId,
+        'artifactSha256': artifactSha256,
+        'result': result,
+        'reason': reason,
       };
 }
 

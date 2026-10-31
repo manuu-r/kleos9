@@ -30,6 +30,7 @@ from .auth import (
     normalize_email,
     start_session,
 )
+from .circuit_simulation_view import CircuitSimulationView as CircuitSimulationReader
 from .companion_preview import CompanionPreviewRequest, CompanionPreviews, CompanionPreviewView
 from .config import Settings, get_settings
 from .contracts import ArtifactUpload, Command, CommandAccepted, DomainError, JobResult, WireModel
@@ -59,6 +60,7 @@ from .storage import ArtifactStore, artifact_key, digest
 from .telemetry import configure, metric, redact
 from .views import (
     ArtifactDownloadView,
+    CircuitSimulationView,
     EngineeringToolCatalogView,
     EventView,
     ModelCatalogView,
@@ -111,6 +113,7 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     store = storage or ArtifactStore(settings)
     control = ControlPlane(db, settings, store)
     engineering_previews = EngineeringPreview(db, store)
+    circuit_simulations = CircuitSimulationReader(db, store)
     companion_previews = CompanionPreviews(db, settings, store)
 
     @asynccontextmanager
@@ -249,6 +252,10 @@ def create_app(settings: Settings | None = None, database=None, storage=None):
     @app.get("/api/v1/projects/{project_id}/engineering-preview")
     def engineering_preview(project_id: str, principal: Principal = Depends(authenticate)):
         return engineering_previews.read(principal, project_id)
+
+    @app.get("/api/v1/projects/{project_id}/circuit-simulation", response_model=CircuitSimulationView)
+    def circuit_simulation(project_id: str, principal: Principal = Depends(authenticate)):
+        return circuit_simulations.read(principal, project_id)
 
     @app.post('/api/v1/projects/{project_id}/companion-preview', response_model=CompanionPreviewView)
     def companion_preview(project_id: str, body: CompanionPreviewRequest,

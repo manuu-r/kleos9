@@ -1689,6 +1689,45 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/circuit-simulation": {
+      "get": {
+        "summary": "Circuit Simulation",
+        "operationId": "circuit_simulation_api_v1_projects__project_id__circuit_simulation_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitSimulationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/companion-preview": {
       "post": {
         "summary": "Companion Preview",
@@ -3058,6 +3097,79 @@
           "status"
         ],
         "title": "CheckResult"
+      },
+      "CircuitSimulationView": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "artifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactid"
+          },
+          "artifactSha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactsha256"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "engineeringRevision",
+          "status",
+          "artifactId",
+          "artifactSha256",
+          "result",
+          "reason"
+        ],
+        "title": "CircuitSimulationView"
       },
       "Command": {
         "properties": {
