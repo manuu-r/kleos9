@@ -21,6 +21,18 @@ direct solver runs and the still-unrun exact-image qualification.
 
 ## Local Docker backend and Muse models
 
+New initial capture attempts use the project's **research** model choice (Meta or
+Gemini with native web search), even when coordination uses Modal. They perform
+a brief practical design pass before refining the concept, with low reasoning
+effort, a target of 1–2 searches and up to three source URLs. Power, component
+space, ports, mounting and sensor/ventilation access inform the first scene;
+unverified details stay assumptions. Search targets are guidance; the existing
+request/token/deadline/spend bounds remain hard limits. An unobserved search gets
+one bounded correction request, then loses citations and is clearly labelled
+unverified. Ordinary follow-up capture turns reuse findings. Full feasibility
+and user approval remain separate. Running attempts retain their pinned model;
+there is no new provider fallback. Tests use provider fixtures, not paid calls.
+
 `KLEOS_META_API_KEY` enables the Meta Model API. Spark 1.3 (`muse-spark-1.3`) serves
 coordination, research, mechanics, electronics and review; Wonder (`muse-wonder-1.0`) serves
 firmware and application. Research attaches the Responses API `web_search` tool, billed at

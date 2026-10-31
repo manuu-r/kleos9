@@ -19,6 +19,7 @@ from pydantic_ai.usage import UsageLimits
 
 from .anatomy_skill import scene_issues
 from .contracts import AgentOutput, DomainError, Lane, ModelChoice
+from .planning import is_capture_research
 
 # Which Model API model serves each lane by default: Spark 1.3 reasons and researches, Wonder writes code.
 SPARK, WONDER = "spark", "wonder"
@@ -183,8 +184,19 @@ certain area, ask 1–3 everyday-language choices about it, and make every answe
 visible in the scene or in a part's detail. Once each area has a saved answer or a
 stated assumption, ask nothing new; the backend also limits how many questions open.
 
-For project.capture: sketch the device quickly from the brief, starting with form,
-and leave sources=[] unless already supplied. Do not do exhaustive component research.
+For project.capture with context.captureResearch: do a brief initial design research pass BEFORE
+sketching, even for a minimal brief. Use 1–2 focused web searches, prefer manufacturer or official
+reference designs and cite up to 3 relevant URLs in sources. Think briefly about the device's
+real use, power/battery and charging, plausible component/display sizes, mounting/clearances,
+ports/buttons/access, and any sensor exposure, antenna or ventilation needs. Apply the findings
+to the actual requested form and visible arrangement; do not merely paste them into a summary.
+Infer conservative, reversible defaults when the brief is sparse, label those as assumptions,
+and ask only 1–3 consequential user choices. Never invent exact dimensions, ratings, sources
+or feasibility. Do not research every component, produce a BOM, or start engineering.
+If search is unavailable or inconclusive, disclose that and keep uncertain details provisional.
+For continuing/legacy project.capture without context.captureResearch: apply saved answers to
+the existing scene, reuse supplied research, and leave sources=[] unless already supplied.
+Do not repeat web research for ordinary preference changes; preserve its non-research contract.
 For project.research: use grounded findings to revise the same scene and requirements.
 Explain consequential changes and unsupported assumptions plainly. Keep requested
 physical capabilities, and do not claim that a conceptual picture validates them.
@@ -233,6 +245,9 @@ def validate_session_output(ctx: RunContext[dict], output: AgentOutput) -> Agent
 
 def validate_planning_scene(ctx: RunContext[dict], output):
     """Ask once for a repaired scene, then publish it with the fault disclosed."""
+    if is_capture_research(ctx.deps) and not count_web_searches(ctx.messages) and ctx.retry < ctx.max_retries:
+        raise ModelRetry("Do the brief initial web research before returning the concept. Use primary sources for practical "
+                         "power, size and layout choices. If search is unavailable, explain that limitation; never invent citations.")
     previous = None if ctx.deps.get("task") == "project.capture" else ctx.deps.get("concept", {}).get("scene")
     issues = scene_issues(output.concept_scene.model_dump(mode="json"), previous)
     if issues and ctx.retry < ctx.max_retries:
@@ -311,6 +326,11 @@ def count_web_searches(messages):
                for message in messages if isinstance(message, ModelResponse) for part in message.parts)
 
 
+def planning_search(context, provider):
+    if provider in WEB_SEARCH_PROVIDERS and (context.get("lane") == "research" or is_capture_research(context)):
+        return WebSearchTool(search_context_size="low" if is_capture_research(context) else "medium")
+
+
 async def drain_model_events(_ctx, events):
     # Consume the complete streamed response, including usage. Chunks are never
     # accepted as artifacts or exposed as private reasoning in the activity feed.
@@ -365,9 +385,7 @@ class ModelGateway:
         agent.output_validator(validate_lane_output)
         from .anatomy_skill import runtime_guidance
         from .concept_models import PlanningOutput
-        planning_capabilities = [NativeTool(lambda ctx: WebSearchTool()
-                                            if ctx.deps.get("lane") == "research" and provider in WEB_SEARCH_PROVIDERS
-                                            else None)]
+        planning_capabilities = [NativeTool(lambda ctx: planning_search(ctx.deps, provider))]
         if durable:
             planning_capabilities.append(DBOSDurability(model_step_config={
                 "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1, "backoff_rate": 2}))
@@ -451,7 +469,7 @@ class ModelGateway:
             if provider not in self.registry.models or not self.registry.configured(provider):
                 raise DomainError(f"{provider} API credentials are not configured", 503, "provider_unconfigured")
             raise DomainError("Pinned model version is unavailable; configure a compatible worker", 409)
-        if context.get("lane") == "research" and provider not in WEB_SEARCH_PROVIDERS:
+        if (context.get("lane") == "research" or is_capture_research(context)) and provider not in WEB_SEARCH_PROVIDERS:
             raise DomainError("Research needs web search, which this provider does not offer", 409,
                               "provider_unsupported")
         # One deadline covers initial waits and any permitted provider fallback.
@@ -502,11 +520,18 @@ class ModelGateway:
                                      output_tokens_limit=output_ceiling * 2),
             timeout=timeout,
             **({"event_stream_handler": drain_model_events} if streaming else {}),
-            model_settings={"max_tokens": output_ceiling, "timeout": timeout},
+            model_settings={"max_tokens": output_ceiling, "timeout": timeout,
+                            **({"thinking": "low"} if is_capture_research(context) else {})},
         )
         usage = result.usage
         messages = result.all_messages()
         searches, search_usd, estimated = self.estimate_cost(provider, usage, messages, model=model)
+        grounded_capture = is_capture_research(context) and count_web_searches(messages) > 0
+        if is_capture_research(context):
+            result.output.sources = list(dict.fromkeys(result.output.sources))[:3] if grounded_capture else []
+            if not grounded_capture:
+                result.output.limitations = ["Initial design research was not grounded by the provider; component/layout details remain assumptions.",
+                                             *result.output.limitations][:8]
         output = (AgentOutput.model_validate(result.output.model_dump(mode="json", by_alias=True))
                   if planning else result.output)
         return output, {
@@ -517,4 +542,6 @@ class ModelGateway:
             "pricingVersion": f"genai-prices-{version('genai-prices')}",
             "agentMode": "concept_planning" if planning else "engineering",
             "outputTokenCeiling": output_ceiling, "deadlineSeconds": timeout, "streaming": streaming,
+            **({"captureResearch": {**context["captureResearch"], "grounded": grounded_capture,
+                                    "observedSearchCalls": count_web_searches(messages)}} if is_capture_research(context) else {}),
         }, result.all_messages_json().decode()

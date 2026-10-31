@@ -42,6 +42,7 @@ from .domain import (
 from .engineering_tools import EngineeringToolRegistry
 from .native_sessions import session_limits
 from .planning import (
+    CAPTURE_RESEARCH_POLICY,
     PLANNING_KINDS,
     append_message,
     concept_snapshot,
@@ -149,7 +150,12 @@ class EngineeringEngine:
                 return None
             task.attempt_count += 1
             task.fence += 1
-            choice = project.model_policy[task.lane]
+            # Capture needs grounded facts before its first scene, even when
+            # coordination uses a non-search model. Pin the explicit research
+            # policy here; resumed attempts above retain their original choice.
+            initial_capture = task.kind == "project.capture" and not planning_state(project)["captureComplete"]
+            model_lane = "research" if initial_capture else task.lane
+            choice = project.model_policy[model_lane]
             artifacts = session.scalars(select(Artifact).where(
                 Artifact.project_id == project.id, Artifact.revision == task.revision,
                 Artifact.status.in_(["candidate", "accepted"]))).all()
@@ -180,6 +186,8 @@ class EngineeringEngine:
                 "retrieval": {"method": "qdrant" if retrieved and retrieved.get("sources") else "bounded_source_records",
                               "limitation": (retrieved or {}).get("limitation")},
             }
+            if initial_capture:
+                context.update(modelPolicyLane=model_lane, captureResearch=dict(CAPTURE_RESEARCH_POLICY))
             if task.kind not in PLANNING_KINDS:
                 approved = approved_context(project)
                 if approved is not None:
@@ -429,6 +437,8 @@ class EngineeringEngine:
                 return session_job
             if kind == "project.research" and self.research:
                 output = {**output, "sourceRecords": await self.collect_sources(attempt_id, output.get("sources", []))}
+            elif kind == "project.capture" and context.get("captureResearch") and self.research:
+                output = {**output, "sourceRecords": await self.collect_sources(attempt_id, output.get("sources", []), limit=3)}
             if kind in {"project.generate", "project.repair", "project.pivot"}:
                 return self.request_native(attempt_id, "build")
             self.finish_attempt(attempt_id, output)
@@ -519,7 +529,7 @@ class EngineeringEngine:
             return {"limitation": f"Semantic retrieval unavailable ({type(exc).__name__}); using source records"}
 
     @DBOS.step()
-    async def collect_sources(self, attempt_id, urls):
+    async def collect_sources(self, attempt_id, urls, limit=6):
         with self.db.transaction() as session:
             attempt = session.get(Attempt, attempt_id)
             task = session.get(Task, attempt.task_id)
@@ -528,7 +538,7 @@ class EngineeringEngine:
             principal = Principal(project.owner_id, project.tenant_id, "member")
             project_id = project.id
         records = []
-        for url in list(dict.fromkeys(urls))[:6]:
+        for url in list(dict.fromkeys(urls))[:limit]:
             try:
                 records.append(await self.research.collect(principal, project_id, url))
             except Exception as exc:

@@ -13,13 +13,13 @@ from test_control_plane import command
 from test_planning_concepts import admit, next_run, start, workspace
 
 from kleos.anatomy_skill import seed_concept
-from kleos.db import Invocation, NativeJob, Run
+from kleos.db import Attempt, Invocation, NativeJob, Run
 from kleos.engine import EngineeringEngine
 from kleos.models import ModelGateway
 
 
 @pytest.mark.parametrize('fallback', [False, True])
-async def test_modal_capture_answer_meta_research_confirmation_and_deletion(platform, monkeypatch, fallback):
+async def test_legacy_pinned_modal_capture_answer_research_confirmation_and_deletion(platform, monkeypatch, fallback):
     async def forbidden_network(*args, **kwargs):
         raise AssertionError('This end-to-end fixture must not spend provider credits')
     monkeypatch.setattr(httpx.AsyncClient, 'send', forbidden_network)
@@ -45,7 +45,12 @@ async def test_modal_capture_answer_meta_research_confirmation_and_deletion(plat
     meta_capture = patch_replies(monkeypatch, gateway, 'meta', spark,
                                 lambda _n: responses_reply(spark, capture), planning=True)
     ident, capture_run = start(platform, 'A small circular USB desk button')
-    task, _ = admit(platform, worker, capture_run)
+    task, attempt = admit(platform, worker, capture_run)
+    # A persisted pre-upgrade attempt must retain its original provider and tools.
+    with platform.db.transaction() as session:
+        pinned = session.get(Attempt, attempt)
+        pinned.provider, pinned.model = 'modal', modal
+        pinned.context = {k: v for k, v in pinned.context.items() if k not in {'captureResearch', 'modelPolicyLane'}}
     await worker.run_task(task)
     worker.finish_run(capture_run)
     assert next_run(platform, ident) is None

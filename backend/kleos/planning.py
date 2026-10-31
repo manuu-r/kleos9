@@ -7,6 +7,13 @@ from .contracts import ConceptScene, DomainError
 from .db import now, uid
 
 PLANNING_KINDS = {"project.capture", "project.research", "project.requestReview"}
+CAPTURE_RESEARCH_POLICY = {"version": "initial-design-research-v1", "thinking": "low",
+                           "targetSearches": 2, "maxSources": 3}
+
+
+def is_capture_research(context):
+    return (context.get("task") == "project.capture" and
+            context.get("captureResearch", {}).get("version") == CAPTURE_RESEARCH_POLICY["version"])
 
 
 def planning_state(project):
@@ -140,6 +147,9 @@ def context_manifest(context):
             "inputVersion", "appliedInputVersion", "automatic", "phase", "captureComplete", "feasibilityComplete",
             "pendingResearch", "lastResearchInputVersion"}}
         selected["anatomy"] = planning.get("skill", {})
+    if is_capture_research(context):
+        selected["captureResearch"] = context["captureResearch"]
+        selected["modelPolicyLane"] = context.get("modelPolicyLane")
     selected["conversation"] = {"messageCount": len(conversation), "messageIds": [m["id"] for m in conversation]}
     selected["inputCharacterCount"] = len(json.dumps(context))
     return selected

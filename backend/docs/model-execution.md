@@ -4,9 +4,25 @@ Engineering lanes use `KLEOS_ENGINEERING_MAX_OUTPUT_TOKENS=32768` per response a
 `KLEOS_ENGINEERING_MODEL_TIMEOUT_SECONDS=600` for the complete invocation,
 including tools, initial capacity retries and an explicitly configured fallback.
 Planning retains its separate 5,000-token output ceiling and 180-second deadline.
-Coordination/research/review retain their existing non-engineering settings.
+Coordination/research/review retain their existing non-engineering settings,
+except new initial capture attempts request low reasoning effort.
 Session deadlines and cumulative request/token/spend ceilings remain additional
 bounds; development project usage can still be unlimited.
+
+Initial capture pins the project's search-capable research policy before reserving
+an invocation, rather than selecting a provider silently at execution time. Its
+context/manifest records `modelPolicyLane: research` and the versioned
+`captureResearch` contract. Existing resumed attempts keep their original choice
+and context; following preference turns use coordination and reuse saved facts.
+Meta/Gemini native search supplies early design references, not engineering or
+physical evidence. Search fees/usage remain in the existing invocation accounting.
+The native search tool receives a small context request; a 1–2 search target is
+prompt guidance, not a claim that every provider offers a hard query limit.
+Observed native search calls are recorded; if no search occurs, one existing
+output-validation retry requests it. A still-ungrounded result has citations
+removed and an explicit assumption limitation. Up to three capture URLs are
+collected through the existing scoped research collector. Later feasibility
+research and confirmation gates are unchanged; private reasoning is not stored.
 
 `KLEOS_ENGINEERING_STREAMING=true` consumes complete provider streams through
 Pydantic AI. This avoids Meta's non-streaming server time limit. Completed typed
