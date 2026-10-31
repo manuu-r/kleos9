@@ -129,15 +129,21 @@ def test_misspelled_lane_cannot_accidentally_start_every_worker(platform):
         assert session.scalar(select(func.count(Task.id))) == 0
 
 
+def attempt_model(platform, attempt_id):
+    with platform.db.transaction() as session:
+        return session.get(Attempt, attempt_id).model
+
+
 def test_policy_switch_pins_current_attempt(platform):
     project_id, run_id, task_id, worker = start_research(platform)
     attempt_id = worker.begin_attempt(task_id)
     policy = platform.control.registry.default_policy()
     policy["research"] = policy["firmware"]
+    assert policy["research"]["model"] != attempt_model(platform, attempt_id)
     command(platform, project_id, "project.setModelPolicy", {"modelPolicy": policy})
     with platform.db.transaction() as session:
         attempt = session.get(Attempt, attempt_id)
-        assert attempt.provider == "google"
+        assert attempt.provider == "meta" and attempt.model == platform.control.registry.models["meta"][0]
         assert attempt.policy_revision == 1
         assert session.get(Project, project_id).policy_revision == 2
     assert worker.begin_attempt(task_id) == attempt_id

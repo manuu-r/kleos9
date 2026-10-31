@@ -20,8 +20,10 @@ state with locking; generated Qdrant credentials are sensitive state.
    write runtime configuration. It creates separate application, DBOS and
    Conductor databases and login roles. Rerunning preserves existing passwords.
    The task prints no credentials. Wait for successful task exit.
-4. Update the runtime JSON secret with direct Meta and Gemini keys
-   without changing other keys. Never put credentials in Terraform variables.
+4. Update the runtime JSON secret with the direct Meta key, the Gemini key (embeddings)
+   and, for Modal-hosted Muse Spark Open, KLEOS_MODAL_LLM_URL and KLEOS_MODAL_LLM_KEY
+   (empty strings are fine and leave Modal off) without changing other keys. Every key
+   listed in runtime_secret_keys must exist in the secret before tasks start. Never put credentials in Terraform variables.
    Set the project and daily allowances; a zero allowance intentionally prevents
    paid generation.
 5. Run the control task once with command ["alembic", "upgrade", "head"] using
@@ -65,11 +67,15 @@ the S3 gateway exists for ECR image layers. Generated processes run under a
 different UID from the supervisor and receive no callback or provider credentials.
 Tool output is always a candidate; only the authoritative quality service publishes.
 
-The application tool image needs a writable Flutter SDK cache. Its fresh task has
-a writable root filesystem; source code still runs as UID 10001 without root or
-an AWS role. Other native tasks use a read-only root and a writable temporary
-volume. Native CPU/memory, tool-specific timeouts and global admission limits are
-independently enforced.
+All native tasks, including application builds, use a read-only root and a private
+writable `/tmp` volume. Application jobs copy their pinned Flutter/pub/Gradle
+working set there and scope Java home/temp writes to the job. Generated processes
+run as UID 10001 without root or an AWS role. CPU/memory profiles, process limits,
+deadlines and global/per-project admission are independently enforced. Local
+Docker application jobs use disposable disk scratch; Fargate uses task-local
+ephemeral storage. See [native capacity](native-capacity.md),
+[network hardening/migration](native-network.md) and the
+[Android toolchain](../backend/docker/android-toolchain.md).
 
 Qdrant uses a private EC2 instance, encrypted persistent EBS, authenticated HTTP
 within the VPC and daily S3 snapshots. It is initially a single node; this is not

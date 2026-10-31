@@ -1,26 +1,47 @@
+import asyncio
 import json
+import random
 from decimal import Decimal
 from importlib.metadata import version
 
 from pydantic import ValidationError
-from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext
+from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext, capture_run_messages
 from pydantic_ai.capabilities import NativeTool
+from pydantic_ai.exceptions import ModelHTTPError
+from pydantic_ai.messages import ModelResponse, NativeToolCallPart
 from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.models.openai import OpenAIResponsesModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.native_tools import WebSearchTool
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.meta import MetaProvider
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import UsageLimits
 
 from .anatomy_skill import scene_issues
 from .contracts import AgentOutput, DomainError, Lane, ModelChoice
 
-DEFAULT_PROVIDERS = {
-    "coordination": "meta", "research": "google", "mechanics": "meta", "electronics": "meta",
-    "firmware": "google", "application": "google", "review": "google",
+# Which Model API model serves each lane by default: Spark 1.3 reasons and researches, Wonder writes code.
+SPARK, WONDER = "spark", "wonder"
+DEFAULT_LANE_MODELS = {
+    "coordination": SPARK, "research": SPARK, "mechanics": SPARK, "electronics": SPARK,
+    "firmware": WONDER, "application": WONDER, "review": SPARK,
 }
+# Modal-hosted Spark Open has no web search, so the research lane needs the Model API or Gemini.
+WEB_SEARCH_PROVIDERS = {"meta", "google"}
 
-INSTRUCTIONS = """You are an engineering contributor to Kleos9.
+INSTRUCTIONS = """
+context.baseFiles contains vetted starter source files for the accepted validation
+profile. They are already staged. Companion application targets default to web
+and Android ARM64 (interfaces.application.targets=["web","android"]); iOS is
+source-only and requires a future macOS/signing worker. Preserve the vetted BLE
+package pins and protocol APIs. Physical BLE/peripheral behavior stays UNKNOWN
+until independently tested. Do not generate machine-specific local.properties.
+ previousSourceFiles and sourceArtifacts describe
+the current complete source closure. Preserve unchanged files: return only new or
+changed files in files[], with complete content for each changed file. An empty
+files[] keeps all existing sources. Do not repeat starter sources or regenerate a
+whole project to repair one error. Keep protocol APIs and accepted interfaces.
+You are an engineering contributor to Kleos9.
 Do only the task and lane in the provided context. The lane-specific rules below apply ONLY
 when you are assigned that lane. Research and coordination tasks return files=[]: propose
 requirements, questions, cited sources, interfaces and limitations, but do not generate code.
@@ -196,6 +217,12 @@ def validate_lane_output(ctx: RunContext[dict], output: AgentOutput) -> AgentOut
     return output
 
 
+def validate_session_output(ctx: RunContext[dict], output: AgentOutput) -> AgentOutput:
+    if output.files:
+        raise ModelRetry("Use patch to change session files; final output must have files=[]")
+    return validate_lane_output(ctx, output)
+
+
 def validate_planning_scene(ctx: RunContext[dict], output):
     """Ask once for a repaired scene, then publish it with the fault disclosed."""
     previous = None if ctx.deps.get("task") == "project.capture" else ctx.deps.get("concept", {}).get("scene")
@@ -211,18 +238,34 @@ class ModelRegistry:
     def __init__(self, settings):
         self.settings = settings
         self.models = {
-            "meta": settings.meta_model, "google": settings.gemini_model,
+            "meta": (settings.meta_model, settings.meta_wonder_model),
+            "modal": (settings.modal_llm_model,),
+            "google": (settings.gemini_model,),
         }
 
     def configured(self, provider):
+        if provider == "modal":
+            return bool(self.settings.modal_llm_url and self.settings.modal_llm_key)
         key = {"meta": "meta_api_key", "google": "gemini_api_key"}.get(provider)
         return bool(key and getattr(self.settings, key))
+
+    def model_for(self, provider, lane):
+        if provider in {"modal", "google"}:
+            return self.models[provider][0]
+        spark, wonder = self.models["meta"]
+        return wonder if DEFAULT_LANE_MODELS[lane] == WONDER else spark
 
     def default_policy(self):
         # This is an explicit operator default, never an outage/credit fallback.
         override = self.settings.default_model_provider
-        return {lane: {"provider": override or provider, "model": self.models[override or provider]}
-                for lane, provider in DEFAULT_PROVIDERS.items()}
+        policy = {}
+        for lane in DEFAULT_LANE_MODELS:
+            provider = override or ("modal" if self.configured("modal") and lane in self.settings.modal_default_lanes
+                                    else "meta")
+            if provider not in WEB_SEARCH_PROVIDERS and lane == "research":
+                provider = "meta"
+            policy[lane] = {"provider": provider, "model": self.model_for(provider, lane)}
+        return policy
 
     def validate_policy(self, policy):
         if not isinstance(policy, dict) or set(policy) != {lane.value for lane in Lane}:
@@ -233,91 +276,237 @@ class ModelRegistry:
                 choice = ModelChoice.model_validate(value)
             except ValidationError as exc:
                 raise DomainError("Choose a configured provider and model for every lane", 422) from exc
-            if choice.model != self.models[choice.provider]:
+            if choice.model not in self.models[choice.provider]:
                 raise DomainError("This model has not been enabled in the registry", 422)
+            if lane == "research" and choice.provider not in WEB_SEARCH_PROVIDERS:
+                raise DomainError("Research needs web search, which this provider does not offer", 422)
             normalized[lane] = choice.model_dump()
         return normalized
 
     def catalog(self):
         return {"models": [
             {"provider": provider, "model": model, "configured": self.configured(provider),
-             "qualification": "requires_engineering_evaluation", "enabledLanes": list(DEFAULT_PROVIDERS),
-             "capabilities": ["text", "image", "structuredOutput", "webSearch"], "creditBalance": None,
+             "qualification": "requires_engineering_evaluation",
+             "enabledLanes": [lane for lane in DEFAULT_LANE_MODELS
+                              if lane != "research" or provider in WEB_SEARCH_PROVIDERS],
+             "capabilities": ["text", "image", "structuredOutput",
+                              *(["webSearch"] if provider in WEB_SEARCH_PROVIDERS else [])],
+             "creditBalance": None,
              "contextCharacterCeiling": self.settings.max_context_chars,
              "pricingVersion": f"genai-prices-{version('genai-prices')}", "contextLimit": None}
-            for provider, model in self.models.items()
+            for provider, models in self.models.items() for model in dict.fromkeys(models)
         ], "defaultPolicy": self.default_policy(), "billing": "operator-funded allowances"}
 
 
+def count_web_searches(messages):
+    return sum(isinstance(part, NativeToolCallPart) and part.tool_name == WebSearchTool.kind
+               for message in messages if isinstance(message, ModelResponse) for part in message.parts)
+
+
+async def drain_model_events(_ctx, events):
+    # Consume the complete streamed response, including usage. Chunks are never
+    # accepted as artifacts or exposed as private reasoning in the activity feed.
+    async for _ in events:
+        pass
+
+
 class ModelGateway:
-    """One configured agent per provider, registered before DBOS launch."""
+    """One configured agent per provider model, registered before DBOS launch."""
     def __init__(self, settings, durable=False):
         self.settings = settings
         self.registry = ModelRegistry(settings)
         self.agents = {}
         self.planning_agents = {}
-        for provider, model_id in self.registry.models.items():
+        self.session_agents = {}
+        self.session_bridge = None
+        for provider, model_ids in self.registry.models.items():
             if not self.registry.configured(provider):
                 continue
-            if provider == "meta":
-                from openai import AsyncOpenAI
-                model = OpenAIResponsesModel(model_id, provider=MetaProvider(
-                    openai_client=AsyncOpenAI(base_url="https://api.meta.ai/v1",
-                                              api_key=settings.meta_api_key.get_secret_value(), max_retries=0)))
-            else:
-                from google.genai.types import HttpRetryOptions
-                model = GoogleModel(model_id, provider=GoogleProvider(
-                    api_key=settings.gemini_api_key.get_secret_value(), retry_options=HttpRetryOptions(attempts=1)))
-            capabilities = [NativeTool(lambda ctx: WebSearchTool() if ctx.deps.get("lane") == "research" else None)]
-            if durable:
-                from pydantic_ai.durable_exec.dbos import DBOSDurability
-                capabilities.append(DBOSDurability(model_step_config={
-                    "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1, "backoff_rate": 2}))
-            # Keep dynamic requirement/interface dictionaries intact in typed outputs.
-            self.agents[provider] = Agent(model, name=f"kleos_{provider}", output_type=PromptedOutput(AgentOutput),
-                                          instructions=INSTRUCTIONS, retries=1, deps_type=dict,
-                                          capabilities=capabilities)
-            self.agents[provider].output_validator(validate_lane_output)
-            from .anatomy_skill import runtime_guidance
-            from .concept_models import PlanningOutput
-            planning_capabilities = [NativeTool(lambda ctx: WebSearchTool() if ctx.deps.get("lane") == "research" else None)]
-            if durable:
-                planning_capabilities.append(DBOSDurability(model_step_config={
-                    "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1, "backoff_rate": 2}))
-            self.planning_agents[provider] = Agent(
-                model, name=f"kleos_{provider}_planning",
-                output_type=PromptedOutput(PlanningOutput),
-                instructions=PLANNING_INSTRUCTIONS + "\n" + runtime_guidance(),
-                retries=1, deps_type=dict, capabilities=planning_capabilities)
-            self.planning_agents[provider].output_validator(validate_planning_scene)
+            for model_id in dict.fromkeys(model_ids):
+                self._register(provider, model_id, durable)
 
+    def _build_model(self, provider, model_id):
+        if provider == "meta":
+            from openai import AsyncOpenAI
+            return OpenAIResponsesModel(model_id, provider=MetaProvider(
+                openai_client=AsyncOpenAI(base_url="https://api.meta.ai/v1",
+                                          api_key=self.settings.meta_api_key.get_secret_value(), max_retries=0)))
+        if provider == "google":
+            from google.genai.types import HttpRetryOptions
+            return GoogleModel(model_id, provider=GoogleProvider(
+                api_key=self.settings.gemini_api_key.get_secret_value(),
+                retry_options=HttpRetryOptions(attempts=1)))
+        from openai import AsyncOpenAI
+        base_url = self.settings.modal_llm_url.rstrip("/")
+        base_url = base_url if base_url.endswith("/v1") else f"{base_url}/v1"
+        return OpenAIChatModel(model_id, provider=OpenAIProvider(openai_client=AsyncOpenAI(
+            base_url=base_url, api_key=self.settings.modal_llm_key.get_secret_value(), max_retries=0)))
+
+    def _register(self, provider, model_id, durable):
+        model = self._build_model(provider, model_id)
+        name = f"{provider}_{model_id}".replace("/", "_").replace(".", "_")
+        search = NativeTool(lambda ctx: WebSearchTool()
+                            if ctx.deps.get("lane") == "research" and provider in WEB_SEARCH_PROVIDERS else None)
+        capabilities = [search]
+        if durable:
+            from pydantic_ai.durable_exec.dbos import DBOSDurability
+            capabilities.append(DBOSDurability(model_step_config={"retries_allowed": False}))
+        # Keep dynamic requirement/interface dictionaries intact in typed outputs.
+        agent = Agent(model, name=f"kleos_{name}", output_type=PromptedOutput(AgentOutput),
+                      instructions=INSTRUCTIONS, retries=1, deps_type=dict, capabilities=capabilities)
+        agent.output_validator(validate_lane_output)
+        from .anatomy_skill import runtime_guidance
+        from .concept_models import PlanningOutput
+        planning_capabilities = [NativeTool(lambda ctx: WebSearchTool()
+                                            if ctx.deps.get("lane") == "research" and provider in WEB_SEARCH_PROVIDERS
+                                            else None)]
+        if durable:
+            planning_capabilities.append(DBOSDurability(model_step_config={
+                "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1, "backoff_rate": 2}))
+        planning_agent = Agent(
+            model, name=f"kleos_{name}_planning",
+            output_type=PromptedOutput(PlanningOutput),
+            instructions=PLANNING_INSTRUCTIONS + "\n" + runtime_guidance(),
+            retries=1, deps_type=dict, capabilities=planning_capabilities)
+        planning_agent.output_validator(validate_planning_scene)
+        self.agents[(provider, model_id)] = agent
+        self.planning_agents[(provider, model_id)] = planning_agent
+        from pydantic_ai.capabilities import ProcessHistory
+
+        from .session_tools import SessionBudget, bounded_session_history, tools_for
+        session_capabilities = [SessionBudget(self, provider, model_id), ProcessHistory(bounded_session_history)]
+        if durable:
+            session_capabilities.append(DBOSDurability(model_step_config={"retries_allowed": False}))
+        session_agent = Agent(model, name=f"kleos_{name}_session", output_type=PromptedOutput(AgentOutput),
+            instructions=INSTRUCTIONS + "\nYou have a private native build session. Use read, patch, build, analyze and render. "
+            "Read the file/hash before patching; null expectedSha256 creates a missing file. Only patch changed files. "
+            "Inspect actual build errors and CAD views, repair within the remaining step/time/spend limits. "
+            "Do not run arbitrary shell commands, edit accepted interfaces, or assert independent PASS. "
+            "Finish with a concise candidate summary and files=[]; the worker collects actual session files. "
+            "If unsupported components/interfaces prevent progress, explain the blocker instead of changing the accepted design.",
+            tools=tools_for(self), deps_type=dict, capabilities=session_capabilities, retries=1)
+        session_agent.output_validator(validate_session_output)
+        self.session_agents[(provider, model_id)] = session_agent
+
+    def estimate_cost(self, provider, usage, messages, model=None):
+        """Token cost plus the search fee; None when tokens cannot be priced."""
+        settings = self.settings
+        tokens = usage.cost
+        if tokens is None and provider == "modal":
+            cached = usage.cache_read_tokens
+            tokens = (Decimal(str(settings.modal_input_usd_per_mtok)) * (usage.input_tokens - cached)
+                      + Decimal(str(settings.modal_cached_input_usd_per_mtok)) * cached
+                      + Decimal(str(settings.modal_output_usd_per_mtok)) * usage.output_tokens) / 1_000_000
+        if tokens is None and provider == "meta" and model in settings.meta_token_prices:
+            fresh, cached_rate, output = settings.meta_token_prices[model]
+            cached = min(usage.input_tokens, usage.cache_read_tokens)
+            tokens = (Decimal(str(fresh)) * (usage.input_tokens-cached) + Decimal(str(cached_rate))*cached
+                      + Decimal(str(output))*usage.output_tokens) / 1_000_000
+        # Only the Model API bills searches at the configured rate; Gemini grounding is priced by its own table.
+        searches = count_web_searches(messages) if provider == "meta" else 0
+        search_usd = Decimal(str(settings.web_search_usd_per_1k)) * searches / 1000
+        return searches, float(search_usd), (float(tokens + search_usd) if tokens is not None else None)
+
+    def capacity_fallback(self, provider, lane):
+        """The Model API model that takes over a rate-limited Modal call, if the operator allows it."""
+        if (provider == "modal" and self.settings.modal_fallback_to_meta and self.registry.configured("meta")
+                and lane in DEFAULT_LANE_MODELS and lane != "research"):
+            return "meta", self.registry.model_for("meta", lane)
+
+    async def run_agent(self, provider, agent, prompt, retries=None, **kwargs):
+        # Modal sheds load above its workspace concurrency cap with 429 before doing any work, so waiting is safe.
+        if retries is None:
+            retries = self.settings.modal_rate_limit_retries if provider == "modal" else 0
+        for attempt in range(retries + 1):
+            stream_opened = False
+            handler = kwargs.get("event_stream_handler")
+            async def observe_stream(ctx, events):
+                nonlocal stream_opened
+                stream_opened = True
+                await handler(ctx, events)
+            run_kwargs = {**kwargs, **({"event_stream_handler": observe_stream} if handler else {})}
+            with capture_run_messages() as messages:
+                try:
+                    return await agent.run(prompt, **run_kwargs)
+                except ModelHTTPError as exc:
+                    if exc.status_code == 429 and (stream_opened or any(isinstance(message, ModelResponse) for message in messages)):
+                        # Restarting after a billed response would reset usage limits,
+                        # repeat work and cross providers with a partially completed turn.
+                        raise DomainError("Provider capacity changed after a response; reconcile this attempt before retrying",
+                                          503, "provider_partial_response") from exc
+                    if exc.status_code != 429 or attempt == retries:
+                        raise
+            await asyncio.sleep(min(30, 2 ** attempt) + random.random())
 
     async def generate(self, provider, model, context):
-        if provider not in self.agents:
-            raise DomainError(f"{provider} API credentials are not configured", 503, "provider_unconfigured")
-        if model != self.registry.models[provider]:
+        if (provider, model) not in self.agents:
+            if provider not in self.registry.models or not self.registry.configured(provider):
+                raise DomainError(f"{provider} API credentials are not configured", 503, "provider_unconfigured")
             raise DomainError("Pinned model version is unavailable; configure a compatible worker", 409)
+        if context.get("lane") == "research" and provider not in WEB_SEARCH_PROVIDERS:
+            raise DomainError("Research needs web search, which this provider does not offer", 409,
+                              "provider_unsupported")
+        # One deadline covers initial waits and any permitted provider fallback.
+        async with asyncio.timeout(self.deadline(context)):
+            fallback = self.capacity_fallback(provider, context.get("lane"))
+            try:
+                # With a fallback available, one short wait is enough before moving on.
+                return await self._generate(provider, model, context, retries=1 if fallback else None)
+            except ModelHTTPError as exc:
+                if exc.status_code != 429 or not fallback:
+                    raise
+            output, usage, transcript = await self._generate(*fallback, context)
+            usage["fallbackFrom"] = {"provider": provider, "model": model, "reason": "rate_limited"}
+            return output, usage, transcript
+
+    def deadline(self, context):
+        if is_planning_context(context) or context.get("lane") not in {"mechanics", "electronics", "firmware", "application"}:
+            configured = self.settings.model_timeout_seconds
+        else:
+            configured = self.settings.engineering_model_timeout_seconds
+        session = context.get("nativeSession")
+        if session:
+            # Native admission and model-capacity waits consume the same session
+            # lifetime. Never start a fresh full inference timeout near its end.
+            return min(configured, self.settings.native_session_max_seconds,
+                       self.session_bridge.remaining_seconds(session["jobId"]))
+        return configured
+
+    async def _generate(self, provider, model, context, retries=None):
         planning = is_planning_context(context)
-        agent = self.planning_agents[provider] if planning else self.agents[provider]
-        output_ceiling = self.settings.planning_max_output_tokens if planning else 12000
+        session = context.get("nativeSession")
+        agent = (self.session_agents if session else self.planning_agents if planning else self.agents)[(provider, model)]
+        engineering = context.get("lane") in {"mechanics", "electronics", "firmware", "application"}
+        output_ceiling = (self.settings.planning_max_output_tokens if planning else
+                          self.settings.engineering_max_output_tokens if engineering else 12000)
+        deadline = self.deadline(context)
+        streaming = self.settings.engineering_streaming and engineering
+        timeout = min(deadline, self.settings.native_session_max_seconds) if session else deadline
         request_ceiling = min(self.settings.max_model_turns, self.settings.planning_max_model_turns) if planning else self.settings.max_model_turns
-        result = await agent.run(
-            json.dumps(context, sort_keys=True, default=str),
+        from .planning import model_packet
+        result = await self.run_agent(
+            provider, agent, json.dumps(model_packet(context), sort_keys=True, default=str), retries=retries,
             deps=context,
             usage_limits=UsageLimits(request_limit=request_ceiling,
-                                     cost_limit=Decimal(str(self.settings.invocation_reservation_usd)),
+                                     cost_limit=Decimal(str(min(self.settings.invocation_reservation_usd, session['maxSpendUsd'])
+                                                            if session else self.settings.invocation_reservation_usd)),
+                                     tool_calls_limit=min(self.settings.native_session_max_steps, session.get("maxSteps", self.settings.native_session_max_steps))-1 if session else None,
                                      output_tokens_limit=output_ceiling * 2),
-            timeout=self.settings.model_timeout_seconds,
-            model_settings={"max_tokens": output_ceiling, "timeout": self.settings.model_timeout_seconds},
+            timeout=timeout,
+            **({"event_stream_handler": drain_model_events} if streaming else {}),
+            model_settings={"max_tokens": output_ceiling, "timeout": timeout},
         )
         usage = result.usage
+        messages = result.all_messages()
+        searches, search_usd, estimated = self.estimate_cost(provider, usage, messages, model=model)
         output = (AgentOutput.model_validate(result.output.model_dump(mode="json", by_alias=True))
                   if planning else result.output)
         return output, {
+            "provider": provider, "model": model,
             "inputTokens": usage.input_tokens, "outputTokens": usage.output_tokens,
-            "requests": usage.requests,
-            "estimatedUsd": float(usage.cost) if usage.cost is not None else None,
+            "requests": usage.requests, "searchCalls": searches, "searchUsd": search_usd,
+            "estimatedUsd": estimated,
             "pricingVersion": f"genai-prices-{version('genai-prices')}",
             "agentMode": "concept_planning" if planning else "engineering",
-            "outputTokenCeiling": output_ceiling,
+            "outputTokenCeiling": output_ceiling, "deadlineSeconds": timeout, "streaming": streaming,
         }, result.all_messages_json().decode()

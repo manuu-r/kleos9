@@ -24,12 +24,19 @@ from pathlib import Path, PurePosixPath
 
 import httpx
 
+from . import companion_android
+from .application_runtime import prepare_application_runtime
 from .contracts import CheckResult, EngineeringToolDefinition, GeneratedFile, JobResult
+from .native_network import install_network_filter
+from .native_resources import NativeResources
+from .native_usage import capture_usage
 
-MAX_FILE_BYTES = 16 * 1024 * 1024
+MAX_FILE_BYTES = 32 * 1024 * 1024
 MAX_WORK_FILE_BYTES = 256 * 1024 * 1024
 MAX_TOTAL_BYTES = 32 * 1024 * 1024
 WORKER_UID = 10001
+RUNTIME_PIDS_LIMIT = 256
+RUNTIME_APPLICATION_IPC = False
 LANES = {"mechanics", "electronics", "firmware", "application", "coordination", "review", "research"}
 RENODE_VERSION = "1.15.3"
 RENODE_PROFILE = "stm32f4-uart-v1"
@@ -104,17 +111,27 @@ def stage_inputs(request, directory):
 
 def clean_environment(directory):
     # Deliberately do not inherit AWS, Modal, API credentials, callback token or PYTHONPATH.
-    return {
-        "PATH": "/opt/venv/bin:/opt/flutter/bin:/opt/dart-sdk/bin:/opt/toolchains/bin:/usr/local/bin:/usr/bin:/bin",
+    runtime = directory / ".tmp/toolchains"
+    flutter = runtime / "flutter"
+    private = (flutter / "bin/flutter").is_file()
+    environment = {
+        "PATH": (str(flutter / "bin") + ":" if private else "") + "/opt/venv/bin:/opt/flutter/bin:/opt/dart-sdk/bin:/opt/toolchains/bin:/usr/local/bin:/usr/bin:/bin",
         "HOME": str(directory / ".home"),
         "TMPDIR": str(directory / ".tmp"),
         "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
-        "PUB_CACHE": "/opt/pub-cache", "ZEPHYR_BASE": "/opt/zephyrproject/zephyr",
+        "PUB_CACHE": str(runtime / "pub-cache") if private else "/opt/pub-cache", "ZEPHYR_BASE": "/opt/zephyrproject/zephyr",
         "ZEPHYR_TOOLCHAIN_VARIANT": "gnuarmemb", "GNUARMEMB_TOOLCHAIN_PATH": "/usr", "CI": "true",
         "CMAKE_BUILD_PARALLEL_LEVEL": "2", "MAKEFLAGS": "-j2",
         "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
         "DOTNET_BUNDLE_EXTRACT_BASE_DIR": str(directory / ".tmp/dotnet"), "DOTNET_EnableDiagnostics": "0",
     }
+    if private and (runtime / "gradle-cache").is_dir():
+        environment.update(JAVA_HOME="/opt/java17", ANDROID_HOME="/opt/android-sdk", ANDROID_SDK_ROOT="/opt/android-sdk",
+            GRADLE_USER_HOME=str(runtime / "gradle-cache"), ANDROID_USER_HOME=str(directory / ".home/.android"),
+            JAVA_TOOL_OPTIONS=("-XX:ActiveProcessorCount=2 -Djava.net.preferIPv4Stack=true -Duser.home="
+                               + str(directory / ".home") + " -Djava.io.tmpdir=" + str(directory / ".tmp")))
+        environment["PATH"] = "/opt/java17/bin:" + environment["PATH"]
+    return environment
 
 
 def unprivileged_limits(timeout):
@@ -123,14 +140,20 @@ def unprivileged_limits(timeout):
         # Compilers produce larger intermediate IR than the transferable artifacts.
         # Per-task scratch/memory quotas remain independently enforced.
         resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_WORK_FILE_BYTES, MAX_WORK_FILE_BYTES))
-        resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
-        resource.setrlimit(resource.RLIMIT_NPROC, (256, 256))
+        # Gradle's compiler/plugin classpath exceeds the small native-tool limit.
+        descriptors = 4096 if RUNTIME_APPLICATION_IPC else 256
+        resource.setrlimit(resource.RLIMIT_NOFILE, (descriptors, descriptors))
+        resource.setrlimit(resource.RLIMIT_NPROC, (RUNTIME_PIDS_LIMIT, RUNTIME_PIDS_LIMIT))
         resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout + 1))
         if ctypes.CDLL(None, use_errno=True).prctl(38, 1, 0, 0, 0) != 0:  # PR_SET_NO_NEW_PRIVS
             raise OSError("Could not restrict subprocess privilege escalation")
         os.setgroups([])
         os.setgid(WORKER_UID)
         os.setuid(WORKER_UID)
+        if RUNTIME_APPLICATION_IPC:
+            install_network_filter(application_ipc=True)
+        else:
+            install_network_filter()
     return prepare
 
 
@@ -163,7 +186,7 @@ def run_command(args, directory, timeout):
     with tempfile.TemporaryFile(mode="w+b") as output:
         process = subprocess.Popen(
             args, cwd=directory, env=clean_environment(directory),
-            stdout=output, stderr=subprocess.STDOUT, start_new_session=True,
+            stdout=output, stderr=subprocess.STDOUT, start_new_session=True, close_fds=True,
             preexec_fn=unprivileged_limits(timeout),
         )
         timed_out = False
@@ -175,7 +198,8 @@ def run_command(args, directory, timeout):
             timed_out = True
         finally:
             reap_generated_processes()
-        output.seek(0)
+        output.seek(0, os.SEEK_END)
+        output.seek(max(0, output.tell() - 100000))
         logs = output.read(100000).decode(errors="replace")
         if timed_out:
             raise NativeTimeoutError("Native subprocess exceeded its time limit", logs)
@@ -187,7 +211,7 @@ def collect_file(path, base, name=None):
         raise ValueError("Output path escapes the job workspace")
     size = path.stat().st_size
     if size > MAX_FILE_BYTES:
-        raise ValueError("Output artifact exceeds 16 MiB")
+        raise ValueError("Output artifact exceeds 32 MiB")
     content = path.read_bytes()
     return GeneratedFile(path=name or str(path.relative_to(base)), content=base64.b64encode(content).decode(),
                          media_type="application/octet-stream", encoding="base64")
@@ -380,10 +404,14 @@ def validate_renode(request, directory, execute=run_command, qualification_path=
 
 
 def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_FONT_HASHES,
-                      web_template=Path('/opt/qualified-companion/web')):
+                      web_template=Path('/opt/qualified-companion/web'), android_profile=None):
     """Make the default font local and record the exact prepared source inputs."""
     import yaml
 
+    if android_profile:
+        if (work / 'android/local.properties').exists():
+            raise ValueError('Companion source must omit machine-specific android/local.properties')
+        companion_android.prepare_platforms(work)
     pubspec = work / "pubspec.yaml"
     if not pubspec.is_file() or pubspec.stat().st_size > 256 * 1024:
         raise ValueError("Companion requires a bounded pubspec.yaml")
@@ -425,7 +453,9 @@ def prepare_companion(work, font_dir=OFFLINE_FONT_DIR, expected_hashes=OFFLINE_F
         scaffolded = True
     pubspec.write_text(yaml.safe_dump(specification, sort_keys=False))
     details = {
-        "version": 2, "preparation": "offline-companion-scaffold-v2", "webScaffoldAdded": scaffolded,
+        "version": 3 if android_profile else 2,
+        "preparation": "offline-companion-scaffold-v3" if android_profile else "offline-companion-scaffold-v2",
+        "webScaffoldAdded": scaffolded,
         "fontSource": "Flutter 3.35.4 pinned material_fonts cache",
         "fontLicense": "Apache-2.0", "fontHashes": expected_hashes,
         "sourceHashes": {str(path.relative_to(work)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -470,7 +500,7 @@ def build_lane(request, directory, execute=run_command):
         logs.append(output)
         resource_error = re.search(
             r"exited abnormally with exit code -(9|25)\b|Could not start thread.*Resource temporarily unavailable"
-            r"|Failed to start thread|Cannot allocate memory|Out of memory", output, re.IGNORECASE | re.DOTALL,
+            r"|Failed to start thread|Cannot allocate memory|Out of memory|OutOfMemoryError|Java heap space|GC overhead limit exceeded|Too many open files|\b(?:EMFILE|ENFILE)\b", output, re.IGNORECASE | re.DOTALL,
         )
         if code in {-9, -25, 137, 153} or (code and resource_error):
             raise NativeResourceError(f"{args[0]} was terminated by the compute resource limit", "\n".join(logs))
@@ -533,7 +563,18 @@ def build_lane(request, directory, execute=run_command):
             measurements['kicadLibraries'] = prepare_kicad_libraries(work)
         except UnavailableCircuitData as exc:
             raise UnsupportedTool(str(exc)) from exc
-        if not profile or profile.runner == "atopile-kicad":
+        if profile and profile.id == "atopile-kicad" and profile.version == "2":
+            from .pcb_compiler import PCB_IMPORT_SCRIPT, PCB_PLACE_SCRIPT, compile_circuit
+            try:
+                measurements['circuitCompiler'] = compile_circuit(request.get('interfaces', {}), work / 'outputs')
+            except UnavailableCircuitData as exc:
+                raise UnsupportedTool(str(exc)) from exc
+            call(['/usr/bin/python3', '-I', '-c', PCB_PLACE_SCRIPT, str(work / 'outputs')])
+            call(['java', '-Xms64m', '-Xmx768m', '-Djava.awt.headless=true', '-jar', '/opt/freerouting/freerouting.jar',
+                  '-de', str(work / 'outputs/circuit.dsn'), '-do', str(work / 'outputs/circuit.ses'),
+                  '-mp', '10', '-mt', '1', '-da', '--gui.enabled=false'])
+            call(['/usr/bin/python3', '-I', '-c', PCB_IMPORT_SCRIPT, str(work / 'outputs')])
+        elif not profile or profile.runner == "atopile-kicad":
             if not (work / "ato.yaml").exists():
                 raise UnsupportedTool("Electronics source must include an atopile project")
             call(["ato", "build"])
@@ -556,7 +597,7 @@ def build_lane(request, directory, execute=run_command):
               "--output", "outputs/drc.json", str(boards[0])])
         call(["kicad-cli", "pcb", "export", "gerbers", "--output", "outputs/gerbers/", str(boards[0])])
         call(["kicad-cli", "pcb", "export", "drill", "--output", "outputs/gerbers/", str(boards[0])])
-        outputs = [*boards, *schematics, *[p for p in (work / "outputs").rglob("*") if p.is_file()]]
+        outputs = list(dict.fromkeys([*boards, *schematics, *[p for p in (work / "outputs").rglob("*") if p.is_file()]]))
         if request.get("requirements", {}).get("designIntent"):
             from .design_validation import PCB_LAYOUT_SCRIPT, validate_pcb_layout
             output = call(["/usr/bin/python3", "-I", "-c", PCB_LAYOUT_SCRIPT, str(boards[0])])
@@ -580,54 +621,100 @@ def build_lane(request, directory, execute=run_command):
         call(args)
         outputs = [work / "build/zephyr/zephyr.elf", work / "build/zephyr/zephyr.bin"]
     elif lane == "application":
-        preparation = prepare_companion(work)
+        targets = companion_android.targets_for(request)
+        try:
+            android_profile = companion_android.qualification() if "android" in targets else None
+        except ValueError as exc:
+            raise UnsupportedTool(str(exc)) from exc
+        preparation = prepare_companion(work, android_profile=android_profile) if android_profile else prepare_companion(work)
         # Capture before generated tools run, outside their writable directory.
         source_archive = directory / "companion-source.zip"
         with zipfile.ZipFile(source_archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
             for path in sorted(work.rglob("*")):
                 if path.is_file():
+                    relative = path.relative_to(work)
+                    if any(part in {'.tmp', '.home', '.dart_tool', '.gradle', 'build', '.git'} for part in relative.parts):
+                        raise ValueError("Companion source contains a reserved execution path")
+                    if path.name == 'local.properties':
+                        continue
                     if path.is_symlink() or not path.resolve().is_relative_to(work.resolve()):
                         raise ValueError("Companion source escapes its preparation directory")
-                    bundle.write(path, str(path.relative_to(work)))
+                    bundle.write(path, str(relative))
         prepared_files.append(collect_file(source_archive, directory, "native/companion-source.zip"))
         measurements = {"preparedSourceSha256": hashlib.sha256(source_archive.read_bytes()).hexdigest(),
                         "preparation": preparation["preparation"]}
-        call(["flutter", "pub", "get", "--offline"])
+        runtime = prepare_application_runtime(work)
+        measurements["applicationRuntime"] = {"preparation": runtime["preparation"], "writablePaths": "job_tmp_only"}
+        if android_profile:
+            companion_android.prepare_runtime(work, runtime, android_profile)
+        call(["flutter", "pub", "get", "--offline", *(["--enforce-lockfile"] if (work / "pubspec.lock").is_file() else [])])
         call(["flutter", "analyze", "--no-pub"])
-        call(["flutter", "build", "web", "--no-pub", "--no-web-resources-cdn", "--no-wasm-dry-run"])
+        if (work / "test").is_dir():
+            call(["flutter", "test", "--no-pub"])
+        if "web" in targets:
+            call(["flutter", "build", "web", "--no-pub", "--no-web-resources-cdn", "--no-wasm-dry-run"])
+        android = None
+        if android_profile:
+            call(["flutter", "build", "apk", "--release", "--target-platform", "android-arm64", "--no-pub"])
+            apk = work / "build/app/outputs/flutter-apk/app-release.apk"
+            signed = call(["/opt/android-sdk/build-tools/35.0.0/apksigner", "verify", "--verbose", "--print-certs", str(apk)])
+            android = companion_android.apk_metadata(apk, android_profile, signed)
+            measurements["android"] = android
         for name, expected in preparation.get("sourceHashes", {}).items():
             path = work / name
             if (not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(work.resolve())
                     or hashlib.sha256(path.read_bytes()).hexdigest() != expected):
                 raise ValueError("Generated build modified the captured companion source")
-        web = work / "build/web"
-        license_file = work / "assets/kleos_fonts/Roboto_LICENSE.txt"
-        if license_file.is_file():
-            target = web / "Roboto_LICENSE.txt"
-            if target.is_symlink():
-                raise ValueError("Companion license output escapes its build directory")
-            shutil.copyfile(license_file, target)
-        archive = work / "companion-web.zip"
-        archive.unlink(missing_ok=True)
-        total = 0
-        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
-            for path in sorted(web.rglob("*")):
-                if not path.is_file():
-                    continue
-                if path.is_symlink() or not path.resolve().is_relative_to(web.resolve()):
-                    raise ValueError("Companion output escapes its build directory")
-                total += path.stat().st_size
-                if total > 128 * 1024**2:
-                    raise ValueError("Companion web package exceeds the 128 MiB unpacked ceiling")
-                bundle.write(path, str(path.relative_to(web)))
-        # Retain inspectable entrypoints alongside the complete compressed bundle.
-        outputs = [archive, web / "index.html", web / "main.dart.js"]
+        if "web" in targets:
+            web = work / "build/web"
+            license_file = work / "assets/kleos_fonts/Roboto_LICENSE.txt"
+            if license_file.is_file():
+                target = web / "Roboto_LICENSE.txt"
+                if target.is_symlink():
+                    raise ValueError("Companion license output escapes its build directory")
+                shutil.copyfile(license_file, target)
+            archive = work / "companion-web.zip"
+            archive.unlink(missing_ok=True)
+            total = 0
+            with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
+                for path in sorted(web.rglob("*")):
+                    if not path.is_file():
+                        continue
+                    if path.is_symlink() or not path.resolve().is_relative_to(web.resolve()):
+                        raise ValueError("Companion output escapes its build directory")
+                    total += path.stat().st_size
+                    if total > 128 * 1024**2:
+                        raise ValueError("Companion web package exceeds the 128 MiB unpacked ceiling")
+                    bundle.write(path, str(path.relative_to(web)))
+            # Retain inspectable entrypoints alongside the complete compressed bundle.
+            outputs.extend([archive, web / "index.html", web / "main.dart.js"])
+        if android:
+            outputs.append(apk)
+        package = work / 'companion-build-manifest.json'
+        package.write_text(json.dumps({'schemaVersion': 'companion-build-v1', 'targets': targets,
+            'preparedSourceSha256': measurements['preparedSourceSha256'], 'android': android,
+            'ios': {'delivery': 'source-only-unsigned', 'built': False,
+                    'requires': 'separate macOS build and production signing'},
+            'physicalBleValidated': False,
+            'files': [{'path': str(path.relative_to(work)), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+                      for path in outputs]}, indent=2))
+        outputs.append(package)
+        measurements['companionDelivery'] = {'targets': targets, 'iosBuilt': False,
+                                            'productionSigningReady': False, 'physicalBleValidated': False}
     else:
         raise UnsupportedTool(f"No native build profile for {lane}")
     files = [*prepared_files, *[collect_file(p, work, f"native/{p.relative_to(work)}") for p in outputs if p.exists()]]
+    if lane == 'application':
+        for file in files:
+            if file.path.endswith('.apk'):
+                file.media_type = 'application/vnd.android.package-archive'
+            elif file.path.endswith('.zip'):
+                file.media_type = 'application/zip'
+            elif file.path.endswith('companion-build-manifest.json'):
+                file.media_type = 'application/json'
     if not files:
         raise RuntimeError("The native tool produced no supported outputs")
-    if sum(len(f.content) for f in files) > MAX_TOTAL_BYTES:
+    if sum(len(base64.b64decode(f.content)) if f.encoding == 'base64' else len(f.content.encode()) for f in files) > MAX_TOTAL_BYTES:
         raise ValueError("Native output package exceeds the result transfer limit")
     return JobResult(status="unsupported" if unsupported_design else "succeeded", files=files, measurements=measurements,
                      logs="\n".join(logs)[-100000:],
@@ -966,6 +1053,53 @@ def run_job(request, directory, execute=run_command):
         return JobResult(status="failed", limitations=[str(exc)])
 
 
+def run_session_transport(request, directory, *, control=None, client=None, base=None, headers=None):
+    """Supervisor-only action transport; generated UID cannot access control files or token."""
+    from .native_session import SessionSandbox, prepare_session_steps
+    steps = prepare_session_steps(control) if control is not None else None
+    sandbox = SessionSandbox(request, directory, execute=run_command)
+    deadline = time.monotonic() + min(request.get('sessionLimits', {}).get('maxSeconds', 900), 1800)
+    while time.monotonic() < deadline:
+        if control is not None:
+            pending = [p for p in sorted(steps.glob('*.request.json'))
+                       if not p.with_name(p.name.replace('.request.json', '.result.json')).exists()]
+            if not pending:
+                time.sleep(.25)
+                continue
+            path = pending[0]
+            if path.is_symlink() or not path.is_file() or path.stat().st_size > 2*1024**2:
+                raise ValueError('Unsafe native session action')
+            step = json.loads(path.read_bytes())
+        else:
+            response = client.get(f'{base}/api/v1/internal/jobs/{request["jobId"]}/session/next', headers=headers)
+            response.raise_for_status()
+            step = response.json()['step']
+            if not step:
+                time.sleep(.25)
+                continue
+        envelope = sandbox.apply(step)
+        if control is not None:
+            destination = path.with_name(path.name.replace('.request.json', '.result.json'))
+            temporary = destination.with_suffix('.tmp')
+            temporary.write_text(json.dumps(envelope, allow_nan=False))
+            temporary.chmod(0o644)
+            temporary.replace(destination)
+        else:
+            response = client.post(f'{base}/api/v1/internal/jobs/{request["jobId"]}/session/{step["id"]}/result',
+                                   headers=headers, json=envelope)
+            response.raise_for_status()
+        if step['action'] == 'finish':
+            return sandbox.finish_result()
+    return JobResult(status='failed', limitations=['Native session deadline exceeded'],
+                     measurements={'failureKind': 'deadline'})
+
+
+def configure_resources(request):
+    global RUNTIME_PIDS_LIMIT, RUNTIME_APPLICATION_IPC
+    RUNTIME_APPLICATION_IPC = request.get("lane") == "application" and request.get("purpose") in {"build", "session"}
+    RUNTIME_PIDS_LIMIT = NativeResources.model_validate(request["resources"]).pidsLimit if request.get("resources") else 256
+
+
 def main():
     if sys.platform != "linux" or os.geteuid() != 0 or os.environ.get("KLEOS_NATIVE_SANDBOX") != "1":
         raise SystemExit("Native runner requires the isolated Linux worker image; host execution is disabled")
@@ -977,12 +1111,17 @@ def main():
         if len(raw) > 64 * 1024**2:
             raise SystemExit("Local native input exceeds its transfer ceiling")
         request = json.loads(raw)
+        configure_resources(request)
         with tempfile.TemporaryDirectory(prefix="kleos-native-") as tmp:
             root = Path(tmp)
             root.chmod(0o755)
             started = time.monotonic()
-            result = run_job(request, root)
+            result = (run_session_transport(request, root, control=control) if request.get('purpose') == 'session'
+                      else run_job(request, root))
             result.measurements["executionSeconds"] = round(time.monotonic() - started, 3)
+            usage = capture_usage()
+            if usage:
+                result.measurements["resourceUsage"] = usage
         envelope = {"jobId": request["jobId"], "requestSha256": hashlib.sha256(raw).hexdigest(),
                     "result": result.model_dump(mode="json", by_alias=True)}
         temporary = control / "result.tmp"
@@ -1002,6 +1141,7 @@ def main():
         response = client.get(f"{base}/api/v1/internal/jobs/{job_id}", headers=headers)
         response.raise_for_status()
         request = response.json()
+        configure_resources(request)
         trace_id = str(request.get("traceId", "")).replace("-", "")
         if re.fullmatch(r"[a-f0-9]{32}", trace_id) and int(trace_id, 16):
             headers["traceparent"] = f"00-{trace_id}-{os.urandom(8).hex()}-01"
@@ -1011,8 +1151,12 @@ def main():
             root = Path(tmp)
             root.chmod(0o755)
             started = time.monotonic()
-            result = run_job(request, root)
+            result = (run_session_transport(request, root, client=client, base=base, headers=headers)
+                      if request.get('purpose') == 'session' else run_job(request, root))
             result.measurements["executionSeconds"] = round(time.monotonic() - started, 3)
+            usage = capture_usage()
+            if usage:
+                result.measurements["resourceUsage"] = usage
         print(json.dumps({"event": "native.completed", "jobId": job_id, "status": result.status,
                           "traceId": request.get("traceId")}))
         for retry in range(3):

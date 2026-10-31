@@ -23,6 +23,7 @@ from .db import (
     Inbox,
     Invocation,
     NativeJob,
+    NativeSessionStep,
     Organization,
     Outbox,
     Project,
@@ -299,6 +300,11 @@ class Maintenance:
             for attempt in session.scalars(select(Attempt).where(Attempt.task_id.in_(task_ids))):
                 attempt.context, attempt.output, attempt.error = {}, {}, None
             for job in session.scalars(select(NativeJob).where(NativeJob.task_id.in_(task_ids))):
+                for step in session.scalars(select(NativeSessionStep).where(NativeSessionStep.job_id == job.id)):
+                    step.arguments, step.result = {}, {"contentDeleted": True}
+                    step.request_key = f"purged:{step.id}"
+                    if step.status in {"queued", "running"}:
+                        step.status = "cancelled"
                 reservation = job.request.get("reservation", {})
                 if reservation and not reservation.get("settled"):
                     settle_native_reservation(session, job, project,
@@ -350,7 +356,7 @@ class Maintenance:
         detailed_cutoff = at - timedelta(days=self.settings.transcript_retention_days)
         event_cutoff = at - timedelta(days=self.settings.event_retention_days)
         counts = {"transcripts": 0, "nativeLogs": 0, "computeResults": 0, "events": 0,
-                  "archives": 0, "excludedDatasets": 0}
+                  "archives": 0, "excludedDatasets": 0, "nativeSessionSteps": 0}
         with self.db.transaction() as session:
             old_calls = session.scalars(select(Invocation).where(
                 Invocation.created_at < detailed_cutoff, Invocation.status != "pending",
@@ -382,6 +388,17 @@ class Maintenance:
                     counts["nativeLogs"] += 1
                 job.request = self.operational_job_request(job)
                 job.result = self.operational_job_result(job)
+            for step in session.scalars(select(NativeSessionStep).join(
+                    NativeJob, NativeJob.id == NativeSessionStep.job_id).where(
+                    NativeSessionStep.created_at < detailed_cutoff,
+                    NativeJob.status.in_(["succeeded", "failed", "cancelled", "unsupported"]),
+                    NativeSessionStep.result["retentionExpired"].as_boolean().is_not(True)
+            ).limit(batch_size)):
+                step.arguments, step.result = {}, {"retentionExpired": True}
+                step.request_key = f"expired:{step.id}"
+                if step.status in {"queued", "running"}:
+                    step.status = "cancelled"
+                counts["nativeSessionSteps"] += 1
             for task in session.scalars(select(Task).where(
                     Task.created_at < detailed_cutoff, Task.status.not_in(["queued", "running", "waiting"]),
                     Task.result["retentionExpired"].as_boolean().is_not(True)).limit(batch_size)):

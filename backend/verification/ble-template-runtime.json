@@ -1,0 +1,81 @@
+{
+  "androidBuild": "not_part_of_this_fixture",
+  "applicationSourceSha256": "80935c3e3278b283570dd5a29b396fac8aeb59b45d91d0951b0593c34b62b82a",
+  "cacheTimestampFixVerification": {
+    "commands": [
+      {
+        "command": "flutter pub get --offline --enforce-lockfile",
+        "exitCode": 0
+      },
+      {
+        "command": "flutter analyze --no-pub",
+        "exitCode": 0
+      },
+      {
+        "command": "flutter test --no-pub",
+        "exitCode": 0,
+        "passed": 12
+      },
+      {
+        "command": "flutter build web --no-pub --no-web-resources-cdn --no-wasm-dry-run",
+        "exitCode": 0
+      }
+    ],
+    "durationSeconds": 69.03,
+    "immutableSdkAndPubMarkerHashesUnchanged": true,
+    "modelCalls": 0,
+    "network": "none",
+    "privateSdkCacheHashesAndTimestampsUnchanged": true,
+    "privateSdkPubspecYamlNotNewerThanLock": true,
+    "readOnlyRootfs": true,
+    "recordedAt": "2026-10-30T23:53:25.046414+00:00",
+    "runtimeHelperSha256": "b8c8da73640e9f9e696de4039a150bab76764d0987668e769976ac855b3951a6",
+    "webBuildNote": "Optional CupertinoIcons font-family warning; compilation succeeded. Companion uses Material widgets."
+  },
+  "commands": [
+    {
+      "command": "flutter pub get --offline --enforce-lockfile",
+      "exitCode": 0
+    },
+    {
+      "command": "flutter analyze --no-pub",
+      "exitCode": 0
+    },
+    {
+      "command": "flutter test --no-pub",
+      "exitCode": 0,
+      "passed": 12
+    }
+  ],
+  "coverage": [
+    "BLE controller with fake transport",
+    "permission denial and late permission cancellation",
+    "device selection and notification decoding",
+    "saved UUID configuration",
+    "uint32 protocol boundaries",
+    "web/non-mobile guard and widget configuration"
+  ],
+  "durationSeconds": 51.78,
+  "environment": {
+    "cpus": 2,
+    "memoryMiB": 6144,
+    "network": "none",
+    "pidsLimit": 256,
+    "privateRuntime": "job-private-flutter-runtime-v1",
+    "readOnlyRootfs": true
+  },
+  "image": {
+    "id": "sha256:9e7fda686ea313ab7bb5562f0f31b6b7a7ed442d1f381815db65cd5e570b78fe",
+    "platform": "linux/amd64",
+    "tag": "kleos-application:ble-web-qualification"
+  },
+  "immutableSdkAndPubMarkerHashesUnchanged": true,
+  "iosBuild": "not_run_source_only",
+  "modelCalls": 0,
+  "physicalBle": "UNKNOWN",
+  "pubspecLockSha256": "cf82bbcbbee6d417c894fb4b1a4c6801d1521a9631decc6090b30429b8f3dd37",
+  "recordedAt": "2026-10-30T23:47:16.305289+00:00",
+  "schemaVersion": "companion-ble-software-qualification-v1",
+  "templateId": "watch-telemetry-v1",
+  "templateManifestSha256": "d7a4ce169b62fef882abcc808f6dce54a1eb74787d3bf2ee76dfd0a90c646ea3"
+}

@@ -21,7 +21,7 @@ class Lane(StrEnum):
 
 
 class ModelChoice(WireModel):
-    provider: Literal["meta", "google"]
+    provider: Literal["meta", "modal", "google"]
     model: str = Field(min_length=1, max_length=100)
 
 
@@ -83,7 +83,7 @@ class CommandAccepted(WireModel):
 
 class GeneratedFile(WireModel):
     path: str
-    content: str = Field(max_length=24 * 1024 * 1024)
+    content: str = Field(max_length=48 * 1024 * 1024)
     media_type: str = "text/plain"
     encoding: Literal["utf8", "base64"] = "utf8"
 
@@ -194,6 +194,12 @@ class AgentOutput(WireModel):
         if len(ids) != len(set(ids)):
             raise ValueError("Clarification question IDs must be unique")
         return self
+
+
+class NativeCandidate(AgentOutput):
+    # Complete mobile platform scaffolds exceed the model's50 changed-file cap.
+    # Native result bytes remain independently bounded by the transfer contract.
+    files: list[GeneratedFile] = Field(default_factory=list, max_length=256)
 
 
 class ArtifactUpload(WireModel):

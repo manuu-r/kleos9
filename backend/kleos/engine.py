@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 
 from .auth import Principal
 from .clarification import answer_context, retain_unanswered_questions
-from .contracts import AgentOutput, DomainError, JobResult
+from .contracts import AgentOutput, DomainError, GeneratedFile, JobResult, NativeCandidate
 from .db import (
     Artifact,
     Attempt,
@@ -39,26 +39,48 @@ from .domain import (
     settle_native_reservation,
 )
 from .engineering_tools import EngineeringToolRegistry
+from .native_sessions import session_limits
 from .planning import (
     PLANNING_KINDS,
     append_message,
     concept_snapshot,
     context_manifest,
     conversation_context,
+    model_packet,
     planning_context,
     planning_state,
     update_concept,
 )
+from .source_closure import current_sources, is_source, reference
+from .source_templates import load_source_templates
 from .storage import artifact_key, digest
 from .telemetry import metric, redact, tracer
 
 log = logging.getLogger(__name__)
 
 
+def _session_runtime_supported(lane, context):
+    """Session transport is separately qualified from a tool's classic build contract."""
+    tool = context.get("engineeringTool")
+    if lane in {"firmware", "application"}:
+        return not tool
+    if lane == "mechanics":
+        # Legacy absent snapshots resolve to the same built-in build123d@1.
+        return not tool or (tool.get("id"), tool.get("version")) == ("build123d", "1")
+    # Custom adapters and both legacy/deterministic PCB flows remain classic
+    # until their exact native session transport is explicitly qualified.
+    return False
+
+
 class EngineeringEngine:
     def __init__(self, db, settings, store, models, execution=None, research=None, memory=None):
         self.db, self.settings, self.store, self.models, self.execution = db, settings, store, models, execution
         self.research, self.memory = research, memory
+        self.session_bridge = None
+        if execution and models and hasattr(models, "session_agents"):
+            from .session_bridge import SessionBridge
+            self.session_bridge = SessionBridge(db, settings, execution)
+            models.session_bridge = self.session_bridge
 
     @DBOS.step()
     def admit_run(self, run_id):
@@ -177,14 +199,29 @@ class EngineeringEngine:
                     engineering_tool["executionUnavailable"] = True
             if engineering_tool:
                 context["engineeringTool"] = engineering_tool
+            base_files = load_source_templates(project.requirements, task.lane)
+            context["baseFiles"] = base_files
+            current = current_sources(session, project, task.lane) if task.lane in ENGINEERING_LANES else []
+            context["sourceArtifacts"] = [reference(a) for a in current]
+            base_hashes = {file["name"]: file["sha256"] for file in base_files}
             own_sources = []
-            for artifact in artifacts:
-                if artifact.lane == task.lane and artifact.media_type.startswith(("text/", "application/json")):
+            source_chars = min(24000, self.settings.max_context_chars // 3)
+            ranked_artifacts = sorted(artifacts, key=lambda a: (not a.name.endswith((".dart", ".c", ".h", ".py", ".yaml", ".conf")), a.name))
+            for artifact in ranked_artifacts:
+                if artifact.lane == task.lane and is_source(artifact):
                     content = self.store.get(artifact.key)
                     if digest(content) != artifact.sha256:
                         raise DomainError("Input artifact failed its integrity check", 409, "artifact_integrity")
-                    own_sources.append({"name": artifact.name, "sha256": artifact.sha256,
-                                        "content": content.decode("utf-8", errors="replace")})
+                    if base_hashes.get(artifact.name) == artifact.sha256:
+                        own_sources.append({"name": artifact.name, "sha256": artifact.sha256, "baseFile": artifact.name})
+                    elif artifact.media_type.startswith(("text/", "application/json")) or content[:4096].isascii():
+                        text = content.decode("utf-8", errors="replace")
+                        metadata = {"name": artifact.name, "sha256": artifact.sha256}
+                        if len(text) <= source_chars:
+                            own_sources.append({**metadata, "content": text})
+                            source_chars -= len(text)
+                        else:
+                            own_sources.append({**metadata, "contentOmitted": True, "readInSession": True})
             context["previousSourceFiles"] = own_sources
             prior = session.scalars(select(Attempt).join(Task, Task.id == Attempt.task_id).where(
                 Task.project_id == task.project_id, Task.revision == task.revision, Task.lane == task.lane)
@@ -206,9 +243,9 @@ class EngineeringEngine:
             # immutable attempt records rather than being repeated in prompts.
             context["manifest"] = context_manifest(context)
             # Mandatory context is never silently truncated.
-            if len(json.dumps(context)) > self.settings.max_context_chars:
+            if len(json.dumps(model_packet(context))) > self.settings.max_context_chars:
                 raise DomainError("Mandatory context exceeds the budget; split the task", 409, "context_too_large")
-            remaining = self.settings.max_context_chars - len(json.dumps(context))
+            remaining = self.settings.max_context_chars - len(json.dumps(model_packet(context)))
             excerpts = []
             for source in sources[:3] if automatic else sources:
                 text = source.text[:1200] if automatic else source.text
@@ -222,8 +259,8 @@ class EngineeringEngine:
             context["sourceExcerpts"] = excerpts
             context["manifest"] = context_manifest(context)
             for _ in range(3):
-                context["manifest"]["inputCharacterCount"] = len(json.dumps(context))
-            if len(json.dumps(context)) > self.settings.max_context_chars:
+                context["manifest"]["inputCharacterCount"] = len(json.dumps(model_packet(context)))
+            if len(json.dumps(model_packet(context))) > self.settings.max_context_chars:
                 raise DomainError("Context manifest exceeds the budget; split the task", 409, "context_too_large")
             attempt = Attempt(id=uid(), tenant_id=task.tenant_id, task_id=task.id,
                               number=task.attempt_count, fence=task.fence,
@@ -231,6 +268,18 @@ class EngineeringEngine:
                               model=choice["model"], context=context)
             session.add(attempt)
             task.status = "running"
+            session.flush()
+            missing = [file for file in base_files if file["name"] not in {a.name for a in current}]
+            if missing:
+                self._store_candidate(attempt.id, AgentOutput(summary="Qualified starter sources", files=[
+                    GeneratedFile(path=file["name"], content=file["content"], media_type=file["mediaType"])
+                    for file in missing]), _session=session, _provenance={
+                        "origin": "qualifiedTemplate", "provider": None, "model": None,
+                        "templateId": missing[0]["templateId"],
+                        "templateManifestSha256": missing[0]["templateManifestSha256"]})
+            attempt.context = {**attempt.context, "manifest": context_manifest(attempt.context)}
+            if len(json.dumps(model_packet(attempt.context))) > self.settings.max_context_chars:
+                raise DomainError("Source manifest exceeds the context budget; split the task", 409, "context_too_large")
             emit(session, project, "task.started", {
                 "runId": run.id, "taskId": task.id, "attemptId": attempt.id, "lane": task.lane,
                 "provider": attempt.provider, "model": attempt.model, "policyRevision": attempt.policy_revision,
@@ -323,12 +372,14 @@ class EngineeringEngine:
 
     async def run_task(self, task_id):
         attempt_id = None
+        session_job = None
         provider = "unknown"
         try:
             # Task kind is immutable. Deterministic native work must not embed a retrieval query.
             with self.db.transaction(read_only=True) as session:
                 task = session.get(Task, task_id)
                 task_kind = task.kind
+                task_lane = task.lane
                 lean_planning = task_kind == "project.capture" or (task_kind == "project.requestReview" and task.result.get("autoPlanning"))
             retrieved = None if lean_planning or task_kind in {"project.retryNative", "project.verify"} else await self.retrieve_context(task_id)
             attempt_id = self.begin_attempt(task_id, retrieved)
@@ -339,6 +390,24 @@ class EngineeringEngine:
                 return self.request_native(attempt_id, "validate")
             if kind == "project.retryNative":
                 return self.request_native(attempt_id, "build")
+            session_supported = _session_runtime_supported(task_lane, context)
+            if kind in {"project.generate", "project.repair", "project.pivot"} and not session_supported:
+                with self.db.transaction(read_only=True) as session:
+                    previous_session = session.scalar(select(NativeJob).where(
+                        NativeJob.attempt_id == attempt_id, NativeJob.purpose == "session"))
+                if previous_session or context.get("nativeSession"):
+                    # An attempt has one native job identity. Never reinterpret
+                    # an older, unsupported session as a classic build or bill
+                    # another SDK call while recovering that incompatible job.
+                    session_job = previous_session.id if previous_session else None
+                    raise DomainError("This tool's session runtime is not qualified; retry in a new engineering attempt",
+                                      409, "tool_session_unqualified")
+            if (self.settings.native_sessions_enabled and self.session_bridge
+                    and kind in {"project.generate", "project.repair", "project.pivot"}
+                    and session_supported):
+                session_job = self.open_session(attempt_id)
+                await self.session_bridge.await_ready(session_job)
+                context = self.attempt_input(attempt_id)[0]
             invocation_id, output = await self.reserve_when_available(attempt_id)
             if output is None:
                 with tracer.start_as_current_span("model.generate", record_exception=False,
@@ -353,16 +422,24 @@ class EngineeringEngine:
                 output = result.model_dump(mode="json")
                 self.complete_invocation(invocation_id, output, usage, transcript)
             self.store_candidate(attempt_id, AgentOutput.model_validate(output))
+            if session_job:
+                self.session_bridge.finish(attempt_id, session_job)
+                self.session_waiting(attempt_id, session_job)
+                return session_job
             if kind == "project.research" and self.research:
                 output = {**output, "sourceRecords": await self.collect_sources(attempt_id, output.get("sources", []))}
             if kind in {"project.generate", "project.repair", "project.pivot"}:
                 return self.request_native(attempt_id, "build")
             self.finish_attempt(attempt_id, output)
         except DomainError as exc:
+            if session_job:
+                self.execution.cancel_session(session_job)
             if attempt_id:
                 self.mark_invocation_uncertain(attempt_id, exc.code)
             self.block_task(task_id, attempt_id, exc.message)
         except Exception as exc:
+            if session_job:
+                self.execution.cancel_session(session_job)
             # Do not put provider HTTP bodies, headers or credentials into activity.
             frames = [{"file": f.filename.rsplit("/", 1)[-1], "line": f.lineno, "function": f.name}
                       for f in traceback.extract_tb(exc.__traceback__)]
@@ -375,6 +452,35 @@ class EngineeringEngine:
                 self.mark_invocation_uncertain(attempt_id, type(exc).__name__)
             self.block_task(task_id, attempt_id,
                             f"{type(exc).__name__}{detail}: execution interrupted; retry or switch provider")
+
+    @DBOS.step()
+    def open_session(self, attempt_id):
+        job_id = self.execution.submit(attempt_id, "session")
+        with self.db.transaction() as session:
+            attempt = session.get(Attempt, attempt_id)
+            task = session.get(Task, attempt.task_id)
+            project = get_project(session, task.project_id)
+            self._fresh(session, task, attempt, project)
+            limits = session_limits(session.get(NativeJob, job_id), self.settings)
+            previous = attempt.context.get("nativeSession", {})
+            spend_cap = min(self.settings.native_session_max_spend_usd, self.settings.invocation_reservation_usd)
+            attempt.context = {**attempt.context, "nativeSession": {
+                "attemptId": attempt.id, "jobId": job_id, **limits,
+                "maxSpendUsd": min(spend_cap, previous.get("maxSpendUsd", spend_cap))}}
+        return job_id
+
+    @DBOS.step()
+    def session_waiting(self, attempt_id, job_id):
+        with self.db.transaction() as session:
+            job = session.get(NativeJob, job_id)
+            if job.status in {"succeeded", "failed", "unsupported", "cancelled"}:
+                return
+            attempt = session.get(Attempt, attempt_id)
+            task = session.get(Task, attempt.task_id)
+            project = get_project(session, task.project_id)
+            self._fresh(session, task, attempt, project)
+            attempt.status = task.status = "waiting"
+            emit(session, project, "task.waiting", {"taskId": task.id, "reason": "session_result"})
 
     @DBOS.step()
     def mark_invocation_uncertain(self, attempt_id, failure_type):
@@ -450,12 +556,22 @@ class EngineeringEngine:
             self.store.put_json(key, redact({"output": output, "messages": messages}))
             # Until a billing reconciliation is available, retain a conservative allowance debit.
             reserved = invocation.reserved_usd
-            amount = max(reserved, usage.get("estimatedUsd") or 0)
+            # estimatedUsd covers tokens plus search; unpriced models still owe the search fee.
+            amount = max(reserved, usage.get("estimatedUsd") or usage.get("searchUsd") or 0)
             daily = session.get(DailyBudget, invocation.usage["reservationDay"])
             project.reserved_usd = max(0, project.reserved_usd - reserved)
             project.spent_usd += amount
             daily.reserved, daily.spent = max(0, daily.reserved - reserved), daily.spent + amount
             invocation.status, invocation.output, invocation.transcript_key = "succeeded", output, key
+            if usage.get("fallbackFrom"):
+                # Records, artifact provenance and native retries must name the model that actually answered.
+                attempt = session.get(Attempt, invocation.attempt_id)
+                invocation.provider = attempt.provider = usage["provider"]
+                invocation.model = attempt.model = usage["model"]
+                emit(session, project, "model.providerFallback", {
+                    "invocationId": invocation.id, "attemptId": attempt.id,
+                    "from": usage["fallbackFrom"], "provider": invocation.provider, "model": invocation.model,
+                    "appliesTo": "this_attempt_only"})
             invocation.estimated_usd = usage.get("estimatedUsd") if usage.get("estimatedUsd") is not None else amount
             invocation.usage = {**invocation.usage, **usage, "costBasis": "conservative_reservation",
                                 "allowanceDebitUsd": amount}
@@ -463,26 +579,52 @@ class EngineeringEngine:
                                                       "allowanceDebitUsd": amount})
 
     @DBOS.step()
-    def store_candidate(self, attempt_id, output, _session=None, _provenance=None):
+    def store_candidate(self, attempt_id, output, _session=None, _provenance=None, _source_hashes=None, _dependencies=None):
+        return self._store_candidate(attempt_id, output, _session, _provenance, _source_hashes, _dependencies)
+
+    def _store_candidate(self, attempt_id, output, _session=None, _provenance=None, _source_hashes=None, _dependencies=None):
+        # Also used inside begin_attempt's existing durable transaction for templates.
         with (nullcontext(_session) if _session else self.db.transaction()) as session:
             attempt = session.get(Attempt, attempt_id)
             task = session.get(Task, attempt.task_id)
             project = get_project(session, task.project_id)
             self._fresh(session, task, attempt, project)
             retry_sources = {ref["id"] for ref in attempt.context.get("nativeRetry", {}).get("inputArtifacts", [])}
-            if output.files or task.lane in {"research", "coordination", "review"}:
-                for previous in session.scalars(select(Artifact).where(
-                        Artifact.project_id == project.id, Artifact.revision == task.revision,
-                        Artifact.lane == task.lane, Artifact.attempt_id != attempt.id,
-                        Artifact.status != "stale")):
-                    if previous.id not in retry_sources:
-                        previous.status = "stale"
+            names = {file.path for file in output.files}
+            if len(names) != len(output.files):
+                raise DomainError("Candidate contains duplicate file paths", 422)
+            for previous in session.scalars(select(Artifact).where(
+                    Artifact.project_id == project.id, Artifact.revision == task.revision,
+                    Artifact.lane == task.lane, Artifact.status != "stale")):
+                # Edits replace only matching paths; unchanged source bytes and
+                # their original attribution survive across attempts. Older
+                # build products cannot remain current after a source edit.
+                if previous.id in retry_sources:
+                    continue
+                same_attempt = previous.attempt_id == attempt.id
+                if previous.name in names or (not same_attempt and (
+                        not is_source(previous) or task.lane in {"research", "coordination", "review"})):
+                    if previous.name in names:
+                        file = next(f for f in output.files if f.path == previous.name)
+                        raw = base64.b64decode(file.content, validate=True) if file.encoding == "base64" else file.content.encode()
+                        if digest(raw) == previous.sha256:
+                            continue
+                    previous.status = "stale"
             for file in output.files:
                 content = (base64.b64decode(file.content, validate=True)
                            if file.encoding == "base64" else file.content.encode())
-                key = artifact_key(task.tenant_id, task.project_id, attempt.id, file.path, content)
-                if session.scalar(select(Artifact.id).where(Artifact.key == key)):
+                existing = session.scalar(select(Artifact).where(
+                    Artifact.project_id == project.id, Artifact.revision == task.revision,
+                    Artifact.lane == task.lane, Artifact.name == file.path,
+                    Artifact.status.in_(["candidate", "accepted"])))
+                if existing and existing.sha256 == digest(content):
                     continue
+                key = artifact_key(task.tenant_id, task.project_id, attempt.id, file.path, content)
+                recorded = session.scalar(select(Artifact).where(Artifact.key == key))
+                if recorded:
+                    recorded.status = "candidate"
+                    continue
+                role = ("source" if (_source_hashes or {}).get(file.path) == digest(content) else "output")
                 self.store.put(key, content, file.media_type)
                 artifact = Artifact(id=uid(), tenant_id=task.tenant_id, project_id=task.project_id,
                                     task_id=task.id, attempt_id=attempt.id, revision=task.revision, lane=task.lane,
@@ -495,12 +637,18 @@ class EngineeringEngine:
                                                     attempt.context["engineeringTool"].items() if key in
                                                     {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}
                                                    if attempt.context.get("engineeringTool") else {}),
-                                                **(_provenance or {})},
-                                    dependencies=(attempt.context["nativeRetry"]["inputArtifacts"] if retry_sources
+                                                **(_provenance or {}),
+                                                **({"artifactRole": role} if (_provenance or {}).get("nativeJobId") else {})},
+                                    dependencies=(_dependencies if _dependencies is not None else
+                                                  attempt.context["nativeRetry"]["inputArtifacts"] if retry_sources
                                                   else attempt.context["inputArtifacts"]))
                 session.add(artifact)
                 emit(session, project, "artifact.created", {"artifactId": artifact.id, "name": file.path,
                                                            "sha256": artifact.sha256, "lane": task.lane})
+            session.flush()
+            if task.lane in ENGINEERING_LANES and task.kind != "project.retryNative":
+                attempt.context = {**attempt.context, "sourceArtifacts": [reference(a) for a in
+                    current_sources(session, project, task.lane)]}
             # Large file bodies live in immutable storage, never in workspace responses.
             metadata = output.model_dump(mode="json", exclude={"files"})
             metadata["files"] = [{"path": f.path, "mediaType": f.media_type} for f in output.files]
@@ -532,6 +680,8 @@ class EngineeringEngine:
             project = get_project(session, task.project_id)
             session.refresh(job)
             self._fresh(session, task, attempt, project)
+            if job.status == "cancelled":
+                raise DomainError("Native job was cancelled; late results cannot publish", 409, "stale_attempt")
             if job.status in {"succeeded", "failed", "unsupported"}:
                 return
             if job.purpose == "validate":
@@ -558,19 +708,44 @@ class EngineeringEngine:
             log_hash = digest(json.dumps(log_content, sort_keys=True, default=str).encode())
             result_key = f"logs/{project.tenant_id}/{project.id}/{job.id}/{log_hash}.json"
             self.store.put_json(result_key, log_content)
-            job.status, job.result = result.status, {"status": result.status, "logKey": result_key,
-                                                   "limitations": result.limitations}
+            job.status, job.result = result.status, {**job.result, "status": result.status, "logKey": result_key,
+                                                   "limitations": result.limitations,
+                                                   "resourceUsage": result.measurements.get("resourceUsage", {}),
+                                                   "executionSeconds": result.measurements.get("executionSeconds")}
+            resource_usage = result.measurements.get("resourceUsage", {})
+            for key, name, unit in [("memoryPeakBytes", "NativeMemoryPeakBytes", "Bytes"),
+                                    ("cpuUsageSeconds", "NativeCpuUsageSeconds", "Seconds")]:
+                value = resource_usage.get(key)
+                if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value < 1e18:
+                    metric(name, value, unit=unit, Lane=task.lane)
             reservation = job.request.get("reservation", {})
             settle_native_reservation(session, job, project, refund=not reservation.get("dispatchAttempted", True))
             emit(session, project, "native.completed", {"jobId": job.id, "status": result.status})
             if result.files:
-                self.store_candidate(job.attempt_id, AgentOutput(summary="Native outputs", files=result.files),
-                                     _session=session, _provenance={"nativeJobId": job.id,
-                                                                 **({"engineeringTool": {
-                                                                     key: value for key, value in job.request["engineeringTool"].items()
-                                                                     if key in {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}
-                                                                    if job.request.get("engineeringTool") else {}),
-                                                                 "toolVersion": job.request["toolVersion"]})
+                provenance = {"nativeJobId": job.id, "toolVersion": job.request["toolVersion"],
+                    **({"engineeringTool": {key: value for key, value in job.request["engineeringTool"].items()
+                        if key in {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}
+                       if job.request.get("engineeringTool") else {})}
+                hashes = result.measurements.get("nativeSession", {}).get("sourceHashes", {}) if job.purpose == "session" else {}
+                sources, products = [], []
+                for file in result.files:
+                    raw = base64.b64decode(file.content, validate=True) if file.encoding == "base64" else file.content.encode()
+                    (sources if hashes.get(file.path) == digest(raw) else products).append(file)
+                if sources:
+                    self.store_candidate(job.attempt_id, NativeCandidate(summary="Native session sources", files=sources),
+                        _session=session, _source_hashes=hashes, _provenance=provenance,
+                        _dependencies=job.request["inputArtifacts"])
+                # Products depend on the bytes actually built, including patches
+                # committed above, rather than the source from before generation.
+                dependencies = ([reference(a) for a in current_sources(session, project, task.lane)]
+                                if job.purpose == "session" else job.request["inputArtifacts"])
+                if products:
+                    self.store_candidate(job.attempt_id, NativeCandidate(summary="Native outputs", files=products),
+                        _session=session, _provenance=provenance, _dependencies=dependencies)
+            if job.purpose in {"build", "session"}:
+                session.flush()
+                job.result = {**job.result, "sourceArtifacts": [reference(a) for a in
+                    current_sources(session, project, task.lane)]}
             if result.status != "succeeded":
                 self.block_task(task.id, attempt.id,
                                 "; ".join(result.limitations) or "Native execution did not pass", _session=session)

@@ -14,10 +14,20 @@ from .contracts import DomainError, EngineeringToolChoice, EngineeringToolDefini
 
 DEFAULT_TOOL_POLICY = {
     "mechanics": {"id": "build123d", "version": "1"},
-    "electronics": {"id": "atopile-kicad", "version": "1"},
+    "electronics": {"id": "atopile-kicad", "version": "2"},
 }
 
 BUILTINS = [
+    EngineeringToolDefinition(
+        id="atopile-kicad", version="2", name="KiCad circuit compiler", lane="electronics", runner="kicad",
+        sourceContract="The accepted interfaces.circuit JSON is the source. Do not generate schematic or PCB text. "
+        "The fixed compiler selects only image-vetted symbol/footprint pairs, places accepted electronics.placements "
+        "inside electronics.boardMm (or the PCB mechanical envelope), exports DSN, runs pinned Freerouting, "
+        "imports SES, then runs ERC/DRC and exports Gerbers/drills. Return files=[]; missing parts or placement "
+        "constraints require an interface decision. Other generators remain separately selectable.",
+        outputFiles=["outputs/circuit.kicad_pcb", "outputs/circuit.kicad_sch", "outputs/gerbers/*"], qualified=True,
+        qualificationReference="builtin:circuit-compiler-kicad9-freerouting2.1-v1",
+        limitations=["Initial vetted catalog covers passives, LEDs and pin headers; new parts require operator qualification."]),
     EngineeringToolDefinition(
         id="build123d", version="1", name="build123d", lane="mechanics", runner="build123d",
         sourceContract="Produce enclosure.py defining a build123d Shape named assembly, in millimetres. "

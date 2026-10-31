@@ -78,27 +78,62 @@ resource "aws_iam_role_policy" "control" {
       Condition = { StringEquals = { "ecs:CreateAction" = "RunTask" } } }
   ] : statement if length(var.native_images) + length(var.recovery_task_definition_arns) > 0]) })
 }
+locals {
+  # One version-controlled source is loaded by Terraform and backend Settings.
+  native_resource_defaults = jsondecode(file("${path.module}/../backend/kleos/native-resources.json"))
+  native_resource_profiles = merge(local.native_resource_defaults, var.native_resource_overrides)
+  native_task_resources = {
+    for key in keys(var.native_images) : key => lookup(local.native_resource_profiles, key, local.native_resource_profiles._default)
+  }
+  # Deliberately qualify a bounded subset of Linux Fargate task sizes.
+  fargate_memory_mib = {
+    "256"   = [512, 1024, 2048]
+    "512"   = range(1024, 4097, 1024)
+    "1024"  = range(2048, 8193, 1024)
+    "2048"  = range(4096, 16385, 1024)
+    "4096"  = range(8192, 30721, 1024)
+    "8192"  = range(16384, 61441, 4096)
+    "16384" = range(32768, 122881, 8192)
+  }
+  native_resource_profiles_valid = alltrue([for profile in values(local.native_resource_profiles) : try(
+    toset(keys(profile)) == toset(["cpuUnits", "memoryMiB", "tmpMiB", "pidsLimit", "ephemeralStorageGiB"]) &&
+    alltrue([for value in values(profile) : value > 0 && floor(value) == value]) &&
+    contains(lookup(local.fargate_memory_mib, tostring(profile.cpuUnits), []), profile.memoryMiB) &&
+    profile.tmpMiB <= profile.memoryMiB && profile.pidsLimit >= 32 && profile.pidsLimit <= 1024 &&
+    profile.ephemeralStorageGiB >= 21 && profile.ephemeralStorageGiB <= 200,
+    false
+  )])
+}
 resource "aws_ecs_task_definition" "native" {
   for_each                 = var.native_images
   family                   = contains(["mechanics", "electronics", "firmware", "application", "validate"], each.key) ? "${var.name}-native-${each.key}" : "${var.name}-tool-${replace(each.key, "/[^a-zA-Z0-9_-]/", "-")}-${substr(sha256(each.key), 0, 8)}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 4096
-  memory                   = 16384
+  cpu                      = tostring(local.native_task_resources[each.key].cpuUnits)
+  memory                   = tostring(local.native_task_resources[each.key].memoryMiB)
   execution_role_arn       = aws_iam_role.native_execution.arn
   # No task_role_arn: generated code has no AWS identity.
-  ephemeral_storage { size_in_gib = 40 }
+  ephemeral_storage { size_in_gib = local.native_task_resources[each.key].ephemeralStorageGiB }
+  lifecycle {
+    precondition {
+      condition     = local.native_resource_profiles_valid
+      error_message = "Shared and overridden native resource profiles must use supported Fargate sizes and bounded scratch/process/storage values."
+    }
+  }
   runtime_platform {
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
   container_definitions = jsonencode([{
     name = "native", image = each.value, essential = true,
-    user = "0", readonlyRootFilesystem = each.key != "application",
+    user = "0", readonlyRootFilesystem = true,
     # Fargate only permits adding SYS_PTRACE; retain the default UID-switching capabilities.
     linuxParameters = { capabilities = { add = [], drop = ["NET_RAW", "SYS_CHROOT", "MKNOD", "SETFCAP", "AUDIT_WRITE", "SETPCAP", "NET_BIND_SERVICE"] } },
-    environment     = [], portMappings = [], volumesFrom = [], systemControls = [],
-    mountPoints     = [{ sourceVolume = "work", containerPath = "/tmp", readOnly = false }],
+    # Fargate has no Docker PidsLimit/tmpfs setting. nproc and the generated UID's
+    # supervisor limit bound processes; /tmp uses the task's ephemeral volume.
+    ulimits     = [{ name = "nproc", softLimit = local.native_task_resources[each.key].pidsLimit, hardLimit = local.native_task_resources[each.key].pidsLimit }],
+    environment = [], portMappings = [], volumesFrom = [], systemControls = [],
+    mountPoints = [{ sourceVolume = "work", containerPath = "/tmp", readOnly = false }],
     logConfiguration = { logDriver = "awslogs", options = merge(local.log_options, {
       "awslogs-stream-prefix" = "native-${each.key}"
     }) }
@@ -108,31 +143,37 @@ resource "aws_ecs_task_definition" "native" {
 
 locals {
   runtime_env = {
-    KLEOS_ENVIRONMENT          = var.environment
-    KLEOS_DEMO_MODE            = "true"
-    KLEOS_AUTH_MODE            = "password"
-    KLEOS_STORAGE_BACKEND      = "s3"
-    KLEOS_ARTIFACT_BUCKET      = aws_s3_bucket.artifacts.id
-    KLEOS_AWS_REGION           = var.region
-    KLEOS_FRONTEND_URL         = var.frontend_url
-    KLEOS_CORS_ORIGINS         = jsonencode([var.frontend_url])
-    KLEOS_QDRANT_URL           = "http://qdrant.${var.base_domain}:6333"
-    KLEOS_ECS_CLUSTER          = aws_ecs_cluster.main.arn
-    KLEOS_ECS_SUBNETS          = jsonencode(aws_subnet.native[*].id)
-    KLEOS_ECS_SECURITY_GROUPS  = jsonencode([aws_security_group.native.id])
-    KLEOS_ECS_TASK_DEFINITIONS = jsonencode({ for key, value in aws_ecs_task_definition.native : key => value.arn })
-    KLEOS_ENGINEERING_TOOLS    = jsonencode(var.engineering_tools)
-    KLEOS_EXECUTION_BACKEND    = length(var.native_images) + length(var.recovery_task_definition_arns) > 0 ? "ecs" : "disabled"
-    KLEOS_INTERNAL_BASE_URL    = "https://${local.jobs_hostname}"
-    KLEOS_SQS_COMPLETION_QUEUE = aws_sqs_queue.completions.url
-    KLEOS_PROJECT_BUDGET_USD   = tostring(var.project_budget_usd)
-    KLEOS_DAILY_BUDGET_USD     = tostring(var.daily_budget_usd)
-    KLEOS_CONDUCTOR_URL        = local.conductor_enabled ? "wss://${local.jobs_hostname}/" : ""
-    KLEOS_OTLP_ENDPOINT        = "http://localhost:4318/v1/traces"
+    KLEOS_ENVIRONMENT                 = var.environment
+    KLEOS_DEMO_MODE                   = "true"
+    KLEOS_AUTH_MODE                   = "password"
+    KLEOS_STORAGE_BACKEND             = "s3"
+    KLEOS_ARTIFACT_BUCKET             = aws_s3_bucket.artifacts.id
+    KLEOS_AWS_REGION                  = var.region
+    KLEOS_FRONTEND_URL                = var.frontend_url
+    KLEOS_CORS_ORIGINS                = jsonencode([var.frontend_url])
+    KLEOS_QDRANT_URL                  = "http://qdrant.${var.base_domain}:6333"
+    KLEOS_ECS_CLUSTER                 = aws_ecs_cluster.main.arn
+    KLEOS_ECS_SUBNETS                 = jsonencode(aws_subnet.native[*].id)
+    KLEOS_ECS_SECURITY_GROUPS         = jsonencode([aws_security_group.native.id])
+    KLEOS_ECS_TASK_DEFINITIONS        = jsonencode({ for key, value in aws_ecs_task_definition.native : key => value.arn })
+    KLEOS_NATIVE_RESOURCE_PROFILES    = jsonencode(local.native_resource_profiles)
+    KLEOS_MAX_NATIVE_JOBS             = tostring(var.max_native_jobs)
+    KLEOS_MAX_NATIVE_JOBS_PER_PROJECT = tostring(var.max_native_jobs_per_project)
+    KLEOS_NATIVE_JOB_RESERVATION_USD  = tostring(var.native_job_reservation_usd)
+    KLEOS_ENGINEERING_TOOLS           = jsonencode(var.engineering_tools)
+    KLEOS_NATIVE_SESSIONS_ENABLED     = tostring(var.native_sessions_enabled)
+    KLEOS_EXECUTION_BACKEND           = length(var.native_images) + length(var.recovery_task_definition_arns) > 0 ? "ecs" : "disabled"
+    KLEOS_INTERNAL_BASE_URL           = "https://${local.jobs_hostname}"
+    KLEOS_SQS_COMPLETION_QUEUE        = aws_sqs_queue.completions.url
+    KLEOS_PROJECT_BUDGET_USD          = tostring(var.project_budget_usd)
+    KLEOS_DAILY_BUDGET_USD            = tostring(var.daily_budget_usd)
+    KLEOS_CONDUCTOR_URL               = local.conductor_enabled ? "wss://${local.jobs_hostname}/" : ""
+    KLEOS_OTLP_ENDPOINT               = "http://localhost:4318/v1/traces"
   }
   runtime_secret_keys = [
     "KLEOS_DATABASE_URL", "KLEOS_DBOS_DATABASE_URL", "KLEOS_SESSION_KEY",
     "KLEOS_META_API_KEY", "KLEOS_GEMINI_API_KEY", "KLEOS_CONDUCTOR_KEY",
+    "KLEOS_MODAL_LLM_URL", "KLEOS_MODAL_LLM_KEY",
     "KLEOS_DIGIKEY_CLIENT_ID", "KLEOS_DIGIKEY_CLIENT_SECRET", "KLEOS_WEBHOOK_SECRETS",
     "MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"
   ]
@@ -191,7 +232,14 @@ resource "aws_ecs_service" "control" {
       container_port   = 8000
     }
   }
-  depends_on = [aws_lb_listener.api, aws_lb_listener.internal]
+  depends_on = [
+    aws_lb_listener.api, aws_lb_listener.internal, aws_route53_record.jobs,
+    aws_route53_resolver_firewall_rule_group_association.native,
+    aws_route.native_callback, aws_route_table.private, aws_route_table_association.native,
+    aws_security_group_rule.native_callback, aws_vpc_security_group_ingress_rule.internal_native,
+    aws_security_group_rule.native_endpoints, aws_security_group_rule.native_s3_image_layers,
+    aws_vpc_endpoint.s3
+  ]
   lifecycle {
     # CI owns release revisions; provisioning must not roll a service back.
     ignore_changes = [task_definition]

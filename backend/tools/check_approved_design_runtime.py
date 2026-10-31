@@ -13,7 +13,7 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     image_id = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', args.image], text=True).strip()
-    command = ['docker', 'run', '--rm', '--pull', 'never', '--platform', 'linux/amd64', '--network', 'none',
+    command = ['docker', 'run', '--rm', '--pull', 'never', '--platform', 'linux/amd64', '--network', 'none', '--env', 'KLEOS_NATIVE_DOCKER_NETWORK_NONE=1',
         '--read-only', '--memory', '2g', '--cpus', '2', '--pids-limit', '256',
         '--tmpfs', '/tmp:rw,exec,nosuid,size=1073741824', '--cap-drop', 'ALL',
         '--cap-add', 'CHOWN', '--cap-add', 'SETUID', '--cap-add', 'SETGID', '--cap-add', 'KILL', '--cap-add', 'DAC_OVERRIDE',

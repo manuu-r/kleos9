@@ -128,3 +128,16 @@ def test_zero_budget_does_not_suppress_the_bounded_automatic_repair_path(platfor
     with platform.db.transaction() as session:
         assert session.get(Task, task).status == "queued"
         assert session.scalar(select(Outbox).where(Outbox.key.like("repair:%")))
+
+
+def test_a_fallback_answer_is_recorded_against_the_model_that_gave_it(platform):
+    enable(platform)
+    _, _, task, worker = start_research(platform)
+    attempt = worker.begin_attempt(task)
+    invocation, _ = worker.reserve_invocation(attempt)
+    fallback = {"provider": "meta", "model": "muse-spark-1.3",
+                "fallbackFrom": {"provider": "modal", "model": "open", "reason": "rate_limited"}}
+    worker.complete_invocation(invocation, {"summary": "result"}, fallback, "{}")
+    with platform.db.transaction() as session:
+        for row in (session.get(Invocation, invocation), session.get(Attempt, attempt)):
+            assert (row.provider, row.model) == ("meta", "muse-spark-1.3")

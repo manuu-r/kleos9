@@ -97,8 +97,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Muse'), findsWidgets);
-    expect(find.text('Gemini'), findsWidgets);
-    await tester.tap(find.text('Use Gemini for all lanes'));
+    expect(find.text('Muse on Modal'), findsWidgets);
+    await tester.tap(find.text('Use gemini-3.8-flash for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));
@@ -126,8 +126,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Real build'), findsOneWidget);
-    await tester.ensureVisible(find.text('Use Gemini for all lanes'));
-    await tester.tap(find.text('Use Gemini for all lanes'));
+    await tester.ensureVisible(find.text('Use gemini-3.8-flash for all lanes'));
+    await tester.tap(find.text('Use gemini-3.8-flash for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));

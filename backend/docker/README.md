@@ -24,14 +24,19 @@ only to drop generated subprocesses to UID 10001. Its task has no AWS task role,
 no provider credentials, no database access, and no outbound internet route.
 Do not run the native runner directly on a development host. The token permits
 reading exactly one job's pinned artifact closure and submitting one candidate
-result. It cannot accept a release.
+result. In session mode it also polls and completes that job's bounded tool steps;
+the trusted worker chooses those steps. It cannot accept a release.
 
 The application build is offline. Pre-cache any selected Flutter template's
 dependencies in the image; arbitrary generated package dependencies remain
 unsupported. The firmware profile uses the GNU Arm Embedded toolchain and a
 pinned Zephyr tree. Board and peripheral support must be qualified separately.
-See templates/ELECTRONICS.md for the pinned atopile configuration, required
-exports and the explicit circuit-correspondence qualification blocker.
+The default `atopile-kicad@2` profile compiles accepted `interfaces.circuit` into
+KiCad sources/placement, routes with pinned Freerouting, then runs ERC/DRC and
+manufacturing exports. Its vetted catalog initially covers passives, LEDs and
+pin headers. Unsupported parts and incomplete contracts stay blocked.
+See [electronics contracts](templates/ELECTRONICS.md) for this scope and the
+separate legacy `atopile-kicad@1` source workflow.
 An accepted watch-telemetry-v1 scope enables bounded independent C/Dart protocol
 tests alongside real compiled outputs. Templates and the exact API contract are
 in templates/watch-telemetry-v1. BLE, sensor/display and physical validation remain
@@ -96,10 +101,22 @@ fence, uses a separate 0700 control directory, and returns a supervisor-written
 result bound to the request hash. Generated UID 10001 cannot modify that directory.
 Admission, cancellation, budget and release gates remain the same as AWS.
 
-Local jobs use 1 CPU, 1 GiB memory and 256 processes; build parallelism is bounded.
+New local jobs pin per-image CPU, memory, temporary storage and process ceilings
+from `kleos/native-resources.json`. Defaults range from 1 CPU/2 GiB for CAD to
+4 CPUs/8 GiB for Android, with 256 processes; build parallelism is bounded.
+Global and per-project admission limits are independent. Existing jobs retain
+their original pinned resources. See [native capacity](../../infra/native-capacity.md).
+Application jobs use a private disposable disk volume for `/tmp` so Android's
+toolchain copies do not consume several GiB of RAM. Docker removes this anonymous
+scratch volume during job cleanup; it has no hard disk quota. Other lanes retain
+their bounded tmpfs. The application root remains read-only.
 An out-of-memory result remains a visible resource failure. Other projects or
 containers are not stopped to obtain memory. Missing tool images return an explicit
 unavailable error; their configured names do not imply qualification.
+
+The application image includes the pinned BLE dependencies and offline Android
+toolchain described in [android-toolchain.md](android-toolchain.md). APKs use a
+public development certificate. iOS delivery remains source-only.
 
 Build the native targets one at a time and run their actual fixtures before use.
 The local CAD refresh Dockerfile may reuse the previously inspected qualified CAD

@@ -91,6 +91,10 @@ def _another_native_attempt(execution):
     body = b"assembly = None"
     execution.store.put("second/enclosure.py", body)
     with execution.db.transaction() as session:
+        # A new edit supersedes the old source path, while cancellation still
+        # holds native capacity until actual task termination is observed.
+        for artifact in session.scalars(select(Artifact).where(Artifact.project_id == "project")):
+            artifact.status = "stale"
         session.add(Run(id="run-2", tenant_id="org", project_id="project", command_id="command-2", kind="build", revision=1))
         session.add(Task(id="task-2", tenant_id="org", project_id="project", run_id="run-2",
                          lane="mechanics", kind="build", revision=1, fence=1))

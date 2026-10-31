@@ -134,12 +134,12 @@ async def main():
                     raise RuntimeError("Local API is not ready")
                 await asyncio.sleep(1)
             catalog = await get("/api/v1/model-catalog")
-            model = next(item for item in catalog["models"] if item["provider"] == "google")
-            record("Gemini configured", model["configured"], model=model["model"])
+            model = next(item for item in catalog["models"] if item["provider"] == "meta")
+            record("Muse Model API configured", model["configured"], model=model["model"])
             record("Unauthorized requests rejected", (await client.get("/api/v1/projects",
                    headers={"Authorization": "Bearer invalid-fixture-token"})).status_code == 401)
             if args.phase == "foundation":
-                policy = {lane.value: {"provider": "google", "model": model["model"]} for lane in Lane}
+                policy = {lane.value: {"provider": "meta", "model": model["model"]} for lane in Lane}
                 if project is None:
                     receipt = await command("project.create", {"brief": args.brief.read_text(), "modelPolicy": policy}, duplicate=True)
                     project = receipt["projectId"]

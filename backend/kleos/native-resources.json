@@ -1,0 +1,8 @@
+{
+  "_default": {"cpuUnits": 2048, "memoryMiB": 4096, "tmpMiB": 2048, "pidsLimit": 256, "ephemeralStorageGiB": 40},
+  "mechanics": {"cpuUnits": 1024, "memoryMiB": 2048, "tmpMiB": 1024, "pidsLimit": 256, "ephemeralStorageGiB": 40},
+  "electronics": {"cpuUnits": 2048, "memoryMiB": 4096, "tmpMiB": 2048, "pidsLimit": 256, "ephemeralStorageGiB": 40},
+  "firmware": {"cpuUnits": 2048, "memoryMiB": 4096, "tmpMiB": 2048, "pidsLimit": 256, "ephemeralStorageGiB": 40},
+  "application": {"cpuUnits": 4096, "memoryMiB": 8192, "tmpMiB": 6144, "pidsLimit": 256, "ephemeralStorageGiB": 40},
+  "validate": {"cpuUnits": 2048, "memoryMiB": 4096, "tmpMiB": 2048, "pidsLimit": 256, "ephemeralStorageGiB": 40}
+}

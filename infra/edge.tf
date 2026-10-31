@@ -10,7 +10,7 @@ resource "aws_lb" "internal" {
   name               = "${var.name}-jobs"
   internal           = true
   load_balancer_type = "application"
-  subnets            = aws_subnet.native[*].id
+  subnets            = aws_subnet.private[*].id
   security_groups    = [aws_security_group.internal_lb.id]
   idle_timeout       = 120
 }

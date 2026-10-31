@@ -14,7 +14,10 @@ from kleos.storage import ArtifactStore
 @pytest.fixture
 def platform(tmp_path):
     settings = Settings(
-        environment="test", auth_mode="development", development_no_login=False, development_token="test-token-not-for-deployment",
+        _env_file=None, environment="test", auth_mode="development", development_no_login=False,
+        development_token="test-token-not-for-deployment",
+        meta_api_key="fixture", gemini_api_key="fixture", modal_llm_url=None, modal_llm_key=None,
+        default_model_provider=None,
         database_url=f"sqlite:///{tmp_path / 'db.sqlite'}", local_artifact_dir=tmp_path / "artifacts",
         project_budget_usd=10, daily_budget_usd=100,
     )

@@ -31,7 +31,7 @@ RUN git clone --depth 1 --branch ${ZEPHYR_VERSION} https://github.com/zephyrproj
 # this additive layer separate so an existing toolchain need not reclone Zephyr.
 RUN cd /opt/zephyrproject && west update --narrow --fetch-opt=--depth=1 hal_nordic
 
-FROM base AS application-toolchain
+FROM base AS application-sdk-toolchain
 ARG FLUTTER_VERSION=3.35.4
 ENV PUB_CACHE=/opt/pub-cache
 RUN pip install --no-cache-dir "PyYAML==6.0.3"
@@ -41,12 +41,64 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl git unzip 
     && /opt/flutter/bin/flutter config --no-analytics --enable-web \
     && /opt/flutter/bin/flutter precache --web \
     && mkdir -p /opt/pub-cache
+
+FROM application-sdk-toolchain AS application-toolchain
 COPY docker/templates/watch-telemetry-v1/application /opt/qualified-companion
 RUN /opt/flutter/bin/flutter create --platforms web --project-name kleos_watch_companion /tmp/template \
     && mkdir -p /opt/qualified-companion/web && cp -R /tmp/template/web/. /opt/qualified-companion/web/ \
     && cd /opt/qualified-companion && /opt/flutter/bin/flutter pub get \
     && chown -R 10001:10001 /opt/flutter /opt/pub-cache
 # Only dependencies prebaked into this image are supported. Untrusted jobs have no internet egress.
+
+# Android is additive: the validator only needs the smaller web/Dart toolchain.
+# These public installers are checked against their publishers' pinned checksums.
+# SDK package downloads are performed by Google's checksum-verifying sdkmanager.
+FROM application-sdk-toolchain AS application-android-sdk
+ARG ANDROID_COMMANDLINE_TOOLS=15859902
+ARG ANDROID_COMMANDLINE_TOOLS_SHA256=4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583
+ARG TEMURIN_JDK_VERSION=17.0.18_8
+ARG TEMURIN_JDK_SHA256=0c94cbb54325c40dcf026143eb621562017db5525727f2d9131a11250f72c450
+ENV JAVA_HOME=/opt/java17 ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk \
+    GRADLE_USER_HOME=/opt/gradle-cache
+RUN mkdir -p /opt/java17 /opt/android-sdk/cmdline-tools /opt/gradle-cache \
+    && curl --fail --location --retry 3 --proto '=https' --tlsv1.2 \
+       https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.18%2B8/OpenJDK17U-jdk_x64_linux_hotspot_${TEMURIN_JDK_VERSION}.tar.gz \
+       --output /tmp/java17.tar.gz \
+    && printf '%s  /tmp/java17.tar.gz\n' "$TEMURIN_JDK_SHA256" | sha256sum --check --strict \
+    && tar -xzf /tmp/java17.tar.gz --strip-components=1 -C /opt/java17 \
+    && curl --fail --location --retry 3 --proto '=https' --tlsv1.2 \
+       https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_COMMANDLINE_TOOLS}_latest.zip \
+       --output /tmp/android-tools.zip \
+    && printf '%s  /tmp/android-tools.zip\n' "$ANDROID_COMMANDLINE_TOOLS_SHA256" | sha256sum --check --strict \
+    && unzip -q /tmp/android-tools.zip -d /tmp/android-tools \
+    && mv /tmp/android-tools/cmdline-tools /opt/android-sdk/cmdline-tools/pinned \
+    && rm -rf /tmp/java17.tar.gz /tmp/android-tools.zip /tmp/android-tools \
+    && yes | /opt/android-sdk/cmdline-tools/pinned/bin/sdkmanager --sdk_root=/opt/android-sdk --licenses >/dev/null \
+    && /opt/android-sdk/cmdline-tools/pinned/bin/sdkmanager --sdk_root=/opt/android-sdk \
+       'platforms;android-36' 'build-tools;35.0.0' 'build-tools;36.0.0' 'ndk;27.0.12077973' \
+    && /opt/flutter/bin/flutter config --android-sdk /opt/android-sdk --jdk-dir /opt/java17 \
+    && /opt/flutter/bin/flutter precache --android
+# The pinned BLE/permission/storage plugins compile their own Android libraries
+# against API 34/35. Keep this additive so plugin prerequisites never redownload
+# the main JDK/NDK/Flutter toolchain layer.
+RUN /opt/android-sdk/cmdline-tools/pinned/bin/sdkmanager --sdk_root=/opt/android-sdk \
+    'platforms;android-34' 'platforms;android-35' 'platform-tools'
+
+# Template/lock/source changes cannot invalidate the large SDK download layers.
+FROM application-android-sdk AS application-android-toolchain
+COPY docker/templates/watch-telemetry-v1/application/pubspec.* /opt/qualified-companion/
+COPY docker/templates/watch-telemetry-v1/application/android /opt/qualified-companion/android
+COPY docker/templates/watch-telemetry-v1/application/ios /opt/qualified-companion/ios
+COPY docker/templates/watch-telemetry-v1/application/web /opt/qualified-companion/web
+COPY docker/companion-runtime.json /opt/kleos-companion-runtime.json
+COPY docker/qualify_android_cache.py /opt/qualify_android_cache.py
+# Compile a public, trusted fixture online once, then rebuild it with Gradle/pub
+# offline. This produces a cache qualification report, never physical BLE evidence.
+RUN --mount=type=cache,id=kleos-android-gradle-8.12-sdk36,target=/var/cache/kleos-gradle,sharing=locked \
+    --mount=type=cache,id=kleos-android-pub-flutter-3.35.4,target=/var/cache/kleos-pub,sharing=locked \
+    python /opt/qualify_android_cache.py \
+    && chmod -R a+rX /opt/android-sdk /opt/java17 /opt/gradle-cache /opt/qualified-android \
+    && rm -rf /root/.android /root/.gradle /root/.cache
 
 FROM mechanics-toolchain AS validate-toolchain
 ARG KICAD_VERSION=9.0.8+dfsg-1~bpo12+1
@@ -56,9 +108,22 @@ RUN echo 'deb https://deb.debian.org/debian bookworm-backports main' > /etc/apt/
        "kicad=${KICAD_VERSION}" "kicad-symbols=${KICAD_LIBRARIES_VERSION}" \
        "kicad-footprints=${KICAD_LIBRARIES_VERSION}" gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=application-toolchain /opt/flutter/bin/cache/dart-sdk /opt/dart-sdk
+COPY --from=application-sdk-toolchain /opt/flutter/bin/cache/dart-sdk /opt/dart-sdk
 
 FROM validate-toolchain AS electronics-toolchain
+ARG FREEROUTING_VERSION=2.1.0
+ARG FREEROUTING_SHA256=2c07d58f75dac03782664081e7a58b41c25400d871a9fcf166a2ea6fe60d5def
+RUN apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports curl ca-certificates \
+    && mkdir -p /opt/freerouting /opt/java21 \
+    && curl --fail --location --proto '=https' --tlsv1.2 https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.13%2B9/OpenJDK21U-jre_x64_linux_hotspot_21.0.13_9.tar.gz --output /tmp/java.tar.gz \
+    && echo 'a535a1df9c6284d9618872984e026ae0352d1f7e9e0605425c0e6114f47351dd  /tmp/java.tar.gz' | sha256sum --check --strict \
+    && tar -xzf /tmp/java.tar.gz --strip-components=1 -C /opt/java21 && rm /tmp/java.tar.gz \
+    && ln -s /opt/java21/bin/java /usr/local/bin/java \
+    && curl --fail --location --proto '=https' --tlsv1.2 \
+       https://github.com/freerouting/freerouting/releases/download/v${FREEROUTING_VERSION}/freerouting-${FREEROUTING_VERSION}.jar \
+       --output /opt/freerouting/freerouting.jar \
+    && printf '%s  /opt/freerouting/freerouting.jar\n' "$FREEROUTING_SHA256" | sha256sum --check --strict \
+    && rm -rf /var/lib/apt/lists/*
 # atopile 0.12.5 requires CPython 3.13. Keep it in an isolated tool environment;
 # the trusted job supervisor and CAD packages remain on Python 3.12.
 ENV UV_PYTHON_INSTALL_DIR=/opt/ato-python UV_TOOL_DIR=/opt/ato-tools UV_TOOL_BIN_DIR=/opt/toolchains/bin
@@ -98,7 +163,13 @@ FROM firmware-toolchain AS firmware
 COPY --from=app-source /wheels /wheels
 RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
 
-FROM application-toolchain AS application
+FROM application-android-toolchain AS application
+# UI/tests are evaluated separately from the fixed cache fixture. Their edits
+# must not rebuild Android dependencies; merge them after cache qualification.
+COPY docker/templates/watch-telemetry-v1/application /opt/qualified-companion
+# Merge the Flutter-tools bootstrap dependencies with the qualified app cache.
+# Do not replace either cache: private SDK copies can rebuild Flutter tools offline.
+COPY --from=application-sdk-toolchain /opt/pub-cache/ /opt/pub-cache/
 COPY --from=app-source /wheels /wheels
 RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
 
@@ -108,7 +179,9 @@ RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
 
 FROM electronics-toolchain AS electronics
 COPY --from=app-source /wheels /wheels
-RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels
+RUN pip install --no-cache-dir --no-deps /wheels/*.whl && rm -rf /wheels \
+    && mkdir -p /opt/kleos-parts \
+    && python -c "import json; from kleos.pcb_compiler import catalog_manifest; from pathlib import Path; Path('/opt/kleos-parts/manifest.json').write_text(json.dumps(catalog_manifest(), sort_keys=True, indent=2))"
 
 FROM renode-toolchain AS renode-validator
 COPY --from=app-source /wheels /wheels

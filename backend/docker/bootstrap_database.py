@@ -49,6 +49,7 @@ def main():
             runtime[key] = f"{scheme}://{role}:{quote(password, safe='')}@{host}:5432/{database}?sslmode=require"
     runtime.setdefault("KLEOS_SESSION_KEY", secrets.token_urlsafe(48))
     for key in ("KLEOS_META_API_KEY", "KLEOS_GEMINI_API_KEY", "KLEOS_CONDUCTOR_KEY",
+                "KLEOS_MODAL_LLM_URL", "KLEOS_MODAL_LLM_KEY",
                 "KLEOS_DIGIKEY_CLIENT_ID", "KLEOS_DIGIKEY_CLIENT_SECRET", "MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"):
         runtime.setdefault(key, "")
     runtime.setdefault("KLEOS_WEBHOOK_SECRETS", "{}")

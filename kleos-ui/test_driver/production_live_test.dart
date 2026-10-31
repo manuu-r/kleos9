@@ -57,11 +57,15 @@ Future<void> main() async {
   final organizations = await read('auth/organizations');
   organization = (organizations['organizations'] as List).first['id'] as String;
   final catalog = await read('model-catalog');
-  final google = (catalog['models'] as List)
+  const spark = 'muse-spark-1.3';
+  const wonder = 'muse-wonder-1.0';
+  final models = (catalog['models'] as List)
       .cast<Json>()
-      .singleWhere((m) => m['provider'] == 'google');
-  if (google['configured'] != true) {
-    throw StateError('Gemini is not configured on the backend.');
+      .where((m) => m['provider'] == 'meta');
+  if (models.any((m) => m['configured'] != true) ||
+      !models.any((m) => m['model'] == spark) ||
+      !models.any((m) => m['model'] == wonder)) {
+    throw StateError('The Muse Model API is not configured on the backend.');
   }
   final defaults = catalog['defaultPolicy'] as Json;
   final driver = await FlutterDriver.connect(
@@ -165,9 +169,10 @@ Future<void> main() async {
             'is [ble, sensor, display, radio, thermal, physicalOperation]. All physical outcomes remain '
             'simulated. Do not claim excluded capabilities work. Keep research concise.');
         for (final lane in defaults.keys) {
-          if ((defaults[lane] as Json)['provider'] == 'google') continue;
+          if ((defaults[lane] as Json)['model'] == spark) continue;
           await tap(find.byValueKey('provider-$lane'));
-          await driver.tap(find.byValueKey('provider-option-$lane-google'));
+          await driver
+              .tap(find.byValueKey('provider-option-$lane-meta-$spark'));
         }
         await screenshot('02-provider-choices');
         await tap(find.text('Create project'));
@@ -179,7 +184,7 @@ Future<void> main() async {
                 .singleWhere((p) => (p['brief'] as String).startsWith(label))
             as Json)['id'] as String;
         checked(
-            'Project creation with all seven lanes explicitly set to Gemini');
+            'Project creation with all seven lanes explicitly set to Muse Spark 1.3');
       } else {
         await tap(find.byValueKey('open-project-$projectId'));
       }
@@ -198,8 +203,9 @@ Future<void> main() async {
                   .contains(j['project']['status']));
         }
         final policy = (workspace['project'] as Json)['modelPolicy'] as Json;
-        if (policy.values.any((v) => (v as Json)['provider'] != 'google')) {
-          throw StateError('A lane was not explicitly pinned to Gemini.');
+        if (policy.values.any((v) => (v as Json)['model'] != spark)) {
+          throw StateError(
+              'A lane was not explicitly pinned to Muse Spark 1.3.');
         }
         if (((workspace['project'] as Json)['state'] as Json)['proposal'] ==
             null) {
@@ -222,8 +228,7 @@ Future<void> main() async {
           await driver.waitFor(find.text('Confirm concept'),
               timeout: const Duration(seconds: 30));
         }
-        checked(
-            'Real Gemini research reaches the UI through streamed progress');
+        checked('Real Muse research reaches the UI through streamed progress');
         await screenshot('03-proposal');
 
         final questions = (proposal['questions'] as List?) ?? [];
@@ -274,26 +279,25 @@ Future<void> main() async {
 
         await tap(find.text('AI provider settings'));
         await tap(find.byValueKey('provider-coordination'));
-        await driver.tap(find.byValueKey('provider-option-coordination-meta'));
+        await driver
+            .tap(find.byValueKey('provider-option-coordination-meta-$wonder'));
         await tap(find.text('Save provider choices'));
         await until(
             workspacePath,
             (j) =>
-                j['project']['modelPolicy']['coordination']['provider'] ==
-                'meta');
+                j['project']['modelPolicy']['coordination']['model'] == wonder);
         await driver.waitForAbsent(find.text('Save provider choices'),
             timeout: const Duration(seconds: 30));
-        await tap(find.byValueKey('provider-preset-google'));
+        await tap(find.byValueKey('provider-preset-meta-$spark'));
         await tap(find.text('Save provider choices'));
         await until(
             workspacePath,
             (j) =>
-                j['project']['modelPolicy']['coordination']['provider'] ==
-                'google');
+                j['project']['modelPolicy']['coordination']['model'] == spark);
         await driver.waitForAbsent(find.text('Save provider choices'),
             timeout: const Duration(seconds: 30));
         checked(
-            'Provider settings persist changes and restore Gemini without making an extra call');
+            'Provider settings persist changes and restore Spark 1.3 without making an extra call');
 
         await tap(find.byValueKey('production-training-consent'));
         await until(workspacePath, (j) => j['trainingOptedIn'] == true);

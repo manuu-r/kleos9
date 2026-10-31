@@ -70,7 +70,7 @@ JsonMap _project(
           },
           'modelPolicy': {
             for (final lane in engineeringLanes.keys)
-              lane: {'provider': 'google', 'model': 'test-gemini'}
+              lane: {'provider': 'modal', 'model': 'muse-spark-open'}
           },
         },
         'artifacts': artifacts,
@@ -99,13 +99,13 @@ Future<ProviderContainer> _mount(
               },
             }),
     modelCatalogProvider.overrideWith((ref) async => ModelCatalog([
-          CatalogModel(const ModelChoice('google', 'test-gemini'), true,
+          CatalogModel(const ModelChoice('modal', 'muse-spark-open'), true,
               engineeringLanes.keys.toList()),
           CatalogModel(const ModelChoice('meta', 'test-muse'), true,
               engineeringLanes.keys.toList()),
         ], {
           for (final lane in engineeringLanes.keys)
-            lane: const ModelChoice('google', 'test-gemini')
+            lane: const ModelChoice('modal', 'muse-spark-open')
         })),
   ]);
   await container.read(kleosProvider.notifier).refresh();

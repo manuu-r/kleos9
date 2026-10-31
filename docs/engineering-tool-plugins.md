@@ -1,7 +1,9 @@
 # CAD and PCB tool adapters
 
-The defaults remain **build123d** for mechanical generation and **atopile / KiCad**
-for PCB generation. Tool selection is independent of Gemini/Meta selection.
+The defaults are **build123d@1** for mechanical generation and the deterministic
+**KiCad circuit compiler (`atopile-kicad@2`)** for PCB generation. The older
+`atopile-kicad@1` source workflow remains available for pinned/explicit choices.
+Tool selection is independent of model-provider selection.
 Project writers choose installed adapters under **Connectors → Engineering tools**.
 New builds use the defaults unless an explicit `toolPolicy` is supplied at creation.
 
@@ -16,7 +18,7 @@ New builds use the defaults unless an explicit `toolPolicy` is supplied at creat
 ```json
 {
   "mechanics": {"id": "build123d", "version": "1"},
-  "electronics": {"id": "atopile-kicad", "version": "1"}
+  "electronics": {"id": "atopile-kicad", "version": "2"}
 }
 ```
 
@@ -85,7 +87,13 @@ as existing builds. No arbitrary project command is executed on the API host.
 as inputs. The adapter must create every declared output afresh and exit zero.
 Outputs must be explicit relative files under `outputs/`. Symlink escapes, missing
 files, oversized files and undeclared PASS reports cannot publish candidates.
-Files are bounded to 16 MiB each and the encoded output package to 32 MiB.
+Files are bounded to 32 MiB each and the total decoded native output to 32 MiB;
+the transport separately bounds its JSON/base64 envelope.
+
+Classic build qualification does not grant session-protocol qualification.
+Custom adapters keep the model-plus-build path when native sessions are enabled;
+the current interactive session rollout is limited to its qualified built-in
+runtimes. See [native sessions](../backend/docs/native-sessions.md).
 
 CAD plugins export `outputs/model.step` and `outputs/model.stl` in millimetres.
 PCB plugins export one KiCad PCB and one matching schematic, plus declared

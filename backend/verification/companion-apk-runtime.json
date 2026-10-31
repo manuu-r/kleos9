@@ -1,0 +1,171 @@
+{
+  "image": "kleos-application:session-qualified",
+  "imageId": "sha256:3bff71a58d12c47b013fe469b04bdff53176764fa1d6b5bb119595297fe32e29",
+  "imageSizeBytes": 4217954203,
+  "sourceOverride": false,
+  "profile": {
+    "cpuUnits": 4096,
+    "memoryMiB": 8192,
+    "tmpMiB": 6144,
+    "pidsLimit": 256,
+    "ephemeralStorageGiB": 40
+  },
+  "scratch": {
+    "backing": "private-anonymous-disk-volume",
+    "hardByteQuota": null,
+    "cleanup": "Docker --rm removes this anonymous volume"
+  },
+  "containerExitCode": 0,
+  "checkedAt": "2026-10-31T00:49:32.702261+00:00",
+  "containerWallSeconds": 326.017377458993,
+  "schemaVersion": "companion-apk-runtime-v1",
+  "status": "passed",
+  "modelCalls": 0,
+  "transport": "actual --local-files session build/finish",
+  "targets": [
+    "web",
+    "android"
+  ],
+  "checks": [],
+  "sourceClosureCount": 80,
+  "portableSourceZipCount": 83,
+  "sourceHashesVerified": true,
+  "reservedPreparationExcludedFromReseed": true,
+  "sourceZipExcludesSdkCachesAndMachineSettings": true,
+  "immutableSdkMarkersUnchanged": true,
+  "immutableSdkBefore": {
+    "/opt/flutter/bin/cache/engine.stamp": "ff77883609262f64769b3dd1697ab481c5c8479f284fba47ac570acb218b843c",
+    "/opt/flutter/bin/cache/flutter_tools.stamp": "aa3afcdd558b0277aac18fe7ed891e48dfa1cbd0b45d5029f7f8d5a91639f3b2",
+    "/opt/flutter/.git/HEAD": "b9ece3a42aefe5c113f0121d7f7d08b7ea5f2afcbc5789c280a5d1af44b835f7",
+    "/opt/android-sdk/packages.xml": null,
+    "/opt/java17/release": "ec5906b486a3401cef8fe9eb2e86976271a51ac2e7b99420dad672272f089136",
+    "/opt/qualified-android/qualification.json": "aa00ddf472f9ac4e4325f94a5bc1920b860280f61b323e7ce13dabcb565d7ab0"
+  },
+  "immutableSdkAfter": {
+    "/opt/flutter/bin/cache/engine.stamp": "ff77883609262f64769b3dd1697ab481c5c8479f284fba47ac570acb218b843c",
+    "/opt/flutter/bin/cache/flutter_tools.stamp": "aa3afcdd558b0277aac18fe7ed891e48dfa1cbd0b45d5029f7f8d5a91639f3b2",
+    "/opt/flutter/.git/HEAD": "b9ece3a42aefe5c113f0121d7f7d08b7ea5f2afcbc5789c280a5d1af44b835f7",
+    "/opt/android-sdk/packages.xml": null,
+    "/opt/java17/release": "ec5906b486a3401cef8fe9eb2e86976271a51ac2e7b99420dad672272f089136",
+    "/opt/qualified-android/qualification.json": "aa00ddf472f9ac4e4325f94a5bc1920b860280f61b323e7ce13dabcb565d7ab0"
+  },
+  "apk": {
+    "path": "native/build/app/outputs/flutter-apk/app-release.apk",
+    "sha256": "b0b6bb3cf71516df99b59fccce56eaf1da47785a4eed3d0f5fef982f81499fb4",
+    "size": 16975317,
+    "arm64LibrariesPresent": true,
+    "signatureVerifiedIndependently": true,
+    "developmentCertificateSha256": "484fbeee7dd5d2280c15c7d7e939846cb62f074aad8473543dfa1961ff3e32f0",
+    "signing": "public-development-debug-certificate",
+    "packageMetadata": [
+      "package: name='com.kleos.kleos_watch_companion' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "sdkVersion:'24'",
+      "targetSdkVersion:'36'",
+      "native-code: 'arm64-v8a' 'armeabi-v7a' 'x86_64'"
+    ]
+  },
+  "outputs": [
+    {
+      "path": "native/companion-source.zip",
+      "size": 247869,
+      "sha256": "ad9d0d9a53672bfba97dc0351b273aee83771a501a0daa0a63d26d0c32dfec70"
+    },
+    {
+      "path": "native/companion-web.zip",
+      "size": 10523323,
+      "sha256": "65dceda14212c485973ad539a76e02635b50434a195939ee04534c2a2f62a6e1"
+    },
+    {
+      "path": "native/build/web/index.html",
+      "size": 357,
+      "sha256": "189fa7165f4b3cc5dfd9eb57bff6b489040d762d48fa930837a1e2ecf81a2230"
+    },
+    {
+      "path": "native/build/web/main.dart.js",
+      "size": 2365441,
+      "sha256": "5e60bc771bc512a24d9a7572140beb3a1c8d6d4e076f6fead260c3885b804102"
+    },
+    {
+      "path": "native/build/app/outputs/flutter-apk/app-release.apk",
+      "size": 16975317,
+      "sha256": "b0b6bb3cf71516df99b59fccce56eaf1da47785a4eed3d0f5fef982f81499fb4"
+    },
+    {
+      "path": "native/companion-build-manifest.json",
+      "size": 1310,
+      "sha256": "19c2e5d18140599771523f86305f8848ba99bdf01ab044f6f61f94edd79cc642"
+    }
+  ],
+  "buildManifest": {
+    "schemaVersion": "companion-build-v1",
+    "targets": [
+      "web",
+      "android"
+    ],
+    "preparedSourceSha256": "ad9d0d9a53672bfba97dc0351b273aee83771a501a0daa0a63d26d0c32dfec70",
+    "android": {
+      "status": "built",
+      "targetPlatform": "android-arm64",
+      "signing": "public-development-debug-certificate",
+      "developmentCertificateSha256": "484fbeee7dd5d2280c15c7d7e939846cb62f074aad8473543dfa1961ff3e32f0",
+      "sha256": "b0b6bb3cf71516df99b59fccce56eaf1da47785a4eed3d0f5fef982f81499fb4",
+      "bytes": 16975317,
+      "physicalBleValidated": false
+    },
+    "ios": {
+      "delivery": "source-only-unsigned",
+      "built": false,
+      "requires": "separate macOS build and production signing"
+    },
+    "physicalBleValidated": false,
+    "files": [
+      {
+        "path": "companion-web.zip",
+        "sha256": "65dceda14212c485973ad539a76e02635b50434a195939ee04534c2a2f62a6e1"
+      },
+      {
+        "path": "build/web/index.html",
+        "sha256": "189fa7165f4b3cc5dfd9eb57bff6b489040d762d48fa930837a1e2ecf81a2230"
+      },
+      {
+        "path": "build/web/main.dart.js",
+        "sha256": "5e60bc771bc512a24d9a7572140beb3a1c8d6d4e076f6fead260c3885b804102"
+      },
+      {
+        "path": "build/app/outputs/flutter-apk/app-release.apk",
+        "sha256": "b0b6bb3cf71516df99b59fccce56eaf1da47785a4eed3d0f5fef982f81499fb4"
+      }
+    ]
+  },
+  "ios": {
+    "delivery": "source-only-unsigned",
+    "built": false,
+    "requires": "separate macOS build and production signing"
+  },
+  "physicalBleValidated": false,
+  "sourceHashes": {
+    "native_runner.py": "83b2deec4b83375d280b11559fa95bd0b88f6b61a5b315ae953e8be7bd752587",
+    "native_session.py": "beb8030ff07632a60a76312d350bada8f67b52f9f74df1572906188e7d06668a",
+    "application_runtime.py": "b8c8da73640e9f9e696de4039a150bab76764d0987668e769976ac855b3951a6",
+    "companion_android.py": "8fbdbaed57a22c18867b12682fddd46db92cc3c4eeb2a6a1ba9aee346b1294f9",
+    "native_network.py": "482f1207d23292a500661ae008b632ef491f3688d21aeb26d5606bdb89322b18"
+  },
+  "nativeResourceUsage": {
+    "scope": "task_cgroup",
+    "memoryPeakBytes": 5392695296,
+    "cpuUsageSeconds": 635.04146,
+    "pidsPeak": 126
+  },
+  "nativeExecutionSeconds": 299.301,
+  "fixtureSha256": "7377760284ebcb1cd16715c0398cec17c3d117c1df405df52c83590ff3b2ad99",
+  "scope": "Actual offline web and ARM64 APK build, independent development certificate verification and portable Android/iOS source delivery; no production signing, iOS build, emulator or physical BLE claim",
+  "usage": {
+    "scope": "task_cgroup",
+    "memoryPeakBytes": 5392695296,
+    "cpuUsageSeconds": 637.6711,
+    "pidsPeak": 126
+  },
+  "ownedAnonymousScratchRemoved": true,
+  "ownedContainersRemaining": [],
+  "nativeOutputRawBytes": 30113617
+}

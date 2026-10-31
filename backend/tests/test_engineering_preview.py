@@ -1,12 +1,13 @@
 import base64
 import math
 import struct
+from datetime import timedelta
 
 import pytest
 
 from kleos.auth import Principal
 from kleos.contracts import Command, DomainError
-from kleos.db import Artifact, Project
+from kleos.db import Artifact, Project, now
 from kleos.engineering_preview import EngineeringPreview, pcb_geometry, stl_mesh
 from kleos.storage import artifact_key, digest
 
@@ -14,6 +15,29 @@ from kleos.storage import artifact_key, digest
 def create(platform):
     return platform.control.command(platform.principal, Command(type='project.create', payload={
         'brief': 'A small air quality device', 'autoStart': False}), 'preview-create')['projectId']
+
+
+def test_full_mobile_scaffolds_keep_older_apk_visible_in_workspace_and_preview(platform):
+    project_id = create(platform)
+    created = now()
+    with platform.db.transaction() as session:
+        for index in range(220):
+            session.add(Artifact(id=f'stale-{index}', tenant_id='org-a', project_id=project_id,
+                revision=1, lane='application', name=f'old/{index}.txt', key=f'old-{index}',
+                sha256=digest(b'old'), size=3, status='stale', created_at=created))
+        session.add(Artifact(id='built-apk', tenant_id='org-a', project_id=project_id,
+            revision=1, lane='application', name='native/build/app/outputs/flutter-apk/app-release.apk',
+            key='apk', sha256=digest(b'apk'), size=3, status='candidate', created_at=created))
+        for index in range(220):
+            session.add(Artifact(id=f'platform-{index}', tenant_id='org-a', project_id=project_id,
+                revision=1, lane='application', name=f'android/scaffold/{index}.txt', key=f'platform-{index}',
+                sha256=digest(b'source'), size=6, status='candidate', created_at=created + timedelta(seconds=1)))
+    workspace = platform.control.workspace(platform.principal, project_id)
+    assert 'built-apk' in {row['id'] for row in workspace['artifacts']}
+    assert all(row['status'] == 'candidate' for row in workspace['artifacts'][:221])
+    preview = EngineeringPreview(platform.db, platform.store).read(platform.principal, project_id)
+    assert 'built-apk' in {row['id'] for row in preview['files']}
+    assert len(preview['files']) == 221
 
 
 def test_preview_uses_accepted_interfaces_and_cannot_cross_tenants(platform):

@@ -241,6 +241,23 @@ resource "aws_cloudwatch_dashboard" "overview" {
         ["Kleos9", "WorkerHeartbeat", "Environment", var.environment, "WorkerKind", "engineering", { stat = "Sum", yAxis = "right" }],
         ["Kleos9", "WorkerHeartbeat", "Environment", var.environment, "WorkerKind", "connectors", { stat = "Sum", yAxis = "right" }]
       ]
+    } },
+    { type = "metric", x = 0, y = 24, width = 12, height = 6, properties = {
+      title = "Native queue and container startup", region = var.region, period = 60
+      metrics = concat(
+        [for lane in ["mechanics", "electronics", "firmware", "application", "review"] :
+        ["Kleos9", "NativeQueueAgeSeconds", "Lane", lane, { stat = "Maximum" }]],
+        [["Kleos9", "NativeImagePullSeconds", "Backend", "ecs", { stat = "Maximum", yAxis = "right" }]]
+      )
+    } },
+    { type = "metric", x = 12, y = 24, width = 12, height = 6, properties = {
+      title = "Native peak memory and CPU time", region = var.region, period = 60
+      metrics = concat(
+        [for lane in ["mechanics", "electronics", "firmware", "application", "review"] :
+        ["Kleos9", "NativeMemoryPeakBytes", "Lane", lane, { stat = "Maximum" }]],
+        [for lane in ["mechanics", "electronics", "firmware", "application", "review"] :
+        ["Kleos9", "NativeCpuUsageSeconds", "Lane", lane, { stat = "Maximum", yAxis = "right" }]]
+      )
     } }
   ] })
 }

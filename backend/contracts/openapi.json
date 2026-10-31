@@ -2298,6 +2298,119 @@
         }
       }
     },
+    "/api/v1/internal/jobs/{job_id}/session/next": {
+      "get": {
+        "summary": "Next Step",
+        "operationId": "next_step_api_v1_internal_jobs__job_id__session_next_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/jobs/{job_id}/session/{step_id}/result": {
+      "post": {
+        "summary": "Complete Step",
+        "operationId": "complete_step_api_v1_internal_jobs__job_id__session__step_id__result_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Step Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/internal/jobs/{job_id}": {
       "get": {
         "summary": "Job Request",
@@ -3437,7 +3550,7 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 25165824,
+            "maxLength": 50331648,
             "title": "Content"
           },
           "mediaType": {
@@ -3720,6 +3833,7 @@
             "type": "string",
             "enum": [
               "meta",
+              "modal",
               "google"
             ],
             "title": "Provider"
@@ -4232,6 +4346,29 @@
           "tasks"
         ],
         "title": "RunView"
+      },
+      "SessionResult": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SessionResult"
       },
       "SetupRequest": {
         "properties": {

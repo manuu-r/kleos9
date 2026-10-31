@@ -306,6 +306,26 @@ class NativeJob(Record, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class NativeSessionStep(Record, Base):
+    __tablename__ = "native_session_steps"
+    __table_args__ = (
+        UniqueConstraint("job_id", "request_key"),
+        UniqueConstraint("job_id", "sequence"),
+    )
+    job_id: Mapped[str] = mapped_column(ForeignKey("native_jobs.id", ondelete="CASCADE"), index=True)
+    attempt_id: Mapped[str] = mapped_column(ForeignKey("attempts.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[str] = mapped_column(String(36), index=True)
+    request_key: Mapped[str] = mapped_column(String(200))
+    sequence: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(30), default="queued")
+    action: Mapped[str] = mapped_column(String(30))
+    arguments: Mapped[dict] = mapped_column(JSON, default=dict)
+    request_hash: Mapped[str] = mapped_column(String(64))
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_hash: Mapped[str | None] = mapped_column(String(64))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class Consent(Record, Base):
     __tablename__ = "training_consents"
     __table_args__ = (UniqueConstraint("tenant_id", "project_id"),)

@@ -63,3 +63,31 @@ def test_migration_keeps_valid_policy_and_deleted_tombstones_unchanged(platform)
         assert project.model_policy == policy and project.revision == revision
         deleted = session.get(Project, deleted_ident)
         assert deleted.model_policy == deleted_policy and deleted.revision == deleted_revision
+
+
+def muse_migration():
+    path = Path(__file__).parents[1] / "migrations/versions/d8e2f4a61c37_muse_model_policies.py"
+    spec = importlib.util.spec_from_file_location("muse_model_policies", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_muse_migration_moves_only_unsupported_providers_and_keeps_gemini_choices(platform):
+    ident = create(platform)["projectId"]
+    with platform.db.transaction() as session:
+        project = session.get(Project, ident)
+        original = dict(project.model_policy)
+        project.model_policy = {**original, "firmware": {"provider": "retired-provider", "model": "old"},
+                                "review": {"provider": "retired-provider", "model": "old"},
+                                "research": {"provider": "google", "model": "gemini-3.8-flash"}}
+        policy_revision, sequence = project.policy_revision, project.event_sequence
+    with platform.db.engine.begin() as connection:
+        muse_migration().muse_policies(connection, "spark-test", "wonder-test")
+        muse_migration().muse_policies(connection, "spark-test", "wonder-test")
+    with platform.db.transaction() as session:
+        project = session.get(Project, ident)
+        assert project.model_policy == {**original, "firmware": {"provider": "meta", "model": "wonder-test"},
+                                        "review": {"provider": "meta", "model": "spark-test"},
+                                        "research": {"provider": "google", "model": "gemini-3.8-flash"}}
+        assert project.policy_revision == policy_revision + 1 and project.event_sequence == sequence + 1

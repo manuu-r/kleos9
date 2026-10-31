@@ -16,12 +16,17 @@ import 'package:kleos_ui/ui/features/production/production_app.dart';
 
 const choices = [
   ModelChoice('meta', 'muse-spark-1.3'),
+  ModelChoice('modal', 'muse-spark-open'),
   ModelChoice('google', 'gemini-3.8-flash')
 ];
 final testCatalog = ModelCatalog([
   for (final choice in choices)
     CatalogModel(
-        choice, choice.provider != 'meta', engineeringLanes.keys.toList()),
+        choice,
+        choice.provider != 'meta',
+        engineeringLanes.keys
+            .where((lane) => choice.provider != 'modal' || lane != 'research')
+            .toList()),
 ], {
   for (final lane in engineeringLanes.keys) lane: choices.first
 });
@@ -188,8 +193,8 @@ void main() {
             {
               'number': 1,
               'status': 'succeeded',
-              'provider': 'google',
-              'model': 'gemini-3.8-flash',
+              'provider': 'modal',
+              'model': 'muse-spark-open',
               'calls': [
                 {
                   'operation': 'generate',
@@ -280,7 +285,8 @@ void main() {
     api.close();
   });
 
-  testWidgets('all seven lanes switch providers independently on a phone',
+  testWidgets(
+      'phone selects Modal coordination and a search provider for research',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -299,7 +305,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(7));
     for (final entry in [
-      (0, 'Gemini · gemini-3.8-flash', 'google'),
+      (0, 'Muse on Modal · muse-spark-open', 'modal'),
       (1, 'Gemini · gemini-3.8-flash', 'google')
     ]) {
       final picker = find.byType(DropdownButtonFormField<String>).at(entry.$1);
@@ -542,7 +548,7 @@ void main() {
     await tester.scrollUntilVisible(picker, 200);
     await tester.tap(picker);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gemini · gemini-3.8-flash').last);
+    await tester.tap(find.text('Muse on Modal · muse-spark-open').last);
     await tester.pumpAndSettle();
     final save = find.widgetWithText(KButton, 'Save provider choices');
     await tester.scrollUntilVisible(save, 300);
@@ -553,7 +559,7 @@ void main() {
     expect(repository.commands.single['revision'], 9);
     final policy =
         asMap(asMap(repository.commands.single['payload'])['modelPolicy']);
-    expect(asMap(policy['coordination'])['provider'], 'google');
+    expect(asMap(policy['coordination'])['provider'], 'modal');
     expect(asMap(policy['firmware'])['provider'], 'meta');
     await tester.pumpWidget(const SizedBox());
     repository.dispose();
@@ -570,8 +576,10 @@ void main() {
     await tester.tap(settings);
     await tester.pumpAndSettle();
     expect(repository.commands, isEmpty);
-    expect(find.byKey(const ValueKey('provider-preset-meta')), findsNothing);
-    final preset = find.byKey(const ValueKey('provider-preset-google'));
+    expect(find.byKey(const ValueKey('provider-preset-meta-muse-spark-1.3')),
+        findsNothing);
+    final preset =
+        find.byKey(const ValueKey('provider-preset-google-gemini-3.8-flash'));
     await tester.ensureVisible(preset);
     await tester.tap(preset);
     await tester.pumpAndSettle();
@@ -590,5 +598,62 @@ void main() {
         isTrue);
     await tester.pumpWidget(const SizedBox());
     repository.dispose();
+  });
+
+  testWidgets(
+      'provider identity survives identical model names and research excludes Modal',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const meta = ModelChoice('meta', 'shared-model');
+    const modal = ModelChoice('modal', 'shared-model');
+    final catalog = ModelCatalog([
+      CatalogModel(meta, true, engineeringLanes.keys.toList()),
+      CatalogModel(modal, true,
+          engineeringLanes.keys.where((lane) => lane != 'research').toList()),
+    ], {
+      for (final lane in engineeringLanes.keys) lane: meta
+    });
+    var policy = catalog.defaults;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SingleChildScrollView(
+                child: StatefulBuilder(
+                    builder: (_, setState) => ModelPolicyEditor(
+                        catalog: catalog,
+                        policy: policy,
+                        enabled: true,
+                        onChanged: (next) =>
+                            setState(() => policy = next)))))));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('provider-preset-modal-shared-model')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('provider-coordination')));
+    await tester.pumpAndSettle();
+    await tester.tap(find
+        .byKey(
+            const ValueKey('provider-option-coordination-modal-shared-model'))
+        .last);
+    await tester.pumpAndSettle();
+    expect(policy['coordination']!.provider, 'modal');
+    final field = find.descendant(
+        of: find.byKey(const ValueKey('provider-coordination')),
+        matching: find.byType(DropdownButtonFormField<String>));
+    expect(tester.widget<DropdownButtonFormField<String>>(field).initialValue,
+        '1');
+    await tester
+        .tap(find.byKey(const ValueKey('provider-preset-meta-shared-model')));
+    await tester.pumpAndSettle();
+    expect(policy['coordination']!.provider, 'meta');
+    expect(tester.widget<DropdownButtonFormField<String>>(field).initialValue,
+        '0');
+    await tester.tap(find.byKey(const ValueKey('provider-research')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(
+            const ValueKey('provider-option-research-modal-shared-model')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

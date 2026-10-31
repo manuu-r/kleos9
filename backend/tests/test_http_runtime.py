@@ -28,12 +28,14 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
     base = os.getenv("KLEOS_TEST_HTTP_BASE_URL", "http://127.0.0.1:8000")
     assert base in {"http://127.0.0.1:8000", "http://localhost:8000"}, "This fixture is restricted to the local API"
     token_path = Path(os.getenv("KLEOS_TEST_HTTP_TOKEN_FILE", ".data/local-dev-token"))
-    token = token_path.read_text().strip()
-    assert token, "Development token file is empty"
     settings = Settings()
+    login_required = not settings.development_no_login
+    token = token_path.read_text().strip() if token_path.exists() else ""
+    assert token or not login_required, "The authenticated development mode needs a token file"
     db = Database(settings.database_url)
     report = {"schemaVersion": 1, "startedAt": datetime.now(UTC).isoformat(), "baseUrl": base,
-              "transport": "Actual HTTP socket to Docker-hosted FastAPI; development bearer authentication",
+              "transport": "Actual HTTP socket to Docker-hosted FastAPI",
+              "loginRequired": login_required,
               "paidProviderCalls": 0, "realWorldActions": 0, "checks": [], "status": "running"}
     project_id, artifact_id = None, None
     create_body, create_key = None, None
@@ -43,7 +45,7 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
         report["checks"].append({"name": name, "status": "passed", **observations})
 
     with httpx.Client(base_url=base, timeout=15, trust_env=False, follow_redirects=False,
-                      headers={"Authorization": f"Bearer {token}"}) as client:
+                      headers={"Authorization": f"Bearer {token}"} if token else {}) as client:
         def workspace():
             response = client.get(f"/api/v1/projects/{project_id}/workspace")
             assert response.status_code == 200
@@ -67,14 +69,14 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             assert owners, "The runtime fixture needs an invited administrator"
             tenant_id = owners[0]["id"]
             client.headers["X-Organization-Id"] = tenant_id
-            assert client.get("/api/v1/model-catalog", headers={"Authorization": ""}).status_code == 401
+            expected_anonymous_status = 401 if login_required else 200
+            assert client.get("/api/v1/model-catalog", headers={"Authorization": ""}).status_code == expected_anonymous_status
             catalog_response = client.get("/api/v1/model-catalog")
             assert catalog_response.status_code == 200
             catalog = catalog_response.json()
-            choices = {entry["provider"]: entry for entry in catalog["models"]}
-            assert choices["google"]["configured"] is True
-            assert choices["meta"]["configured"] is False
-            assert set(choices) == {"meta", "google"}
+            choices = {entry["model"]: entry for entry in catalog["models"]}
+            assert {entry["provider"] for entry in choices.values()} == {"meta", "modal", "google"}
+            assert all(entry["configured"] for entry in choices.values() if entry["provider"] == "meta")
             assert all(entry["creditBalance"] is None for entry in choices.values())
             passed("health_authentication_model_catalog", models=[{
                 "provider": entry["provider"], "model": entry["model"], "configured": entry["configured"]}
@@ -101,7 +103,8 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             passed("command_idempotency_conflict_and_tenant_authorization")
 
             policy = initial["project"]["modelPolicy"]
-            policy["coordination"] = {"provider": "google", "model": choices["google"]["model"]}
+            policy["coordination"] = {"provider": "meta", "model": next(
+                model for model, entry in choices.items() if entry["provider"] == "meta")}
             changed = command("project.setModelPolicy", {"projectId": project_id, "modelPolicy": policy}, initial["revision"])
             assert changed.status_code == 202
             updated = workspace()
@@ -133,7 +136,7 @@ def test_actual_http_api_no_paid_calls_and_scoped_cleanup():
             downloaded = client.get(url)
             assert downloaded.status_code == 200 and downloaded.content == content
             assert hashlib.sha256(downloaded.content).hexdigest() == sha
-            assert client.get(url, headers={"Authorization": ""}).status_code == 401
+            assert client.get(url, headers={"Authorization": ""}).status_code == expected_anonymous_status
             bad_hash = client.post(f"/api/v1/projects/{project_id}/artifacts", json={**upload_body, "sha256": "0" * 64})
             assert bad_hash.status_code == 422 and bad_hash.json()["code"] == "artifact_integrity"
             bad_path = client.post(f"/api/v1/projects/{project_id}/artifacts", json={**upload_body,

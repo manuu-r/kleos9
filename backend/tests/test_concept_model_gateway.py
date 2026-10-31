@@ -1,10 +1,8 @@
 """The concept agent stays small and never returns executable artifacts."""
-import json
-
 import httpx
 import httpx2
 import pytest
-from google.genai.types import GenerateContentResponse
+from model_fixtures import patch_replies, responses_reply
 
 from kleos.anatomy_skill import seed_concept
 from kleos.config import Settings
@@ -17,16 +15,12 @@ async def test_compact_planner_uses_scene_contract_and_token_ceiling(monkeypatch
         raise AssertionError('No external API calls in model contract tests')
     monkeypatch.setattr(httpx.AsyncClient, 'send', no_network)
     monkeypatch.setattr(httpx2.AsyncClient, 'send', no_network)
-    gateway = ModelGateway(Settings(_env_file=None, gemini_api_key='fixture'))
-    requests = []
-    async def respond(**kwargs):
-        requests.append(kwargs)
-        return GenerateContentResponse.model_validate({'candidates':[{'content':{'role':'model','parts':[
-            {'text':json.dumps({'summary':'I kept the requested handheld shape.',
-                'requirements':{'form':'handheld'}, 'conceptScene':seed_concept('Handheld analyser')})}]},
-            'finishReason':'STOP'}], 'usageMetadata':{'promptTokenCount':100,'candidatesTokenCount':200,'totalTokenCount':300}})
-    monkeypatch.setattr(gateway.planning_agents['google'].model.client.aio.models,'generate_content',respond)
-    output, usage, _ = await gateway.generate('google',gateway.registry.models['google'],
+    gateway = ModelGateway(Settings(_env_file=None, meta_api_key='fixture'))
+    model = gateway.registry.models['meta'][0]
+    requests = patch_replies(monkeypatch, gateway, 'meta', model, lambda _n: responses_reply(model, {
+        'summary':'I kept the requested handheld shape.', 'requirements':{'form':'handheld'},
+        'conceptScene':seed_concept('Handheld analyser')}, output_tokens=200), planning=True)
+    output, usage, _ = await gateway.generate('meta', model,
         {'task':task,'lane':'research' if task=='project.research' else 'coordination',
          'planning':{'automatic':True},'brief':'A handheld analyser'})
     assert output.concept_scene.device_kind=='handheld'
@@ -34,7 +28,7 @@ async def test_compact_planner_uses_scene_contract_and_token_ceiling(monkeypatch
     assert len(requests)==1
     assert usage['agentMode']=='concept_planning'
     assert usage['outputTokenCeiling']==5000
-    assert requests[0]['config']['max_output_tokens']==5000
+    assert requests[0]['max_output_tokens']==5000
 
 
 def test_manual_engineering_keeps_its_existing_agent():
@@ -48,15 +42,11 @@ def scripted_gateway(monkeypatch, scenes):
         raise AssertionError('No external API calls in model contract tests')
     monkeypatch.setattr(httpx.AsyncClient, 'send', no_network)
     monkeypatch.setattr(httpx2.AsyncClient, 'send', no_network)
-    gateway = ModelGateway(Settings(_env_file=None, gemini_api_key='fixture'))
-    requests = []
-    async def respond(**kwargs):
-        scene = scenes[min(len(requests), len(scenes) - 1)]
-        requests.append(kwargs)
-        return GenerateContentResponse.model_validate({'candidates':[{'content':{'role':'model','parts':[
-            {'text':json.dumps({'summary':'Updated the watch.','conceptScene':scene})}]},
-            'finishReason':'STOP'}], 'usageMetadata':{'promptTokenCount':100,'candidatesTokenCount':200,'totalTokenCount':300}})
-    monkeypatch.setattr(gateway.planning_agents['google'].model.client.aio.models,'generate_content',respond)
+    gateway = ModelGateway(Settings(_env_file=None, meta_api_key='fixture'))
+    model = gateway.registry.models['meta'][0]
+    requests = patch_replies(monkeypatch, gateway, 'meta', model, lambda n: responses_reply(model, {
+        'summary':'Updated the watch.', 'conceptScene':scenes[min(n - 1, len(scenes) - 1)]}, output_tokens=200),
+        planning=True)
     return gateway, requests
 
 
@@ -67,7 +57,7 @@ def broken_watch():
 
 
 async def generate(gateway):
-    return await gateway.generate('google', gateway.registry.models['google'],
+    return await gateway.generate('meta', gateway.registry.models['meta'][0],
         {'task': 'project.capture', 'lane': 'coordination', 'planning': {'automatic': True}, 'brief': 'A smart watch'})
 
 

@@ -169,7 +169,7 @@ void main() {
       expect(find.text('CAD and PCB tools'), findsOneWidget);
       expect(find.text('Simulation fixture'), findsNothing);
       expect(find.text('Muse'), findsNothing);
-      expect(find.text('Gemini'), findsNothing);
+      expect(find.text('Muse on Modal'), findsNothing);
       await tester.ensureVisible(laneField('mechanics'));
       await tester.tap(laneField('mechanics'));
       await tester.pumpAndSettle();

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "gemini-session-runtime-v1",
+  "checkedAt": "2026-10-30T23:59:22.152547+00:00",
+  "imageId": "sha256:8fc628089e5120e60ca1f4c9e3ba3c90eb7678fcd45f91fc870a2837d4acd1f5",
+  "nativeSourceHashes": {
+    "native_runner.py": "2aa6cd4eca9a293904bb9b2837c755414571a048bcb5bea6ea7f7ebae9f9c4f2",
+    "native_session.py": "4e4679c5babe106b81af50c566e9ba25d463bcc833b67aa409f6678538b28d75",
+    "native_network.py": "482f1207d23292a500661ae008b632ef491f3688d21aeb26d5606bdb89322b18",
+    "cad_render.py": "929a9289c9ccafc0809b877336590485e3350ae1ab2c1b767d6c117524e5f8e3",
+    "cad_parts.py": "49691aad1942a0b74f346746ac736a6268181fc19cb1eec1f69c2659868cdc02",
+    "contracts.py": "2dfbed167192d80e580f5a3c4a1919161ab8e975d8d41c68fa7c5186f9be2237"
+  },
+  "trustedSourceHashes": {
+    "engine.py": "29990b0a402d2e666286a41f7154618c15f302dde67ec9248f51a46e4acc2786",
+    "models.py": "efd61dcc611f8608177d00081765ea02f8a0cab885158f8af46923f10462e1b9",
+    "session_bridge.py": "4249205f4bc65c7cf41534287ee60ac0fd3b65a144db4e458410be972e8a4ec6",
+    "native_sessions.py": "81c8afd9a0cadb35007e137efe4a82199bd4ebc494f8bb35193b1da445f97df9",
+    "execution.py": "533eba75abc682204309afe95bb09c62ffc95da568c5fb1c5701dd0d7d6db3ab"
+  },
+  "fixtureSha256": "2858233d49859d61588205bc899639a4535cbf1b15a18f823cff29825b147b3d",
+  "paidAttempted": true,
+  "status": "blocked",
+  "mode": "live",
+  "model": "gemini-3.8-flash",
+  "taskStatus": "blocked",
+  "runStatus": "running",
+  "nativeJobStatus": [
+    "cancelled"
+  ],
+  "toolCounts": {
+    "read": 1
+  },
+  "validationCount": 0,
+  "releaseCount": 0,
+  "acceptedReleaseId": null,
+  "usage": [
+    {
+      "sessionObserved": {
+        "outputTokens": 25,
+        "inputTokens": 2606,
+        "requests": 0,
+        "provider": "google",
+        "model": "gemini-3.8-flash",
+        "estimatedUsd": 0.00204825
+      }
+    }
+  ],
+  "invocationStatus": [
+    "uncertain"
+  ],
+  "nativeRequestSecretFree": true,
+  "nativeEnvironment": [],
+  "sourceSha256": "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832",
+  "originalSourceSha256": "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832",
+  "currentSourceHashes": [
+    "abf4a866988115fef5ac305f5f8d064c9470ac6a050ddb92b06f7bd7e0306832"
+  ],
+  "outputs": [],
+  "toolSteps": [
+    {
+      "action": "read",
+      "status": "queued",
+      "sequence": 1
+    }
+  ],
+  "renderImages": [],
+  "pricingProbeUsdPer1000InputAndOutput": 0.0045,
+  "limits": {
+    "maxModelRequests": 3,
+    "maxSteps": 8,
+    "maxSeconds": 240,
+    "modelDeadlineSeconds": 180,
+    "maxOutputTokensPerResponse": 4096,
+    "maxSpendUsd": 0.1
+  },
+  "durableModels": false,
+  "customerStateTouched": false,
+  "providerFallback": false,
+  "providerRetries": 0,
+  "blockerType": "AssertionError",
+  "blockerCode": null,
+  "pollerErrors": [],
+  "ownNativeControlsCleaned": true,
+  "nativeImageIds": [
+    "sha256:8fc628089e5120e60ca1f4c9e3ba3c90eb7678fcd45f91fc870a2837d4acd1f5"
+  ],
+  "providerRequestsAttempted": true,
+  "wallSeconds": 8.351944128997275,
+  "modelCalls": null,
+  "cleanupRecovery": {
+    "onlyEmptyDirectories": true,
+    "stepsOwner": 0,
+    "stepsMode": "0o700",
+    "requestAlreadyRemovedByPartialCleanup": true,
+    "ownControlsRemoved": true
+  },
+  "providerResponsesObservedAtLeast": 1,
+  "observedEstimatedUsd": 0.00204825,
+  "failureDiagnosis": {
+    "controlDirectoryOwner": 1000,
+    "stepsDirectoryOwner": 0,
+    "stepsDirectoryMode": "0o700",
+    "status": "concrete ownership mismatch; delayed zero-cost SDK regression pending",
+    "originalEngineFramesRetained": false
+  },
+  "followupVerification": {
+    "providerRetried": false,
+    "report": "gemini-session-dry-runtime.json",
+    "status": "passed",
+    "sdkTransport": "public PydanticAI FunctionModel; no provider request",
+    "nativeImageId": "sha256:d1f189088db8e280998b2e7003c337ac9d1e037fe86bd41e833441d7424f0a7a",
+    "fix": "Private session step directory published atomically with controller ownership; chmod occurs before chown without broadening capabilities",
+    "scope": "Corrected full read/build/render/finish SDK-to-native path with delayed mocked responses; original paid response outcome remains blocked and was not retried"
+  }
+}
