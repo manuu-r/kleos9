@@ -4,6 +4,10 @@ Inspected 1 November 2026, starting at `90af501` on a clean `main` working tree.
 Work branch: `feature/ngspice-simulation`. This record establishes the starting
 point; it does not claim simulation implementation or qualification.
 
+M1 implementation is documented in [circuit simulation](circuit-simulation.md).
+Its scoped checks are recorded in
+[M1 verification](../verification/ngspice-m1.md). M2–M7 remain outstanding.
+
 ## Verified starting point
 
 - `ngspice_connector.py` contains a numeric-only fixed RC example, not a general

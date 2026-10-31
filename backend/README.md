@@ -12,6 +12,10 @@ production transport. Physical fulfillment is explicitly simulated and live disp
 The code is runnable locally. AWS/account provisioning, real provider qualification and the
 complete smartwatch acceptance run remain deployment checks; tests do not establish those outcomes.
 
+The optional [circuit simulation compiler](docs/circuit-simulation.md) currently
+generates bounded numeric ngspice decks from explicitly bound accepted interfaces.
+This M1 compiler does not execute ngspice or produce authoritative validation evidence.
+
 ## Local Docker backend and Muse models
 
 `KLEOS_META_API_KEY` enables the Meta Model API. Spark 1.3 (`muse-spark-1.3`) serves
