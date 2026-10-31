@@ -165,7 +165,6 @@ locals {
     KLEOS_EXECUTION_BACKEND           = length(var.native_images) + length(var.recovery_task_definition_arns) > 0 ? "ecs" : "disabled"
     KLEOS_INTERNAL_BASE_URL           = "https://${local.jobs_hostname}"
     KLEOS_SQS_COMPLETION_QUEUE        = aws_sqs_queue.completions.url
-    KLEOS_SPENDING_LIMITS_ENABLED     = tostring(var.spending_limits_enabled)
     KLEOS_PROJECT_BUDGET_USD          = tostring(var.project_budget_usd)
     KLEOS_DAILY_BUDGET_USD            = tostring(var.daily_budget_usd)
     KLEOS_CONDUCTOR_URL               = local.conductor_enabled ? "wss://${local.jobs_hostname}/" : ""
