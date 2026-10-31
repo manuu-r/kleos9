@@ -37,32 +37,49 @@ class ProjectsPage extends StatelessWidget {
     final projects = asMaps(controller.state['projects']);
     final connectors = asMaps(controller.state['connectors']);
     final tools = connectors.where((c) => c['kind'] == 'tool').toList();
-    return KPage(gap: 72, children: [
-      const _Hero(),
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    return KPage(gap: 36, children: [
+      _Hero(showStage: wide),
       if (controller.state['production'] == true) const _PendingRequests(),
       if (projects.isNotEmpty)
         _Builds(projects: projects, controller: controller),
-      const _Pipeline(),
+      // On a phone the device visual follows the builds instead of pushing
+      // them below the fold.
+      if (!wide && projects.isNotEmpty) const _Stage(height: 240),
+      if (projects.isEmpty) const _Pipeline(),
       _PlugIns(tools: tools, connectors: connectors),
     ]);
   }
 }
 
+/// The exploded device on its drafting grid. Flat, no shadow.
+class _Stage extends StatelessWidget {
+  const _Stage({required this.height});
+  final double height;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: double.infinity,
+      height: height,
+      child: const KGridBackdrop(child: DeviceVisual()));
+}
+
+/// The screen's title row: a noun-sized title, one sentence, the two actions.
+/// On wide screens the device visual sits beside it.
 class _Hero extends StatelessWidget {
-  const _Hero();
+  const _Hero({required this.showStage});
+  final bool showStage;
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
-        final wide = c.maxWidth >= 900;
-        final copyWidth = wide ? c.maxWidth * 5 / 11 : c.maxWidth;
+        final phone = c.maxWidth < 600;
         final copy = kColumn([
           Text('Build hardware from a sentence.',
-              style: KType.display
-                  .copyWith(fontSize: (copyWidth * .13).clamp(34.0, 58.0))),
+              style: KType.h1.copyWith(
+                  fontSize: phone ? 24 : 30, letterSpacing: phone ? -.5 : -.9)),
           ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: const KMuted(
                   'Describe a device. Agents design the enclosure, board and firmware, then route every step to a connector or a person.',
-                  size: 16)),
+                  size: 14.5)),
           kRow([
             KButton(
                 label: 'New build',
@@ -73,30 +90,18 @@ class _Hero extends StatelessWidget {
                 label: 'Browse connectors',
                 onPressed: () => context.go('/connections'))
           ], gap: 10),
-        ], gap: 26);
-        final stage = Container(
-            width: double.infinity,
-            height: wide ? 440 : 300,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(KRadius.card),
-                boxShadow: KShadow.stage),
-            child: const KGridBackdrop(child: DeviceVisual()));
-        return wide
-            ? Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(flex: 5, child: copy),
-                      const SizedBox(width: 56),
-                      Expanded(flex: 6, child: stage),
-                    ]))
-            : kColumn([copy, stage], gap: 36);
+        ], gap: 14);
+        if (!showStage) return copy;
+        return Row(children: [
+          Expanded(flex: 5, child: copy),
+          const SizedBox(width: 48),
+          const Expanded(flex: 6, child: _Stage(height: 340)),
+        ]);
       });
 }
 
 /// Ten slim segments, one per stage: finished stages are quiet, the current
-/// stage carries the accent, and what is left stays dark.
+/// stage carries the one accent mark, and what is left stays dark.
 class StageTrack extends StatelessWidget {
   const StageTrack({super.key, required this.stage, this.finished = false});
   final int stage;
@@ -111,7 +116,7 @@ class StageTrack extends StatelessWidget {
                   curve: KMotion.out,
                   height: 4,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(KRadius.control),
                       color: finished || i < stage
                           ? KColors.text.withValues(alpha: .42)
                           : i == stage
@@ -137,51 +142,116 @@ class _Builds extends StatelessWidget {
               const SizedBox(width: 10),
               Text('${projects.length}', style: KType.monoSmall),
             ]),
-        KResponsive(
-            children: projects.map((p) {
-          final done = asList(p['done']).where((x) => x == true).length;
-          final stage = (p['stage'] as num?)?.toInt().clamp(0, 9) ?? 0;
-          return InkWell(
-              borderRadius: BorderRadius.circular(KRadius.card),
-              onTap: () => context.go('/projects/${p['id']}'),
-              child: KCard(
+        LayoutBuilder(builder: (context, c) {
+          String stageLabel(JsonMap p, int stage, int done) => done == 10
+              ? p['production'] == true
+                  ? 'Simulated delivery and activation'
+                  : 'Delivered and activated'
+              : stageNames[stage];
+          int stageOf(JsonMap p) =>
+              (p['stage'] as num?)?.toInt().clamp(0, 9) ?? 0;
+          int doneOf(JsonMap p) =>
+              asList(p['done']).where((x) => x == true).length;
+          Widget status(JsonMap p) => p['production'] == true
+              ? KBadge('${p['status'] ?? 'draft'}',
+                  tone: p['status'] == 'blocked' ? 'unknown' : null)
+              : const SizedBox.shrink();
+          if (c.maxWidth >= 720) {
+            // One list, one row per build: name and brief, then where it is.
+            return KPanel(
+                padding: EdgeInsets.zero,
+                child: Column(children: [
+                  for (var i = 0; i < projects.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 1, color: KColors.hairline),
+                    KTap(
+                        flat: true,
+                        radius: 0,
+                        onTap: () =>
+                            context.go('/projects/${projects[i]['id']}'),
+                        builder: (context, hovered) => AnimatedContainer(
+                            duration: KMotion.base,
+                            color:
+                                hovered ? KColors.surface2 : Colors.transparent,
+                            padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                            child: Row(children: [
+                              Expanded(
+                                  flex: 5,
+                                  child: kColumn([
+                                    Text('${projects[i]['name']}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium),
+                                    Text('${projects[i]['brief']}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            color: KColors.muted,
+                                            fontSize: 13.5)),
+                                  ], gap: 4)),
+                              const SizedBox(width: 24),
+                              Expanded(
+                                  flex: 4,
+                                  child: kColumn([
+                                    StageTrack(
+                                        stage: stageOf(projects[i]),
+                                        finished: doneOf(projects[i]) == 10),
+                                    Text(
+                                        stageLabel(
+                                            projects[i],
+                                            stageOf(projects[i]),
+                                            doneOf(projects[i])),
+                                        style: KType.monoSmall),
+                                  ], gap: 8)),
+                              const SizedBox(width: 12),
+                              status(projects[i]),
+                              BuildActionsMenu(
+                                  project: projects[i], controller: controller),
+                              const Icon(Icons.chevron_right,
+                                  size: 18, color: KColors.faint),
+                              const SizedBox(width: 8),
+                            ]))),
+                  ]
+                ]));
+          }
+          return kColumn([
+            for (final p in projects)
+              KCard(
+                  onTap: () => context.go('/projects/${p['id']}'),
                   child: kColumn([
-                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                  Expanded(
-                      child: Text('${p['name']}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium)),
-                  BuildActionsMenu(project: p, controller: controller),
-                  const Icon(Icons.arrow_forward,
-                      size: 16, color: KColors.faint)
-                ]),
-                Text('${p['brief']}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: KColors.muted, fontSize: 12.5, height: 1.55)),
-                StageTrack(stage: stage, finished: done == 10),
-                Row(children: [
-                  Expanded(
-                      child: Text(
-                          done == 10
-                              ? p['production'] == true
-                                  ? 'Simulated delivery and activation'
-                                  : 'Delivered and activated'
-                              : stageNames[stage],
-                          style: KType.monoSmall)),
-                  if (p['production'] == true)
-                    KBadge('${p['status'] ?? 'draft'}',
-                        tone: p['status'] == 'blocked' ? 'unknown' : null),
-                ])
-              ], gap: 16)));
-        }).toList())
-      ], gap: 22);
+                    Row(children: [
+                      Expanded(
+                          child: Text('${p['name']}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium)),
+                      BuildActionsMenu(project: p, controller: controller),
+                      const Icon(Icons.chevron_right,
+                          size: 18, color: KColors.faint)
+                    ]),
+                    Text('${p['brief']}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: KColors.muted, fontSize: 13.5, height: 1.5)),
+                    StageTrack(stage: stageOf(p), finished: doneOf(p) == 10),
+                    Row(children: [
+                      Expanded(
+                          child: Text(stageLabel(p, stageOf(p), doneOf(p)),
+                              style: KType.monoSmall)),
+                      status(p),
+                    ])
+                  ], gap: 14)),
+          ]);
+        }),
+      ], gap: 16);
 }
 
 /// A sample build, shown as a pipeline of finished stages beside the log the
-/// agents would have written. It makes the product legible before a first run.
+/// agents would have written. It makes the product legible before a first run
+/// and only appears while there are no builds.
 class _Pipeline extends StatelessWidget {
   const _Pipeline();
   static const _log = [
@@ -194,20 +264,12 @@ class _Pipeline extends StatelessWidget {
   ];
   @override
   Widget build(BuildContext context) => kColumn([
-        ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 860),
-            child: Text.rich(
-                TextSpan(children: const [
-                  TextSpan(
-                      text: 'Every capability is a connector. ',
-                      style: TextStyle(color: KColors.text)),
-                  TextSpan(
-                      text:
-                          'Fabrication, parts, machines and people plug in the same way, so the agent can route each step to whichever qualified one fits.',
-                      style: TextStyle(color: KColors.faint))
-                ]),
-                style: KType.h1.copyWith(
-                    fontSize: 28, fontWeight: FontWeight.w500, height: 1.3))),
+        Text('How a build runs',
+            style: Theme.of(context).textTheme.headlineSmall),
+        const KMuted(
+            'Fabrication, parts, machines and people plug in the same way, so the agent can route each step to whichever qualified one fits.',
+            size: 14),
+        const _Stage(height: 240),
         KCard(
             title: 'Air Quality Monitor',
             trailing: const KBadge('simulated'),
@@ -235,13 +297,13 @@ class _Pipeline extends StatelessWidget {
                     Expanded(
                         child: Text(stageNames[i],
                             style: TextStyle(
-                                fontSize: 13.5,
+                                fontSize: 14,
                                 color: i < 4 ? KColors.text : KColors.faint)))
                   ])
               ], gap: 14),
               const TerminalPanel(lines: _log, maxHeight: 220),
             ])),
-      ], gap: 32);
+      ], gap: 16);
 }
 
 class _PlugIns extends StatelessWidget {
@@ -264,12 +326,12 @@ class _PlugIns extends StatelessWidget {
             SizedBox(
                 width: 170,
                 child: kColumn([
-                  KMuted(lane, size: 11),
+                  KMuted(lane),
                   for (final tool in tools
                       .where((t) => t['domain'] == lane && t['linked'] == true))
                     KBadge('${tool['name']}',
                         tone: tool['builtIn'] == true ? null : 'accent'),
-                  const KMuted('Your tool', size: 11)
+                  const KMuted('Your tool')
                 ], gap: 8))
         ]));
     final servicesTile = _HomeLink(
@@ -299,14 +361,13 @@ class _PlugIns extends StatelessWidget {
         description:
             'Fit checks and assembly trials post to RentAHuman or the hosted portal.',
         route: '/human-tasks',
-        tint: KColors.accent,
         child: kColumn([
           kRow([
             const Text('Fit check, printed case'),
             const KBadge('In review', tone: 'accent')
           ]),
           const KProgress(70),
-          const KMuted('Evidence received, validator running', size: 11)
+          const KMuted('Evidence received, validator running')
         ]));
     const devTile = _HomeLink(
         title: 'Build a connector in minutes',
@@ -344,27 +405,24 @@ class _HomeLink extends StatelessWidget {
       {required this.title,
       required this.description,
       required this.route,
-      required this.child,
-      this.tint});
+      required this.child});
   final String title, description, route;
   final Widget child;
-  final Color? tint;
   @override
   Widget build(BuildContext context) => InkWell(
       onTap: () => context.go(route),
-      borderRadius: BorderRadius.circular(KRadius.card),
+      borderRadius: BorderRadius.circular(KRadius.control),
       child: KCard(
-          tint: tint,
           child: kColumn([
-            Row(children: [
-              Expanded(
-                  child: Text(title,
-                      style: Theme.of(context).textTheme.titleMedium)),
-              const Icon(Icons.north_east, size: 15, color: KColors.faint)
-            ]),
-            KMuted(description, size: 12.5),
-            child
-          ], gap: 18)));
+        Row(children: [
+          Expanded(
+              child:
+                  Text(title, style: Theme.of(context).textTheme.titleMedium)),
+          const Icon(Icons.north_east, size: 15, color: KColors.faint)
+        ]),
+        KMuted(description, size: 12.5),
+        child
+      ], gap: 18)));
 }
 
 class NewBuildPage extends StatefulWidget {
@@ -445,12 +503,11 @@ class _NewBuildPageState extends State<NewBuildPage> {
                             hintText:
                                 'A desk air-quality monitor with a small screen…'))),
                 LayoutBuilder(builder: (context, constraints) {
-                  final help = KMuted(
-                      widget.controller.state['production'] == true &&
-                              !_simulate
-                          ? 'AI models are configured in Providers.'
-                          : 'Scripted around an air-quality monitor in this prototype.',
-                      size: 11);
+                  final help = KMuted(widget.controller.state['production'] ==
+                              true &&
+                          !_simulate
+                      ? 'AI models are configured in Providers.'
+                      : 'Scripted around an air-quality monitor in this prototype.');
                   final submit = KButton(
                       label: _simulate ? 'Start demo build' : 'Start build',
                       primary: true,
@@ -460,7 +517,7 @@ class _NewBuildPageState extends State<NewBuildPage> {
                           ? null
                           : start);
                   if (constraints.maxWidth < 400) {
-                    return kColumn([help, submit], gap: 12);
+                    return kColumn([help, submit]);
                   }
                   return Row(children: [
                     Expanded(child: help),
@@ -470,27 +527,20 @@ class _NewBuildPageState extends State<NewBuildPage> {
                 }),
               ], gap: 14)),
           kColumn([
-            const KMuted('Or start from a sample', size: 12),
+            const KMuted('Or start from a sample'),
             for (final sample in sampleBriefs)
               KTap(
-                  radius: KRadius.control + 2,
+                  radius: KRadius.control,
                   onTap: () => setState(() => brief.text = sample),
                   builder: (context, hovered) => AnimatedContainer(
                       duration: KMotion.base,
                       curve: KMotion.out,
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                          color: hovered
-                              ? KColors.surface2
-                              : KColors.surface.withValues(alpha: .6),
-                          border: Border.all(
-                              color: hovered
-                                  ? KColors.borderStrong
-                                  : KColors.border),
-                          borderRadius:
-                              BorderRadius.circular(KRadius.control + 2)),
+                          horizontal: 18, vertical: 16),
+                      decoration: KShape.surface(
+                          hovered ? KColors.surface2 : KColors.surface,
+                          radius: KRadius.control),
                       child: Row(children: [
                         Expanded(
                             child: Text(sample,
@@ -500,19 +550,13 @@ class _NewBuildPageState extends State<NewBuildPage> {
                                     color: KColors.muted))),
                         const SizedBox(width: 12),
                         Icon(Icons.north_west,
-                            size: 14,
-                            color: hovered ? KColors.accent : KColors.faint),
+                            size: 15,
+                            color: hovered ? KColors.text : KColors.faint),
                       ]))),
           ], gap: 10),
         ], gap: 28);
         final next = kColumn([
-          Container(
-              width: double.infinity,
-              height: wide ? 300 : 260,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(KRadius.card),
-                  boxShadow: KShadow.stage),
-              child: const KGridBackdrop(child: DeviceVisual())),
+          _Stage(height: wide ? 300 : 240),
           Text('What happens next',
               style: Theme.of(context).textTheme.titleMedium),
           _Timeline(steps: stageNames),
@@ -550,7 +594,7 @@ class _Timeline extends StatelessWidget {
                               color: KColors.surface2,
                               border: Border.all(color: KColors.borderStrong)),
                           child: Text('${i + 1}',
-                              style: KType.monoSmall.copyWith(fontSize: 10))),
+                              style: KType.monoSmall.copyWith(fontSize: 12))),
                       if (i < steps.length - 1)
                         Expanded(
                             child: Container(width: 1, color: KColors.border)),

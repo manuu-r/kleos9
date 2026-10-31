@@ -55,10 +55,7 @@ Widget pRight(Widget child) =>
 Widget pCallout(Widget child) => Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: KColors.accent.withValues(alpha: .06),
-          border: Border.all(color: KColors.border),
-          borderRadius: BorderRadius.circular(12)),
+      decoration: KShape.surface(KColors.surface2, radius: KRadius.control),
       child: child,
     );
 

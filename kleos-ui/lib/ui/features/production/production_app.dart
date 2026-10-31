@@ -69,7 +69,7 @@ class ProductionAccessGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider);
     if (account.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: SafeArea(child: KPageSkeleton()));
     }
     if (account.error is OrganizationSelectionRequired) {
       final selection = account.error! as OrganizationSelectionRequired;
@@ -239,167 +239,182 @@ class _SignInPageState extends ConsumerState<_SignInPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-          body: Stack(children: [
+      backgroundColor: KColors.bg,
+      body: Stack(children: [
         const Positioned.fill(child: KAmbient()),
         SafeArea(
             child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(KSpace.gutter(context)),
             child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
+                constraints: const BoxConstraints(maxWidth: 440),
                 child: KCard(
+                    padding: EdgeInsets.all(KSpace.phone(context) ? 20 : 28),
                     child: kColumn([
-                  Row(children: [
-                    Container(
-                        width: 34,
-                        height: 34,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Color(0xffffffff), Color(0xffd5d5da)]),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: const Text('K9',
-                            style: TextStyle(
-                                color: KColors.bg,
-                                fontSize: 12,
-                                letterSpacing: -.2,
-                                fontWeight: FontWeight.w800))),
-                    const SizedBox(width: 12),
-                    const KBadge('Kleos9 private beta'),
-                  ]),
-                  Text('Your engineering workspace.',
-                      style: Theme.of(context).textTheme.headlineLarge),
-                  const KMuted(
-                      'Sign in with your invited account to design, inspect, and revise your builds.'),
-                  if (widget.error != null) _Notice(widget.error!, error: true),
-                  FutureBuilder<JsonMap>(
-                      future: config,
-                      builder: (context, snapshot) {
-                        if (snapshot.data?['loginRequired'] == false) {
-                          return KButton(
-                              label: 'Retry workspace',
-                              onPressed: () => ref.invalidate(accountProvider));
-                        }
-                        final dev = snapshot.data?['authMode'] == 'development';
-                        final setup = snapshot.data?['setupRequired'] == true;
-                        final signup = creating && !setup;
-                        return kColumn([
-                          if (dev)
-                            TextField(
-                                key: const ValueKey('production-dev-token'),
-                                controller: token,
-                                obscureText: true,
-                                enableSuggestions: false,
-                                autocorrect: false,
-                                decoration: const InputDecoration(
-                                    labelText: 'Development access token'),
-                                onSubmitted: (_) => signIn(development: true)),
-                          if (!dev && snapshot.hasData) ...[
-                            if (setup)
-                              const _Notice(
-                                  'No account exists yet. Create the first owner with the setup token from your AWS Secrets Manager.'),
-                            if (setup)
-                              TextField(
-                                  key: const ValueKey('production-setup-token'),
-                                  controller: setupToken,
-                                  obscureText: true,
-                                  enableSuggestions: false,
-                                  autocorrect: false,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Setup token')),
-                            if (setup)
-                              TextField(
-                                  key:
-                                      const ValueKey('production-organization'),
-                                  controller: organization,
-                                  textCapitalization: TextCapitalization.words,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Organization name')),
-                            if (signup)
-                              TextField(
-                                  key: const ValueKey('production-invite-code'),
-                                  controller: inviteCode,
-                                  enableSuggestions: false,
-                                  autocorrect: false,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Invite code')),
-                            if (creating || setup)
-                              TextField(
-                                  key: const ValueKey('production-name'),
-                                  controller: name,
-                                  textCapitalization: TextCapitalization.words,
-                                  autofillHints: const [AutofillHints.name],
-                                  decoration: const InputDecoration(
-                                      labelText: 'Name (optional)')),
-                            TextField(
-                                key: const ValueKey('production-email'),
-                                controller: email,
-                                keyboardType: TextInputType.emailAddress,
-                                autofillHints: const [AutofillHints.email],
-                                autocorrect: false,
-                                decoration:
-                                    const InputDecoration(labelText: 'Email')),
-                            TextField(
-                                key: const ValueKey('production-password'),
-                                controller: password,
-                                obscureText: true,
-                                enableSuggestions: false,
-                                autocorrect: false,
-                                autofillHints: [
-                                  creating || setup
-                                      ? AutofillHints.newPassword
-                                      : AutofillHints.password
-                                ],
-                                decoration: InputDecoration(
-                                    labelText: creating || setup
-                                        ? 'Choose a password (12+ characters)'
-                                        : 'Password'),
-                                onSubmitted: (_) =>
-                                    signIn(development: false, setup: setup)),
-                          ],
-                          if (snapshot.hasError)
-                            _Notice(snapshot.error.toString(), error: true),
-                          if (snapshot.hasError)
-                            KButton(
-                                label: 'Retry connection',
-                                onPressed: () {
-                                  setState(() => config = ref
-                                      .read(productionAuthProvider)
-                                      .config());
-                                  ref.invalidate(accountProvider);
-                                }),
-                          KButton(
-                              key: const ValueKey('production-sign-in'),
-                              label: widget.loading
-                                  ? 'Connecting…'
-                                  : setup
-                                      ? 'Create owner account'
-                                      : creating
-                                          ? 'Create account'
-                                          : 'Sign in',
-                              primary: true,
-                              onPressed: widget.loading || !snapshot.hasData
-                                  ? null
-                                  : () =>
-                                      signIn(development: dev, setup: setup)),
-                          if (!dev && snapshot.hasData && !setup)
-                            KButton(
-                                key: const ValueKey('production-toggle-signup'),
-                                label: creating
-                                    ? 'I already have an account'
-                                    : 'I have an invite code',
-                                onPressed: widget.loading
-                                    ? null
-                                    : () =>
-                                        setState(() => creating = !creating)),
-                        ]);
-                      }),
-                  const KMuted(
-                      'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.',
-                      size: 11),
-                ], gap: 20))),
+                      Row(children: [
+                        Container(
+                            width: 34,
+                            height: 34,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                color: KColors.surface3,
+                                border: Border.all(color: KColors.borderStrong),
+                                borderRadius:
+                                    BorderRadius.circular(KRadius.control)),
+                            child: const Text('K9',
+                                style: TextStyle(
+                                    fontFamily: 'GeistMono',
+                                    color: KColors.text,
+                                    fontSize: 12,
+                                    letterSpacing: -.4,
+                                    fontWeight: FontWeight.w700))),
+                        const SizedBox(width: 12),
+                        const KBadge('Kleos9 private beta'),
+                      ]),
+                      Text('Your engineering workspace.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineLarge
+                              ?.copyWith(fontSize: 24)),
+                      const KMuted(
+                          'Sign in with your invited account to design, inspect, and revise your builds.'),
+                      if (widget.error != null)
+                        _Notice(widget.error!, error: true),
+                      FutureBuilder<JsonMap>(
+                          future: config,
+                          builder: (context, snapshot) {
+                            if (snapshot.data?['loginRequired'] == false) {
+                              return KButton(
+                                  label: 'Retry workspace',
+                                  onPressed: () =>
+                                      ref.invalidate(accountProvider));
+                            }
+                            final dev =
+                                snapshot.data?['authMode'] == 'development';
+                            final setup =
+                                snapshot.data?['setupRequired'] == true;
+                            final signup = creating && !setup;
+                            return kColumn([
+                              if (dev)
+                                TextField(
+                                    key: const ValueKey('production-dev-token'),
+                                    controller: token,
+                                    obscureText: true,
+                                    enableSuggestions: false,
+                                    autocorrect: false,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Development access token'),
+                                    onSubmitted: (_) =>
+                                        signIn(development: true)),
+                              if (!dev && snapshot.hasData) ...[
+                                if (setup)
+                                  const _Notice(
+                                      'No account exists yet. Create the first owner with the setup token from your AWS Secrets Manager.'),
+                                if (setup)
+                                  TextField(
+                                      key: const ValueKey(
+                                          'production-setup-token'),
+                                      controller: setupToken,
+                                      obscureText: true,
+                                      enableSuggestions: false,
+                                      autocorrect: false,
+                                      decoration: const InputDecoration(
+                                          labelText: 'Setup token')),
+                                if (setup)
+                                  TextField(
+                                      key: const ValueKey(
+                                          'production-organization'),
+                                      controller: organization,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      decoration: const InputDecoration(
+                                          labelText: 'Organization name')),
+                                if (signup)
+                                  TextField(
+                                      key: const ValueKey(
+                                          'production-invite-code'),
+                                      controller: inviteCode,
+                                      enableSuggestions: false,
+                                      autocorrect: false,
+                                      decoration: const InputDecoration(
+                                          labelText: 'Invite code')),
+                                if (creating || setup)
+                                  TextField(
+                                      key: const ValueKey('production-name'),
+                                      controller: name,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      autofillHints: const [AutofillHints.name],
+                                      decoration: const InputDecoration(
+                                          labelText: 'Name (optional)')),
+                                TextField(
+                                    key: const ValueKey('production-email'),
+                                    controller: email,
+                                    keyboardType: TextInputType.emailAddress,
+                                    autofillHints: const [AutofillHints.email],
+                                    autocorrect: false,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Email')),
+                                TextField(
+                                    key: const ValueKey('production-password'),
+                                    controller: password,
+                                    obscureText: true,
+                                    enableSuggestions: false,
+                                    autocorrect: false,
+                                    autofillHints: [
+                                      creating || setup
+                                          ? AutofillHints.newPassword
+                                          : AutofillHints.password
+                                    ],
+                                    decoration: InputDecoration(
+                                        labelText: creating || setup
+                                            ? 'Choose a password (12+ characters)'
+                                            : 'Password'),
+                                    onSubmitted: (_) => signIn(
+                                        development: false, setup: setup)),
+                              ],
+                              if (snapshot.hasError)
+                                _Notice(snapshot.error.toString(), error: true),
+                              if (snapshot.hasError)
+                                KButton(
+                                    label: 'Retry connection',
+                                    onPressed: () {
+                                      setState(() => config = ref
+                                          .read(productionAuthProvider)
+                                          .config());
+                                      ref.invalidate(accountProvider);
+                                    }),
+                              KButton(
+                                  key: const ValueKey('production-sign-in'),
+                                  expand: true,
+                                  label: widget.loading
+                                      ? 'Connecting…'
+                                      : setup
+                                          ? 'Create owner account'
+                                          : creating
+                                              ? 'Create account'
+                                              : 'Sign in',
+                                  primary: true,
+                                  onPressed: widget.loading || !snapshot.hasData
+                                      ? null
+                                      : () => signIn(
+                                          development: dev, setup: setup)),
+                              if (!dev && snapshot.hasData && !setup)
+                                KButton(
+                                    key: const ValueKey(
+                                        'production-toggle-signup'),
+                                    label: creating
+                                        ? 'I already have an account'
+                                        : 'I have an invite code',
+                                    onPressed: widget.loading
+                                        ? null
+                                        : () => setState(
+                                            () => creating = !creating)),
+                            ]);
+                          }),
+                      const KMuted(
+                          'Engineering runs use real models and tools. Physical fulfillment remains simulated in this release.'),
+                    ], gap: 20))),
           ),
         ))
       ]));
@@ -489,8 +504,7 @@ class _PendingRequestState extends ConsumerState<_PendingRequest> {
   Widget build(BuildContext context) => kColumn([
         Text(widget.command.body['type'].toString()),
         const KMuted(
-            'This request may already be accepted. Retry checks it using the original request identifier.',
-            size: 11),
+            'This request may already be accepted. Retry checks it using the original request identifier.'),
         if (error != null) _Notice(error!, error: true),
         KButton(
             label: busy ? 'Checking…' : 'Check request',
@@ -673,13 +687,11 @@ class ModelPolicyEditor extends StatelessWidget {
                     )),
                 if (current != null && !current.configured)
                   const KMuted(
-                      'Not connected yet. An administrator must configure this provider before it can run.',
-                      size: 11),
+                      'Not connected yet. An administrator must configure this provider before it can run.'),
               ], gap: 8);
             }),
           const KMuted(
-              'Provider credentials stay on the server. Engineering acceptance always comes from independent checks.',
-              size: 11),
+              'Provider credentials stay on the server. Engineering acceptance always comes from independent checks.'),
         ], gap: 20),
       );
 }
@@ -704,7 +716,8 @@ class ProductionWorkspacePage extends ConsumerWidget {
     final workspace = value.workspace;
     final project = workspace.project;
     final controller = ref.read(productionProjectProvider(projectId).notifier);
-    final canWrite = ref.watch(accountProvider).asData?.value?.canWrite == true;
+    final canWrite =
+        ref.watch(accountProvider).asData?.value?.canWrite ?? false;
     final proposal = asMap(project.state['proposal']);
     final proposedRequirements = asMap(proposal['requirements']);
     return _Page(children: [
@@ -758,7 +771,7 @@ class ProductionWorkspacePage extends ConsumerWidget {
                           : () => controller.execute('project.retry',
                               {'runId': workspace.runs.first.id})),
               ]),
-            if (value.busy) const LinearProgressIndicator(),
+            if (value.busy) const KLineLoader(),
           ])),
       if (proposal.isNotEmpty)
         KCard(
@@ -796,7 +809,7 @@ class ProductionWorkspacePage extends ConsumerWidget {
                       KBadge(check['status'].toString(),
                           tone: check['status'] == 'PASS' ? 'pass' : 'unknown'),
                       Text(check['name'].toString()),
-                      KMuted(check['evidenceKind'].toString(), size: 11),
+                      KMuted(check['evidenceKind'].toString()),
                     ]),
                     _JsonDetails(
                         'Check evidence and limitations', check['details'])
@@ -1171,10 +1184,7 @@ class _ArtifactRowState extends ConsumerState<_ArtifactRow> {
                 key: ValueKey('download-artifact-${widget.artifact.id}'),
                 tooltip: 'Download or share artifact',
                 icon: busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                    ? KSpinner(size: 18)
                     : const Icon(Icons.download_outlined),
                 onPressed: busy
                     ? null
@@ -1266,7 +1276,7 @@ class _ProductionRunPageState extends ConsumerState<ProductionRunPage> {
                 SelectableText('Trace: ${run.traceId}',
                     style: const TextStyle(
                         fontFamily: 'GeistMono',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: KColors.muted)),
                 for (final task in run.tasks)
                   KCard(
@@ -1295,7 +1305,7 @@ class _ProductionRunPageState extends ConsumerState<ProductionRunPage> {
                                 'Output and changes', attempt['output']),
                             for (final call in asMaps(attempt['calls']))
                               _CallRecord(call: call),
-                          ], gap: 12),
+                          ]),
                         for (final job in asMaps(task['nativeJobs']))
                           _NativeJobRecord(
                               job: job,
@@ -1442,17 +1452,16 @@ class _NativeJobRecordState extends ConsumerState<_NativeJobRecord> {
         if (widget.job['purpose'] == 'build' &&
             const {'succeeded', 'failed', 'unsupported'}
                 .contains(widget.job['status']) &&
-            ref.watch(accountProvider).asData?.value?.canWrite == true) ...[
+            (ref.watch(accountProvider).asData?.value?.canWrite ?? false)) ...[
           const KMuted(
-              'Rebuilds the saved sources using compute allowance only. No new AI generation.',
-              size: 11),
+              'Rebuilds the saved sources using compute allowance only. No new AI generation.'),
           KButton(
               key: ValueKey('rebuild-native-${widget.job['id']}'),
               label: rebuilding ? 'Starting rebuild…' : 'Rebuild saved sources',
               onPressed: rebuilding ? null : rebuildSources),
         ],
         if (rebuildError != null) _Notice(rebuildError!, error: true),
-      ], gap: 12);
+      ]);
 }
 
 class _CallRecord extends ConsumerStatefulWidget {
@@ -1521,16 +1530,30 @@ class _JsonDetails extends StatelessWidget {
                           ? value as String
                           : const JsonEncoder.withIndent('  ').convert(value),
                       style: const TextStyle(
-                          fontFamily: 'GeistMono', fontSize: 11, height: 1.5))))
+                          fontFamily: 'GeistMono', fontSize: 12, height: 1.5))))
         ],
       );
 }
 
-class _Page extends StatelessWidget {
+class _Page extends StatefulWidget {
   const _Page({required this.children});
   final List<Widget> children;
   @override
+  State<_Page> createState() => _PageState();
+}
+
+class _PageState extends State<_Page> {
+  final _scroll = KSmoothController();
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  List<Widget> get children => widget.children;
+  @override
   Widget build(BuildContext context) => ListView(
+        controller: _scroll,
         key: const ValueKey('production-page-scroll'),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding:
@@ -1547,27 +1570,17 @@ class _Notice extends StatelessWidget {
   final String message;
   final bool error;
   @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-            color:
-                (error ? KColors.fail : KColors.accent).withValues(alpha: .08),
-            borderRadius: BorderRadius.circular(9)),
-        child: Text(message,
-            style: TextStyle(
-                fontSize: 12,
-                height: 1.5,
-                color: error ? KColors.fail : KColors.muted)),
-      );
+  Widget build(BuildContext context) => KNotice(message, error: error);
 }
 
+/// Placeholder rows at the real row size while a block loads.
 class _Loading extends StatelessWidget {
   const _Loading();
   @override
-  Widget build(BuildContext context) => const Padding(
-      padding: EdgeInsets.all(32),
-      child: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => const KPulse(
+      child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: KSkeletonRows(rows: 3)));
 }
 
 class _Retry extends StatelessWidget {
@@ -1575,10 +1588,7 @@ class _Retry extends StatelessWidget {
   final String message;
   final VoidCallback retry;
   @override
-  Widget build(BuildContext context) => kColumn([
-        _Notice(message, error: true),
-        KButton(label: 'Retry', onPressed: retry),
-      ]);
+  Widget build(BuildContext context) => KErrorState(message, retry: retry);
 }
 
 class _Metric extends StatelessWidget {
@@ -1587,8 +1597,8 @@ class _Metric extends StatelessWidget {
   final String value;
   @override
   Widget build(BuildContext context) => kColumn([
-        KMuted(label, size: 11),
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
+        KMuted(label),
+        Text(value, style: KType.numeral.copyWith(fontSize: 20)),
       ], gap: 6);
 }
 

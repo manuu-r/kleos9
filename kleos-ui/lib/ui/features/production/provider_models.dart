@@ -70,14 +70,15 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
         .toList();
     final current =
         projects.where((project) => project['id'] == selected).firstOrNull;
-    final canWrite = ref.watch(accountProvider).asData?.value?.canWrite == true;
+    final canWrite =
+        ref.watch(accountProvider).asData?.value?.canWrite ?? false;
     return kColumn([
       const KSectionHeader(
           title: 'AI model providers',
           description:
               'Choose a model for new builds or for an existing engineering project.'),
       catalog.when(
-        loading: () => const LinearProgressIndicator(),
+        loading: () => const KLineLoader(),
         error: (error, _) => KCard(
             child: kColumn([
           KMuted(error.toString()),
@@ -96,7 +97,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
                       : 'Not configured'),
                   for (final model in models.models
                       .where((m) => m.choice.provider == provider))
-                    KMuted(model.choice.model, size: 11),
+                    KMuted(model.choice.model),
                 ])),
         ]),
       ),
@@ -129,7 +130,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
         if (selected == defaults && !initial.hasValue)
           initial.when(
               data: (_) => const SizedBox.shrink(),
-              loading: () => const LinearProgressIndicator(),
+              loading: () => const KLineLoader(),
               error: (error, _) => KCard(
                       child: kColumn([
                     KMuted(error.toString()),

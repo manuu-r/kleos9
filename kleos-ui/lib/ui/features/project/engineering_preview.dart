@@ -11,6 +11,7 @@ import '../../core/widgets.dart';
 import 'common.dart';
 import 'companion_app_preview.dart';
 import 'cad_assembly_preview.dart';
+import 'pcb_preview.dart';
 import 'engineering_views.dart';
 
 typedef EngineeringPreviewRequest = ({String projectId, int revision});
@@ -260,7 +261,15 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                 envelope: envelope,
                 height: inner,
                 actual: source && mesh.isNotEmpty)),
-        'electronics' => _PcbPreview(pcb: asMap(current['pcb']), height: inner),
+        'electronics' => PcbViewer(
+            pcb: asMap(current['pcb']),
+            height: inner,
+            fallback: SizedBox(
+                height: inner,
+                child: const _WaitingPreview(
+                    icon: Icons.memory_outlined,
+                    text:
+                        'Board dimensions and component placements will appear here.'))),
         'firmware' => const _WaitingPreview(
             icon: Icons.code,
             text: 'Generated firmware source will appear here.'),
@@ -315,12 +324,8 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
           curve: KMotion.out,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-              color: KColors.bg.withValues(alpha: .5),
-              borderRadius: BorderRadius.circular(KRadius.card - 4),
-              border: Border.all(
-                  color: hovered
-                      ? KColors.accent.withValues(alpha: .5)
-                      : KColors.border)),
+              color: hovered ? KColors.surface3 : KColors.surface2,
+              borderRadius: BorderRadius.circular(KRadius.control)),
           child: LayoutBuilder(builder: (context, c) {
             final inner = math.max(120.0, c.maxHeight - 50);
             final view = describe(id, code: false, inner: inner, tile: true);
@@ -329,14 +334,13 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                   top: 40,
                   child: Material(
                       type: MaterialType.transparency,
-                      child: Align(
-                          alignment: Alignment.center, child: view.visual))),
+                      child: Align(child: view.visual))),
               Positioned(
                   top: 10,
                   left: 12,
                   right: 12,
                   child: Row(children: [
-                    Icon(icon, size: 14, color: KColors.accent),
+                    Icon(icon, size: 14, color: KColors.muted),
                     const SizedBox(width: 7),
                     Text(label,
                         style: const TextStyle(
@@ -355,7 +359,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                     const Spacer(),
                     Icon(Icons.north_east,
                         size: 14,
-                        color: hovered ? KColors.accent : KColors.faint),
+                        color: hovered ? KColors.text : KColors.faint),
                   ])),
             ]);
           })));
@@ -520,7 +524,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                               fontFamily: 'GeistMono',
-                                              fontSize: 11,
+                                              fontSize: 12,
                                               color: KColors.faint)),
                                   ], gap: 4))),
                           Expanded(
@@ -570,22 +574,35 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
               onRevise: widget.onReviseCircuit),
         if (notes.isNotEmpty ||
             (!overview && view.code.isNotEmpty && lane != 'firmware'))
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-                child: pColumn([
+          LayoutBuilder(builder: (context, box) {
+            final notesColumn = pColumn([
               for (final note in notes) pText(note, small: true, muted: true)
-            ], gap: 4)),
-            if (!overview && view.code.isNotEmpty && lane != 'firmware') ...[
+            ], gap: 4);
+            final toggle =
+                !overview && view.code.isNotEmpty && lane != 'firmware'
+                    ? KButton(
+                        label: showCode
+                            ? 'Show visual preview'
+                            : 'Show generated source',
+                        compact: true,
+                        icon: showCode ? Icons.visibility_outlined : Icons.code,
+                        onPressed: () => setState(() => showCode = !showCode))
+                    : null;
+            // Side by side only when the button has room; otherwise stack so
+            // neither the notes nor the button ever overflow on a phone.
+            if (toggle == null) return notesColumn;
+            if (box.maxWidth < 560) {
+              return pColumn([
+                if (notes.isNotEmpty) notesColumn,
+                Align(alignment: Alignment.centerLeft, child: toggle),
+              ], gap: 12);
+            }
+            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: notesColumn),
               const SizedBox(width: 16),
-              KButton(
-                  label: showCode
-                      ? 'Show visual preview'
-                      : 'Show generated source',
-                  compact: true,
-                  icon: showCode ? Icons.visibility_outlined : Icons.code,
-                  onPressed: () => setState(() => showCode = !showCode)),
-            ],
-          ]),
+              toggle,
+            ]);
+          }),
         if (!overview && asList(current['limitations']).isNotEmpty)
           pDisclosure(
               title: 'Preview limitations',
@@ -693,7 +710,7 @@ class _Explorer extends StatelessWidget {
         const Padding(
             padding: EdgeInsets.fromLTRB(29, 2, 8, 6),
             child: Text('No files yet',
-                style: TextStyle(fontSize: 11.5, color: KColors.faint)))
+                style: TextStyle(fontSize: 12, color: KColors.faint)))
       else
         for (final file in rows)
           KTap(
@@ -710,11 +727,11 @@ class _Explorer extends StatelessWidget {
                           : hovered
                               ? KColors.surface2
                               : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(KRadius.control)),
                   child: Row(children: [
                     Icon(_fileIcon('${file['lane']}', '${file['name']}'),
                         size: 14,
-                        color: lane == id ? KColors.accent : KColors.faint),
+                        color: lane == id ? KColors.text : KColors.faint),
                     const SizedBox(width: 9),
                     Expanded(
                         child: Text(_baseName('${file['name']}'),
@@ -722,7 +739,7 @@ class _Explorer extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontFamily: 'GeistMono',
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: lane == id
                                     ? KColors.text
                                     : KColors.muted))),
@@ -776,7 +793,7 @@ class CircuitContractNotice extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
         decoration: BoxDecoration(
             color: color.withValues(alpha: .06),
-            borderRadius: BorderRadius.circular(KRadius.card - 4),
+            borderRadius: BorderRadius.circular(KRadius.control),
             border: Border.all(color: color.withValues(alpha: .28))),
         child: Material(
             type: MaterialType.transparency,
@@ -827,7 +844,7 @@ class CircuitContractNotice extends StatelessWidget {
                   child: SelectableText(
                       const JsonEncoder.withIndent('  ').convert(details),
                       style: const TextStyle(
-                          fontFamily: 'GeistMono', fontSize: 11, height: 1.5)),
+                          fontFamily: 'GeistMono', fontSize: 12, height: 1.5)),
                 ),
             ], gap: 4)));
   }
@@ -1000,7 +1017,7 @@ class _CadPreviewState extends State<_CadPreview>
         const Padding(
             padding: EdgeInsets.only(left: 6, right: 4),
             child: Text('Drag to orbit',
-                style: TextStyle(fontSize: 11, color: KColors.muted))),
+                style: TextStyle(fontSize: 12, color: KColors.muted))),
       IconButton(
           tooltip: 'Zoom out CAD',
           visualDensity: VisualDensity.compact,
@@ -1085,7 +1102,7 @@ class _CadPreviewState extends State<_CadPreview>
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                         fontFamily: 'GeistMono',
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: KColors.muted)))),
                           const Spacer(),
                           _overlayChip(controls),
@@ -1203,215 +1220,6 @@ class _MeshPainter extends CustomPainter {
       old.actual != actual;
 }
 
-class _PcbPreview extends StatefulWidget {
-  const _PcbPreview({required this.pcb, this.height = 290});
-  final JsonMap pcb;
-  final double height;
-  @override
-  State<_PcbPreview> createState() => _PcbPreviewState();
-}
-
-class _PcbPreviewState extends State<_PcbPreview>
-    with TickerProviderStateMixin, _Entrance {
-  @override
-  Widget build(BuildContext context) {
-    final pcb = widget.pcb;
-    final board = asMap(pcb['board']);
-    final w = _positive(board['width']), h = _positive(board['height']);
-    return SizedBox(
-      height: widget.height,
-      width: double.infinity,
-      child: w == null || h == null
-          ? const _WaitingPreview(
-              icon: Icons.memory_outlined,
-              text:
-                  'Board dimensions and component placements will appear here.')
-          : Stack(children: [
-              Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  bottom: 46,
-                  child: Semantics(
-                    label: 'PCB board and component placement preview',
-                    child: CustomPaint(
-                        key: const ValueKey('pcb-geometry-canvas'),
-                        painter: _PcbPainter(pcb, w, h, arrive)),
-                  )),
-              Positioned(
-                  left: 4,
-                  bottom: 4,
-                  child: _overlayChip(Text(
-                      '${_dimension(w)} × ${_dimension(h)} mm · ${asMaps(pcb['components']).length} components',
-                      style: const TextStyle(
-                          fontFamily: 'GeistMono',
-                          fontSize: 11,
-                          color: KColors.muted)))),
-            ]),
-    );
-  }
-}
-
-class _PcbPainter extends CustomPainter {
-  _PcbPainter(this.pcb, this.width, this.height, this.progress)
-      : super(repaint: progress);
-  final JsonMap pcb;
-  final double width, height;
-  final Animation<double> progress;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final t = progress.value;
-    final scale =
-        math.min((size.width - 34) / width, (size.height - 32) / height) *
-            (.94 + .06 * t);
-    final rect = Rect.fromCenter(
-        center: size.center(Offset.zero),
-        width: width * scale,
-        height: height * scale);
-    final radius = Radius.circular(math.min(rect.shortestSide * .08, 10));
-    final outline = RRect.fromRectAndRadius(rect, radius);
-    canvas.saveLayer(rect.inflate(30),
-        Paint()..color = Colors.white.withValues(alpha: t.clamp(0, 1)));
-    // Soldermask with a faint diagonal sheen, then a bright copper edge.
-    canvas.drawRRect(
-        outline.shift(const Offset(0, 8)),
-        Paint()
-          ..color = const Color(0xff050507).withValues(alpha: .5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
-    canvas.drawRRect(
-        outline,
-        Paint()
-          ..shader = const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xff17493a), Color(0xff0e2f26)])
-              .createShader(rect));
-    canvas.drawRRect(
-        outline,
-        Paint()
-          ..color = const Color(0xff6fb08f).withValues(alpha: .7)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
-    canvas.save();
-    canvas.clipRRect(outline);
-    Offset at(double x, double y) =>
-        Offset(rect.left + x * scale, rect.top + y * scale);
-    // Mounting holes in the corners.
-    for (final c in [
-      rect.topLeft + const Offset(9, 9),
-      rect.topRight + const Offset(-9, 9),
-      rect.bottomLeft + const Offset(9, -9),
-      rect.bottomRight + const Offset(-9, -9),
-    ]) {
-      canvas.drawCircle(c, 3.2, Paint()..color = KColors.bg);
-      canvas.drawCircle(
-          c,
-          3.2,
-          Paint()
-            ..color = const Color(0xff9fd0b5).withValues(alpha: .6)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-    }
-    // Copper traces draw themselves from their first point.
-    final drawn = Curves.easeOutCubic.transform(((t - .15) / .85).clamp(0, 1));
-    for (final trace in asMaps(pcb['traces']).take(256)) {
-      final points = asMaps(trace['points'])
-          .take(256)
-          .map((p) {
-            final x = _finite(p['x']), y = _finite(p['y']);
-            return x == null || y == null ? null : at(x, y);
-          })
-          .whereType<Offset>()
-          .toList();
-      if (points.length < 2) continue;
-      final path = Path()..addPolygon(points, false);
-      final metric =
-          path.computeMetrics().fold<double>(0, (a, m) => a + m.length);
-      final visible = Path();
-      var remaining = metric * drawn;
-      for (final m in path.computeMetrics()) {
-        if (remaining <= 0) break;
-        visible.addPath(
-            m.extractPath(0, math.min(m.length, remaining)), Offset.zero);
-        remaining -= m.length;
-      }
-      final copper = trace['layer'] == 'B.Cu'
-          ? const Color(0xff72a9c6)
-          : const Color(0xffe0b866);
-      canvas.drawPath(
-          visible,
-          Paint()
-            ..color = copper.withValues(alpha: .16)
-            ..style = PaintingStyle.stroke
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..strokeWidth = 5);
-      canvas.drawPath(
-          visible,
-          Paint()
-            ..color = copper
-            ..style = PaintingStyle.stroke
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..strokeWidth = 1.6);
-    }
-    for (final component in asMaps(pcb['components']).take(128)) {
-      final x = _finite(component['x']), y = _finite(component['y']);
-      final w = _positive(component['width']),
-          h = _positive(component['height']);
-      if (x == null || y == null || w == null || h == null) continue;
-      final r = Rect.fromCenter(
-          center: at(x, y), width: w * scale, height: h * scale);
-      // Pads along the long edges give each package a footprint.
-      final horizontal = r.width >= r.height;
-      final pads = ((horizontal ? r.width : r.height) / 5).floor().clamp(0, 10);
-      final pad = Paint()..color = const Color(0xffe0b866);
-      for (var i = 0; i < pads; i++) {
-        final f = (i + .5) / pads;
-        if (horizontal) {
-          final px = r.left + r.width * f;
-          canvas.drawRect(Rect.fromLTWH(px - 1, r.top - 2.5, 2, 3), pad);
-          canvas.drawRect(Rect.fromLTWH(px - 1, r.bottom - .5, 2, 3), pad);
-        } else {
-          final py = r.top + r.height * f;
-          canvas.drawRect(Rect.fromLTWH(r.left - 2.5, py - 1, 3, 2), pad);
-          canvas.drawRect(Rect.fromLTWH(r.right - .5, py - 1, 3, 2), pad);
-        }
-      }
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(2.5)),
-          Paint()..color = const Color(0xff262d34));
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(r.deflate(.5), const Radius.circular(2.5)),
-          Paint()
-            ..color = const Color(0xffd7d3b4).withValues(alpha: .85)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      if (r.width > 18 && r.height > 11) {
-        final label = '${component['label'] ?? component['id'] ?? ''}';
-        final text = TextPainter(
-            text: TextSpan(
-                text: label.length > 16 ? '${label.substring(0, 15)}…' : label,
-                style: const TextStyle(
-                    color: Color(0xffefecd8),
-                    fontSize: 9,
-                    fontFamily: 'GeistMono')),
-            textDirection: TextDirection.ltr,
-            maxLines: 1,
-            ellipsis: '…')
-          ..layout(maxWidth: math.max(1, r.width - 3));
-        text.paint(canvas, r.center - Offset(text.width / 2, text.height / 2));
-      }
-    }
-    canvas.restore();
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _PcbPainter old) =>
-      old.pcb != pcb || old.width != width || old.height != height;
-}
-
 class _AppPreview extends StatefulWidget {
   const _AppPreview({required this.app, this.height = 330});
   final JsonMap app;
@@ -1469,7 +1277,8 @@ class _AppPreviewState extends State<_AppPreview>
                               height: 5,
                               decoration: BoxDecoration(
                                   color: KColors.surface3,
-                                  borderRadius: BorderRadius.circular(8)))),
+                                  borderRadius:
+                                      BorderRadius.circular(KRadius.control)))),
                       const SizedBox(height: 18),
                       Text('${app['title'] ?? 'Your device'}',
                           maxLines: 2,
@@ -1488,7 +1297,8 @@ class _AppPreviewState extends State<_AppPreview>
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                                 color: KColors.surface2,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(KRadius.control),
                                 border: Border.all(color: KColors.border)),
                             child: pColumn([
                               pText(item['label'] ?? item['kind'],

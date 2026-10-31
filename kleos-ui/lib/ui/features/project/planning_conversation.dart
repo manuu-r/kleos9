@@ -137,18 +137,12 @@ class _PlanningConversationState extends State<PlanningConversation> {
         constraints: const BoxConstraints(maxWidth: 580),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: user
-              ? KColors.accent.withValues(alpha: .1)
-              : KColors.surface2.withValues(alpha: .6),
-          border: Border.all(
-              color: user
-                  ? KColors.accent.withValues(alpha: .24)
-                  : KColors.border),
+          color: user ? KColors.surface3 : KColors.surface,
           borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(user ? 16 : 4),
-              topRight: Radius.circular(user ? 4 : 16),
-              bottomLeft: const Radius.circular(16),
-              bottomRight: const Radius.circular(16)),
+              topLeft: Radius.circular(user ? 3 : 0),
+              topRight: Radius.circular(user ? 0 : 3),
+              bottomLeft: const Radius.circular(3),
+              bottomRight: const Radius.circular(3)),
         ),
         child: pColumn([
           pText(user ? 'You' : 'Kleos', muted: true, small: true),
@@ -211,7 +205,7 @@ class _PlanningConversationState extends State<PlanningConversation> {
           liveRegion: true,
           child: Row(children: [
             const Icon(Icons.auto_awesome_outlined,
-                size: 16, color: KColors.accent),
+                size: 16, color: KColors.text),
             const SizedBox(width: 9),
             Expanded(child: pText(activity, muted: true, small: true)),
           ]),

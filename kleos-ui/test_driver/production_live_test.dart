@@ -69,9 +69,7 @@ Future<void> main() async {
   }
   final defaults = catalog['defaultPolicy'] as Json;
   final driver = await FlutterDriver.connect(
-      printCommunication: false,
-      logCommunicationToFile: false,
-      timeout: const Duration(seconds: 60));
+      logCommunicationToFile: false, timeout: const Duration(seconds: 60));
   final downloads = Directory(
       '${output.path}/downloads-${DateTime.now().millisecondsSinceEpoch}')
     ..createSync(recursive: true);

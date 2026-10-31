@@ -149,7 +149,7 @@ class ApprovedDesignReference extends StatelessWidget {
                     small: true, muted: true),
                 SelectableText('Scene hash: ${approvedDesign['sceneHash']}',
                     style: const TextStyle(
-                        fontFamily: 'GeistMono', fontSize: 11, height: 1.5)),
+                        fontFamily: 'GeistMono', fontSize: 12, height: 1.5)),
               ],
               if (designIntent.isNotEmpty)
                 pDisclosure(
@@ -167,4 +167,4 @@ class ApprovedDesignReference extends StatelessWidget {
 
 Widget _json(JsonMap value) => SelectableText(
     const JsonEncoder.withIndent('  ').convert(value),
-    style: const TextStyle(fontFamily: 'GeistMono', fontSize: 11, height: 1.5));
+    style: const TextStyle(fontFamily: 'GeistMono', fontSize: 12, height: 1.5));

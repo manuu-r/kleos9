@@ -50,7 +50,7 @@ Workspace snapshot(
         'state': state,
         'modelPolicy':
             testCatalog.defaults.map((k, v) => MapEntry(k, v.toJson())),
-        'budget': {'allowanceUsd': 20},
+        'budget': const {'allowanceUsd': 20},
         'interfaces':
             stage >= 4 ? {'battery': 'qualified'} : <String, dynamic>{}
       },
@@ -61,7 +61,7 @@ Workspace snapshot(
 class TestAccount extends AccountController {
   @override
   Future<AccountSession?> build() async => AccountSession.fromJson(
-      {'subject': 'user', 'tenantId': 'org', 'role': 'owner'});
+      const {'subject': 'user', 'tenantId': 'org', 'role': 'owner'});
 }
 
 class TestRepository extends ProductionRepository {
@@ -179,7 +179,7 @@ void main() {
 
   testWidgets('provider estimates stay separate from conservative debits',
       (tester) async {
-    final run = RunRecord({
+    final run = RunRecord(const {
       'id': 'r',
       'kind': 'project.research',
       'status': 'succeeded',
@@ -238,7 +238,7 @@ void main() {
       return http.Response(
           jsonEncode({'logs': 'Compiler exit 1; redacted'}), 200);
     }));
-    final run = RunRecord({
+    final run = RunRecord(const {
       'id': 'r',
       'kind': 'project.generate',
       'status': 'blocked',
@@ -509,7 +509,7 @@ void main() {
     ProjectEvent event(int sequence) => ProjectEvent.fromJson({
           'sequence': sequence,
           'type': 'task.completed',
-          'data': {'summary': 'Complete'}
+          'data': const {'summary': 'Complete'}
         });
     repository.streams.last.add(event(11));
     repository.streams.last.add(event(11));
@@ -623,7 +623,6 @@ void main() {
                     builder: (_, setState) => ModelPolicyEditor(
                         catalog: catalog,
                         policy: policy,
-                        enabled: true,
                         onChanged: (next) =>
                             setState(() => policy = next)))))));
     await tester.pumpAndSettle();

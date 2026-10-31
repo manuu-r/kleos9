@@ -155,8 +155,8 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                             Text('${project['name'] ?? 'Your build'}',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium),
+                                style: KType.h1.copyWith(
+                                    fontSize: KSpace.phone(context) ? 26 : 30)),
                             ConstrainedBox(
                                 constraints:
                                     const BoxConstraints(maxWidth: 720),
@@ -181,37 +181,8 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
             LayoutBuilder(builder: (context, constraints) {
               final compact = constraints.maxWidth < 840;
               if (compact) {
-                return KCard(
-                  padding: const EdgeInsets.all(16),
-                  child: pColumn([
-                    pText('Step ${view + 1} of ${stageNames.length}',
-                        muted: true, small: true),
-                    DropdownButtonFormField<int>(
-                      key: ValueKey('stage-picker-$view'),
-                      initialValue: view,
-                      isExpanded: true,
-                      decoration:
-                          const InputDecoration(labelText: 'Project stage'),
-                      items: [
-                        for (var i = 0; i < stageNames.length; i++)
-                          DropdownMenuItem(
-                            value: i,
-                            enabled: i <= latest,
-                            child: Text('${i + 1}. ${stageNames[i]}',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: i <= latest
-                                        ? KColors.text
-                                        : KColors.faint)),
-                          ),
-                      ],
-                      onChanged: (i) {
-                        if (i != null && i <= latest) _go(i);
-                      },
-                    ),
-                    KProgress((view + 1) * 10.0),
-                  ], gap: 12),
-                );
+                return _StageTabs(
+                    view: view, latest: latest, done: done, onSelect: _go);
               }
               return _StageRail(
                   view: view, latest: latest, done: done, onSelect: _go);
@@ -224,7 +195,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                     project: project,
                     stage: view,
                     onNext: () => _go((view + 1).clamp(0, 9)))),
-          ], gap: 34);
+          ], gap: KSpace.phone(context) ? 20 : 30);
         },
       );
 }
@@ -292,21 +263,15 @@ class _RailStop extends StatelessWidget {
                             curve: KMotion.out,
                             height: 3,
                             decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3),
-                                color: current
-                                    ? KColors.accent
-                                    : finished || reached
-                                        ? KColors.text.withValues(
-                                            alpha: hovered ? .6 : .38)
-                                        : KColors.border,
-                                boxShadow: current
-                                    ? [
-                                        BoxShadow(
-                                            color: KColors.accent
-                                                .withValues(alpha: .45),
-                                            blurRadius: 10)
-                                      ]
-                                    : const [])),
+                              borderRadius:
+                                  BorderRadius.circular(KRadius.control),
+                              color: current
+                                  ? KColors.actionInk
+                                  : finished || reached
+                                      ? KColors.text
+                                          .withValues(alpha: hovered ? .6 : .38)
+                                      : KColors.border,
+                            )),
                         const SizedBox(height: 11),
                         Row(children: [
                           if (finished && !current)
@@ -330,4 +295,39 @@ class _RailStop extends StatelessWidget {
                                               : KColors.faint))),
                         ]),
                       ])))));
+}
+
+/// Phone and tablet stage navigation: every stage is a tab in one row that
+/// scrolls sideways inside its own frame, with the same gliding indicator as
+/// every other tab row. Finished stages carry a check, stages not reached yet
+/// are dim and inert, and the current tab stays in view.
+class _StageTabs extends StatelessWidget {
+  const _StageTabs(
+      {required this.view,
+      required this.latest,
+      required this.done,
+      required this.onSelect});
+  final int view, latest;
+  final List<Object?> done;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+      label: 'Project stages',
+      child: KTabStrip(selected: view, tabs: [
+        for (var i = 0; i < stageNames.length; i++)
+          KTab(
+              label: stageNames[i],
+              onTap: i <= latest ? () => onSelect(i) : null,
+              leading: (ink) {
+                final finished = i < done.length && done[i] == true;
+                return Padding(
+                    padding: const EdgeInsets.only(right: 7),
+                    child: finished && i != view
+                        ? const Icon(Icons.check, size: 14, color: KColors.pass)
+                        : Text('${i + 1}',
+                            style: KType.monoSmall
+                                .copyWith(color: ink, fontSize: 12.5)));
+              }),
+      ]));
 }

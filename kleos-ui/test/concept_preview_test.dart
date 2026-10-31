@@ -131,8 +131,8 @@ void main() {
       'parts': [
         {
           ...part,
-          'size': {'x': double.infinity, 'y': -500, 'z': double.nan},
-          'position': {'x': double.nan},
+          'size': const {'x': double.infinity, 'y': -500, 'z': double.nan},
+          'position': const {'x': double.nan},
           'color': 'javascript:alert(1)'
         },
         ...List.generate(40, (i) => {...part, 'id': 'part-$i'}),

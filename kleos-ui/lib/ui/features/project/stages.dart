@@ -197,13 +197,10 @@ class _ProjectStageState extends State<ProjectStage> {
                   width: 28,
                   height: 28,
                   margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: KColors.accent.withValues(alpha: .12),
-                      border: Border.all(
-                          color: KColors.accent.withValues(alpha: .3))),
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: KColors.surface3),
                   child: const Icon(Icons.auto_awesome,
-                      size: 14, color: KColors.accent)),
+                      size: 14, color: KColors.text)),
               const SizedBox(width: 12),
             ],
             Flexible(
@@ -211,18 +208,12 @@ class _ProjectStageState extends State<ProjectStage> {
               constraints: const BoxConstraints(maxWidth: 620),
               padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
               decoration: BoxDecoration(
-                  color: user
-                      ? KColors.accent.withValues(alpha: .1)
-                      : KColors.surface2.withValues(alpha: .6),
-                  border: Border.all(
-                      color: user
-                          ? KColors.accent.withValues(alpha: .24)
-                          : KColors.border),
+                  color: user ? KColors.surface3 : KColors.surface,
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(user ? 16 : 4),
-                      topRight: Radius.circular(user ? 4 : 16),
-                      bottomLeft: const Radius.circular(16),
-                      bottomRight: const Radius.circular(16))),
+                      topLeft: Radius.circular(user ? 3 : 0),
+                      topRight: Radius.circular(user ? 0 : 3),
+                      bottomLeft: const Radius.circular(3),
+                      bottomRight: const Radius.circular(3))),
               child: pText(text),
             )),
           ]);
@@ -297,7 +288,7 @@ class _ProjectStageState extends State<ProjectStage> {
                           onPressed: _picked.isEmpty || pending
                               ? null
                               : () => _answer(current, _picked.toList())),
-                  ], gap: 14)),
+                  ])),
             ],
             if (current == null && !_done(0))
               _chat('Summarizing your requirements…'),
@@ -353,9 +344,9 @@ class _ProjectStageState extends State<ProjectStage> {
                   icon: Icons.search)
               : null),
       if (!idle)
-        KResponsive(columns: 4, children: [
+        MeterList(items: [
           for (final track in tracks)
-            MeterTile(label: track, value: number(research[track]).toDouble())
+            (label: track, value: number(research[track]).toDouble())
         ]),
       if (done) ...[
         KResponsive(children: [
@@ -430,7 +421,7 @@ class _ProjectStageState extends State<ProjectStage> {
                     primary: true,
                     icon: Icons.arrow_forward,
                     onPressed: widget.onNext)
-              ], gap: 14)),
+              ])),
         ]),
       ],
     ], gap: 28);
@@ -590,9 +581,9 @@ class _ProjectStageState extends State<ProjectStage> {
           child: pColumn([
         GroupLabel('Acceptance criteria',
             trailing: const KBadge('Owned by Quality')),
-        const KMuted('Generators cannot change these.', size: 12),
+        const KMuted('Generators cannot change these.'),
         CriteriaList(items: criteria, satisfied: agreed),
-      ], gap: 14)),
+      ])),
       if (agreed) _next('Generate designs'),
     ], gap: 36);
   }
@@ -626,11 +617,11 @@ class _ProjectStageState extends State<ProjectStage> {
             Expanded(
                 child: pColumn([
               Text(lane, style: Theme.of(context).textTheme.titleMedium),
-              KMuted(status, size: 12),
+              KMuted(status),
             ], gap: 2)),
           ]),
           if (lane == 'App')
-            const KMuted('Kleos9 App (built in)', size: 12)
+            const KMuted('Kleos9 App (built in)')
           else
             Builder(builder: (context) {
               final candidates = connectors
@@ -648,20 +639,20 @@ class _ProjectStageState extends State<ProjectStage> {
               return Semantics(
                   label: '$lane tool',
                   child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                          color: KColors.bg,
-                          borderRadius: BorderRadius.circular(KRadius.control),
-                          border: Border.all(color: KColors.border)),
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.center,
+                      decoration: KShape.surface(KColors.surface2,
+                          radius: KRadius.control),
                       child: DropdownButton<String>(
                         value: value,
                         isExpanded: true,
                         underline: const SizedBox.shrink(),
-                        dropdownColor: KColors.surface2,
+                        dropdownColor: KColors.surface3,
                         borderRadius: BorderRadius.circular(KRadius.control),
                         icon: const Icon(Icons.unfold_more,
                             size: 16, color: KColors.faint),
-                        hint: const KMuted('Choose a tool', size: 12),
+                        hint: const KMuted('Choose a tool', size: 14),
                         items: [
                           for (final candidate in candidates)
                             DropdownMenuItem(
@@ -669,7 +660,7 @@ class _ProjectStageState extends State<ProjectStage> {
                                 child: Text(
                                     '${candidate['name']}${candidate['builtIn'] == true ? ' (default)' : ''}',
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 12)))
+                                    style: const TextStyle(fontSize: 14)))
                         ],
                         onChanged: locked
                             ? null
@@ -720,14 +711,13 @@ class _ProjectStageState extends State<ProjectStage> {
         if (p['generation'] == 'idle')
           pActions([
             const KMuted(
-                'Default Kleos9 tools run unless you pick another for a lane.',
-                size: 12),
+                'Default Kleos9 tools run unless you pick another for a lane.'),
             KButton(
                 label: 'Plug in more tools',
                 compact: true,
                 onPressed: () => context.go('/connections?tab=tools'))
           ]),
-      ], gap: 14),
+      ]),
       EngineeringPreviewPanel(
           key: ValueKey('studio-${p['id']}-files'),
           data: mockPreviewData(p),
@@ -738,7 +728,7 @@ class _ProjectStageState extends State<ProjectStage> {
           GroupLabel('Generation log',
               trailing: running ? const KBadge('Live', tone: 'accent') : null),
           TerminalPanel(lines: log, live: running),
-        ], gap: 14),
+        ]),
       if (done)
         pColumn([
           GroupLabel('Candidate artifacts',
@@ -786,7 +776,7 @@ class _ProjectStageState extends State<ProjectStage> {
                       }))
                 ]
               ])),
-        ], gap: 14),
+        ]),
     ], gap: 36);
   }
 
@@ -899,7 +889,7 @@ class _ProjectStageState extends State<ProjectStage> {
                   enabled: !busy && blocking.isEmpty),
             ],
           ]),
-        ], gap: 14)),
+        ])),
       if (accepted)
         KPanel(
             child: pColumn([
@@ -907,7 +897,7 @@ class _ProjectStageState extends State<ProjectStage> {
               'Release ${shortHash(p['manifestHash'])} covers ${artifacts.length} artifacts. ${unknowns.length} unknown result(s) go to physical testing.',
               muted: true),
           _next('Procure prototype')
-        ], gap: 14)),
+        ])),
     ], gap: 28);
   }
 
@@ -951,10 +941,8 @@ class _ProjectStageState extends State<ProjectStage> {
               : null),
       if (p['procurement'] == 'quoting')
         KPanel(
-            child: pColumn([
-          pText('Waiting for quotes…'),
-          const LinearProgressIndicator(minHeight: 3)
-        ])),
+            child:
+                pColumn([pText('Waiting for quotes…'), const KLineLoader()])),
       if (quotes.isNotEmpty) ...[
         KPanel(
             padding: const EdgeInsets.all(8),
@@ -1036,16 +1024,16 @@ class _ProjectStageState extends State<ProjectStage> {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                           color: p['casePrint'] == mode
-                              ? KColors.accent.withValues(alpha: .06)
-                              : KColors.surface,
+                              ? KColors.surface3
+                              : hovered
+                                  ? KColors.surface2
+                                  : KColors.surface,
                           border: Border.all(
                               color: p['casePrint'] == mode
-                                  ? KColors.accent.withValues(alpha: .7)
-                                  : hovered
-                                      ? KColors.borderStrong
-                                      : KColors.border,
-                              width: p['casePrint'] == mode ? 1.5 : 1),
-                          borderRadius: BorderRadius.circular(KRadius.card)),
+                                  ? KColors.actionInk
+                                  : Colors.transparent,
+                              width: 1.5),
+                          borderRadius: BorderRadius.circular(KRadius.control)),
                       child: pColumn([
                         pActions([
                           Icon(
@@ -1425,7 +1413,7 @@ class _ProjectStageState extends State<ProjectStage> {
               pText(
                   'Spares and rebuilds route back to the same providers when you mark them as preferred.',
                   muted: true),
-            ], gap: 14)),
+            ])),
     ], gap: 28);
   }
 }

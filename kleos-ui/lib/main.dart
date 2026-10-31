@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'data/services/api_service.dart';
 import 'state/kleos_store.dart';
 import 'ui/core/app_shell.dart';
 import 'ui/core/theme.dart';
@@ -163,20 +166,35 @@ class KleosApp extends ConsumerWidget {
 
 /// The original screens keep one active workspace subscription while summaries
 /// remain lightweight. Authentication scopes the underlying repository.
-class _ConnectedRouteScope extends ConsumerWidget {
+class _ConnectedRouteScope extends ConsumerStatefulWidget {
   const _ConnectedRouteScope({required this.uri, required this.child});
   final Uri uri;
   final Widget child;
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(apiServiceProvider);
-    final parts = uri.pathSegments;
+  ConsumerState<_ConnectedRouteScope> createState() =>
+      _ConnectedRouteScopeState();
+}
+
+class _ConnectedRouteScopeState extends ConsumerState<_ConnectedRouteScope> {
+  ApiService? _service;
+  String? _projectId;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = ref.watch(apiServiceProvider);
+    final parts = widget.uri.pathSegments;
     final id = parts.length > 1 && parts.first == 'projects' ? parts[1] : null;
-    Future.microtask(() {
-      if (context.mounted) {
-        ref.read(kleosProvider.notifier).setActiveProject(id);
-      }
-    });
-    return child;
+    // Tell the store only when the route or backend client changed, and never
+    // from inside build.
+    if (!identical(service, _service) || id != _projectId) {
+      _service = service;
+      _projectId = id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(ref.read(kleosProvider.notifier).setActiveProject(id));
+        }
+      });
+    }
+    return widget.child;
   }
 }

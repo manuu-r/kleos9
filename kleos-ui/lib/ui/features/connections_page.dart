@@ -70,7 +70,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             controller: widget.controller, connector: matches.first));
     dialogOpen = false;
     if (mounted) {
-      context.go(saved == true && widget.back != null
+      context.go((saved ?? false) && widget.back != null
           ? widget.back!
           : '/connections?tab=${widget.tab}');
     }
@@ -158,41 +158,33 @@ class _ConnectorTile extends StatelessWidget {
         child: KCard(
             child: kColumn([
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: KColors.surface2,
-                    borderRadius: BorderRadius.circular(KRadius.control),
-                    border: Border.all(color: KColors.border)),
+            Padding(
+                padding: const EdgeInsets.only(top: 2),
                 child: Icon(
                     c['kind'] == 'printer'
                         ? Icons.print_outlined
                         : c['kind'] == 'tool'
                             ? Icons.construction_outlined
                             : Icons.hub_outlined,
-                    size: 17,
+                    size: 20,
                     color:
-                        c['linked'] == true ? KColors.accent : KColors.muted)),
+                        c['linked'] == true ? KColors.muted : KColors.faint)),
             const SizedBox(width: 12),
             Expanded(
                 child: kColumn([
               Text('${c['name']}',
                   style: Theme.of(context).textTheme.titleMedium),
-              KMuted(
-                  [
-                    c['domain'],
-                    c['builtIn'] == true
-                        ? 'Built in'
-                        : c['kind'] == 'printer'
-                            ? 'Printer driver'
-                            : c['author'] != null
-                                ? 'by ${c['author']}'
-                                : c['integration'],
-                    if (c['builtIn'] != true && c['kind'] != 'printer')
-                      c['level']
-                  ].where((x) => x != null).join(', '),
-                  size: 11),
+              KMuted([
+                c['domain'],
+                c['builtIn'] == true
+                    ? 'Built in'
+                    : c['kind'] == 'printer'
+                        ? 'Printer driver'
+                        : c['author'] != null
+                            ? 'by ${c['author']}'
+                            : c['integration'],
+                if (c['builtIn'] != true && c['kind'] != 'printer') c['level']
+              ].where((x) => x != null).join(', ')),
             ], gap: 2)),
           ]),
           KMuted(printer.isNotEmpty
@@ -202,8 +194,7 @@ class _ConnectorTile extends StatelessWidget {
             kRow([
               KBadge('${c['level'] ?? 'unqualified'}'),
               KBadge('${c['mode'] ?? 'unavailable'}'),
-              KMuted(c['enabled'] == true ? 'Enabled' : 'Not enabled',
-                  size: 11),
+              KMuted(c['enabled'] == true ? 'Enabled' : 'Not enabled'),
             ])
           else if (c['linked'] != true)
             KButton(
@@ -217,7 +208,7 @@ class _ConnectorTile extends StatelessWidget {
                 icon: c['kind'] == 'printer' ? Icons.print : Icons.power,
                 onPressed: onConnect)
           else if (c['builtIn'] == true || c['integration'] == 'Built-in')
-            const KMuted('On by default', size: 11)
+            const KMuted('On by default')
           else
             kRow([
               Text(
@@ -230,7 +221,7 @@ class _ConnectorTile extends StatelessWidget {
                       color: c['health'] == 'degraded'
                           ? KColors.muted
                           : KColors.pass,
-                      fontSize: 11)),
+                      fontSize: 12)),
               KButton(
                   label: run['status'] == 'running' ? 'Testing…' : 'Test',
                   compact: true,
@@ -252,7 +243,7 @@ class _ConnectorTile extends StatelessWidget {
                   onPressed: () => controller.execute(
                       'connector.disconnect', {'connectorId': c['id']}))
             ]),
-        ], gap: 12)));
+        ])));
   }
 }
 
@@ -406,14 +397,13 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
                               dense: true,
                               title: Text('$cap',
                                   style: const TextStyle(
-                                      fontFamily: 'GeistMono', fontSize: 11)),
+                                      fontFamily: 'GeistMono', fontSize: 12)),
                               value: capabilities.contains(cap),
-                              onChanged: (v) => setState(() => v == true
+                              onChanged: (v) => setState(() => v ?? false
                                   ? capabilities.add('$cap')
                                   : capabilities.remove(cap))),
                         const KMuted(
-                            'Tool descriptions are untrusted data. Any change triggers requalification.',
-                            size: 11),
+                            'Tool descriptions are untrusted data. Any change triggers requalification.'),
                         KButton(
                             label: 'Run read-only tests',
                             primary: true,
@@ -424,11 +414,7 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
                       if (step == 1 && printer) ...[
                         if (progress < 3 && run['phase'] == 'discover')
                           kRow([
-                            const SizedBox(
-                                width: 15,
-                                height: 15,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 1.5)),
+                            KSpinner(size: 15),
                             KMuted('Reading printer profile from ${host.text}…')
                           ])
                         else
@@ -455,11 +441,7 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
                                 ? const Icon(Icons.check_circle,
                                     size: 16, color: KColors.pass)
                                 : i == progress
-                                    ? const SizedBox(
-                                        width: 15,
-                                        height: 15,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 1.5))
+                                    ? KSpinner(size: 15)
                                     : const Icon(Icons.circle_outlined,
                                         size: 12, color: KColors.faint),
                             ExpandedText((printer ? cal : tests)[i])

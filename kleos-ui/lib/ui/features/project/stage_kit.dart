@@ -26,31 +26,32 @@ class ChoicePill extends StatelessWidget {
           builder: (context, hovered) => AnimatedContainer(
               duration: KMotion.base,
               curve: KMotion.out,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              decoration: BoxDecoration(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: ShapeDecoration(
                   color: selected
-                      ? KColors.accent.withValues(alpha: .12)
+                      ? KColors.surface3
                       : hovered
-                          ? KColors.surface3
-                          : KColors.surface2.withValues(alpha: .6),
-                  borderRadius: BorderRadius.circular(KRadius.pill),
-                  border: Border.all(
-                      color: selected
-                          ? KColors.accent.withValues(alpha: .65)
-                          : hovered
-                              ? KColors.borderStrong
-                              : KColors.border)),
+                          ? KColors.surface2
+                          : Colors.transparent,
+                  shape: KShape.control(
+                      side: BorderSide(
+                          width: selected ? 1.5 : 1,
+                          color: selected
+                              ? KColors.actionInk
+                              : KColors.borderStrong))),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (multi) ...[
                   Icon(selected ? Icons.check : Icons.add,
                       size: 14,
-                      color: selected ? KColors.accent : KColors.faint),
+                      color: selected ? KColors.actionInk : KColors.faint),
                   const SizedBox(width: 7),
                 ],
                 Flexible(
                     child: Text(label,
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w400,
                             color: selected ? KColors.text : KColors.muted))),
               ]))));
 }
@@ -116,28 +117,43 @@ class StagePanel extends StatelessWidget {
       ]));
 }
 
-/// One research track or progress figure: a number you can read at a glance.
-class MeterTile extends StatelessWidget {
-  const MeterTile({super.key, required this.label, required this.value});
-  final String label;
-  final double value;
+/// Research tracks or other progress figures as one divided list: the label
+/// on the left, the figure on the right in mono, a thin bar at its true ratio
+/// underneath. One panel instead of a tall card per figure.
+class MeterList extends StatelessWidget {
+  const MeterList({super.key, required this.items});
+  final List<({String label, double value})> items;
   @override
   Widget build(BuildContext context) => KPanel(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      child: kColumn([
-        KMuted(label, size: 12.5),
-        TweenAnimationBuilder<double>(
-            tween: Tween(end: value),
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : KMotion.slow,
-            curve: KMotion.out,
-            builder: (context, v, _) => Text('${v.round()}%',
-                style: KType.numeral.copyWith(
-                    fontSize: 30,
-                    color: value >= 100 ? KColors.pass : KColors.text))),
-        KProgress(value),
-      ], gap: 10));
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const Divider(height: 1, color: KColors.hairline),
+          Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: items[i].value),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : KMotion.slow,
+                  curve: KMotion.out,
+                  builder: (context, v, _) => kColumn([
+                        Row(children: [
+                          Expanded(
+                              child: Text(items[i].label,
+                                  style: const TextStyle(
+                                      fontSize: 14, color: KColors.text))),
+                          Text('${v.round()}%',
+                              style: KType.mono.copyWith(
+                                  fontSize: 15,
+                                  color: items[i].value >= 100
+                                      ? KColors.pass
+                                      : KColors.text)),
+                        ]),
+                        KProgress(items[i].value),
+                      ], gap: 10))),
+        ]
+      ]));
 }
 
 /// A sequence with one node per step and a line that fills as work advances.
@@ -245,13 +261,8 @@ class LetterTile extends StatelessWidget {
       width: 38,
       height: 38,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-          color: KColors.accent.withValues(alpha: .1),
-          borderRadius: BorderRadius.circular(KRadius.control),
-          border: Border.all(color: KColors.accent.withValues(alpha: .28))),
+      decoration: KShape.surface(KColors.surface3, radius: KRadius.small + 2),
       child: Text(letter,
           style: KType.mono.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: KColors.accent)));
+              fontSize: 14, fontWeight: FontWeight.w600, color: KColors.text)));
 }

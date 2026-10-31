@@ -261,7 +261,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
         button: true,
         child: InkWell(
             key: ValueKey('requirement-option-$value'),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(KRadius.control),
             onTap: !enabled
                 ? null
                 : () => setState(() {
@@ -280,12 +280,11 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: checked
-                        ? KColors.accent.withValues(alpha: .08)
-                        : KColors.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    color: checked ? KColors.surface3 : KColors.surface,
+                    borderRadius: BorderRadius.circular(KRadius.control),
                     border: Border.all(
-                        color: checked ? KColors.accent : KColors.border)),
+                        color: checked ? KColors.actionInk : Colors.transparent,
+                        width: 1.5)),
                 child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -298,7 +297,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                                   ? Icons.check_box
                                   : Icons.check_box_outline_blank),
                           size: 20,
-                          color: checked ? KColors.accent : KColors.faint),
+                          color: checked ? KColors.text : KColors.faint),
                       const SizedBox(width: 12),
                       Expanded(
                           child: pColumn([
@@ -460,7 +459,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
               ])),
       ],
       if (widget.active || widget.updatePending) ...[
-        const LinearProgressIndicator(minHeight: 3),
+        const KLineLoader(),
         pText('Updating your requirements…', strong: true),
         pText(
             'Your choices are being worked into the concept. Any new questions will appear here.',
@@ -507,12 +506,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                 strong: true)),
         if (all.isNotEmpty) KBadge('$completed of ${all.length} saved'),
       ]),
-      if (all.isNotEmpty)
-        LinearProgressIndicator(
-            value: completed / all.length,
-            minHeight: 3,
-            backgroundColor: KColors.border,
-            color: KColors.accent),
+      if (all.isNotEmpty) KProgress(completed / all.length * 100),
       if (widget.active && current < all.length)
         pText(
             widget.acceptWhileActive

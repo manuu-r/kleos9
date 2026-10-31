@@ -100,6 +100,39 @@ flutter run -d web-server --web-port 5180 --dart-define=API_BASE_URL=http://127.
 
 Open http://127.0.0.1:5180. Existing hash routes and `?s=` project-stage links are supported. Cmd/Ctrl+K opens the command menu.
 
+## Design system
+
+The look lives in one folder, `lib/ui/theme/` ("Signal"): tokens, corner shapes, HUD ornaments,
+Flutter's `ThemeData` and the shared `K*` widgets. Screens only use those; see
+[`lib/ui/theme/README.md`](lib/ui/theme/README.md) for the map and the rules. To iterate on the look
+without a backend, run `flutter run -t lib/theme_gallery.dart -d chrome` (every token and component on
+one page; hot reload works).
+
+- **Flat and sharp.** Near-black panels outlined by a 1px line, no shadows or gradients in chrome.
+  Controls are 3px rectangles; panels have two opposite corners cut at 45 degrees (`KShape.panel`).
+- **Two hues, two jobs.** Blue is action and selection (primary button, the single tab indicator that
+  glides between labels, sliders, focus); coral is the product and live work (running loaders, the
+  part you touch in a 3D view). Status keeps its own hues and is always paired with a word.
+- **Readouts.** Small uppercase mono labels (`KLabel`) for stat labels and meta lines; viewfinder
+  brackets and a faint grid behind products (`KGridBackdrop`).
+- **Type.** Geist for text, Geist Mono for ids, figures and readouts; warm off-white text, body 15px,
+  nothing under 11.5px. Every text colour clears 4.5:1 (`test/design_system_test.dart`).
+- **Touch.** Controls are at least 44px, page margins 16px on a phone (`KSpace.gutter`), tables become
+  two-line rows below 600px, tab rows scroll sideways inside their own frame. `KTap` gives slightly
+  under the finger; `KHaptics` ticks on navigation and primary actions on native.
+- **Loading.** Show the final layout with flat placeholder bars at their real size (`KPulse` +
+  `KSkeletonBar` / `KSkeletonRows` / `KPageSkeleton`), never a shimmer. Work in progress uses
+  `KLineLoader` or `KSpinner`; `KButton(loading: true)` ignores taps. All of it stands still under
+  reduced motion. Errors and empty states stay inside their block (`KNotice`, `KErrorState`,
+  `KEmptyState`).
+- **Viewers.** `CadAssemblyPreview` (lit, with a ground grid, axis gizmo, view presets, tap-to-select and an
+  animated camera) and `PcbViewer` (pinch/pan/zoom with inertia, layers, component selection that lights
+  its traces, scale bar) share the 44px tool tiles and chips; both open full screen on a phone. Their
+  colours live in `KViz`. `KSmoothController` gives web and desktop eased wheel scrolling.
+
+Because the shell shows a live loader while any project runs, tests that include a running project
+pump a bounded time instead of `pumpAndSettle`.
+
 ## Source layout
 
 - `lib/data/models`: JSON boundary helpers, immutable snapshots and command results.

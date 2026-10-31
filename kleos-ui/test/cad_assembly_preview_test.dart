@@ -101,4 +101,89 @@ void main() {
     expect(find.byKey(const ValueKey('cad-explosion-slider')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  JsonMap twoParts() => <String, dynamic>{
+        'schemaVersion': 'cad-assembly-v1',
+        'separation': 'named_parts',
+        'parts': [_part('base', 'Base', 0), _part('lid', 'Lid', 12)]
+      };
+
+  testWidgets('every control is at least 44px so thumbs can hit it',
+      (tester) async {
+    await _mount(tester, twoParts());
+    for (final tooltip in [
+      'Expand CAD viewer',
+      'Zoom in CAD',
+      'Zoom out CAD',
+      'Reset CAD view',
+      'Assemble CAD parts'
+    ]) {
+      final size = tester.getSize(find.byTooltip(tooltip));
+      expect(size.width, greaterThanOrEqualTo(44), reason: tooltip);
+      expect(size.height, greaterThanOrEqualTo(44), reason: tooltip);
+    }
+    for (final id in ['base', 'lid']) {
+      expect(tester.getSize(find.byKey(ValueKey('cad-part-$id'))).height,
+          greaterThanOrEqualTo(40));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('two fingers pinch to zoom and the buttons follow the limit',
+      (tester) async {
+    await _mount(tester, twoParts());
+    final canvas = find.byKey(const ValueKey('cad-assembly-canvas'));
+    final center = tester.getCenter(canvas);
+    IconButton zoomOut() => tester.widget<IconButton>(find.ancestor(
+        of: find.byIcon(Icons.remove), matching: find.byType(IconButton)));
+    expect(zoomOut().onPressed, isNotNull);
+    // Pull two fingers together far enough to hit the minimum zoom.
+    final a = await tester.startGesture(center + const Offset(-60, 0));
+    final b = await tester.startGesture(center + const Offset(60, 0));
+    await a.moveTo(center + const Offset(-4, 0));
+    await b.moveTo(center + const Offset(4, 0));
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+    expect(zoomOut().onPressed, isNull);
+    // Reset restores the default zoom, so zooming out is possible again.
+    await tester.tap(find.byTooltip('Reset CAD view'));
+    await tester.pumpAndSettle();
+    expect(zoomOut().onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('double tap resets the explosion and the selection',
+      (tester) async {
+    await _mount(tester, twoParts());
+    await tester.tap(find.byKey(const ValueKey('cad-part-base')));
+    await tester.pumpAndSettle();
+    expect(find.text('Base · PLA'), findsOneWidget);
+    final canvas = find.byKey(const ValueKey('cad-assembly-canvas'));
+    final at = tester.getCenter(canvas);
+    await tester.tapAt(at);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tapAt(at);
+    await tester.pumpAndSettle();
+    expect(find.text('Base · PLA'), findsNothing);
+    expect(find.text('2 parts · drag to orbit'), findsOneWidget);
+  });
+
+  testWidgets('expand opens the viewer full screen with the same parts',
+      (tester) async {
+    await _mount(tester, twoParts());
+    await tester.tap(find.byTooltip('Expand CAD viewer'));
+    await tester.pumpAndSettle();
+    expect(find.text('CAD assembly · 2 parts'), findsOneWidget);
+    // The full-screen viewer fills the display and has no expand button.
+    expect(find.byTooltip('Expand CAD viewer'), findsNothing);
+    final canvas =
+        tester.getSize(find.byKey(const ValueKey('cad-assembly-canvas')));
+    expect(canvas.height, greaterThan(400));
+    expect(find.byKey(const ValueKey('cad-explosion-slider')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Expand CAD viewer'), findsOneWidget);
+  });
 }
