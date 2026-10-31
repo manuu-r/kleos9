@@ -173,7 +173,7 @@ class EngineeringEngine:
                 "inputArtifacts": [{"id": a.id, "sha256": a.sha256, "name": a.name} for a in artifacts],
                 "acceptanceCriteria": ["requirements coverage", "shared interfaces", "independent tool validation"],
                 "failures": [{"name": c.name, "status": c.status, "details": c.details} for c in failures],
-                "remainingAllowanceUsd": None if self.settings.unlimited_spending else (
+                "remainingAllowanceUsd": None if self.settings.development_unlimited_usage else (
                     project.budget_usd - project.spent_usd - project.reserved_usd),
                 "pivotReason": task.result.get("pivotReason"),
                 "retrieval": {"method": "qdrant" if retrieved and retrieved.get("sources") else "bounded_source_records",
@@ -316,16 +316,16 @@ class EngineeringEngine:
             if not self.models.registry.configured(attempt.provider):
                 raise DomainError(f"{attempt.provider} API credentials are not configured", 503, "provider_unconfigured")
             reserve = self.settings.invocation_reservation_usd
-            if not self.settings.unlimited_spending and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
+            if not self.settings.development_unlimited_usage and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
                 raise DomainError("An operator must configure project and daily allowances", 409, "budget_unconfigured")
             day = datetime.now(UTC).date().isoformat()
             daily = session.get(DailyBudget, day)
             if not daily:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if not self.settings.unlimited_spending and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
+            if not self.settings.development_unlimited_usage and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
                 raise DomainError("Project allowance exhausted", 409, "budget_exhausted")
-            if (not self.settings.unlimited_spending and self.settings.daily_budget_usd is not None
+            if (not self.settings.development_unlimited_usage and self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
                 raise DomainError("Daily allowance exhausted", 409, "budget_exhausted")
             project.reserved_usd += reserve
@@ -554,10 +554,9 @@ class EngineeringEngine:
             key = f"transcripts/{invocation.tenant_id}/{project.id}/{invocation.id}.json"
             messages = json.loads(transcript) if isinstance(transcript, str) else transcript
             self.store.put_json(key, redact({"output": output, "messages": messages}))
-            # Until a billing reconciliation is available, retain a conservative allowance debit.
+            from .usage_accounting import invocation_debit
             reserved = invocation.reserved_usd
-            # estimatedUsd covers tokens plus search; unpriced models still owe the search fee.
-            amount = max(reserved, usage.get("estimatedUsd") or usage.get("searchUsd") or 0)
+            amount, cost_basis = invocation_debit(reserved, usage)
             daily = session.get(DailyBudget, invocation.usage["reservationDay"])
             project.reserved_usd = max(0, project.reserved_usd - reserved)
             project.spent_usd += amount
@@ -572,8 +571,8 @@ class EngineeringEngine:
                     "invocationId": invocation.id, "attemptId": attempt.id,
                     "from": usage["fallbackFrom"], "provider": invocation.provider, "model": invocation.model,
                     "appliesTo": "this_attempt_only"})
-            invocation.estimated_usd = usage.get("estimatedUsd") if usage.get("estimatedUsd") is not None else amount
-            invocation.usage = {**invocation.usage, **usage, "costBasis": "conservative_reservation",
+            invocation.estimated_usd = amount
+            invocation.usage = {**invocation.usage, **usage, "costBasis": cost_basis,
                                 "allowanceDebitUsd": amount}
             emit(session, project, "model.completed", {"invocationId": invocation.id, "usage": usage,
                                                       "allowanceDebitUsd": amount})
@@ -761,7 +760,7 @@ class EngineeringEngine:
                         # repair chain remains finite within its original task.
                         used = session.scalar(select(func.count(Attempt.id)).where(Attempt.task_id == task.id))
                     if used < min(3, self.settings.max_attempts) and task.kind != "project.pivot" and (
-                            self.settings.unlimited_spending or project.spent_usd + project.reserved_usd
+                            self.settings.development_unlimited_usage or project.spent_usd + project.reserved_usd
                             + self.settings.invocation_reservation_usd <= project.budget_usd):
                         task.status = "queued"
                         session.add(Outbox(key=f"repair:{task.id}:{task.attempt_count + 1}", kind="task",

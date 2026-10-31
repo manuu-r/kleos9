@@ -132,3 +132,24 @@ from the authenticated /api/v1 backend. This is public, shared, in-memory demo
 data; deployment/reset clears simulated progress. Service updates use stop-before-
 start to keep exactly one authoritative demo instance. The workflow checks the
 requested revision to detect an ECS rollback and uploads a simulation manifest.
+
+### Correct model allowance overcounts
+
+Successful model calls debit their finite, nonnegative `estimatedUsd` cost
+(including priced tokens and search) rather than a minimum full reservation.
+This is a usage estimate, not an imported provider invoice. Unknown-cost calls
+retain conservative accounting; uncertain calls keep their reservations.
+Project and daily allowance limits remain enforced.
+
+Run the following inside an operator-controlled VPC task using the deployed
+application's database settings for a project with historical overcounts:
+
+```bash
+python -m kleos.cli reconcile-model-usage --project PROJECT_ID
+python -m kleos.cli reconcile-model-usage --project PROJECT_ID --apply
+```
+
+The first command previews the count and correction amount. The second updates
+the project and original reservation-day totals transactionally, preserves the
+previous debit, and records `model.usageReconciled` events. Repeating it does not
+refund twice. Native/auxiliary compute and uncertain calls remain unchanged.

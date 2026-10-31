@@ -78,7 +78,7 @@ class ComputeLedger:
                     raise DomainError("Previous dispatch has an uncertain outcome; reconcile before retrying", 409,
                                       "compute_uncertain")
                 return existing.id, False
-            if not self.settings.unlimited_spending and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
+            if not self.settings.development_unlimited_usage and (self.settings.daily_budget_usd == 0 or project.budget_usd <= 0):
                 raise DomainError("Configure project and daily allowances before paid compute", 409,
                                   "budget_unconfigured")
             if kind == "embedding":
@@ -102,7 +102,7 @@ class ComputeLedger:
             if not daily:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if not self.settings.unlimited_spending and (
+            if not self.settings.development_unlimited_usage and (
                     project.spent_usd + project.reserved_usd + reserve > project.budget_usd or (
                     self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd)):

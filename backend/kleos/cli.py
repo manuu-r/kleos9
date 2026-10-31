@@ -19,6 +19,9 @@ def main():
     reset = sub.add_parser("reset-password", help="Print a temporary password for an existing account")
     reset.add_argument("--email", required=True)
     sub.add_parser("bootstrap-dev", help="Create the development membership")
+    reconcile = sub.add_parser("reconcile-model-usage", help="Preview or apply priced model-usage corrections")
+    reconcile.add_argument("--project", required=True)
+    reconcile.add_argument("--apply", action="store_true")
     sub.add_parser("export-contracts")
     args = parser.parse_args()
     if args.command == "export-contracts":
@@ -31,6 +34,13 @@ def main():
         return
     settings = get_settings()
     db = Database(settings.database_url)
+    if args.command == "reconcile-model-usage":
+        from .usage_accounting import reconcile_model_usage
+        try:
+            print(json.dumps(reconcile_model_usage(db, args.project, apply=args.apply)))
+        finally:
+            db.close()
+        return
     with db.transaction() as session:
         if args.command == "reset-password":
             result = {"email": args.email, "temporaryPassword": reset_password(session, args.email)}

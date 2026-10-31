@@ -200,7 +200,7 @@ class ECSExecution:
             if sum(a.size for a in artifacts) > MAX_INPUT_BYTES:
                 raise DomainError("Native input exceeds the 32 MiB transfer limit; split the task", 413)
             reserve = self.settings.native_job_reservation_usd
-            if reserve <= 0 or (not self.settings.unlimited_spending and (
+            if reserve <= 0 or (not self.settings.development_unlimited_usage and (
                     project.budget_usd <= 0 or self.settings.daily_budget_usd == 0)):
                 raise DomainError("Configure positive project and daily allowances before native execution", 409, "budget_unconfigured")
             day = now().date().isoformat()
@@ -208,9 +208,9 @@ class ECSExecution:
             if daily is None:
                 daily = DailyBudget(day=day, spent=0, reserved=0)
                 session.add(daily)
-            if not self.settings.unlimited_spending and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
+            if not self.settings.development_unlimited_usage and project.spent_usd + project.reserved_usd + reserve > project.budget_usd:
                 raise DomainError("Project native compute allowance exhausted", 409, "budget_exhausted")
-            if (not self.settings.unlimited_spending and self.settings.daily_budget_usd is not None
+            if (not self.settings.development_unlimited_usage and self.settings.daily_budget_usd is not None
                     and daily.spent + daily.reserved + reserve > self.settings.daily_budget_usd):
                 raise DomainError("Daily native compute allowance exhausted", 409, "budget_exhausted")
             project.reserved_usd += reserve
