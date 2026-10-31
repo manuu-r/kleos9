@@ -11,6 +11,7 @@ from opentelemetry.trace import StatusCode
 from sqlalchemy import func, select
 
 from .auth import Principal
+from .circuit_simulation_runtime import CHECK_NAMES, MAX_WAVEFORM_BYTES, WAVEFORM_NAME
 from .clarification import answer_context, retain_unanswered_questions
 from .contracts import AgentOutput, DomainError, GeneratedFile, JobResult, NativeCandidate
 from .db import (
@@ -684,6 +685,7 @@ class EngineeringEngine:
                 raise DomainError("Native job was cancelled; late results cannot publish", 409, "stale_attempt")
             if job.status in {"succeeded", "failed", "unsupported"}:
                 return
+            validation_evidence = []
             if job.purpose == "validate":
                 hashes = {a.id: a.sha256 for a in session.scalars(select(Artifact).where(
                     Artifact.project_id == project.id, Artifact.revision == task.revision,
@@ -694,15 +696,41 @@ class EngineeringEngine:
                     stale_validation = True
                     result = JobResult(status="failed", limitations=[
                         "Candidate files changed during validation; run validation again"])
+                # Evidence is separate from the candidate closure it validates.
+                # Publishing it must not invalidate every just-recorded check.
+                if len(result.files) > 1:
+                    raise DomainError("Duplicate validation evidence files", 422)
+                for file in result.files:
+                    if file.path != WAVEFORM_NAME or file.media_type != "application/json":
+                        raise DomainError("Unsupported independent validation evidence file", 422)
+                    raw = base64.b64decode(file.content, validate=True) if file.encoding == "base64" else file.content.encode()
+                    if len(raw) > MAX_WAVEFORM_BYTES:
+                        raise DomainError("Circuit evidence exceeds its size ceiling", 422)
+                    key = artifact_key(project.tenant_id, project.id, job.id, WAVEFORM_NAME, raw)
+                    self.store.put(key, raw, "application/json")
+                    artifact = Artifact(id=uid(), tenant_id=project.tenant_id, project_id=project.id,
+                        task_id=task.id, attempt_id=attempt.id, revision=task.revision, lane="electronics",
+                        name=WAVEFORM_NAME, key=key, sha256=digest(raw), size=len(raw), media_type="application/json",
+                        status="evidence", provenance={"nativeJobId": job.id, "artifactRole": "validationEvidence",
+                            "contractHash": pinned_contract, "toolVersion": job.request["toolVersion"]},
+                        dependencies=job.request["inputArtifacts"])
+                    session.add(artifact)
+                    validation_evidence.append(artifact)
+                    emit(session, project, "artifact.created", {"artifactId": artifact.id, "name": artifact.name,
+                                                               "sha256": artifact.sha256, "lane": artifact.lane})
                 for check in result.checks:
                     if check.evidence_kind != "digital":
                         raise DomainError("Native validators cannot submit physical evidence", 403)
-                    if result.status != "succeeded" and check.status in {"PASS", "NOT_APPLICABLE"}:
+                    if (result.status != "succeeded" and check.status in {"PASS", "NOT_APPLICABLE"}
+                            and check.name not in CHECK_NAMES):
                         continue
                     session.add(Validation(tenant_id=project.tenant_id, project_id=project.id, task_id=task.id,
                                            revision=task.revision, name=check.name, status=check.status,
                                            evidence_kind="digital", artifact_hashes=pinned,
-                                           details={**check.details, "contractHash": pinned_contract},
+                                           details={**check.details, "contractHash": pinned_contract,
+                                               **({"waveformArtifactId": validation_evidence[0].id,
+                                                   "waveformSha256": validation_evidence[0].sha256}
+                                                  if check.name.startswith("circuit_") and validation_evidence else {})},
                                            validator=job.request["toolVersion"]))
             log_content = redact(result.model_dump(mode="json", exclude={"files"}))
             log_hash = digest(json.dumps(log_content, sort_keys=True, default=str).encode())
@@ -721,7 +749,7 @@ class EngineeringEngine:
             reservation = job.request.get("reservation", {})
             settle_native_reservation(session, job, project, refund=not reservation.get("dispatchAttempted", True))
             emit(session, project, "native.completed", {"jobId": job.id, "status": result.status})
-            if result.files:
+            if result.files and job.purpose != "validate":
                 provenance = {"nativeJobId": job.id, "toolVersion": job.request["toolVersion"],
                     **({"engineeringTool": {key: value for key, value in job.request["engineeringTool"].items()
                         if key in {"id", "version", "definitionHash", "installationHash", "policyVersion"}}}

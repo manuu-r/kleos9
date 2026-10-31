@@ -134,12 +134,12 @@ def clean_environment(directory):
     return environment
 
 
-def unprivileged_limits(timeout):
+def unprivileged_limits(timeout, file_bytes=MAX_WORK_FILE_BYTES):
     def prepare():
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
         # Compilers produce larger intermediate IR than the transferable artifacts.
         # Per-task scratch/memory quotas remain independently enforced.
-        resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_WORK_FILE_BYTES, MAX_WORK_FILE_BYTES))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (file_bytes, file_bytes))
         # Gradle's compiler/plugin classpath exceeds the small native-tool limit.
         descriptors = 4096 if RUNTIME_APPLICATION_IPC else 256
         resource.setrlimit(resource.RLIMIT_NOFILE, (descriptors, descriptors))
@@ -187,7 +187,7 @@ def run_command(args, directory, timeout):
         process = subprocess.Popen(
             args, cwd=directory, env=clean_environment(directory),
             stdout=output, stderr=subprocess.STDOUT, start_new_session=True, close_fds=True,
-            preexec_fn=unprivileged_limits(timeout),
+            preexec_fn=unprivileged_limits(timeout, 2_000_000 if args[0] == "ngspice" else MAX_WORK_FILE_BYTES),
         )
         timed_out = False
         try:
@@ -1019,12 +1019,18 @@ def validate_candidates(request, directory, execute=run_command):
             "requestedCoverage": extra, "acceptedExclusions": exclusions,
             "scopeValid": explicit_scope,
         }))
-    failed = any(c.status in {"FAIL", "ERROR"} for c in checks)
+    from .circuit_simulation_runtime import CHECK_NAMES, WAVEFORM_NAME, simulate_circuit
+    simulation_checks, waveform = simulate_circuit(request.get("interfaces", {}), directory / "circuit-simulation", execute)
+    checks.extend(simulation_checks)
+    failed = any(c.status in {"FAIL", "ERROR"} and not (
+        c.name in CHECK_NAMES and c.details.get("required") is False and c.details.get("scopeExcluded") is True
+    ) for c in checks)
     unsupported = any(c.status == "UNKNOWN" and not (
         c.details.get("required") is False and c.details.get("scopeExcluded") is True
     ) for c in checks)
     return JobResult(status="failed" if failed else "unsupported" if unsupported else "succeeded",
-                     checks=checks, logs="\n".join(logs)[-100000:],
+                     checks=checks, files=[GeneratedFile(path=WAVEFORM_NAME, content=waveform, media_type="application/json")],
+                     logs="\n".join(logs)[-100000:],
                      limitations=[str(c.details.get("reason", "")) for c in checks if c.status == "UNKNOWN"])
 
 

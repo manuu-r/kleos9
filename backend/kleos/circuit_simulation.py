@@ -74,7 +74,7 @@ class PowerLoad(WireModel):
 class SimulationPower(WireModel):
     supply_voltage_v: float = Field(gt=0, le=50, allow_inf_nan=False, strict=True)
     max_current_ma: float = Field(gt=0, le=10000, allow_inf_nan=False, strict=True)
-    loads: list[PowerLoad] = Field(min_length=1, max_length=128)
+    loads: list[PowerLoad] = Field(min_length=1, max_length=16)
     simulation: SimulationBinding
 
 
@@ -228,7 +228,8 @@ def _plan(interfaces):
             lines.append(f".model {model} D(IS={_number(spec['is'])} N={_number(spec['n'])} RS=0)")
         lines += [".control", "set wr_vecnames", "set wr_singlescale", "op",
                   f"wrdata operating.dat {output_vectors}",
-                  "tran 0.0001 0.1 0 0.0001 uic", "linearize " + output_vectors,
+                  "tran 0.0001 0.1 0 0.0001 uic", f"wrdata transient-raw.dat {output_vectors}",
+                  "linearize " + output_vectors,
                   f"wrdata transient.dat {output_vectors}", "quit", ".endc", ".end", ""]
         deck = "\n".join(lines)
         decks.append(Deck(corner, deck, hashlib.sha256(deck.encode()).hexdigest()))
