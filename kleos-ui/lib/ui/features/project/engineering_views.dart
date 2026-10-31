@@ -71,7 +71,10 @@ class StageHeader extends StatelessWidget {
           Semantics(
               header: true,
               child: Text(title,
-                  style: Theme.of(context).textTheme.headlineLarge)),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineLarge
+                      ?.copyWith(fontSize: c.maxWidth < 600 ? 22 : 26))),
           ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
               child: KMuted(description, size: 14)),
@@ -173,7 +176,7 @@ class ProgressRing extends StatelessWidget {
   const ProgressRing(
       {super.key,
       required this.value,
-      this.size = 72,
+      this.size = 48,
       this.running = false,
       this.child});
   final double value;
@@ -206,7 +209,7 @@ class _RingPainter extends CustomPainter {
   final bool glow;
   @override
   void paint(Canvas canvas, Size size) {
-    const stroke = 5.0;
+    const stroke = 3.0;
     final rect = Rect.fromLTWH(
         stroke / 2, stroke / 2, size.width - stroke, size.height - stroke);
     canvas.drawArc(
@@ -298,7 +301,7 @@ class ContractTile extends StatelessWidget {
               child: Text(value,
                   style: const TextStyle(
                       fontFamily: 'GeistMono',
-                      fontSize: 11.5,
+                      fontSize: 12,
                       height: 1.5,
                       color: KColors.text))),
           if (owner != null) KBadge(owner!),
@@ -447,14 +450,14 @@ class _TerminalPanelState extends State<TerminalPanel> {
                     child: Text((i + 1).toString().padLeft(3, '0'),
                         style: const TextStyle(
                             fontFamily: 'GeistMono',
-                            fontSize: 11,
+                            fontSize: 12,
                             height: 1.6,
                             color: KColors.faint))),
                 Expanded(
                     child: Text(widget.lines[i],
                         style: TextStyle(
                             fontFamily: 'GeistMono',
-                            fontSize: 11.5,
+                            fontSize: 12,
                             height: 1.6,
                             color: _color(widget.lines[i]))))
               ]))));
@@ -614,7 +617,7 @@ class SpecFan extends StatelessWidget {
                     border: Border.all(color: KColors.borderStrong)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.hub_outlined,
-                      size: 14, color: KColors.accent),
+                      size: 14, color: KColors.muted),
                   const SizedBox(width: 8),
                   Text(label,
                       style: const TextStyle(
@@ -691,7 +694,7 @@ class SolverBand extends StatelessWidget {
                   curve: KMotion.out,
                   builder: (context, v, _) => Text('${v.round()}',
                       style: KType.numeral.copyWith(
-                          fontSize: 56, letterSpacing: -3, height: .95))),
+                          fontSize: 40, letterSpacing: -1.6, height: 1))),
               Padding(
                   padding: const EdgeInsets.only(bottom: 5, left: 8),
                   child: Text('/ $total',
@@ -764,7 +767,7 @@ class ContractExplorer extends StatelessWidget {
             Text(item.value,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
-                style: KType.monoSmall.copyWith(fontSize: 11, height: 1.55)),
+                style: KType.monoSmall.copyWith(fontSize: 12, height: 1.55)),
             if (item.footer != null) item.footer!,
           ], gap: 3)),
         ]));

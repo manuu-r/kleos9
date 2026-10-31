@@ -353,9 +353,9 @@ class _ProjectStageState extends State<ProjectStage> {
                   icon: Icons.search)
               : null),
       if (!idle)
-        KResponsive(columns: 4, children: [
+        MeterList(items: [
           for (final track in tracks)
-            MeterTile(label: track, value: number(research[track]).toDouble())
+            (label: track, value: number(research[track]).toDouble())
         ]),
       if (done) ...[
         KResponsive(children: [
@@ -951,10 +951,8 @@ class _ProjectStageState extends State<ProjectStage> {
               : null),
       if (p['procurement'] == 'quoting')
         KPanel(
-            child: pColumn([
-          pText('Waiting for quotes…'),
-          const LinearProgressIndicator(minHeight: 3)
-        ])),
+            child:
+                pColumn([pText('Waiting for quotes…'), const KLineLoader()])),
       if (quotes.isNotEmpty) ...[
         KPanel(
             padding: const EdgeInsets.all(8),

@@ -1,36 +1,66 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
 import '../../../data/models/json.dart';
 import '../../core/widgets.dart';
 
+const _minZoom = .6, _maxZoom = 4.0;
+
 /// Display-only separation of the immutable part meshes in an assembly manifest.
+///
+/// Built for thumbs first: one finger orbits (with a short inertial spin), two
+/// fingers pinch to zoom, double tap resets, the mouse wheel zooms, and every
+/// control is at least 44px. On a phone the viewer can open full screen so the
+/// model gets the whole display instead of a strip of the page.
 class CadAssemblyPreview extends StatefulWidget {
   const CadAssemblyPreview(
       {super.key,
       required this.assembly,
       required this.fallback,
-      this.height = 330});
+      this.height = 330,
+      this.fullscreen = false});
   final JsonMap assembly;
   final Widget fallback;
   final double height;
+
+  /// Fill the available space instead of using [height]; hides the expand
+  /// button. Used by the full-screen route.
+  final bool fullscreen;
   @override
   State<CadAssemblyPreview> createState() => _CadAssemblyPreviewState();
 }
 
-class _CadAssemblyPreviewState extends State<CadAssemblyPreview> {
+class _CadAssemblyPreviewState extends State<CadAssemblyPreview>
+    with SingleTickerProviderStateMixin {
   late List<_Part> parts;
   late String signature;
   double azimuth = .75, elevation = .5, zoom = 1, explosion = 0;
+  double _zoomAtStart = 1;
   String? selected;
+  bool _interacting = false;
+
+  /// Drives the inertial spin after a fling; unbounded so it can run past 1.
+  late final AnimationController _spin =
+      AnimationController.unbounded(vsync: this)..addListener(_onSpin);
+  double _spinFrom = 0;
 
   @override
   void initState() {
     super.initState();
     read();
   }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  void _onSpin() => setState(() => azimuth = _spinFrom + _spin.value);
 
   void read() {
     signature = jsonEncode(widget.assembly);
@@ -56,130 +86,247 @@ class _CadAssemblyPreviewState extends State<CadAssemblyPreview> {
     }
   }
 
+  void _reset() {
+    _spin.stop();
+    setState(() {
+      azimuth = .75;
+      elevation = .5;
+      zoom = 1;
+      explosion = 0;
+      selected = null;
+    });
+  }
+
+  void _zoomBy(double factor) =>
+      setState(() => zoom = (zoom * factor).clamp(_minZoom, _maxZoom));
+
+  void _onScaleStart(ScaleStartDetails d) {
+    _spin.stop();
+    _zoomAtStart = zoom;
+    setState(() => _interacting = true);
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails d) => setState(() {
+        azimuth += d.focalPointDelta.dx * .012;
+        elevation = (elevation + d.focalPointDelta.dy * .008).clamp(.12, 1.35);
+        if (d.pointerCount > 1) {
+          zoom = (_zoomAtStart * d.scale).clamp(_minZoom, _maxZoom);
+        }
+      });
+
+  void _onScaleEnd(ScaleEndDetails d) {
+    setState(() => _interacting = false);
+    final vx = d.velocity.pixelsPerSecond.dx;
+    if (MediaQuery.disableAnimationsOf(context) || vx.abs() < 120) return;
+    _spinFrom = azimuth;
+    _spin.value = 0;
+    _spin.animateWith(FrictionSimulation(.06, 0, (vx * .012).clamp(-9, 9)));
+  }
+
+  Widget _control(
+          {required IconData icon,
+          required String tooltip,
+          required VoidCallback? onPressed}) =>
+      SizedBox(
+          width: 44,
+          height: 44,
+          child: IconButton(
+              tooltip: tooltip,
+              onPressed: onPressed,
+              style: IconButton.styleFrom(
+                  backgroundColor: KColors.surface2,
+                  disabledBackgroundColor: KColors.surface2,
+                  foregroundColor: KColors.text,
+                  disabledForegroundColor: KColors.faint,
+                  shape: RoundedRectangleBorder(
+                      side: const BorderSide(color: KColors.border),
+                      borderRadius: BorderRadius.circular(KRadius.control))),
+              icon: Icon(icon, size: 19)));
+
+  void _openFullscreen() => Navigator.of(context).push(MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => Scaffold(
+          backgroundColor: KColors.bg,
+          appBar: AppBar(
+              backgroundColor: KColors.bg,
+              scrolledUnderElevation: 0,
+              title: Text('CAD assembly · ${parts.length} '
+                  '${parts.length == 1 ? 'part' : 'parts'}')),
+          body: SafeArea(
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                  child: CadAssemblyPreview(
+                      assembly: widget.assembly,
+                      fallback: widget.fallback,
+                      fullscreen: true))))));
+
   @override
   Widget build(BuildContext context) {
     if (parts.isEmpty) return widget.fallback;
     final chosen = parts.where((p) => p.id == selected).firstOrNull;
-    return SizedBox(
-        height: widget.height,
-        width: double.infinity,
-        child: Column(children: [
-          Expanded(
-              child: Semantics(
-            label:
-                'Generated CAD assembly, ${parts.length} parts, ${explosion == 0 ? 'assembled' : 'exploded'} view',
-            child: ClipRect(
-                child: GestureDetector(
-              onPanUpdate: (d) => setState(() {
-                azimuth += d.delta.dx * .012;
-                elevation = (elevation + d.delta.dy * .008).clamp(.12, 1.35);
-              }),
+    final body = Column(children: [
+      Expanded(
+          child: KGridBackdrop(
+              child: Stack(children: [
+        Positioned.fill(
+            child: Semantics(
+          label:
+              'Generated CAD assembly, ${parts.length} parts, ${explosion == 0 ? 'assembled' : 'exploded'} view. Drag to rotate, pinch to zoom.',
+          child: ClipRect(
+              child: Listener(
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent) {
+                _zoomBy(math.exp(-event.scrollDelta.dy * .0015));
+              }
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: _onScaleStart,
+              onScaleUpdate: _onScaleUpdate,
+              onScaleEnd: _onScaleEnd,
+              onDoubleTap: _reset,
               child: MouseRegion(
-                  cursor: SystemMouseCursors.grab,
+                  cursor: _interacting
+                      ? SystemMouseCursors.grabbing
+                      : SystemMouseCursors.grab,
                   child: CustomPaint(
                     key: const ValueKey('cad-assembly-canvas'),
                     size: Size.infinite,
                     painter: _AssemblyPainter(
                         parts, azimuth, elevation, zoom, explosion, selected),
                   )),
-            )),
+            ),
           )),
-          SizedBox(
-              height: 36,
-              child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    for (final part in parts)
-                      Padding(
-                          padding: const EdgeInsets.only(right: 7),
-                          child: Semantics(
-                            label: '${part.label}, quantity ${part.quantity}',
-                            selected: part.id == selected,
-                            child: ActionChip(
-                              key: ValueKey('cad-part-${part.id}'),
-                              avatar: Icon(Icons.circle,
-                                  color: part.color, size: 9),
-                              label: Text(
-                                  '${part.label}${part.quantity > 1 ? ' ×${part.quantity}' : ''}',
-                                  style: const TextStyle(fontSize: 11)),
-                              backgroundColor: selected == part.id
-                                  ? KColors.surface3
-                                  : KColors.surface,
-                              side: BorderSide(
-                                  color: selected == part.id
-                                      ? part.color
-                                      : KColors.border),
-                              onPressed: () => setState(() => selected =
-                                  selected == part.id ? null : part.id),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          )),
-                  ]))),
-          if (parts.length > 1)
-            SizedBox(
-                height: 38,
-                child: Row(children: [
-                  const Text('Explode',
-                      style: TextStyle(fontSize: 11, color: KColors.muted)),
-                  Expanded(
-                      child: Slider(
-                    key: const ValueKey('cad-explosion-slider'),
-                    value: explosion,
-                    label: '${(explosion * 100).round()}%',
-                    semanticFormatterCallback: (v) =>
-                        '${(v * 100).round()} percent exploded',
-                    onChanged: (value) => setState(() => explosion = value),
-                  )),
-                  IconButton(
+        )),
+        if (!widget.fullscreen)
+          Positioned(
+              left: 8,
+              top: 8,
+              child: _control(
+                  icon: Icons.open_in_full,
+                  tooltip: 'Expand CAD viewer',
+                  onPressed: _openFullscreen)),
+        Positioned(
+            right: 8,
+            top: 8,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _control(
+                  icon: Icons.add,
+                  tooltip: 'Zoom in CAD',
+                  onPressed: zoom < _maxZoom ? () => _zoomBy(1.25) : null),
+              const SizedBox(height: 8),
+              _control(
+                  icon: Icons.remove,
+                  tooltip: 'Zoom out CAD',
+                  onPressed: zoom > _minZoom ? () => _zoomBy(.8) : null),
+              const SizedBox(height: 8),
+              _control(
+                  icon: Icons.restart_alt,
+                  tooltip: 'Reset CAD view',
+                  onPressed: _reset),
+            ])),
+        Positioned(
+            left: 12,
+            bottom: 8,
+            right: 64,
+            child: IgnorePointer(
+                child: Text(
+              chosen == null
+                  ? parts.length > 1
+                      ? '${parts.length} parts · drag to orbit'
+                      : 'Single CAD body · drag to orbit'
+                  : '${chosen.label}${chosen.material == null ? '' : ' · ${chosen.material}'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12.5, color: KColors.muted),
+            ))),
+      ]))),
+      const SizedBox(height: 10),
+      SizedBox(
+          height: 40,
+          child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: parts.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final part = parts[i];
+                final on = part.id == selected;
+                return Semantics(
+                    label: '${part.label}, quantity ${part.quantity}',
+                    selected: on,
+                    child: ExcludeSemantics(
+                        child: KTap(
+                            key: ValueKey('cad-part-${part.id}'),
+                            flat: true,
+                            onTap: () =>
+                                setState(() => selected = on ? null : part.id),
+                            builder: (context, hovered) => AnimatedContainer(
+                                duration: KMotion.base,
+                                curve: KMotion.out,
+                                height: 40,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 14),
+                                decoration: BoxDecoration(
+                                    color: on
+                                        ? KColors.surface3
+                                        : hovered
+                                            ? KColors.surface2
+                                            : Colors.transparent,
+                                    borderRadius:
+                                        BorderRadius.circular(KRadius.pill),
+                                    border: Border.all(
+                                        color: on
+                                            ? KColors.text
+                                            : KColors.borderStrong)),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                              color: part.color,
+                                              shape: BoxShape.circle)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                          '${part.label}${part.quantity > 1 ? ' ×${part.quantity}' : ''}',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: on
+                                                  ? KColors.text
+                                                  : KColors.muted)),
+                                    ])))));
+              })),
+      if (parts.length > 1)
+        SizedBox(
+            height: 48,
+            child: Row(children: [
+              const Text('Explode',
+                  style: TextStyle(fontSize: 13, color: KColors.muted)),
+              Expanded(
+                  child: Slider(
+                key: const ValueKey('cad-explosion-slider'),
+                value: explosion,
+                label: '${(explosion * 100).round()}%',
+                semanticFormatterCallback: (v) =>
+                    '${(v * 100).round()} percent exploded',
+                onChanged: (value) => setState(() => explosion = value),
+              )),
+              SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
                       tooltip: 'Assemble CAD parts',
                       onPressed: explosion > 0
                           ? () => setState(() => explosion = 0)
                           : null,
-                      icon: const Icon(Icons.layers_outlined, size: 17)),
-                ])),
-          SizedBox(
-              height: 36,
-              child: Row(children: [
-                Expanded(
-                    child: Text(
-                  chosen == null
-                      ? parts.length > 1
-                          ? '${parts.length} parts · drag to orbit'
-                          : 'Single CAD body · drag to orbit'
-                      : '${chosen.label}${chosen.material == null ? '' : ' · ${chosen.material}'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: KColors.muted),
-                )),
-                IconButton(
-                    tooltip: 'Zoom out CAD',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: zoom > .65
-                        ? () =>
-                            setState(() => zoom = (zoom - .15).clamp(.65, 1.8))
-                        : null,
-                    icon: const Icon(Icons.remove, size: 16)),
-                IconButton(
-                    tooltip: 'Zoom in CAD',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: zoom < 1.8
-                        ? () =>
-                            setState(() => zoom = (zoom + .15).clamp(.65, 1.8))
-                        : null,
-                    icon: const Icon(Icons.add, size: 16)),
-                IconButton(
-                    tooltip: 'Reset CAD view',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => setState(() {
-                          azimuth = .75;
-                          elevation = .5;
-                          zoom = 1;
-                          explosion = 0;
-                          selected = null;
-                        }),
-                    icon: const Icon(Icons.restart_alt, size: 16)),
-              ])),
-        ]));
+                      icon: const Icon(Icons.layers_outlined, size: 19))),
+            ])),
+    ]);
+    if (widget.fullscreen) {
+      return SizedBox.expand(child: body);
+    }
+    return SizedBox(height: widget.height, width: double.infinity, child: body);
   }
 }
 
@@ -329,8 +476,8 @@ class _AssemblyPainter extends CustomPainter {
     }
     final bounds = Rect.fromPoints(low, high);
     final scale = math.min(
-            math.max(1, size.width - 70) / math.max(.01, bounds.width),
-            math.max(1, size.height - 40) / math.max(.01, bounds.height)) *
+            math.max(1, size.width - 72) / math.max(.01, bounds.width),
+            math.max(1, size.height - 64) / math.max(.01, bounds.height)) *
         zoom;
     Offset screen(_P p) =>
         (project(p) - bounds.center) * scale + size.center(Offset.zero);
@@ -364,12 +511,13 @@ class _AssemblyPainter extends CustomPainter {
         canvas.drawPath(
             path,
             Paint()
-              ..color = KColors.accent.withValues(alpha: .8)
-              ..strokeWidth = .8
+              ..color = KColors.accent
+              ..strokeWidth = 1.2
               ..style = PaintingStyle.stroke);
       }
     }
     if (explosion > .05 || selected != null) {
+      final placed = <Rect>[];
       for (var i = 0; i < parts.length; i++) {
         final part = parts[i];
         if (parts.length > 8 && selected != part.id) continue;
@@ -378,16 +526,28 @@ class _AssemblyPainter extends CustomPainter {
             text: TextSpan(
                 text: part.label,
                 style: const TextStyle(
-                    fontFamily: 'Geist', fontSize: 10, color: KColors.text)),
+                    fontFamily: 'Geist', fontSize: 12, color: KColors.text)),
             textDirection: TextDirection.ltr,
             maxLines: 1,
             ellipsis: '…')
           ..layout(maxWidth: math.max(20, math.min(130, size.width * .45)));
-        final rect = Rect.fromLTWH(
+        var rect = Rect.fromLTWH(
             (at.dx + 10).clamp(4, math.max(4, size.width - text.width - 14)),
             (at.dy - 20).clamp(4, math.max(4, size.height - text.height - 12)),
             text.width + 10,
             text.height + 6);
+        // Nudge a label down until it no longer sits on another one.
+        for (var tries = 0;
+            tries < 8 && placed.any((other) => other.overlaps(rect));
+            tries++) {
+          rect = rect.shift(Offset(0, rect.height + 4));
+        }
+        rect = Rect.fromLTWH(
+            rect.left,
+            rect.top.clamp(4, math.max(4, size.height - rect.height - 4)),
+            rect.width,
+            rect.height);
+        placed.add(rect);
         canvas.drawLine(
             at,
             rect.center,

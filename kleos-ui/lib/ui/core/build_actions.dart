@@ -109,7 +109,7 @@ class _DeleteBuildDialogState extends ConsumerState<_DeleteBuildDialog> {
                   ],
                   if (deleting) ...[
                     const SizedBox(height: 16),
-                    const LinearProgressIndicator(minHeight: 3)
+                    const KLineLoader()
                   ],
                 ])),
         actions: [

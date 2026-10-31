@@ -66,18 +66,6 @@ class _HumanTasksPageState extends State<HumanTasksPage> {
               : 'Connect it in Connections'
         )
       ]),
-      KCard(
-          title: 'When does the agent create a human task?',
-          child: kColumn(const [
-            KMuted(
-                '1. A check returns UNKNOWN because it needs physical presence, human judgement or an instrument.'),
-            KMuted(
-                '2. No qualified automated connector covers the capability.'),
-            KMuted(
-                '3. Automated attempts hit their limit without PASS or FAIL.'),
-            KMuted(
-                '4. The workflow always requires a human (assembly trial, packing check).')
-          ], gap: 7)),
       KSegmented<String>(
           selected: filter,
           options: [
@@ -98,6 +86,37 @@ class _HumanTasksPageState extends State<HumanTasksPage> {
             controller: widget.controller,
             task: task,
             defaultOpen: false),
+      KPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Theme(
+              data:
+                  Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: const ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.only(bottom: 14),
+                  iconColor: KColors.muted,
+                  collapsedIconColor: KColors.muted,
+                  title: Text('When does the agent create a human task?',
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    KMuted(
+                        '1. A check returns UNKNOWN because it needs physical presence, human judgement or an instrument.',
+                        size: 13.5),
+                    SizedBox(height: 8),
+                    KMuted(
+                        '2. No qualified automated connector covers the capability.',
+                        size: 13.5),
+                    SizedBox(height: 8),
+                    KMuted(
+                        '3. Automated attempts hit their limit without PASS or FAIL.',
+                        size: 13.5),
+                    SizedBox(height: 8),
+                    KMuted(
+                        '4. The workflow always requires a human (assembly trial, packing check).',
+                        size: 13.5),
+                  ]))),
     ]);
   }
 }
@@ -153,7 +172,7 @@ class _DemandPageState extends State<DemandPage> {
                   .map((d) => [
                         Text('${d['capability']}',
                             style: const TextStyle(
-                                fontFamily: 'GeistMono', fontSize: 10)),
+                                fontFamily: 'GeistMono', fontSize: 12)),
                         SizedBox(
                             width: 230,
                             child: Text('${d['description']}',
@@ -247,7 +266,7 @@ class _ProviderPageState extends State<ProviderPage> {
     return KPage(children: [
       if (production) tabs,
       kColumn([
-        const KMuted('Provider portal, signed in as', size: 11),
+        const KMuted('Provider portal, signed in as', size: 12),
         KSectionHeader(
             title: '${summary['name'] ?? 'Provider portal'}',
             description:
@@ -279,11 +298,11 @@ class _ProviderPageState extends State<ProviderPage> {
                             color: i <= level ? KColors.pass : KColors.faint),
                         KBadge(_ladder[i].$1)
                       ]),
-                      KMuted(_ladder[i].$2, size: 11)
+                      KMuted(_ladder[i].$2, size: 12)
                     ], gap: 4)),
               const KMuted(
                   'Next: Preferred after 50 jobs with ≥ 95% on-time and quality ≥ 92.',
-                  size: 10)
+                  size: 12)
             ])),
         KCard(
             title: 'Where your jobs came from',
@@ -322,7 +341,7 @@ class _ProviderPageState extends State<ProviderPage> {
                                 tone: _jobTone(j))
                           ]),
                           KMuted('${j['projectRef']} · Due ${j['due']}',
-                              size: 10)
+                              size: 12)
                         ], gap: 5)))
             ])),
         if (job != null)
@@ -386,7 +405,7 @@ class _JobDetailState extends State<_JobDetail> {
         child: kColumn([
           KMuted(
               '${j['capability']} · ${j['projectRef']} · Qty ${j['qty']} · Due ${j['due']}',
-              size: 10),
+              size: 12),
           const Text('Why this was routed to you',
               style: TextStyle(fontWeight: FontWeight.w500)),
           for (final reason in asList(j['why']))
@@ -396,11 +415,11 @@ class _JobDetailState extends State<_JobDetail> {
             ]),
           KResponsive(children: [
             kColumn([
-              const KMuted('Files (exact revision, minimum packet)', size: 10),
+              const KMuted('Files (exact revision, minimum packet)', size: 12),
               for (final file in asList(j['files'])) KCode('$file')
             ], gap: 6),
             kColumn([
-              const KMuted('Acceptance criteria', size: 10),
+              const KMuted('Acceptance criteria', size: 12),
               for (final item in asList(j['acceptance'])) KMuted('• $item')
             ], gap: 6)
           ]),

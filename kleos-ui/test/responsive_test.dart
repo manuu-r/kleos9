@@ -9,6 +9,14 @@ import 'package:kleos_ui/data/services/api_service.dart';
 import 'package:kleos_ui/main.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 
+/// The shell shows a live line loader and a pulsing status dot while any
+/// project is running, so the tree never fully settles. Pump a bounded time.
+Future<void> settle(WidgetTester tester) async {
+  for (var i = 0; i < 14; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 TestKleos controller() => TestKleos(ApiService(
     baseUrl: 'http://local.test/api',
     client: MockClient((_) async => http.Response(
@@ -55,7 +63,7 @@ void main() {
             size: size, textScaler: const TextScaler.linear(1.3)),
         child: c.scope(const KleosApp()),
       ));
-      await tester.pumpAndSettle();
+      await settle(tester);
       expect(find.text('Build hardware from a sentence.'), findsOneWidget);
       if (size.width >= 1560) {
         expect(find.byType(NavigationRail), findsNothing);
@@ -80,33 +88,33 @@ void main() {
     final c = controller();
     await c.refresh();
     await tester.pumpWidget(c.scope(const KleosApp()));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.widgetWithText(KButton, 'New'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.byTooltip('Back to builds'), findsOneWidget);
     final input = find.byType(TextField);
     await tester.ensureVisible(input);
     await tester.tap(input);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.byType(NavigationBar), findsNothing);
     await tester.enterText(input, 'A portable air quality monitor');
     final submit = find.widgetWithText(KButton, 'Start build');
     await tester.ensureVisible(submit);
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(submit.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     tester.view.resetViewInsets();
     FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.byTooltip('Back to builds'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.text('Build hardware from a sentence.'), findsOneWidget);
     await tester.tap(find.text('Tasks').last);
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.text('Human tasks'), findsOneWidget);
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.text('Build hardware from a sentence.'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

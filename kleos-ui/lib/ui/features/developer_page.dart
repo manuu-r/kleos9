@@ -174,15 +174,15 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                   enabled: !running,
                   onChanged: (_) => setState(() {}),
                   style: const TextStyle(
-                      fontFamily: 'GeistMono', fontSize: 11, height: 1.7),
+                      fontFamily: 'GeistMono', fontSize: 12, height: 1.7),
                   decoration: const InputDecoration(
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none)),
               if (!valid)
                 Text(parseError,
-                    style: const TextStyle(color: KColors.fail, fontSize: 11)),
-              const KMuted('Operations Kleos9 will call', size: 11),
+                    style: const TextStyle(color: KColors.fail, fontSize: 12)),
+              const KMuted('Operations Kleos9 will call', size: 12),
               KCode(valid
                   ? operations.isEmpty
                       ? '(no operations)'
@@ -232,7 +232,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                         controller: terminal,
                         child: kColumn([
                           if (asList(dev['terminal']).isEmpty)
-                            const KMuted('Run kleos init to start.', size: 11),
+                            const KMuted('Run kleos init to start.', size: 12),
                           for (final line in asList(dev['terminal']))
                             SelectableText(
                                 '$line'
@@ -241,7 +241,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                                     .trimLeft(),
                                 style: TextStyle(
                                     fontFamily: 'GeistMono',
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     height: 1.8,
                                     color: '$line'.startsWith('ok:')
                                         ? KColors.pass
@@ -321,7 +321,7 @@ class AgentAccessPage extends StatelessWidget {
                     : () => controller.execute('agent.nextMessage')),
             const KMuted(
                 'The customer still confirms the concept on Kleos9 before any design or spending happens.',
-                size: 11),
+                size: 12),
           ], gap: 17)),
     ]);
   }

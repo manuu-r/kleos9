@@ -211,7 +211,7 @@ class _EngineeringToolsState extends ConsumerState<EngineeringTools> {
                             : 'unknown'),
                     for (final limitation
                         in asList(chosen['limitations']).take(2))
-                      KMuted('$limitation', size: 11),
+                      KMuted('$limitation', size: 12),
                   ]),
           ], gap: 8);
         }),
@@ -233,7 +233,7 @@ class _EngineeringToolsState extends ConsumerState<EngineeringTools> {
                 : () => save(id!, policy)),
       const KMuted(
           'Installed and qualified alternatives appear here. An administrator can add custom workers.',
-          size: 11),
+          size: 12),
     ], gap: 16);
   }
 
@@ -246,7 +246,7 @@ class _EngineeringToolsState extends ConsumerState<EngineeringTools> {
             onPressed:
                 saving ? null : () => ref.invalidate(engineeringToolsProvider)),
         child: ref.watch(engineeringToolsProvider).when(
-              loading: () => const LinearProgressIndicator(minHeight: 3),
+              loading: () => const KLineLoader(),
               error: (_, __) => kColumn([
                 const KMuted('Engineering tools could not be loaded.'),
                 KButton(

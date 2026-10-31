@@ -179,7 +179,7 @@ class _DeviceVisualState extends State<DeviceVisual>
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                     fontFamily: 'GeistMono',
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     color: Color(0xffa3a3ad)),
                               )),
                             ),

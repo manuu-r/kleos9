@@ -520,7 +520,7 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                               fontFamily: 'GeistMono',
-                                              fontSize: 11,
+                                              fontSize: 12,
                                               color: KColors.faint)),
                                   ], gap: 4))),
                           Expanded(
@@ -570,22 +570,35 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
               onRevise: widget.onReviseCircuit),
         if (notes.isNotEmpty ||
             (!overview && view.code.isNotEmpty && lane != 'firmware'))
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-                child: pColumn([
+          LayoutBuilder(builder: (context, box) {
+            final notesColumn = pColumn([
               for (final note in notes) pText(note, small: true, muted: true)
-            ], gap: 4)),
-            if (!overview && view.code.isNotEmpty && lane != 'firmware') ...[
+            ], gap: 4);
+            final toggle =
+                !overview && view.code.isNotEmpty && lane != 'firmware'
+                    ? KButton(
+                        label: showCode
+                            ? 'Show visual preview'
+                            : 'Show generated source',
+                        compact: true,
+                        icon: showCode ? Icons.visibility_outlined : Icons.code,
+                        onPressed: () => setState(() => showCode = !showCode))
+                    : null;
+            // Side by side only when the button has room; otherwise stack so
+            // neither the notes nor the button ever overflow on a phone.
+            if (toggle == null) return notesColumn;
+            if (box.maxWidth < 560) {
+              return pColumn([
+                if (notes.isNotEmpty) notesColumn,
+                Align(alignment: Alignment.centerLeft, child: toggle),
+              ], gap: 12);
+            }
+            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: notesColumn),
               const SizedBox(width: 16),
-              KButton(
-                  label: showCode
-                      ? 'Show visual preview'
-                      : 'Show generated source',
-                  compact: true,
-                  icon: showCode ? Icons.visibility_outlined : Icons.code,
-                  onPressed: () => setState(() => showCode = !showCode)),
-            ],
-          ]),
+              toggle,
+            ]);
+          }),
         if (!overview && asList(current['limitations']).isNotEmpty)
           pDisclosure(
               title: 'Preview limitations',
@@ -693,7 +706,7 @@ class _Explorer extends StatelessWidget {
         const Padding(
             padding: EdgeInsets.fromLTRB(29, 2, 8, 6),
             child: Text('No files yet',
-                style: TextStyle(fontSize: 11.5, color: KColors.faint)))
+                style: TextStyle(fontSize: 12, color: KColors.faint)))
       else
         for (final file in rows)
           KTap(
@@ -722,7 +735,7 @@ class _Explorer extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontFamily: 'GeistMono',
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: lane == id
                                     ? KColors.text
                                     : KColors.muted))),
@@ -827,7 +840,7 @@ class CircuitContractNotice extends StatelessWidget {
                   child: SelectableText(
                       const JsonEncoder.withIndent('  ').convert(details),
                       style: const TextStyle(
-                          fontFamily: 'GeistMono', fontSize: 11, height: 1.5)),
+                          fontFamily: 'GeistMono', fontSize: 12, height: 1.5)),
                 ),
             ], gap: 4)));
   }
@@ -1000,7 +1013,7 @@ class _CadPreviewState extends State<_CadPreview>
         const Padding(
             padding: EdgeInsets.only(left: 6, right: 4),
             child: Text('Drag to orbit',
-                style: TextStyle(fontSize: 11, color: KColors.muted))),
+                style: TextStyle(fontSize: 12, color: KColors.muted))),
       IconButton(
           tooltip: 'Zoom out CAD',
           visualDensity: VisualDensity.compact,
@@ -1085,7 +1098,7 @@ class _CadPreviewState extends State<_CadPreview>
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                         fontFamily: 'GeistMono',
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: KColors.muted)))),
                           const Spacer(),
                           _overlayChip(controls),
@@ -1245,7 +1258,7 @@ class _PcbPreviewState extends State<_PcbPreview>
                       '${_dimension(w)} × ${_dimension(h)} mm · ${asMaps(pcb['components']).length} components',
                       style: const TextStyle(
                           fontFamily: 'GeistMono',
-                          fontSize: 11,
+                          fontSize: 12,
                           color: KColors.muted)))),
             ]),
     );
@@ -1394,7 +1407,7 @@ class _PcbPainter extends CustomPainter {
                 text: label.length > 16 ? '${label.substring(0, 15)}…' : label,
                 style: const TextStyle(
                     color: Color(0xffefecd8),
-                    fontSize: 9,
+                    fontSize: 12,
                     fontFamily: 'GeistMono')),
             textDirection: TextDirection.ltr,
             maxLines: 1,

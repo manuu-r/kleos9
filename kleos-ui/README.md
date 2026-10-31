@@ -100,6 +100,36 @@ flutter run -d web-server --web-port 5180 --dart-define=API_BASE_URL=http://127.
 
 Open http://127.0.0.1:5180. Existing hash routes and `?s=` project-stage links are supported. Cmd/Ctrl+K opens the command menu.
 
+## Design system
+
+The UI follows one "data terminal" direction, phone first. Tokens live in
+`lib/ui/core/theme.dart` and shared widgets in `lib/ui/core/widgets.dart`; use them instead of
+ad-hoc colours or sizes.
+
+- **Surfaces are flat and opaque.** Cards are one tone darker than the page ground and drawn by a
+  1px border. No gradients, glass, glow or resting shadows in interface chrome (rendered product
+  visuals such as the device and PCB views keep their own shading).
+- **Selection is one copper line.** Tabs (`KSegmented`), the stage tabs, the desktop nav and the
+  bottom bar mark the selected item with a 2px `KColors.accent` line as wide as its label. Copper is
+  used for nothing else except focus and the running line loader. Status keeps its own colours
+  (`pass`, `fail`, `unknown`, `human`, `warn`); every text colour clears 4.5:1 on the surfaces it is
+  used on (`test/design_system_test.dart` enforces this).
+- **Type and figures.** Geist for text, Geist Mono for ids and figures. Titles are 22-26px, nothing
+  under 12px, a headline figure at most 40px.
+- **Touch.** Controls are at least 44px, page margins 16px on a phone (`KSpace.gutter`), tables become
+  two-line rows below 600px, tab rows scroll sideways inside their own frame.
+- **Loading.** Show the final layout with flat placeholder bars at their real size
+  (`KPulse` + `KSkeletonBar` / `KSkeletonRows` / `KPageSkeleton`), never a shimmer. Work in progress
+  uses `KLineLoader` (2px sweeping line) or `KSpinner` (inline); `KButton(loading: true)` shows a
+  spinner and ignores taps. All of them stand still under reduced motion. Errors and empty states stay
+  inside their block (`KNotice`, `KErrorState`, `KEmptyState`).
+- **3D viewers.** `CadAssemblyPreview` orbits with one finger (with inertia), pinch-zooms with two,
+  zooms with the wheel, resets on double tap and opens full screen on a phone. `ConceptPreview`
+  shares the 44px controls.
+
+Because the shell shows a live loader while any project runs, tests that include a running project
+pump a bounded time instead of `pumpAndSettle`.
+
 ## Source layout
 
 - `lib/data/models`: JSON boundary helpers, immutable snapshots and command results.

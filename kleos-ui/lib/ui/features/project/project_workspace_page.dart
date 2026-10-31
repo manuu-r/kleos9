@@ -181,37 +181,8 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
             LayoutBuilder(builder: (context, constraints) {
               final compact = constraints.maxWidth < 840;
               if (compact) {
-                return KCard(
-                  padding: const EdgeInsets.all(16),
-                  child: pColumn([
-                    pText('Step ${view + 1} of ${stageNames.length}',
-                        muted: true, small: true),
-                    DropdownButtonFormField<int>(
-                      key: ValueKey('stage-picker-$view'),
-                      initialValue: view,
-                      isExpanded: true,
-                      decoration:
-                          const InputDecoration(labelText: 'Project stage'),
-                      items: [
-                        for (var i = 0; i < stageNames.length; i++)
-                          DropdownMenuItem(
-                            value: i,
-                            enabled: i <= latest,
-                            child: Text('${i + 1}. ${stageNames[i]}',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: i <= latest
-                                        ? KColors.text
-                                        : KColors.faint)),
-                          ),
-                      ],
-                      onChanged: (i) {
-                        if (i != null && i <= latest) _go(i);
-                      },
-                    ),
-                    KProgress((view + 1) * 10.0),
-                  ], gap: 12),
-                );
+                return _StageTabs(
+                    view: view, latest: latest, done: done, onSelect: _go);
               }
               return _StageRail(
                   view: view, latest: latest, done: done, onSelect: _go);
@@ -224,7 +195,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
                     project: project,
                     stage: view,
                     onNext: () => _go((view + 1).clamp(0, 9)))),
-          ], gap: 34);
+          ], gap: KSpace.phone(context) ? 20 : 30);
         },
       );
 }
@@ -292,21 +263,14 @@ class _RailStop extends StatelessWidget {
                             curve: KMotion.out,
                             height: 3,
                             decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3),
-                                color: current
-                                    ? KColors.accent
-                                    : finished || reached
-                                        ? KColors.text.withValues(
-                                            alpha: hovered ? .6 : .38)
-                                        : KColors.border,
-                                boxShadow: current
-                                    ? [
-                                        BoxShadow(
-                                            color: KColors.accent
-                                                .withValues(alpha: .45),
-                                            blurRadius: 10)
-                                      ]
-                                    : const [])),
+                              borderRadius: BorderRadius.circular(3),
+                              color: current
+                                  ? KColors.accent
+                                  : finished || reached
+                                      ? KColors.text
+                                          .withValues(alpha: hovered ? .6 : .38)
+                                      : KColors.border,
+                            )),
                         const SizedBox(height: 11),
                         Row(children: [
                           if (finished && !current)
@@ -330,4 +294,120 @@ class _RailStop extends StatelessWidget {
                                               : KColors.faint))),
                         ]),
                       ])))));
+}
+
+/// Phone and tablet stage navigation: every stage as a tab in one row that
+/// scrolls sideways inside its own frame. The current stage is white with a
+/// copper line as wide as its label, finished stages carry a check, stages not
+/// reached yet are dimmed and inert. The current tab scrolls into view.
+class _StageTabs extends StatefulWidget {
+  const _StageTabs(
+      {required this.view,
+      required this.latest,
+      required this.done,
+      required this.onSelect});
+  final int view, latest;
+  final List<Object?> done;
+  final ValueChanged<int> onSelect;
+  @override
+  State<_StageTabs> createState() => _StageTabsState();
+}
+
+class _StageTabsState extends State<_StageTabs> {
+  final _keys = List.generate(stageNames.length, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    _reveal(animate: false);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StageTabs old) {
+    super.didUpdateWidget(old);
+    if (old.view != widget.view) _reveal();
+  }
+
+  void _reveal({bool animate = true}) =>
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final context = _keys[widget.view].currentContext;
+        if (context == null || !mounted) return;
+        Scrollable.ensureVisible(context,
+            alignment: .5,
+            duration: animate && !MediaQuery.disableAnimationsOf(context)
+                ? KMotion.base
+                : Duration.zero,
+            curve: KMotion.out);
+      });
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+      label: 'Project stages',
+      child: Container(
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: KColors.border))),
+          child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (var i = 0; i < stageNames.length; i++)
+                  _tab(i, reached: i <= widget.latest),
+              ]))));
+
+  Widget _tab(int i, {required bool reached}) {
+    final on = i == widget.view;
+    final finished = i < widget.done.length && widget.done[i] == true;
+    final ink = on
+        ? KColors.text
+        : reached
+            ? KColors.muted
+            : KColors.faint.withValues(alpha: .55);
+    return KTap(
+        key: _keys[i],
+        flat: true,
+        onTap: reached ? () => widget.onSelect(i) : null,
+        builder: (context, hovered) => Semantics(
+            button: true,
+            selected: on,
+            enabled: reached,
+            label: stageNames[i],
+            child: ExcludeSemantics(
+                child: Container(
+                    constraints:
+                        const BoxConstraints(minHeight: 48, minWidth: 44),
+                    padding: const EdgeInsets.only(right: 22),
+                    alignment: Alignment.center,
+                    child: IntrinsicWidth(
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            if (finished && !on)
+                              const Padding(
+                                  padding: EdgeInsets.only(right: 5),
+                                  child: Icon(Icons.check,
+                                      size: 13, color: KColors.pass))
+                            else
+                              Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: Text('${i + 1}',
+                                      style: KType.monoSmall
+                                          .copyWith(color: ink, fontSize: 12))),
+                            Text(stageNames[i],
+                                style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight:
+                                        on ? FontWeight.w500 : FontWeight.w400,
+                                    color: hovered && reached && !on
+                                        ? KColors.text
+                                        : ink)),
+                          ]),
+                          const SizedBox(height: 10),
+                          AnimatedContainer(
+                              duration: KMotion.base,
+                              curve: KMotion.out,
+                              height: 2,
+                              color: on ? KColors.accent : Colors.transparent),
+                        ]))))));
+  }
 }

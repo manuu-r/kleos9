@@ -2,115 +2,160 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
+/// Kleos9 design tokens, "data terminal" direction.
+///
+/// Surfaces are flat and opaque. Cards sit one step *darker* than the ground
+/// and are drawn by a 1px border, never by a shadow or a gradient. Colour is
+/// reserved for status and data; the copper [accent] only ever appears as a
+/// selection line or the single primary action. Every text pair below clears
+/// 4.5:1 on the surface it is used on.
 abstract final class KColors {
-  static const bg = Color(0xff09090b);
-  static const surface = Color(0xff111114);
-  static const surface2 = Color(0xff18181c);
-  static const surface3 = Color(0xff202026);
-  static const border = Color(0xff25252b);
-  static const borderStrong = Color(0xff34343c);
-  static const text = Color(0xfff3f3f5);
-  static const muted = Color(0xffa1a1ab);
-  static const faint = Color(0xff7d7d89);
+  /// Page ground.
+  static const bg = Color(0xff171719);
+
+  /// Cards and panels: darker than the ground.
+  static const surface = Color(0xff131217);
+
+  /// Nested wells and hover fills, between surface and raised.
+  static const surface2 = Color(0xff1b1a1f);
+
+  /// Raised controls and selected rows.
+  static const surface3 = Color(0xff262529);
+  static const border = Color(0xff222224);
+  static const borderStrong = Color(0xff3a3a3e);
+  static const text = Color(0xffffffff);
+  static const muted = Color(0xff92949a);
+  static const faint = Color(0xff8a8c92);
+
+  /// PCB copper. Selection lines and the one primary action only.
   static const accent = Color(0xffec7a45);
-  static const pass = Color(0xff5fc68a);
-  static const fail = Color(0xfff08585);
+  static const pass = Color(0xff5fc39c);
+  static const fail = Color(0xffee6a80);
   static const unknown = Color(0xffb2adb7);
-  static const human = Color(0xffb4a1e3);
+  static const warn = Color(0xffd9a441);
 
-  /// Crisp 1px line that reads on every surface; used for dividers inside
-  /// panels where a solid border colour would look heavy.
-  static const hairline = Color(0x14ffffff);
+  /// "Needs a person". A cool blue so it never reads as violet.
+  static const human = Color(0xff6ea5e8);
 
-  /// Top-edge highlight that makes a surface look lit from above.
-  static const highlight = Color(0x1fffffff);
+  /// Row rules inside panels: 3-7% off the surface.
+  static const hairline = Color(0x12ffffff);
 
-  /// Ink colour for text that sits on an accent fill.
+  /// Kept for older call sites; there is no lit top edge any more.
+  static const highlight = Color(0x00ffffff);
+
+  /// Ink for text that sits on an accent fill.
   static const onAccent = Color(0xff160a04);
+
+  /// Pale status tints with dark-enough ink, for pills inside rows.
+  static Color tint(Color c) => c.withValues(alpha: .12);
 }
 
-/// One radius scale for the whole app: containers, controls, pills.
+/// One radius scale: tight cards, softer controls, round pills.
 abstract final class KRadius {
-  static const card = 18.0;
-  static const control = 10.0;
+  static const card = 8.0;
+  static const control = 8.0;
   static const pill = 999.0;
 }
 
+/// One 4pt-based spacing scale and one gutter per breakpoint.
+abstract final class KSpace {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 24.0;
+  static const xxl = 32.0;
+
+  /// Smallest comfortable touch target.
+  static const touch = 44.0;
+
+  static bool phone(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 600;
+
+  /// Side margin of the page canvas.
+  static double gutter(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return w < 600
+        ? 16
+        : w < 1000
+            ? 24
+            : 32;
+  }
+}
+
 abstract final class KShadow {
-  /// Shadows are tinted toward the background hue, never pure black.
-  static const lift = [
-    BoxShadow(color: Color(0x66050507), blurRadius: 28, offset: Offset(0, 14)),
-  ];
+  /// Resting cards cast nothing; only things that truly float do.
+  static const lift = <BoxShadow>[];
 
-  /// Soft ambient shadow for hero surfaces such as viewports and phones.
-  static const stage = [
-    BoxShadow(color: Color(0x8c050507), blurRadius: 60, offset: Offset(0, 28)),
-    BoxShadow(color: Color(0x1fec7a45), blurRadius: 80, offset: Offset(0, 0)),
+  /// A floating sheet or viewport frame.
+  static const stage = <BoxShadow>[
+    BoxShadow(color: Color(0x33000000), blurRadius: 24, offset: Offset(0, 8)),
   ];
 }
 
-/// Motion tokens. One curve family and three durations keep every transition
-/// in the app feeling like the same hand drew it.
+/// Motion tokens. Feedback is fast, state changes medium; nothing performs.
 abstract final class KMotion {
-  static const out = Cubic(.16, 1, .3, 1);
-  static const fast = Duration(milliseconds: 120);
-  static const base = Duration(milliseconds: 220);
-  static const slow = Duration(milliseconds: 420);
-  static const intro = Duration(milliseconds: 1400);
+  static const out = Cubic(.2, .8, .2, 1);
+  static const fast = Duration(milliseconds: 110);
+  static const base = Duration(milliseconds: 180);
+  static const slow = Duration(milliseconds: 320);
+  static const intro = Duration(milliseconds: 900);
 }
 
-/// Type scale. Geist for prose, GeistMono for anything that is a number, a
-/// path or a value. Sizes step by roughly 1.2 so hierarchy reads at a glance.
+/// Type scale. Geist for prose; GeistMono for ids, values and figures.
+/// Titles top out at 26px, data and labels never drop under 12px.
 abstract final class KType {
   static const display = TextStyle(
       fontFamily: 'Geist',
       color: KColors.text,
-      fontSize: 56,
+      fontSize: 32,
       fontWeight: FontWeight.w600,
-      letterSpacing: -2.4,
-      height: 1.02);
+      letterSpacing: -1,
+      height: 1.1);
   static const h1 = TextStyle(
       fontFamily: 'Geist',
       color: KColors.text,
-      fontSize: 34,
+      fontSize: 26,
       fontWeight: FontWeight.w600,
-      letterSpacing: -1.3,
-      height: 1.1);
+      letterSpacing: -.6,
+      height: 1.15);
   static const h2 = TextStyle(
       fontFamily: 'Geist',
       color: KColors.text,
-      fontSize: 22,
+      fontSize: 19,
       fontWeight: FontWeight.w600,
-      letterSpacing: -.6,
-      height: 1.2);
+      letterSpacing: -.3,
+      height: 1.25);
   static const h3 = TextStyle(
       fontFamily: 'Geist',
       color: KColors.text,
       fontSize: 15,
       fontWeight: FontWeight.w600,
-      letterSpacing: -.2,
+      letterSpacing: -.1,
       height: 1.3);
   static const body = TextStyle(
-      fontFamily: 'Geist', color: KColors.text, fontSize: 13.5, height: 1.55);
+      fontFamily: 'Geist', color: KColors.text, fontSize: 14, height: 1.5);
   static const small = TextStyle(
-      fontFamily: 'Geist', color: KColors.muted, fontSize: 12, height: 1.5);
+      fontFamily: 'Geist', color: KColors.muted, fontSize: 12.5, height: 1.45);
   static const label = TextStyle(
       fontFamily: 'Geist',
-      color: KColors.faint,
-      fontSize: 11,
+      color: KColors.muted,
+      fontSize: 12,
       fontWeight: FontWeight.w500,
-      letterSpacing: .1,
       height: 1.3);
   static const mono = TextStyle(
-      fontFamily: 'GeistMono', color: KColors.text, fontSize: 12, height: 1.5);
+      fontFamily: 'GeistMono',
+      color: KColors.text,
+      fontSize: 12.5,
+      height: 1.5);
   static const monoSmall = TextStyle(
-      fontFamily: 'GeistMono', color: KColors.muted, fontSize: 11, height: 1.5);
+      fontFamily: 'GeistMono', color: KColors.muted, fontSize: 12, height: 1.5);
   static const numeral = TextStyle(
       fontFamily: 'GeistMono',
       color: KColors.text,
-      fontSize: 28,
-      fontWeight: FontWeight.w500,
-      letterSpacing: -1.2,
+      fontSize: 24,
+      fontWeight: FontWeight.w400,
+      letterSpacing: -.8,
       height: 1);
 }
 
@@ -125,10 +170,30 @@ class KScrollBehavior extends MaterialScrollBehavior {
       {...super.dragDevices, PointerDeviceKind.mouse};
 }
 
+/// Selection mark shared by the bottom bar and the rail: a 2px copper line
+/// above the icon, as wide as the icon's slot. Nothing is filled.
+class KLineIndicator extends ShapeBorder {
+  const KLineIndicator();
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) => Path()
+    ..addRect(Rect.fromLTWH(
+        rect.left + rect.width * .18, rect.top, rect.width * .64, 2));
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
 ThemeData kTheme() {
   final base = ThemeData.dark(useMaterial3: true);
   return base.copyWith(
     scaffoldBackgroundColor: KColors.bg,
+    canvasColor: KColors.bg,
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     hoverColor: Colors.white.withValues(alpha: .04),
@@ -140,6 +205,7 @@ ThemeData kTheme() {
     colorScheme: const ColorScheme.dark(
         primary: KColors.text,
         onPrimary: KColors.bg,
+        secondary: KColors.accent,
         surface: KColors.surface,
         onSurface: KColors.text,
         error: KColors.fail),
@@ -149,45 +215,53 @@ ThemeData kTheme() {
             bodyColor: KColors.text,
             displayColor: KColors.text)
         .copyWith(
-          bodyMedium: KType.body.copyWith(fontSize: 13),
-          bodySmall: KType.small.copyWith(fontSize: 11),
+          bodyLarge: KType.body.copyWith(fontSize: 15),
+          bodyMedium: KType.body,
+          bodySmall: KType.small,
           headlineLarge: KType.h1,
-          headlineMedium: KType.h1.copyWith(fontSize: 30, letterSpacing: -1.1),
+          headlineMedium: KType.h1.copyWith(fontSize: 22, letterSpacing: -.4),
           headlineSmall: KType.h2,
-          titleLarge: KType.h2.copyWith(fontSize: 19),
+          titleLarge: KType.h2,
           titleMedium: KType.h3,
+          titleSmall: KType.h3.copyWith(fontSize: 14),
+          labelLarge: KType.label.copyWith(color: KColors.text, fontSize: 13),
+          labelMedium: KType.label,
+          labelSmall: KType.label.copyWith(fontSize: 11),
         ),
     dividerColor: KColors.border,
     inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: KColors.bg,
+        fillColor: KColors.surface,
         isDense: true,
-        contentPadding: const EdgeInsets.all(13),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(KRadius.control),
-            borderSide: const BorderSide(color: KColors.border)),
+            borderSide: const BorderSide(color: KColors.borderStrong)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(KRadius.control),
             borderSide: const BorderSide(color: KColors.border)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(KRadius.control),
             borderSide: const BorderSide(color: KColors.accent, width: 1.2)),
-        hintStyle: const TextStyle(color: KColors.faint, fontSize: 13),
-        labelStyle: const TextStyle(color: KColors.muted, fontSize: 12)),
+        hintStyle: const TextStyle(color: KColors.faint, fontSize: 14),
+        labelStyle: const TextStyle(color: KColors.muted, fontSize: 13)),
     dialogTheme: DialogThemeData(
         backgroundColor: KColors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
             side: const BorderSide(color: KColors.borderStrong),
-            borderRadius: BorderRadius.circular(KRadius.card))),
+            borderRadius: BorderRadius.circular(12))),
     bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: KColors.surface,
         surfaceTintColor: Colors.transparent,
         modalBackgroundColor: KColors.surface,
+        showDragHandle: true,
+        dragHandleColor: KColors.borderStrong,
+        dragHandleSize: Size(36, 4),
         shape: RoundedRectangleBorder(
-            side: BorderSide(color: KColors.borderStrong),
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(KRadius.card)))),
+            side: BorderSide(color: KColors.border),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)))),
     chipTheme: ChipThemeData(
         showCheckmark: false,
         backgroundColor: Colors.transparent,
@@ -196,57 +270,101 @@ ThemeData kTheme() {
         side: const BorderSide(color: KColors.border),
         shape: const StadiumBorder(),
         labelStyle: const TextStyle(
-            fontFamily: 'Geist', fontSize: 12, color: KColors.muted),
+            fontFamily: 'Geist', fontSize: 12.5, color: KColors.muted),
         secondaryLabelStyle: const TextStyle(
-            fontFamily: 'Geist', fontSize: 12, color: KColors.text),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5)),
+            fontFamily: 'Geist', fontSize: 12.5, color: KColors.text),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6)),
     dividerTheme: const DividerThemeData(color: KColors.border, space: 1),
     popupMenuTheme: PopupMenuThemeData(
-        color: KColors.surface2,
+        color: KColors.surface3,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
             side: const BorderSide(color: KColors.borderStrong),
-            borderRadius: BorderRadius.circular(14))),
+            borderRadius: BorderRadius.circular(10))),
+    navigationBarTheme: NavigationBarThemeData(
+        height: 64,
+        backgroundColor: KColors.bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        indicatorColor: KColors.accent,
+        indicatorShape: const KLineIndicator(),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
+            size: 22,
+            color: s.contains(WidgetState.selected)
+                ? KColors.text
+                : KColors.muted)),
+        labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
+            fontFamily: 'Geist',
+            fontSize: 11.5,
+            fontWeight: FontWeight.w500,
+            color: s.contains(WidgetState.selected)
+                ? KColors.text
+                : KColors.muted))),
+    navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: KColors.bg,
+        indicatorColor: KColors.accent,
+        indicatorShape: const KLineIndicator(),
+        elevation: 0,
+        minWidth: 76,
+        labelType: NavigationRailLabelType.all,
+        selectedIconTheme: const IconThemeData(size: 22, color: KColors.text),
+        unselectedIconTheme:
+            const IconThemeData(size: 22, color: KColors.muted),
+        selectedLabelTextStyle: const TextStyle(
+            fontFamily: 'Geist',
+            fontSize: 11.5,
+            fontWeight: FontWeight.w500,
+            color: KColors.text),
+        unselectedLabelTextStyle: const TextStyle(
+            fontFamily: 'Geist', fontSize: 11.5, color: KColors.muted)),
     checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected)
-                ? KColors.accent
+                ? KColors.text
                 : Colors.transparent),
         checkColor: const WidgetStatePropertyAll(KColors.bg),
-        side: const BorderSide(color: KColors.faint),
-        visualDensity: VisualDensity.compact),
+        side: const BorderSide(color: KColors.faint, width: 1.4),
+        visualDensity: VisualDensity.standard),
     switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected)
-                ? KColors.onAccent
-                : KColors.muted),
+            s.contains(WidgetState.selected) ? KColors.bg : KColors.muted),
         trackColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected)
-                ? KColors.accent
-                : KColors.surface3),
+            s.contains(WidgetState.selected) ? KColors.text : KColors.surface3),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent)),
+    sliderTheme: SliderThemeData(
+        trackHeight: 2,
+        activeTrackColor: KColors.text,
+        inactiveTrackColor: KColors.borderStrong,
+        thumbColor: KColors.text,
+        overlayColor: Colors.white.withValues(alpha: .08),
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 22)),
     dataTableTheme: DataTableThemeData(
         headingTextStyle: KType.label,
-        dataTextStyle: KType.body.copyWith(fontSize: 12.5),
-        dividerThickness: .5,
+        dataTextStyle: KType.body.copyWith(fontSize: 13),
+        dividerThickness: 1,
         headingRowColor: const WidgetStatePropertyAll(Colors.transparent),
         dataRowColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.hovered)
                 ? Colors.white.withValues(alpha: .025)
                 : Colors.transparent)),
     scrollbarTheme: ScrollbarThemeData(
-        thickness: const WidgetStatePropertyAll(5),
+        thickness: const WidgetStatePropertyAll(4),
         radius: const Radius.circular(8),
         thumbColor:
             WidgetStatePropertyAll(Colors.white.withValues(alpha: .16))),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: KColors.accent, linearTrackColor: KColors.surface3),
+        color: KColors.accent,
+        linearTrackColor: KColors.surface3,
+        circularTrackColor: Colors.transparent,
+        linearMinHeight: 2),
     tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
             color: KColors.surface3,
             border: Border.all(color: KColors.borderStrong),
-            borderRadius: BorderRadius.circular(8)),
+            borderRadius: BorderRadius.circular(6)),
         textStyle: const TextStyle(
-            fontFamily: 'Geist', fontSize: 12, color: KColors.text)),
+            fontFamily: 'Geist', fontSize: 12.5, color: KColors.text)),
   );
 }

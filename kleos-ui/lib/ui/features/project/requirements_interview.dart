@@ -460,7 +460,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
               ])),
       ],
       if (widget.active || widget.updatePending) ...[
-        const LinearProgressIndicator(minHeight: 3),
+        const KLineLoader(),
         pText('Updating your requirements…', strong: true),
         pText(
             'Your choices are being worked into the concept. Any new questions will appear here.',
@@ -507,12 +507,7 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                 strong: true)),
         if (all.isNotEmpty) KBadge('$completed of ${all.length} saved'),
       ]),
-      if (all.isNotEmpty)
-        LinearProgressIndicator(
-            value: completed / all.length,
-            minHeight: 3,
-            backgroundColor: KColors.border,
-            color: KColors.accent),
+      if (all.isNotEmpty) KProgress(completed / all.length * 100),
       if (widget.active && current < all.length)
         pText(
             widget.acceptWhileActive

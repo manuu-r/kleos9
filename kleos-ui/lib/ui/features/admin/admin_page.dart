@@ -179,7 +179,7 @@ class _InviteList extends ConsumerWidget {
     return KCard(
         title: 'Invites',
         child: invites.when(
-            loading: () => const LinearProgressIndicator(),
+            loading: () => const KLineLoader(),
             error: (error, _) => KMuted('Could not load invites: $error'),
             data: (items) => items.isEmpty
                 ? const KMuted('No invites yet.')
@@ -267,7 +267,7 @@ class _MemberList extends ConsumerWidget {
     return KCard(
         title: 'Members',
         child: members.when(
-            loading: () => const LinearProgressIndicator(),
+            loading: () => const KLineLoader(),
             error: (error, _) => KMuted('Could not load members: $error'),
             data: (items) => kColumn([
                   for (final member in items)
@@ -281,7 +281,7 @@ class _MemberList extends ConsumerWidget {
                                 : member.label),
                             if (member.email != null &&
                                 member.email != member.label)
-                              KMuted(member.email!, size: 11),
+                              KMuted(member.email!, size: 12),
                           ])),
                       if (member.locked) const KBadge('Locked'),
                       const SizedBox(width: 8),

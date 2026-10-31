@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,64 @@ const _nav = [
   (label: 'Providers', path: '/provider', icon: Icons.storefront_outlined),
   (label: 'Developers', path: '/developer', icon: Icons.code)
 ];
+
+typedef _Work = ({String label, String detail, String route});
+
+/// Work that is running right now, across every project. The same list feeds
+/// the running menu and the line loader under the header.
+List<_Work> _runningWork(WidgetRef ref) {
+  final running = <_Work>[];
+  for (final p in ref.watch(projectsProvider)) {
+    final id = p['id'];
+    final name = '${p['name']}';
+    if (p['feasibility'] == 'running') {
+      running.add((
+        label: 'Researching feasibility',
+        detail: name,
+        route: '/projects/$id?s=1'
+      ));
+    }
+    if (asMaps(p['interfaces']).any((i) => i['state'] == 'RUNNING')) {
+      running.add((
+        label: 'Solving interfaces',
+        detail: name,
+        route: '/projects/$id?s=3'
+      ));
+    }
+    if (p['generation'] == 'running') {
+      running.add((
+        label: 'Generating designs',
+        detail: name,
+        route: '/projects/$id?s=4'
+      ));
+    }
+    if (p['verifyRun'] == 'running' ||
+        asMaps(p['artifacts']).any((a) => a['status'] == 'generating')) {
+      running
+          .add((label: 'Verifying', detail: name, route: '/projects/$id?s=5'));
+    }
+    if (['quoting', 'ordering'].contains(p['procurement'])) {
+      running.add(
+          (label: 'Procuring parts', detail: name, route: '/projects/$id?s=6'));
+    }
+    if (asMap(p['homePrint']).isNotEmpty &&
+        !['done', 'idle'].contains(asMap(p['homePrint'])['state'])) {
+      running.add((
+        label: 'Printing at home',
+        detail: name,
+        route: '/projects/$id?s=6'
+      ));
+    }
+    if (p['activation'] == 'running') {
+      running.add((
+        label: 'Running self-test',
+        detail: name,
+        route: '/projects/$id?s=9'
+      ));
+    }
+  }
+  return running;
+}
 
 class AppShell extends ConsumerWidget {
   const AppShell(
@@ -34,48 +91,41 @@ class AppShell extends ConsumerWidget {
           : uri.path == '/agent-access'
               ? 4
               : _nav.indexWhere((n) => n.path == uri.path).clamp(0, 4);
-  Widget _bottomNav(BuildContext context) => NavigationBar(
+
+  /// Labelled bottom bar. The copper line over the selected icon comes from
+  /// the navigation theme; nothing is filled.
+  Widget _bottomNav(BuildContext context) => DecoratedBox(
+      decoration: const BoxDecoration(
+          color: KColors.bg,
+          border: Border(top: BorderSide(color: KColors.border))),
+      child: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => context.go(_nav[i].path),
-        height: 72,
-        backgroundColor: KColors.surface,
-        indicatorColor: KColors.accent.withValues(alpha: .14),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-              fontSize: 10,
-              color: states.contains(WidgetState.selected)
-                  ? KColors.text
-                  : KColors.muted,
-            )),
         destinations: [
           for (final item in _nav)
             NavigationDestination(
-              icon: Icon(item.icon, size: 21),
-              selectedIcon: Icon(item.icon, size: 21, color: KColors.accent),
+              icon: Icon(item.icon),
               label: item.label,
+              tooltip: item.label,
             ),
         ],
-      );
+      ));
 
-  Widget _rail(BuildContext context) => NavigationRail(
+  Widget _rail(BuildContext context) => DecoratedBox(
+      decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: KColors.border))),
+      child: NavigationRail(
         selectedIndex: index,
         onDestinationSelected: (i) => context.go(_nav[i].path),
-        backgroundColor: KColors.surface,
-        indicatorColor: KColors.accent.withValues(alpha: .14),
-        labelType: NavigationRailLabelType.all,
-        minWidth: 92,
-        selectedLabelTextStyle:
-            const TextStyle(fontSize: 11, color: KColors.text),
-        unselectedLabelTextStyle:
-            const TextStyle(fontSize: 11, color: KColors.muted),
         destinations: [
           for (final item in _nav)
             NavigationRailDestination(
-              icon: Icon(item.icon, size: 21),
-              selectedIcon: Icon(item.icon, size: 21, color: KColors.accent),
+              icon: Icon(item.icon),
               label: Text(item.label),
+              padding: const EdgeInsets.symmetric(vertical: 4),
             ),
         ],
-      );
+      ));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListenableBuilder(
@@ -84,6 +134,7 @@ class AppShell extends ConsumerWidget {
 
   Widget _build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(kleosProvider);
+    final running = _runningWork(ref);
     final width = MediaQuery.sizeOf(context).width;
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final mobile = width < 1200 * textScale.clamp(1, 1.5);
@@ -95,110 +146,120 @@ class AppShell extends ConsumerWidget {
             ?.findAncestorWidgetOfExactType<EditableText>() !=
         null;
     final keyboardOpen = editing && MediaQuery.viewInsetsOf(context).bottom > 0;
-    final headerBar = Container(
-        height: phone ? 60 : 68,
-        padding: EdgeInsets.symmetric(horizontal: phone ? 12 : 24),
-        decoration: BoxDecoration(
-            color: KColors.bg.withValues(alpha: .72),
-            border: const Border(bottom: BorderSide(color: KColors.hairline))),
-        child: Row(children: [
-          if (detail)
-            IconButton(
-              tooltip: 'Back to builds',
-              onPressed: () => context.go('/'),
-              icon: const Icon(Icons.arrow_back, size: 20),
-            )
-          else
-            InkWell(
-                onTap: () => context.go('/'),
-                child: Row(children: [
-                  Stack(clipBehavior: Clip.none, children: [
-                    Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Color(0xffffffff), Color(0xffd5d5da)]),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: const Text('K9',
-                            style: TextStyle(
-                                color: KColors.bg,
-                                fontSize: 10,
-                                letterSpacing: -.2,
-                                fontWeight: FontWeight.w800))),
-                    Positioned(
-                        right: -3,
-                        top: -3,
-                        child: Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                                color: KColors.accent,
-                                borderRadius: BorderRadius.circular(2))))
-                  ]),
-                  const SizedBox(width: 9),
-                  if (width >= 360)
-                    const Text('Kleos9',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600))
-                ])),
-          const Spacer(),
-          if (!mobile)
-            Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                    color: KColors.surface.withValues(alpha: .7),
-                    border: Border.all(color: KColors.border),
-                    borderRadius: BorderRadius.circular(KRadius.control + 4)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  for (var i = 0; i < _nav.length; i++)
-                    _NavItem(
-                        label: _nav[i].label,
-                        icon: _nav[i].icon,
-                        selected: i == index,
-                        onTap: () => context.go(_nav[i].path))
-                ])),
-          const Spacer(),
-          _RunningChip(compact: phone),
-          const SizedBox(width: 8),
-          if (width > 1120)
-            SizedBox(
-                width: 196,
-                child: KButton(
-                    label: 'Ask Kleos9 or jump to…  ⌘K',
-                    compact: true,
-                    icon: Icons.auto_awesome_outlined,
-                    onPressed: () => showCommandMenu(context)))
-          else
-            IconButton(
-                tooltip: 'Ask Kleos9 or jump to a page',
-                onPressed: () => showCommandMenu(context),
-                icon: const Icon(Icons.search, size: 20)),
-          if (showAccount) const _AccountMenu(),
-          const SizedBox(width: 4),
-          KButton(
-              label: mobile ? 'New' : 'New build',
-              primary: true,
-              compact: true,
-              icon: Icons.add,
-              onPressed: () => context.go('/new')),
-        ]));
-    final header = ClipRect(
-        child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: headerBar));
+    final gutter = KSpace.gutter(context);
+    final header = Container(
+        height: phone ? 56 : 64,
+        decoration: const BoxDecoration(
+            color: KColors.bg,
+            border: Border(bottom: BorderSide(color: KColors.border))),
+        child: Center(
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: phone ? 8 : gutter),
+                    child: Row(children: [
+                      if (detail)
+                        IconButton(
+                          tooltip: 'Back to builds',
+                          onPressed: () => context.go('/'),
+                          constraints:
+                              const BoxConstraints(minWidth: 44, minHeight: 44),
+                          icon: const Icon(Icons.arrow_back, size: 20),
+                        )
+                      else
+                        InkWell(
+                            onTap: () => context.go('/'),
+                            child: Padding(
+                                padding: EdgeInsets.only(
+                                    left: phone ? 8 : 0, right: 8),
+                                child: Row(children: [
+                                  const _BrandMark(),
+                                  const SizedBox(width: 10),
+                                  if (width >= 400)
+                                    const Text('Kleos9',
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600))
+                                ]))),
+                      if (mobile)
+                        const Spacer()
+                      else
+                        Expanded(
+                            child: Center(
+                                child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          for (var i = 0; i < _nav.length; i++)
+                                            _NavItem(
+                                                label: _nav[i].label,
+                                                icon: _nav[i].icon,
+                                                selected: i == index,
+                                                onTap: () =>
+                                                    context.go(_nav[i].path))
+                                        ])))),
+                      _RunningChip(running: running, compact: phone),
+                      const SizedBox(width: 4),
+                      if (width > 1120)
+                        SizedBox(
+                            width: 244,
+                            child: KButton(
+                                label: 'Ask Kleos9 or jump to…  ⌘K',
+                                compact: true,
+                                icon: Icons.search,
+                                onPressed: () => showCommandMenu(context)))
+                      else
+                        IconButton(
+                            tooltip: 'Ask Kleos9 or jump to a page',
+                            onPressed: () => showCommandMenu(context),
+                            constraints: const BoxConstraints(
+                                minWidth: 44, minHeight: 44),
+                            icon: const Icon(Icons.search, size: 21)),
+                      if (showAccount) const _AccountMenu(),
+                      const SizedBox(width: 4),
+                      if (width < 340)
+                        IconButton.filled(
+                            tooltip: 'New build',
+                            onPressed: () => context.go('/new'),
+                            style: IconButton.styleFrom(
+                                backgroundColor: KColors.text,
+                                foregroundColor: KColors.bg,
+                                minimumSize: const Size(40, 40)),
+                            icon: const Icon(Icons.add, size: 20))
+                      else
+                        KButton(
+                            label: mobile ? 'New' : 'New build',
+                            primary: true,
+                            compact: true,
+                            icon: Icons.add,
+                            onPressed: () => context.go('/new')),
+                      if (phone) const SizedBox(width: 4),
+                    ])))));
     final content = controller.state.isEmpty
-        ? Center(
-            child: controller.loading
-                ? const KPageSkeleton()
-                : kColumn([
-                    Text(controller.error ??
-                        'Waiting for the local mock backend'),
-                    KButton(label: 'Try again', onPressed: controller.refresh)
-                  ], gap: 16))
+        ? (controller.loading
+            ? const KPageSkeleton()
+            : Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                    padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 0),
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: KNotice(
+                            controller.error ??
+                                'Waiting for the local mock backend',
+                            error: true,
+                            action: TextButton(
+                                onPressed: controller.refresh,
+                                style: TextButton.styleFrom(
+                                    minimumSize: const Size(44, 44),
+                                    foregroundColor: KColors.text,
+                                    textStyle: const TextStyle(
+                                        fontFamily: 'Geist',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                                child: const Text('Try again')))))))
         : child;
     return CallbackShortcuts(
         bindings: {
@@ -212,46 +273,38 @@ class AppShell extends ConsumerWidget {
             onPopInvokedWithResult: (didPop, _) {
               if (!didPop) context.go('/');
             },
-            child: Stack(children: [
-              const Positioned.fill(child: KAmbient()),
-              Scaffold(
-                backgroundColor: Colors.transparent,
-                resizeToAvoidBottomInset: editing,
-                bottomNavigationBar:
-                    phone && !keyboardOpen ? _bottomNav(context) : null,
-                body: SafeArea(
-                    bottom: !phone || keyboardOpen,
-                    child: Column(children: [
-                      header,
-                      if (controller.error != null &&
-                          controller.state.isNotEmpty)
-                        Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            color: KColors.fail.withValues(alpha: .08),
-                            child: Row(children: [
-                              Expanded(
-                                  child: Text(controller.error!,
-                                      style: const TextStyle(
-                                          color: KColors.fail, fontSize: 12))),
-                              KButton(
-                                  label: 'Dismiss',
-                                  compact: true,
-                                  onPressed: controller.dismissError)
-                            ])),
+            child: Scaffold(
+              backgroundColor: KColors.bg,
+              resizeToAvoidBottomInset: editing,
+              bottomNavigationBar:
+                  phone && !keyboardOpen ? _bottomNav(context) : null,
+              body: SafeArea(
+                  bottom: !phone || keyboardOpen,
+                  child: Column(children: [
+                    header,
+                    KLineLoader(active: running.isNotEmpty),
+                    if (controller.error != null && controller.state.isNotEmpty)
+                      Padding(
+                          padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
+                          child: KNotice(controller.error!,
+                              error: true,
+                              action: TextButton(
+                                  onPressed: controller.dismissError,
+                                  style: TextButton.styleFrom(
+                                      minimumSize: const Size(44, 44),
+                                      foregroundColor: KColors.text),
+                                  child: const Text('Dismiss')))),
+                    Expanded(
+                        child: Row(children: [
+                      if (rail) _rail(context),
                       Expanded(
-                          child: Row(children: [
-                        if (rail) _rail(context),
-                        Expanded(
-                            child: Semantics(
-                                container: true,
-                                explicitChildNodes: true,
-                                child: content)),
-                      ]))
-                    ])),
-              ),
-            ])));
+                          child: Semantics(
+                              container: true,
+                              explicitChildNodes: true,
+                              child: content)),
+                    ]))
+                  ])),
+            )));
   }
 }
 
@@ -260,7 +313,8 @@ class AppPage extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.sizeOf(context).width < 1000;
+    final gutter = KSpace.gutter(context);
+    final phone = KSpace.phone(context);
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       key: ValueKey(GoRouterState.of(context).uri.toString()),
@@ -268,14 +322,14 @@ class AppPage extends StatelessWidget {
           child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1200),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(mobile ? 16 : 32, mobile ? 24 : 40,
-              mobile ? 16 : 32, mobile ? 32 : 56),
+          padding: EdgeInsets.fromLTRB(
+              gutter, phone ? 20 : 32, gutter, phone ? 24 : 48),
           child: SelectionArea(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 child,
-                const SizedBox(height: 72),
+                SizedBox(height: phone ? 40 : 64),
                 const Center(
                     child: KMuted(
                         String.fromEnvironment('KLEOS_BACKEND',
@@ -283,7 +337,7 @@ class AppPage extends StatelessWidget {
                                 'production'
                             ? 'Prototype. Choose real engineering or a simulated demo for new builds. Physical fulfillment remains simulated.'
                             : 'Prototype. Agent runs, quotes, orders, human jobs, prints and test results are simulated by the connected API.',
-                        size: 10)),
+                        size: 12)),
               ])),
         ),
       )),
@@ -291,6 +345,40 @@ class AppPage extends StatelessWidget {
   }
 }
 
+/// The product mark: a flat monogram with one copper trace dot. No gradient.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
+  @override
+  Widget build(BuildContext context) =>
+      Stack(clipBehavior: Clip.none, children: [
+        Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+                color: KColors.surface3,
+                border: Border.all(color: KColors.borderStrong),
+                borderRadius: BorderRadius.circular(7)),
+            child: const Text('K9',
+                style: TextStyle(
+                    fontFamily: 'GeistMono',
+                    color: KColors.text,
+                    fontSize: 12,
+                    letterSpacing: -.4,
+                    fontWeight: FontWeight.w700))),
+        Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                    color: KColors.accent,
+                    borderRadius: BorderRadius.circular(1.5))))
+      ]);
+}
+
+/// Desktop navigation: text tabs, the selected one underlined in copper.
 class _NavItem extends StatelessWidget {
   const _NavItem(
       {required this.label,
@@ -306,89 +394,44 @@ class _NavItem extends StatelessWidget {
       flat: true,
       radius: KRadius.control,
       onTap: onTap,
-      builder: (context, hovered) => AnimatedContainer(
-          duration: KMotion.base,
-          curve: KMotion.out,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-              color: selected
-                  ? KColors.surface3
-                  : hovered
-                      ? KColors.surface2
-                      : Colors.transparent,
-              borderRadius: BorderRadius.circular(KRadius.control),
-              border: Border.all(
-                  color: selected ? KColors.borderStrong : Colors.transparent)),
-          child: Row(children: [
-            Icon(icon,
-                size: 15, color: selected ? KColors.accent : KColors.faint),
-            const SizedBox(width: 8),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
-                    color: selected ? KColors.text : KColors.muted))
-          ])));
+      builder: (context, hovered) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: IntrinsicWidth(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                const SizedBox(height: 22),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon,
+                      size: 16,
+                      color:
+                          selected || hovered ? KColors.text : KColors.muted),
+                  const SizedBox(width: 8),
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              selected ? FontWeight.w500 : FontWeight.w400,
+                          color: selected || hovered
+                              ? KColors.text
+                              : KColors.muted))
+                ]),
+                const SizedBox(height: 12),
+                AnimatedContainer(
+                    duration: KMotion.base,
+                    curve: KMotion.out,
+                    height: 2,
+                    color: selected ? KColors.accent : Colors.transparent),
+              ]))));
 }
 
-class _RunningChip extends ConsumerWidget {
-  const _RunningChip({this.compact = false});
+class _RunningChip extends StatelessWidget {
+  const _RunningChip({required this.running, this.compact = false});
+  final List<_Work> running;
   final bool compact;
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final running = <({String label, String detail, String route})>[];
-    for (final p in ref.watch(projectsProvider)) {
-      final id = p['id'];
-      final name = '${p['name']}';
-      if (p['feasibility'] == 'running') {
-        running.add((
-          label: 'Researching feasibility',
-          detail: name,
-          route: '/projects/$id?s=1'
-        ));
-      }
-      if (asMaps(p['interfaces']).any((i) => i['state'] == 'RUNNING')) {
-        running.add((
-          label: 'Solving interfaces',
-          detail: name,
-          route: '/projects/$id?s=3'
-        ));
-      }
-      if (p['generation'] == 'running') {
-        running.add((
-          label: 'Generating designs',
-          detail: name,
-          route: '/projects/$id?s=4'
-        ));
-      }
-      if (p['verifyRun'] == 'running' ||
-          asMaps(p['artifacts']).any((a) => a['status'] == 'generating')) {
-        running.add(
-            (label: 'Verifying', detail: name, route: '/projects/$id?s=5'));
-      }
-      if (['quoting', 'ordering'].contains(p['procurement'])) {
-        running.add((
-          label: 'Procuring parts',
-          detail: name,
-          route: '/projects/$id?s=6'
-        ));
-      }
-      if (asMap(p['homePrint']).isNotEmpty &&
-          !['done', 'idle'].contains(asMap(p['homePrint'])['state'])) {
-        running.add((
-          label: 'Printing at home',
-          detail: name,
-          route: '/projects/$id?s=6'
-        ));
-      }
-      if (p['activation'] == 'running') {
-        running.add((
-          label: 'Running self-test',
-          detail: name,
-          route: '/projects/$id?s=9'
-        ));
-      }
-    }
+  Widget build(BuildContext context) {
     if (running.isEmpty) return const SizedBox.shrink();
     return PopupMenuButton<int>(
         tooltip: 'Running work',
@@ -399,18 +442,20 @@ class _RunningChip extends ConsumerWidget {
                     value: i,
                     child: kColumn([
                       Text(running[i].label),
-                      KMuted(running[i].detail, size: 10)
+                      KMuted(running[i].detail, size: 12)
                     ], gap: 3))
             ],
         child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             child: Center(
                 child: compact
                     ? Badge(
                         label: Text('${running.length}'),
-                        child: const Icon(Icons.sync,
-                            size: 20, color: KColors.accent))
-                    : KBadge('${running.length} running', tone: 'accent'))));
+                        backgroundColor: KColors.surface3,
+                        textColor: KColors.text,
+                        child: const KSpinner(size: 18, color: KColors.text))
+                    : KBadge('${running.length} running',
+                        tone: 'accent', dot: true))));
   }
 }
 
@@ -502,7 +547,7 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
 
     return Dialog(
         alignment: const Alignment(0, -.55),
-        insetPadding: const EdgeInsets.all(20),
+        insetPadding: EdgeInsets.all(KSpace.phone(context) ? 12 : 20),
         child: SizedBox(
             width: 620,
             child: ConstrainedBox(
@@ -525,8 +570,7 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                           decoration: const InputDecoration(
                               hintText:
                                   'Describe a device to build, or jump to a page',
-                              prefixIcon:
-                                  Icon(Icons.auto_awesome_outlined, size: 18),
+                              prefixIcon: Icon(Icons.search, size: 20),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none))),
@@ -539,13 +583,13 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                         if (q.length > 3) ...[
                           const Padding(
                               padding: EdgeInsets.all(10),
-                              child: KMuted('Ask Kleos9', size: 10)),
+                              child: KMuted('Ask Kleos9', size: 12)),
                           ListTile(
-                              dense: true,
+                              minVerticalPadding: 10,
                               leading: const Icon(Icons.auto_awesome,
-                                  size: 16, color: KColors.accent),
+                                  size: 18, color: KColors.text),
                               title: Text('Start a build: “$q”',
-                                  style: const TextStyle(fontSize: 12)),
+                                  style: const TextStyle(fontSize: 14)),
                               onTap: startBuild)
                         ],
                         for (var i = 0; i < matches.length; i++) ...[
@@ -553,13 +597,13 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
                               matches[i - 1].group != matches[i].group)
                             Padding(
                                 padding: const EdgeInsets.all(10),
-                                child: KMuted(matches[i].group, size: 10)),
+                                child: KMuted(matches[i].group, size: 12)),
                           ListTile(
-                              dense: true,
+                              minVerticalPadding: 10,
                               title: Text(matches[i].label,
-                                  style: const TextStyle(fontSize: 12)),
+                                  style: const TextStyle(fontSize: 14)),
                               leading:
-                                  const Icon(Icons.arrow_forward, size: 14),
+                                  const Icon(Icons.arrow_forward, size: 16),
                               onTap: matches[i].run)
                         ],
                         if (matches.isEmpty && q.length <= 3)
@@ -593,7 +637,8 @@ class _AccountMenu extends ConsumerWidget {
               PopupMenuItem(
                   enabled: false,
                   child: Text('Signed in as ${account.role}',
-                      style: const TextStyle(fontSize: 12))),
+                      style:
+                          const TextStyle(fontSize: 13, color: KColors.muted))),
               if (admin)
                 const PopupMenuItem(
                     value: 'admin',

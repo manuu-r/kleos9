@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../../data/models/concept_scene.dart';
 import '../../data/models/json.dart';
 import 'concept_geometry.dart';
-import 'theme.dart';
+import 'widgets.dart';
 
 /// A data-only, native 3D illustration of the current planning concept.
 ///
@@ -135,18 +135,15 @@ class _ConceptPreviewState extends State<ConceptPreview>
         Row(children: [
           const Expanded(
               child: Text('Device concept',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
           if (widget.updating) ...[
-            const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1.5)),
+            const KSpinner(size: 13, color: KColors.muted),
             const SizedBox(width: 7),
             const Text('Updating',
-                style: TextStyle(color: KColors.muted, fontSize: 11)),
+                style: TextStyle(color: KColors.muted, fontSize: 12)),
           ] else if (widget.conceptVersion != null)
             Text('Version ${widget.conceptVersion}',
-                style: const TextStyle(color: KColors.muted, fontSize: 11)),
+                style: const TextStyle(color: KColors.muted, fontSize: 12)),
         ]),
         if (_scene.title.isNotEmpty) ...[
           const SizedBox(height: 9),
@@ -155,9 +152,10 @@ class _ConceptPreviewState extends State<ConceptPreview>
         if (_scene.summary.isNotEmpty) ...[
           const SizedBox(height: 7),
           Text(_scene.summary,
-              style: const TextStyle(color: KColors.muted, fontSize: 12)),
+              style: const TextStyle(
+                  color: KColors.muted, fontSize: 13.5, height: 1.5)),
         ],
-        const SizedBox(height: 15),
+        const SizedBox(height: 14),
         LayoutBuilder(builder: (context, constraints) {
           final height =
               widget.height ?? (constraints.maxWidth < 480 ? 290.0 : 360.0);
@@ -165,8 +163,8 @@ class _ConceptPreviewState extends State<ConceptPreview>
             height: height,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                  color: KColors.bg,
-                  borderRadius: BorderRadius.circular(13),
+                  color: KColors.surface,
+                  borderRadius: BorderRadius.circular(KRadius.card),
                   border: Border.all(color: KColors.border)),
               child: _scene.parts.isEmpty
                   ? const Center(
@@ -196,7 +194,7 @@ class _ConceptPreviewState extends State<ConceptPreview>
                                 'Drag to rotate. Pinch or use zoom controls. Select a part below. Arrow keys rotate; Space assembles or separates.',
                             image: true,
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(13),
+                              borderRadius: BorderRadius.circular(KRadius.card),
                               child: Stack(children: [
                                 Positioned.fill(
                                   child: GestureDetector(
@@ -236,40 +234,40 @@ class _ConceptPreviewState extends State<ConceptPreview>
                                           '${_scene.parts.length} concept parts',
                                           style: const TextStyle(
                                               color: KColors.faint,
-                                              fontSize: 10))),
+                                              fontSize: 12))),
                                 ),
                                 Positioned(
-                                  right: 5,
-                                  top: 1,
+                                  right: 4,
+                                  top: 4,
                                   child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        IconButton(
-                                            tooltip: 'Zoom out',
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            onPressed: () => setState(() =>
-                                                _zoom = (_zoom - .15)
-                                                    .clamp(.65, 1.8)),
-                                            icon: const Icon(Icons.remove,
-                                                size: 17)),
-                                        IconButton(
-                                            tooltip: 'Zoom in',
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            onPressed: () => setState(() =>
-                                                _zoom = (_zoom + .15)
-                                                    .clamp(.65, 1.8)),
-                                            icon: const Icon(Icons.add,
-                                                size: 17)),
-                                        IconButton(
-                                            tooltip: 'Reset view',
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            onPressed: _reset,
-                                            icon: const Icon(
-                                                Icons.restart_alt_rounded,
-                                                size: 17)),
+                                        for (final c in [
+                                          (
+                                            'Zoom out',
+                                            Icons.remove,
+                                            () => setState(() => _zoom =
+                                                (_zoom - .15).clamp(.65, 1.8))
+                                          ),
+                                          (
+                                            'Zoom in',
+                                            Icons.add,
+                                            () => setState(() => _zoom =
+                                                (_zoom + .15).clamp(.65, 1.8))
+                                          ),
+                                          (
+                                            'Reset view',
+                                            Icons.restart_alt_rounded,
+                                            _reset
+                                          ),
+                                        ])
+                                          SizedBox(
+                                              width: 44,
+                                              height: 44,
+                                              child: IconButton(
+                                                  tooltip: c.$1,
+                                                  onPressed: c.$3,
+                                                  icon: Icon(c.$2, size: 19))),
                                       ]),
                                 ),
                                 const Positioned(
@@ -281,7 +279,7 @@ class _ConceptPreviewState extends State<ConceptPreview>
                                             'Drag to rotate · tap a part',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
-                                                fontSize: 10,
+                                                fontSize: 12,
                                                 color: KColors.faint)))),
                               ]),
                             ),
@@ -318,8 +316,6 @@ class _ConceptPreviewState extends State<ConceptPreview>
                   value: _explode.value,
                   semanticFormatterCallback: (value) =>
                       '${(value * 100).round()} percent separated',
-                  activeColor: KColors.accent,
-                  inactiveColor: KColors.border,
                   label: 'Separate parts',
                   onChanged: (value) => _explode.value = value)),
           SingleChildScrollView(
@@ -345,19 +341,19 @@ class _ConceptPreviewState extends State<ConceptPreview>
               alignment: Alignment.centerLeft,
               child: selected == null
                   ? const Text('Select a part to explore the arrangement.',
-                      style: TextStyle(color: KColors.faint, fontSize: 11))
+                      style: TextStyle(color: KColors.faint, fontSize: 12.5))
                   : Text(
                       '${selected.label}${selected.detail.isEmpty ? '' : ' · ${selected.detail}'}',
                       key: const ValueKey('concept-part-detail'),
                       style:
-                          const TextStyle(color: KColors.text, fontSize: 12)),
+                          const TextStyle(color: KColors.text, fontSize: 13)),
             ),
           ),
         ],
         const SizedBox(height: 12),
         Text(widget.caption,
             style: const TextStyle(
-                color: KColors.faint, fontSize: 10, height: 1.5)),
+                color: KColors.faint, fontSize: 12, height: 1.5)),
       ],
     );
   }
