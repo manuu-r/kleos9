@@ -5,6 +5,7 @@ import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/widgets.dart';
 import 'production/engineering_tools.dart';
+import 'production/bambu_connection.dart';
 import 'production/rentahuman.dart';
 
 const _tabs = {
@@ -46,7 +47,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   @override
   void didUpdateWidget(ConnectionsPage old) {
     super.didUpdateWidget(old);
-    if (old.connectId != widget.connectId) _schedule();
+    if (old.connectId != widget.connectId ||
+        old.controller.state['production'] != widget.controller.state['production'] ||
+        (old.controller.loading && !widget.controller.loading)) {
+      _schedule();
+    }
   }
 
   void _schedule() {
@@ -59,6 +64,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<void> _connect() async {
     if (dialogOpen) return;
+    if (widget.controller.state['production'] == true && widget.connectId == 'bambu') {
+      dialogOpen = true;
+      await showDialog<bool>(context: context, builder: (_) => const BambuConnectionDialog());
+      dialogOpen = false;
+      if (mounted) context.go('/connections?tab=printers');
+      return;
+    }
     final matches = asMaps(widget.controller.state['connectors']).where((c) =>
         c['id'] == widget.connectId &&
         c['linked'] != true &&
@@ -82,12 +94,15 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     final tab = _tabs.containsKey(widget.tab) ? widget.tab : 'tools';
     final list = asMaps(widget.controller.state['connectors'])
         .where((c) => _tabOf(c) == tab)
+        .where((c) => !(widget.controller.state['production'] == true && c['id'] == 'bambu' && c['production'] != true))
         .toList();
     final description = switch (tab) {
       'tools' =>
         'Kleos9 ships default generators and validators that work out of the box. Anyone can build a tool and plug it in; you choose which one runs for each lane.',
       'printers' =>
-        'Have a 3D printer? Connect it and Kleos9 can print parts at home, no order needed. Without one, prints are ordered from qualified providers.',
+        widget.controller.state['production'] == true
+          ? 'Set up real Bambu plate preparation and optional local status. Other demo printer drivers are labelled below.'
+          : 'Have a 3D printer? Connect it and Kleos9 can print parts at home, no order needed. Without one, prints are ordered from qualified providers.',
       'human' =>
         widget.controller.state['production'] == true
           ? 'Find people and prepare work for RentAHuman.ai. Hiring and payment happen on RentAHuman; simulated connectors remain separate.'
@@ -132,6 +147,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         EngineeringTools(controller: widget.controller),
       if (tab == 'human' && widget.controller.state['production'] == true)
         const RentAHumanDirectory(),
+      if (tab == 'printers' && widget.controller.state['production'] == true) ...[
+        BambuConnectionCard(onSetup: () => context.go('/connections?tab=printers&connect=bambu')),
+        if (list.any((c) => c['simulation'] == true)) const KBadge('Demo printer drivers below', tone: 'sim'),
+      ],
       KResponsive(
           columns: 3,
           children: list

@@ -15,7 +15,12 @@ come from the [vendor's versioned profiles](https://github.com/bambulab/BambuStu
 with source checksums and attribution. This is model-selection coverage, not
 qualification of every printer/firmware/nozzle/material combination.
 
-The CAD preview and home-print stage show a model dropdown. A single fresh Bambu
+**Connections → Printers → Set up Bambu Lab**, the CAD preview and the home-print
+stage expose the real adapter. Connections shows actual slicing-profile and
+read-only bridge readiness, with a model dropdown and an accepted-build selector.
+The demo Bambu wizard stays in mock mode; production does not route Bambu through
+simulated discovery/calibration. Other demo printer drivers remain labelled.
+A single fresh Bambu
 bridge that reports an exact known model ID/name selects it automatically.
 Absent, unknown or conflicting reports require manual selection. No serial-prefix
 guessing or LAN scanning is used. New models need a reviewed catalog update.
@@ -109,7 +114,9 @@ Do not put credentials in bundles or server profile metadata.
 
 ## Prepare and review a part
 
-1. Accept the current digital engineering release. Choose an accepted binary STL,
+1. Accept the current digital engineering release. Open **Connections → Printers
+   → Set up Bambu Lab** and select your build, or use its CAD/home-print panel.
+   Choose an accepted binary STL,
    model and qualified nozzle/material profile in **Print with Bambu Lab**.
 2. Select **Prepare print**. The API durably records the source/release/revision
    and profile hashes, returning a preparation ID. Repeated identical requests

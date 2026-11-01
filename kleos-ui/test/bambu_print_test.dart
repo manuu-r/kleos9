@@ -81,6 +81,27 @@ Future<void> mount(WidgetTester tester, Widget child,
 }
 
 void main() {
+  testWidgets(
+      'Connections model selection supplies preparation without a second model dropdown',
+      (tester) async {
+    await mount(
+        tester,
+        BambuPrintControls(
+            data: data(),
+            initialModelId: 'C12',
+            showModelSelector: false,
+            onPrepare: (_, __) async => <String, dynamic>{},
+            onDownload: (_) async {}));
+    expect(find.byKey(const ValueKey('bambu-model-C12')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('bambu-profile-C12-null')), findsOneWidget);
+    tester
+        .widget<DropdownButtonFormField<String>>(
+            find.byKey(const ValueKey('bambu-profile-C12-null')))
+        .onChanged!('p1s-pla');
+    await tester.pump();
+    expect(find.text('0.4 mm · PLA'), findsOneWidget);
+  });
   for (final width in [320.0, 390.0, 1000.0]) {
     testWidgets('all pinned printer models selectable at $width',
         (tester) async {

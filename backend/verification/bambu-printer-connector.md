@@ -104,3 +104,19 @@ explicitly digital preparation with `authority: local_adapter_report`.
 The [setup/operation guide](../docs/bambu-printers.md) includes commands,
 credentials kept locally, cancellation semantics and recovery steps. Existing
 ngspice simulation and mock fulfillment remain available.
+
+## Connections UI follow-up
+
+Production **Connections → Printers → Set up Bambu Lab** now opens the real
+model/build preparation setup instead of the legacy demo wizard. The production
+view hides that demo Bambu card; standalone mock mode retains its simulated
+wizard. Status comes from actual qualified-profile metadata and fresh read-only
+bridge reports, with unconfigured setup shown explicitly. Model selection carries
+into the existing preparation panel, and direct links work after delayed loading.
+
+Follow-up checks: Flutter analysis PASS; **256 passed, 3 skipped** in the full UI
+suite; **18 passed** in the focused connection/preparation/dialog run. Live local
+browser inspection confirmed the real entry and dialog with model/build
+selectors, zero installed profiles and an unconnected status bridge. No printer
+command or slicing run occurred; the image/hardware qualification limits above
+remain unchanged.
