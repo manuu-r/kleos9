@@ -279,9 +279,8 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
             : widget.connector['kind'] == 'tool'
                 ? '0'
                 : '120');
-    final p = asMap(asMap(ProviderScope.containerOf(context)
-        .read(kleosProvider)
-        .state['printerProfiles'])[widget.connector['id']]);
+    final p = asMap(asMap(widget.controller.state['printerProfiles'])[
+        widget.connector['id']]);
     host = TextEditingController(text: '${p['host'] ?? ''}');
   }
 
@@ -314,7 +313,7 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
         final run = asMap(asMap(controller.state['connectionRuns'])[c['id']]);
         final progress = (run['progress'] as num?)?.toInt() ?? 0;
         final profile =
-            asMap(asMap(widget.controller.state['printerProfiles'])[c['id']]);
+            asMap(asMap(controller.state['printerProfiles'])[c['id']]);
         const tests = [
           'Authenticate',
           'Discover capabilities',
