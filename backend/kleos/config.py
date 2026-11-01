@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     # Operator-qualified complete profile bundles; never supplied by generated code.
     bambu_slice_profiles: dict[str, BambuProfile] = Field(default_factory=dict)
+    bambu_local_connections_enabled: bool = False
     rentahuman_api_keys: dict[str, SecretStr] = Field(default_factory=dict)
     auth_mode: Literal["password", "development"] = "password"
     development_token: SecretStr | None = None
@@ -162,6 +163,8 @@ class Settings(BaseSettings):
         if not self.demo_mode:
             raise ValueError("This MVP only permits demo fulfillment; live dispatch is not implemented")
         if self.environment in {"staging", "production"}:
+            if self.bambu_local_connections_enabled:
+                raise ValueError("Direct local printer connections cannot be enabled on hosted APIs")
             if self.execution_backend == "docker":
                 raise ValueError("Docker execution is restricted to local development")
             if self.auth_mode != "password" or self.storage_backend != "s3":

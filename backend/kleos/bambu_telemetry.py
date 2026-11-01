@@ -7,7 +7,6 @@ from the owner is mandatory; access codes are sent only after the pin matches.
 import asyncio
 import hashlib
 import hmac
-import ipaddress
 import json
 import math
 import re
@@ -17,7 +16,7 @@ import ssl
 import time
 from datetime import UTC, datetime
 
-from .bambu_contracts import model_catalog
+from .bambu_contracts import model_catalog, private_printer_address
 
 MAX_PACKET = 256000
 
@@ -104,13 +103,12 @@ def _read(stream, deadline):
 
 class BambuPrinter:
     def __init__(self, address, serial, access_code, certificate_sha256, connector=socket.create_connection):
-        ip = ipaddress.ip_address(address)
-        local = any(ip in ipaddress.ip_network(net) for net in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"))
-        if not local or not re.fullmatch(r"[A-Za-z0-9_-]{6,64}", serial):
+        address = private_printer_address(address)
+        if not re.fullmatch(r"[A-Za-z0-9_-]{6,64}", serial):
             raise ValueError("Configure a literal private-LAN printer IP and serial")
         if not re.fullmatch(r"[a-f0-9]{64}", certificate_sha256) or not re.fullmatch(r"[A-Za-z0-9]{8,64}", access_code):
             raise ValueError("Configure the owner-verified TLS fingerprint and access code")
-        self.address, self.serial, self.access_code = str(ip), serial, access_code
+        self.address, self.serial, self.access_code = address, serial, access_code
         self.fingerprint, self.connector = certificate_sha256, connector
 
     async def status(self):

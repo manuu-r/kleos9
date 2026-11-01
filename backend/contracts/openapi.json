@@ -5,6 +5,134 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/printers/bambu/local": {
+      "get": {
+        "summary": "State",
+        "operationId": "state_api_v1_printers_bambu_local_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Forget",
+        "operationId": "forget_api_v1_printers_bambu_local_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/certificate": {
+      "post": {
+        "summary": "Inspect",
+        "operationId": "inspect_api_v1_printers_bambu_local_certificate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuAddressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuCertificateView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/connect": {
+      "post": {
+        "summary": "Connect",
+        "operationId": "connect_api_v1_printers_bambu_local_connect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/refresh": {
+      "post": {
+        "summary": "Refresh",
+        "operationId": "refresh_api_v1_printers_bambu_local_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rentahuman/status": {
       "get": {
         "summary": "Human Service Status",
@@ -3666,6 +3794,21 @@
         ],
         "title": "AttemptView"
       },
+      "BambuAddressRequest": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "maxLength": 15,
+            "title": "Address"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address"
+        ],
+        "title": "BambuAddressRequest"
+      },
       "BambuCatalogView": {
         "properties": {
           "studioVersion": {
@@ -3705,6 +3848,154 @@
           "limitations"
         ],
         "title": "BambuCatalogView"
+      },
+      "BambuCertificateView": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "certificateSha256": {
+            "type": "string",
+            "title": "Certificatesha256"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address",
+          "certificateSha256"
+        ],
+        "title": "BambuCertificateView"
+      },
+      "BambuConnectionRequest": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "maxLength": 15,
+            "title": "Address"
+          },
+          "serial": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{6,64}$",
+            "title": "Serial"
+          },
+          "accessCode": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "format": "password",
+            "title": "Accesscode",
+            "writeOnly": true
+          },
+          "certificateSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Certificatesha256"
+          },
+          "certificateVerified": {
+            "type": "boolean",
+            "title": "Certificateverified"
+          },
+          "modelId": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Modelid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address",
+          "serial",
+          "accessCode",
+          "certificateSha256",
+          "certificateVerified",
+          "modelId"
+        ],
+        "title": "BambuConnectionRequest"
+      },
+      "BambuLocalState": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "connected": {
+            "type": "boolean",
+            "title": "Connected",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "not_connected"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Local read-only connection is not configured"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial"
+          },
+          "modelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelid"
+          },
+          "observation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Observation"
+          },
+          "credentialsStored": {
+            "type": "boolean",
+            "title": "Credentialsstored",
+            "default": false
+          },
+          "expiresAfterSeconds": {
+            "type": "integer",
+            "title": "Expiresafterseconds",
+            "default": 1800
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "BambuLocalState"
       },
       "BambuProfile": {
         "properties": {

@@ -10,6 +10,7 @@ from pydantic import Field, StrictBool
 from sqlalchemy import select
 
 from .auth import Principal, authenticate
+from .bambu_connection import register_local_bambu_routes
 from .bambu_contracts import (
     BambuCatalogView,
     PreparedPrint,
@@ -119,6 +120,7 @@ class ReconciliationRequest(WireModel):
 
 
 def register_routes(app, db, settings, store):
+    register_local_bambu_routes(app, settings)
     services = SimpleNamespace(connectors=ConnectorService(db, settings), research=ResearchService(db),
                                catalog=DigiKeyCatalog(settings), learning=LearningService(db, settings, store),
                                compute=ModalCompute(db, settings, store))

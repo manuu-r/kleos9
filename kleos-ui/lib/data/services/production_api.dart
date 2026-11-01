@@ -80,6 +80,32 @@ class ProductionApi {
       ApiRentAHumanStatusView.fromJson(
               await get('/rentahuman/status', organizationId: organizationId))
           .toJson();
+  Future<JsonMap> bambuLocalState({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await get('/printers/bambu/local',
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> bambuCertificate(JsonMap body,
+          {String? organizationId}) async =>
+      ApiBambuCertificateView.fromJson(await post(
+              '/printers/bambu/local/certificate',
+              ApiBambuAddressRequest.fromJson(body).toJson(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> connectLocalBambu(JsonMap body,
+          {String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await post('/printers/bambu/local/connect',
+              ApiBambuConnectionRequest.fromJson(body).toJson(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> refreshLocalBambu({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await post(
+              '/printers/bambu/local/refresh', const {},
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> forgetLocalBambu({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await delete('/printers/bambu/local',
+              organizationId: organizationId))
+          .toJson();
   Future<JsonMap> rentAHumanSearch(Map<String, String> filters,
           {String? organizationId}) async =>
       ApiHumanSearchView.fromJson(await get(

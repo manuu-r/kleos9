@@ -29,6 +29,41 @@ Multi-extruder printers can be selected; this initial path prepares a single
 material and single plate. Multi-material tool mapping remains an operator task
 in Bambu Connect; it is not qualified by this connector.
 
+## Test a local connection without slicing
+
+For a backend running directly on the printer owner's computer, explicitly set
+`KLEOS_BAMBU_LOCAL_CONNECTIONS_ENABLED=true` in development and restart the API.
+Bind the API to loopback and disable proxy-header rewriting. Open the local UI
+at `http://127.0.0.1:5180` or `http://localhost:5180`, then **Connections → Printers
+→ Set up Bambu Lab**. The local form needs no Docker, accepted build, slicing
+profile, nozzle choice or filament.
+
+Select the printer model (A1 mini is available). Enter its private IPv4 address,
+serial, LAN access code and independently verified certificate SHA-256 fingerprint
+in the local form. Do not send the access code in chat. **Inspect certificate**
+performs an untrusted TLS inspection without sending an access code; it does not
+establish that the endpoint belongs to the printer. Verify the fingerprint using
+your trusted printer identity before checking the confirmation box.
+
+**Test read-only connection** pins TLS before sending credentials, authenticates
+and subscribes to the printer's status topic. A connection is reported only when
+a fresh status report arrives within the bounded check; no report means
+disconnected/unknown, even if authentication succeeded. No PUBLISH or status-request
+command is sent to force a report. Firmware/LAN-mode support still needs a real
+device check. It cannot start a print, upload files, heat or move the printer.
+
+Credentials are held only in the local API's process memory for up to 30 minutes;
+refresh does not extend that deadline. **Forget connection**, expiry or an API
+restart clears them. The code field clears after each request. Cached observations
+become stale after two minutes; use **Refresh status** for a fresh check. Nothing
+is stored in browser storage, project records, events or artifacts.
+
+These routes are administrator-only, opt-in and development-only. They require a
+loopback peer/Host, reject forwarded headers and accept browser origins only at
+the two local UI addresses above. Staging/production reject the setting. Hosted
+installations continue to use the separately enrolled customer-run status bridge
+below; their UI never exposes this credential form.
+
 ## Offline slicer installation
 
 Build the separate Linux/amd64 image from `backend/`:

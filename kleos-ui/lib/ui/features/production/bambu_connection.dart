@@ -8,6 +8,7 @@ import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
 import '../project/bambu_print.dart';
 import '../project/common.dart';
+import 'bambu_local_connection.dart';
 
 final bambuConnectionProvider =
     FutureProvider.autoDispose<JsonMap>((ref) async {
@@ -16,8 +17,20 @@ final bambuConnectionProvider =
     repository.api.bambuCatalog(organizationId: repository.organizationId),
     repository.api
         .get('/connectors', organizationId: repository.organizationId),
+    repository.api.bambuLocalState(organizationId: repository.organizationId),
   ]);
-  return {'catalog': responses[0], 'connectors': responses[1]};
+  final connectors = asMaps(asMap(responses[1])['connectors']);
+  final local = asMap(responses[2]);
+  return {
+    'catalog': responses[0],
+    'local': local,
+    'connectors': {
+      'connectors': [
+        ...connectors,
+        if (local['connected'] == true) {'telemetry': local['observation']},
+      ]
+    }
+  };
 }, retry: (_, __) => null);
 
 bool hasBambuStatus(JsonMap data) =>
@@ -104,6 +117,50 @@ class BambuConnectionDialog extends ConsumerWidget {
                       data: (data) => BambuConnectionControls(
                           data: data,
                           projects: projects,
+                          connection: (model) => asMap(
+                                      data['local'])['enabled'] ==
+                                  true
+                              ? BambuLocalConnectionForm(
+                                  modelId: model,
+                                  state: asMap(data['local']),
+                                  onCertificate: (body) {
+                                    final repository =
+                                        ref.read(productionRepositoryProvider);
+                                    return repository.api.bambuCertificate(body,
+                                        organizationId:
+                                            repository.organizationId);
+                                  },
+                                  onConnect: (body) async {
+                                    final repository =
+                                        ref.read(productionRepositoryProvider);
+                                    final result = await repository.api
+                                        .connectLocalBambu(body,
+                                            organizationId:
+                                                repository.organizationId);
+                                    ref.invalidate(bambuConnectionProvider);
+                                    return result;
+                                  },
+                                  onRefresh: () async {
+                                    final repository =
+                                        ref.read(productionRepositoryProvider);
+                                    final result = await repository.api
+                                        .refreshLocalBambu(
+                                            organizationId:
+                                                repository.organizationId);
+                                    ref.invalidate(bambuConnectionProvider);
+                                    return result;
+                                  },
+                                  onForget: () async {
+                                    final repository =
+                                        ref.read(productionRepositoryProvider);
+                                    final result = await repository.api
+                                        .forgetLocalBambu(
+                                            organizationId:
+                                                repository.organizationId);
+                                    ref.invalidate(bambuConnectionProvider);
+                                    return result;
+                                  })
+                              : const SizedBox.shrink(),
                           onGuide: () async {
                             if (!await launchUrl(
                                 Uri.parse(
@@ -130,11 +187,13 @@ class BambuConnectionControls extends StatefulWidget {
       required this.data,
       required this.projects,
       required this.onGuide,
-      required this.preparation});
+      required this.preparation,
+      this.connection});
   final JsonMap data;
   final List<JsonMap> projects;
   final Future<void> Function() onGuide;
   final Widget Function(JsonMap project, String? modelId) preparation;
+  final Widget Function(String? modelId)? connection;
 
   @override
   State<BambuConnectionControls> createState() =>
@@ -187,6 +246,7 @@ class _BambuConnectionControlsState extends State<BambuConnectionControls> {
               ? 'Local status bridge: connected (read-only).'
               : 'Local status bridge: not connected.',
           small: true),
+      if (widget.connection != null) widget.connection!(model),
       if (model != null)
         pText(
             profiles.isEmpty

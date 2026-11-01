@@ -17,7 +17,8 @@ ROOTS = ["ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
          "CompanionPreviewRequest", "CompanionPreviewView", "CircuitSimulationView",
          "BambuCatalogView", "PrintPreparationView", "PrintPreparationsView", "PreparePrint", "PreparedPrint",
          "RentAHumanStatusView", "HumanSearchView", "HumanBountiesView", "HumanTaskDraftsView",
-         "HumanTaskDraftView", "HumanTaskDraftRequest", "HumanTaskDraftAction", "HumanTaskLinkRequest"]
+         "HumanTaskDraftView", "HumanTaskDraftRequest", "HumanTaskDraftAction", "HumanTaskLinkRequest",
+         "BambuLocalState", "BambuCertificateView", "BambuAddressRequest", "BambuConnectionRequest"]
 
 
 def name(value):

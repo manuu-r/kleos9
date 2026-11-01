@@ -13,6 +13,11 @@ acceptance is derived from preparation; absent profiles stay visibly unavailable
 The production Bambu card opens this real setup, including model/build selection
 and actual profile/bridge readiness. Its simulated wizard is confined to mock mode.
 
+An explicitly enabled loopback development API also exposes a read-only LAN
+connection form in that setup dialog. It needs no slicing profile or Docker.
+Enter credentials locally; access codes remain in expiring API memory and the
+form requires a verified TLS fingerprint. Hosted APIs never enable this form.
+
 [RentAHuman.ai](../backend/docs/rentahuman.md) discovery appears in production
 Human tasks and Connections → Human tasks. The physical-check stage offers local
 task drafting, an explicit noncommitting provider preview, manual handoff and

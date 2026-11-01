@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: ad1a28c7463e575195a68a3b10fc4b08da6ec87e96dd96944164396682bd08d8
+// Schema SHA-256: c716130e72cb0c8c40fdd5495e5ea9d37d868ca48fc020c4b8ceeeb4d2f83a2e
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -126,6 +126,20 @@ class ApiAttemptView {
       };
 }
 
+class ApiBambuAddressRequest {
+  const ApiBambuAddressRequest({
+    required this.address,
+  });
+  factory ApiBambuAddressRequest.fromJson(Map<String, dynamic> json) =>
+      ApiBambuAddressRequest(
+        address: json['address'] as String,
+      );
+  final String address;
+  Map<String, dynamic> toJson() => {
+        'address': address,
+      };
+}
+
 class ApiBambuCatalogView {
   const ApiBambuCatalogView({
     required this.studioVersion,
@@ -153,6 +167,119 @@ class ApiBambuCatalogView {
         'models': models.map((v) => v).toList(growable: false),
         'profiles': profiles.map((v) => v).toList(growable: false),
         'limitations': limitations.map((v) => v).toList(growable: false),
+      };
+}
+
+class ApiBambuCertificateView {
+  const ApiBambuCertificateView({
+    required this.address,
+    required this.certificateSha256,
+    this.verified,
+  });
+  factory ApiBambuCertificateView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuCertificateView(
+        address: json['address'] as String,
+        certificateSha256: json['certificateSha256'] as String,
+        verified: json['verified'] == null ? null : json['verified'] as bool,
+      );
+  final String address;
+  final String certificateSha256;
+  final bool? verified;
+  Map<String, dynamic> toJson() => {
+        'address': address,
+        'certificateSha256': certificateSha256,
+        if (verified != null) 'verified': verified,
+      };
+}
+
+class ApiBambuConnectionRequest {
+  const ApiBambuConnectionRequest({
+    required this.address,
+    required this.serial,
+    required this.accessCode,
+    required this.certificateSha256,
+    required this.certificateVerified,
+    required this.modelId,
+  });
+  factory ApiBambuConnectionRequest.fromJson(Map<String, dynamic> json) =>
+      ApiBambuConnectionRequest(
+        address: json['address'] as String,
+        serial: json['serial'] as String,
+        accessCode: json['accessCode'] as String,
+        certificateSha256: json['certificateSha256'] as String,
+        certificateVerified: json['certificateVerified'] as bool,
+        modelId: json['modelId'] as String,
+      );
+  final String address;
+  final String serial;
+  final String accessCode;
+  final String certificateSha256;
+  final bool certificateVerified;
+  final String modelId;
+  Map<String, dynamic> toJson() => {
+        'address': address,
+        'serial': serial,
+        'accessCode': accessCode,
+        'certificateSha256': certificateSha256,
+        'certificateVerified': certificateVerified,
+        'modelId': modelId,
+      };
+}
+
+class ApiBambuLocalState {
+  const ApiBambuLocalState({
+    required this.enabled,
+    this.connected,
+    this.status,
+    this.message,
+    this.address,
+    this.serial,
+    this.modelId,
+    this.observation,
+    this.credentialsStored,
+    this.expiresAfterSeconds,
+  });
+  factory ApiBambuLocalState.fromJson(Map<String, dynamic> json) =>
+      ApiBambuLocalState(
+        enabled: json['enabled'] as bool,
+        connected: json['connected'] == null ? null : json['connected'] as bool,
+        status: json['status'] == null ? null : json['status'] as String,
+        message: json['message'] == null ? null : json['message'] as String,
+        address: json['address'] == null ? null : json['address'] as String,
+        serial: json['serial'] == null ? null : json['serial'] as String,
+        modelId: json['modelId'] == null ? null : json['modelId'] as String,
+        observation: json['observation'] == null
+            ? null
+            : Map<String, dynamic>.unmodifiable(_object(json['observation'])),
+        credentialsStored: json['credentialsStored'] == null
+            ? null
+            : json['credentialsStored'] as bool,
+        expiresAfterSeconds: json['expiresAfterSeconds'] == null
+            ? null
+            : (json['expiresAfterSeconds'] as num).toInt(),
+      );
+  final bool enabled;
+  final bool? connected;
+  final String? status;
+  final String? message;
+  final String? address;
+  final String? serial;
+  final String? modelId;
+  final Map<String, dynamic>? observation;
+  final bool? credentialsStored;
+  final int? expiresAfterSeconds;
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        if (connected != null) 'connected': connected,
+        if (status != null) 'status': status,
+        if (message != null) 'message': message,
+        if (address != null) 'address': address,
+        if (serial != null) 'serial': serial,
+        if (modelId != null) 'modelId': modelId,
+        if (observation != null) 'observation': observation,
+        if (credentialsStored != null) 'credentialsStored': credentialsStored,
+        if (expiresAfterSeconds != null)
+          'expiresAfterSeconds': expiresAfterSeconds,
       };
 }
 
