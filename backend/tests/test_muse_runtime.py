@@ -168,6 +168,8 @@ async def test_capture_never_switches_without_matching_explicit_modal_rate_limit
             assert count == 1 and records[0]['fallbackOf'] is None
             if status == 429:
                 assert cost == 0 and records[0]['status'] == 'rate_limited'
-            else:
+            elif status < 500:  # refused before any generation: nothing is charged
+                assert cost == 0 and records[0]['status'] == 'provider_rejected'
+            else:  # a server error may have consumed provider work, so the reservation stands
                 assert cost == records[0]['reservedMicroUsd'] > 0
                 assert records[0]['status'] == 'provider_error'
