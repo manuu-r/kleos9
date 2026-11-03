@@ -10,18 +10,17 @@ from kleos.infrastructure.settings import Settings
 @pytest.fixture(autouse=True)
 def clear_provider_environment(monkeypatch):
     for key in ('KLEOS_META_API_KEY', 'KLEOS_MODAL_LLM_KEY', 'KLEOS_MODAL_LLM_URL',
-                'KLEOS2_META_API_KEY', 'KLEOS2_MODAL_API_KEY', 'KLEOS2_MODAL_BASE_URL',
-                'KLEOS2_MODEL_CATALOG', 'KLEOS2_TEXT_MODEL_KEY', 'KLEOS2_VISION_MODEL_KEY'):
+                'KLEOS_MODAL_API_KEY', 'KLEOS_MODAL_BASE_URL',
+                'KLEOS_MODEL_CATALOG', 'KLEOS_TEXT_MODEL_KEY', 'KLEOS_VISION_MODEL_KEY'):
         monkeypatch.delenv(key, raising=False)
 
 
 def test_existing_names_load_only_providers_from_file(tmp_path, monkeypatch):
-    monkeypatch.delenv('KLEOS2_DATABASE_URL', raising=False)  # CI exports it for the PostgreSQL tests
+    monkeypatch.delenv('KLEOS_DATABASE_URL', raising=False)  # CI exports it for the PostgreSQL tests
     path = tmp_path / '.env'
     path.write_text('KLEOS_META_API_KEY=private-meta\nKLEOS_MODAL_LLM_KEY=private-modal\n'
         'KLEOS_MODAL_LLM_URL=https://fixture.modal.run\nKLEOS_DATABASE_URL=postgresql://old/data\n'
-        'KLEOS_DEVELOPMENT_NO_LOGIN=true\nKLEOS2_DATABASE_URL=postgresql://also-ignored/data\n'
-        'KLEOS2_PHYSICAL_ACTIONS_ENABLED=true\n')
+        'KLEOS_DEVELOPMENT_NO_LOGIN=true\nKLEOS_PHYSICAL_ACTIONS_ENABLED=true\n')
     configured = Settings(_env_file=path)
     assert configured.meta_api_key.get_secret_value() == 'private-meta'
     assert configured.modal_api_key.get_secret_value() == 'private-modal'
@@ -46,8 +45,8 @@ def test_existing_process_names_and_override_precedence(tmp_path, monkeypatch):
     assert configured.meta_api_key.get_secret_value() == 'process-meta'
     assert configured.modal_api_key.get_secret_value() == 'process-modal'
     assert configured.model_catalog[1]['base_url'] == 'https://fixture.modal.run/v1'
-    monkeypatch.setenv('KLEOS2_META_API_KEY', 'explicit-new-name')
-    assert Settings(_env_file=path).meta_api_key.get_secret_value() == 'explicit-new-name'
+    monkeypatch.setenv('KLEOS_MODAL_API_KEY', 'explicit-modal-name')  # the canonical name wins over the older alias
+    assert Settings(_env_file=path).modal_api_key.get_secret_value() == 'explicit-modal-name'
     explicit = Settings(_env_file=path, meta_api_key=SecretStr('constructor'))
     assert explicit.meta_api_key.get_secret_value() == 'constructor'
 

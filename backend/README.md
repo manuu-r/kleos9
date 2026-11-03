@@ -76,21 +76,20 @@ qualified native containers (`KLEOS_TEST_REAL_NATIVE=1`, local Docker, the image
 `src/kleos/execution/qualification/*-linux-strict-*.json`): a bracket-only task on an imported project (real
 build123d, geometry measured from the exported STL) and an imported-PCB routing task after explicit identity
 approval (real KiCad ERC/DRC and Freerouting). Only the model is scripted. The same file has live-model tests that
-cost money and therefore need all of `KLEOS_TEST_LIVE_MODEL=1`, `KLEOS2_META_API_KEY` and an explicit
+cost money and therefore need all of `KLEOS_TEST_LIVE_MODEL=1`, `KLEOS_META_API_KEY` and an explicit
 `KLEOS_LIVE_MAX_COST_USD` (<= 20, optional `KLEOS_LIVE_MAX_CALLS`); they assert only model-independent invariants
 and write a JSON report (calls, committed cost, outcome, measured geometry) to `KLEOS_LIVE_REPORT_DIR`.
 `tests/test_qualification_records.py` checks that the runtime accepts every committed qualification record.
 
 ## Explicit process commands
 
-Run from this directory with the locked environment. Configuration uses the
-`KLEOS2_` prefix. Existing provider names `KLEOS_META_API_KEY`,
-`KLEOS_MODAL_LLM_KEY` and `KLEOS_MODAL_LLM_URL` also work unchanged, from the
-process environment or the preserved `backend/.env`. Only these provider values
-are read from that file; old database/authentication/execution settings are not
-inherited. Set a **fresh local
-PostgreSQL database URL** and a persistent `KLEOS2_SESSION_SECRET` through your
-private environment before running these commands.
+Run from this directory with the locked environment. Every setting is a process environment variable named
+`KLEOS_<SETTING>` (for example `KLEOS_DATABASE_URL`, `KLEOS_META_API_KEY`, `KLEOS_SESSION_SECRET`). Modal also
+accepts its older names `KLEOS_MODAL_LLM_KEY` and `KLEOS_MODAL_LLM_URL` as aliases of `KLEOS_MODAL_API_KEY` and
+`KLEOS_MODAL_BASE_URL`. The preserved old `backend/.env` uses the same prefix, so it is **not** general
+configuration: only the three provider credentials are read from it, and its database, authentication and
+execution settings are never inherited. Set a **fresh local PostgreSQL database URL** and a persistent
+`KLEOS_SESSION_SECRET` through your private environment before running these commands.
 
 ```bash
 .venv/bin/python -m kleos.cli migrate
@@ -117,8 +116,8 @@ Companion web hosting has a separate, explicitly enabled process:
 .venv/bin/python -m kleos.cli preview-serve --host 127.0.0.1 --port 8004
 ```
 
-It requires `KLEOS2_COMPANION_PREVIEW_ENABLED=true` and distinct
-`KLEOS2_API_ORIGIN`, `KLEOS2_FRONTEND_ORIGIN` and `KLEOS2_PREVIEW_ORIGIN` values.
+It requires `KLEOS_COMPANION_PREVIEW_ENABLED=true` and distinct
+`KLEOS_API_ORIGIN`, `KLEOS_FRONTEND_ORIGIN` and `KLEOS_PREVIEW_ORIGIN` values.
 The API and preview processes share the same fresh database, artifact store and
 persistent session secret. Hosting is disabled by default. The preview process
 has no API/authentication routes and disables URL access logs because preview
@@ -146,7 +145,7 @@ startup is not frontend parity or engineering qualification.
 
 ## Installation and evidence boundaries
 
-- `KLEOS2_MCP_INSTALLATIONS` accepts an explicit list of `installation` and
+- `KLEOS_MCP_INSTALLATIONS` accepts an explicit list of `installation` and
   `qualificationReference` pairs for reviewed isolated artifact inspectors.
   The default list is empty. Report validation and tool registration launch no
   plugin or container. The objective worker and `native-maintenance` reconcile
@@ -158,27 +157,27 @@ startup is not frontend parity or engineering qualification.
 - Existing Meta credentials enable Muse Spark 1.3; an existing Modal URL/key pair
   enables the documented Muse Spark Open deployment. Meta Spark is the default
   for text and image capture when both are configured; Modal remains selectable
-  through the existing provider controls. `KLEOS2_MODEL_CATALOG`,
-  `KLEOS2_TEXT_MODEL_KEY` and `KLEOS2_VISION_MODEL_KEY` override these installations.
+  through the existing provider controls. `KLEOS_MODEL_CATALOG`,
+  `KLEOS_TEXT_MODEL_KEY` and `KLEOS_VISION_MODEL_KEY` override these installations.
   See [provider wiring](docs/provider-wiring.md) for precedence and verification.
   Capture with images
   requires a vision-capable model. Only the configured Modal rate-limit fallback
   is allowed; changing settings does not rewrite active run pins or spend history.
-- `KLEOS2_NATIVE_TOOLS` entries specify capability, exact image digest, provider
+- `KLEOS_NATIVE_TOOLS` entries specify capability, exact image digest, provider
   version and qualification-reference path. Local Docker Desktop compatibility
   requires its explicit setting and matching evidence. Firmware also requires an
   accepted `interfaces.firmware.board` present in the image's qualified board set.
-- `KLEOS2_CAD_CHECKER_INSTALLATION` uses `imageDigest`,
+- `KLEOS_CAD_CHECKER_INSTALLATION` uses `imageDigest`,
   `qualificationReference` and optional `daemonControlRoot`. Its separate image
   reads only STEP/STL exports. `cad.export-integrity` covers export integrity and
   explicitly bound numeric constraints; it does not establish device function,
   strength, manufacturability or physical acceptance.
-- `KLEOS2_SLICER_INSTALLATION` uses `image`, `report`, `dockerDesktop` and optional
+- `KLEOS_SLICER_INSTALLATION` uses `image`, `report`, `dockerDesktop` and optional
   `daemonControlRoot`. Current local fixtures qualify A1 mini, A1 and P1S PLA/0.4 mm
   profiles from STL or triangulated OBJ. Unsupported formats and unqualified
   repairs remain unavailable. Printer upload/start remains blocked by policy.
 - Native generation, digital slicing and independent CAD checking share durable
-  aggregate capacity reservations. `KLEOS2_NATIVE_CAPACITY_*` settings choose the
+  aggregate capacity reservations. `KLEOS_NATIVE_CAPACITY_*` settings choose the
   pool ID, CPU, memory, scratch and job ceilings. Defaults are 4 CPUs, 6 GiB memory,
   5 GiB scratch and two jobs, including bounded supervisor scratch. Every process targeting the same Docker daemon must
   use the same pool ID and limits; changing settings does not free old reservations.

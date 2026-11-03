@@ -282,7 +282,7 @@ and the explicit opt-in; no paid provider/native run is implied.
    Conductor/Qdrant/DBOS Terraform and their variables were removed. Still open:
    `infra/compute.tf` control task commands/env still target the retired runtime
    (`kleos.kernel.api`, `KLEOS_*`, ECS native dispatch, SQS completions); rewire to
-   `python -m kleos.cli`, `KLEOS2_*` settings and hosted adapters, then add a new
+   `python -m kleos.cli`, `KLEOS_*` settings and hosted adapters, then add a new
    release workflow. Terraform edits were `fmt`-checked and reference-scanned only
    (`validate` needs the provider registry). Validate packaging locally; do not push,
    deploy or mutate cloud resources as part of these checks.

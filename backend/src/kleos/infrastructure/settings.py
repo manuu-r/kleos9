@@ -8,7 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="KLEOS2_", env_file=Path(__file__).resolve().parents[3] / '.env',
+    # Configuration comes from process environment variables named KLEOS_<SETTING>. The preserved old backend `.env`
+    # shares that prefix (including its database URL), so it is NEVER general configuration: ProviderFileSource reads
+    # it for the three provider credentials only (see settings_customise_sources).
+    model_config = SettingsConfigDict(env_prefix="KLEOS_", env_file=Path(__file__).resolve().parents[3] / '.env',
         extra="ignore", populate_by_name=True, hide_input_in_errors=True)
     environment: Literal["development", "test", "production"] = "development"
     database_url: str = "postgresql+psycopg://localhost/kleos_rewrite"
@@ -61,11 +64,11 @@ class Settings(BaseSettings):
     bambu_local_enabled: bool = False
     model_provider: Literal["meta", "modal"] = "meta"
     meta_api_key: SecretStr | None = Field(default=None, repr=False,
-        validation_alias=AliasChoices('KLEOS2_META_API_KEY', 'KLEOS_META_API_KEY'))
+        validation_alias=AliasChoices('KLEOS_META_API_KEY'))
     modal_api_key: SecretStr | None = Field(default=None, repr=False,
-        validation_alias=AliasChoices('KLEOS2_MODAL_API_KEY', 'KLEOS_MODAL_LLM_KEY'))
+        validation_alias=AliasChoices('KLEOS_MODAL_API_KEY', 'KLEOS_MODAL_LLM_KEY'))
     modal_base_url: str | None = Field(default=None,
-        validation_alias=AliasChoices('KLEOS2_MODAL_BASE_URL', 'KLEOS_MODAL_LLM_URL'))
+        validation_alias=AliasChoices('KLEOS_MODAL_BASE_URL', 'KLEOS_MODAL_LLM_URL'))
     physical_actions_enabled: bool = False
 
     @classmethod

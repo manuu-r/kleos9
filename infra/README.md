@@ -11,7 +11,7 @@ state with locking.
 > task definitions in `compute.tf` (commands, `KLEOS_*` runtime variables, ECS
 > native dispatch, SQS completion queue) still describe the retired runtime and
 > must be rewired to the replacement's `python -m kleos.cli` entry points,
-> `KLEOS2_*` settings and a hosted native/object-store adapter before any
+> `KLEOS_*` settings and a hosted native/object-store adapter before any
 > `terraform apply`. There is intentionally no automatic deployment workflow
 > until that wiring is qualified. The edits here were checked with
 > `terraform fmt` and a reference scan only; `terraform validate` could not run

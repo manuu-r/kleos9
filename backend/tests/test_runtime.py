@@ -212,7 +212,7 @@ def test_native_registration_requires_exact_image_policy_and_success_evidence(tm
 
 
 def test_cli_export_is_offline_and_does_not_overwrite_frozen_target(tmp_path, monkeypatch):
-    monkeypatch.setenv('KLEOS2_DATABASE_URL', 'invalid')
+    monkeypatch.setenv('KLEOS_DATABASE_URL', 'invalid')
     output = tmp_path / 'runtime-openapi.json'
     assert main(['export-runtime-contracts', '--output', str(output)]) == 0
     document = json.loads(output.read_text())

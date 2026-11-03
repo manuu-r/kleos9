@@ -143,10 +143,10 @@ cd backend
 uv sync --locked
 ```
 
-Set `KLEOS2_DATABASE_URL` to the fresh database and configure a persistent
-`KLEOS2_SESSION_SECRET` in your private process environment. For authenticated
-setup, also configure `KLEOS2_SETUP_TOKEN`. Local-only no-login mode is an explicit
-`KLEOS2_DEVELOPMENT_NO_LOGIN=true` choice and is forbidden in production.
+Set `KLEOS_DATABASE_URL` to the fresh database and configure a persistent
+`KLEOS_SESSION_SECRET` in your private process environment. For authenticated
+setup, also configure `KLEOS_SETUP_TOKEN`. Local-only no-login mode is an explicit
+`KLEOS_DEVELOPMENT_NO_LOGIN=true` choice and is forbidden in production.
 Do not commit credentials or reuse a historical application database.
 
 ```bash
@@ -203,7 +203,7 @@ qualified toolchain parent is required. See the
 [execution guide](backend/src/kleos/execution/README.md) and its per-lane
 qualification records before building or installing an image.
 
-Set `KLEOS2_NATIVE_TOOLS` only with the exact image, provider version and matching
+Set `KLEOS_NATIVE_TOOLS` only with the exact image, provider version and matching
 qualification reference. Local Docker Desktop compatibility must be explicitly
 configured and cannot qualify ECS execution. Generator outputs remain candidates;
 independent checker installations and a separate acceptance command control
@@ -365,9 +365,9 @@ the requested deployment scope and a reviewed concrete release.
 | Symptom | Check |
 |---|---|
 | UI shows fixtures instead of real builds | Start with `KLEOS_BACKEND=production` and the real `/api/v1` base URL |
-| Development sign-in asks for a token | Set local `KLEOS2_DEVELOPMENT_NO_LOGIN=true` explicitly, or complete authenticated setup |
+| Development sign-in asks for a token | Set local `KLEOS_DEVELOPMENT_NO_LOGIN=true` explicitly, or complete authenticated setup |
 | Phone cannot connect | Confirm current LAN IP, backend bind address, exact CORS origin, frontend host and API/preview URLs |
-| Native tool unavailable | Verify the exact image and qualification reference in `KLEOS2_NATIVE_TOOLS` |
+| Native tool unavailable | Verify the exact image and qualification reference in `KLEOS_NATIVE_TOOLS` |
 | PCB component/layout remains blocked | Check the accepted circuit, vetted symbol/footprint pair and explicit placement/interface constraints; unsupported scope stays visible |
 | App build reports resource failure | Inspect native logs/profile; use private disk scratch, qualified offline caches and the pinned Android toolchain |
 | Saved sources exist after a failed build | Use Rebuild saved sources when eligible; it avoids a fresh AI call but still requires independent validation |

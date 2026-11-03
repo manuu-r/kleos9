@@ -74,7 +74,7 @@ not changed.
 ## Operator use
 
 Load the exact `installation` object from the JSON record together with its
-absolute path as `qualificationReference` in `KLEOS2_MCP_INSTALLATIONS`.
+absolute path as `qualificationReference` in `KLEOS_MCP_INSTALLATIONS`.
 The runtime checks the independent record, exact source hashes and installation
 before registering the tool. Registration alone does not contact Docker or start
 a server. The image must be present on the explicitly configured local daemon;

@@ -90,7 +90,7 @@ revoked and expired sessions with a persisted fair scan order, including malform
 or foreign-pool rows. Cleanup remains possible after an installation is removed.
 
 `infrastructure/mcp.py` owns opt-in composition; no daemon request occurs at startup.
-`KLEOS2_MCP_INSTALLATIONS` entries contain an exact `installation` and an
+`KLEOS_MCP_INSTALLATIONS` entries contain an exact `installation` and an
 operator-owned `qualificationReference`. The qualification helper's synthetic
 test permit is never production evidence.
 

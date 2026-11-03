@@ -41,10 +41,10 @@ path = Path.home() / '.config/kleos2/local-runtime.env'
 path.parent.mkdir(parents=True, exist_ok=True)
 password = secrets.token_hex(32)
 values = {
-    'KLEOS2_POSTGRES_PASSWORD': password,
-    'KLEOS2_DATABASE_URL': f'postgresql+psycopg://kleos:{password}@postgres:5432/kleos2_local',
-    'KLEOS2_SESSION_SECRET': secrets.token_hex(32),
-    'KLEOS2_SETUP_TOKEN': secrets.token_hex(32),
+    'KLEOS_POSTGRES_PASSWORD': password,
+    'KLEOS_DATABASE_URL': f'postgresql+psycopg://kleos:{password}@postgres:5432/kleos2_local',
+    'KLEOS_SESSION_SECRET': secrets.token_hex(32),
+    'KLEOS_SETUP_TOKEN': secrets.token_hex(32),
 }
 fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
 with os.fdopen(fd, 'w') as stream:
@@ -93,7 +93,7 @@ The image also supports `fabrication-worker`, `native-maintenance`,
 
 ## Separate preview origin
 
-Set `KLEOS2_COMPANION_PREVIEW_ENABLED=true` in the private file, recreate the API,
+Set `KLEOS_COMPANION_PREVIEW_ENABLED=true` in the private file, recreate the API,
 and explicitly start the preview:
 
 ```bash
@@ -104,7 +104,7 @@ docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/co
 Preview defaults to loopback8004, distinct from API8000 and workbench5180. It gets
 shared database/session state and read-only artifacts, but no provider credentials
 or setup token. It has no API/auth routes and disables capability URL access logs.
-Custom published ports must match `KLEOS2_API_ORIGIN`/`KLEOS2_PREVIEW_ORIGIN`.
+Custom published ports must match `KLEOS_API_ORIGIN`/`KLEOS_PREVIEW_ORIGIN`.
 Forward proxies must preserve the configured preview host and omit capability URLs
 from logs. No generated application code executes in the control container.
 

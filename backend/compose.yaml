@@ -2,34 +2,33 @@
 name: kleos2-local
 
 x-runtime-env: &runtime-env
-  KLEOS2_ENVIRONMENT: development
-  KLEOS2_DATABASE_URL: ${KLEOS2_DATABASE_URL:?Set the fresh local database URL in an explicit private env file}
-  KLEOS2_SESSION_SECRET: ${KLEOS2_SESSION_SECRET:?Set a persistent strong session secret}
-  KLEOS2_SETUP_TOKEN: ${KLEOS2_SETUP_TOKEN:?Set the fresh installation setup token}
-  KLEOS2_ARTIFACT_ROOT: /var/lib/kleos/artifacts
-  KLEOS2_DEVELOPMENT_NO_LOGIN: "false"
-  KLEOS2_PHYSICAL_ACTIONS_ENABLED: "false"
-  KLEOS2_FRONTEND_ORIGIN: ${KLEOS2_FRONTEND_ORIGIN:-http://localhost:5180}
-  KLEOS2_API_ORIGIN: ${KLEOS2_API_ORIGIN:-http://localhost:8000}
-  KLEOS2_PREVIEW_ORIGIN: ${KLEOS2_PREVIEW_ORIGIN:-http://localhost:8004}
-  KLEOS2_COMPANION_PREVIEW_ENABLED: ${KLEOS2_COMPANION_PREVIEW_ENABLED:-false}
-  KLEOS2_META_API_KEY: ${KLEOS2_META_API_KEY:-${KLEOS_META_API_KEY:-}}
+  KLEOS_ENVIRONMENT: development
+  KLEOS_DATABASE_URL: ${KLEOS_DATABASE_URL:?Set the fresh local database URL in an explicit private env file}
+  KLEOS_SESSION_SECRET: ${KLEOS_SESSION_SECRET:?Set a persistent strong session secret}
+  KLEOS_SETUP_TOKEN: ${KLEOS_SETUP_TOKEN:?Set the fresh installation setup token}
+  KLEOS_ARTIFACT_ROOT: /var/lib/kleos/artifacts
+  KLEOS_DEVELOPMENT_NO_LOGIN: "false"
+  KLEOS_PHYSICAL_ACTIONS_ENABLED: "false"
+  KLEOS_FRONTEND_ORIGIN: ${KLEOS_FRONTEND_ORIGIN:-http://localhost:5180}
+  KLEOS_API_ORIGIN: ${KLEOS_API_ORIGIN:-http://localhost:8000}
+  KLEOS_PREVIEW_ORIGIN: ${KLEOS_PREVIEW_ORIGIN:-http://localhost:8004}
+  KLEOS_COMPANION_PREVIEW_ENABLED: ${KLEOS_COMPANION_PREVIEW_ENABLED:-false}
   KLEOS_META_API_KEY: ${KLEOS_META_API_KEY:-}
-  KLEOS2_MODAL_API_KEY: ${KLEOS2_MODAL_API_KEY:-${KLEOS_MODAL_LLM_KEY:-}}
+  KLEOS_MODAL_API_KEY: ${KLEOS_MODAL_API_KEY:-${KLEOS_MODAL_LLM_KEY:-}}
   KLEOS_MODAL_LLM_KEY: ${KLEOS_MODAL_LLM_KEY:-}
-  KLEOS2_MODAL_BASE_URL: ${KLEOS2_MODAL_BASE_URL:-${KLEOS_MODAL_LLM_URL:-}}
+  KLEOS_MODAL_BASE_URL: ${KLEOS_MODAL_BASE_URL:-${KLEOS_MODAL_LLM_URL:-}}
   KLEOS_MODAL_LLM_URL: ${KLEOS_MODAL_LLM_URL:-}
-  KLEOS2_MODEL_PROVIDER: ${KLEOS2_MODEL_PROVIDER:-meta}
+  KLEOS_MODEL_PROVIDER: ${KLEOS_MODEL_PROVIDER:-meta}
   # Unset optional selections stay absent, preserving the runtime provider defaults.
-  KLEOS2_MODEL_CATALOG:
-  KLEOS2_TEXT_MODEL_KEY:
-  KLEOS2_VISION_MODEL_KEY:
-  KLEOS2_MODAL_RATE_LIMIT_FALLBACK_KEY:
-  KLEOS2_MAX_MODEL_CALLS: ${KLEOS2_MAX_MODEL_CALLS:-100}
-  KLEOS2_MAX_MODEL_COST_MICRO_USD: ${KLEOS2_MAX_MODEL_COST_MICRO_USD:-5000000}
+  KLEOS_MODEL_CATALOG:
+  KLEOS_TEXT_MODEL_KEY:
+  KLEOS_VISION_MODEL_KEY:
+  KLEOS_MODAL_RATE_LIMIT_FALLBACK_KEY:
+  KLEOS_MAX_MODEL_CALLS: ${KLEOS_MAX_MODEL_CALLS:-100}
+  KLEOS_MAX_MODEL_COST_MICRO_USD: ${KLEOS_MAX_MODEL_COST_MICRO_USD:-5000000}
 
 x-control: &control
-  image: ${KLEOS2_CONTROL_IMAGE:-kleos2-control:local}
+  image: ${KLEOS_CONTROL_IMAGE:-kleos2-control:local}
   pull_policy: never
   init: true
   user: "10001:10001"
@@ -55,7 +54,7 @@ services:
     environment:
       POSTGRES_DB: kleos2_local
       POSTGRES_USER: kleos
-      POSTGRES_PASSWORD: ${KLEOS2_POSTGRES_PASSWORD:?Set the fresh database password}
+      POSTGRES_PASSWORD: ${KLEOS_POSTGRES_PASSWORD:?Set the fresh database password}
     volumes: [postgres:/var/lib/postgresql/data]
     healthcheck:
       test: [CMD-SHELL, "pg_isready -U kleos -d kleos2_local"]
@@ -72,12 +71,12 @@ services:
     profiles: [setup]
     command: [migrate]
     environment:
-      KLEOS2_DATABASE_URL: ${KLEOS2_DATABASE_URL:?Set the fresh local database URL}
+      KLEOS_DATABASE_URL: ${KLEOS_DATABASE_URL:?Set the fresh local database URL}
 
   api:
     <<: *control
     command: [serve, --host, 0.0.0.0, --port, "8000"]
-    ports: ["127.0.0.1:${KLEOS2_LOCAL_API_PORT:-8000}:8000"]
+    ports: ["127.0.0.1:${KLEOS_LOCAL_API_PORT:-8000}:8000"]
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=3)"]
       interval: 10s
@@ -93,16 +92,15 @@ services:
     <<: *control
     profiles: [preview]
     command: [preview-serve, --host, 0.0.0.0, --port, "8004"]
-    ports: ["127.0.0.1:${KLEOS2_LOCAL_PREVIEW_PORT:-8004}:8004"]
+    ports: ["127.0.0.1:${KLEOS_LOCAL_PREVIEW_PORT:-8004}:8004"]
     volumes: [artifacts:/var/lib/kleos/artifacts:ro]
     environment:
       <<: *runtime-env
       # The static preview process does not receive provider credentials.
-      KLEOS2_META_API_KEY: ""
-      KLEOS2_MODAL_API_KEY: ""
-      KLEOS2_MODAL_BASE_URL: ""
-      KLEOS2_SETUP_TOKEN: ""
       KLEOS_META_API_KEY: ""
+      KLEOS_MODAL_API_KEY: ""
+      KLEOS_MODAL_BASE_URL: ""
+      KLEOS_SETUP_TOKEN: ""
       KLEOS_MODAL_LLM_KEY: ""
       KLEOS_MODAL_LLM_URL: ""
 

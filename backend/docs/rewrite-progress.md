@@ -24,7 +24,7 @@ Do not declare completion based on fixtures or code-size reduction alone.
   (the old recipes were deleted with `backend/docker`). CAD, PCB, firmware and Flutter web native images built
   from them passed strict Linux-engine qualification; defects found on the way were fixed (a supervisor
   IPv6 assumption, a missing per-job Zephyr cache directory, and settings tests that CI's exported
-  `KLEOS2_DATABASE_URL` broke).
+  `KLEOS_DATABASE_URL` broke).
   With a local PostgreSQL 16 and the opt-in solver/container tests enabled, the full suite passed:
   1,675 passed, 0 failed, 0 skipped.
 - Frontend check (3 November 2026): `kleos-ui` was not edited by the rewrite (the 61-file frontend diff in

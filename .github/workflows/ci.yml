@@ -21,7 +21,7 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       KLEOS_TEST_POSTGRES_URL: postgresql://kleos:ci-only@localhost:5432/kleos_test_ci
-      KLEOS2_DATABASE_URL: postgresql+psycopg://kleos:ci-only@localhost:5432/kleos_test_ci
+      KLEOS_DATABASE_URL: postgresql+psycopg://kleos:ci-only@localhost:5432/kleos_test_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

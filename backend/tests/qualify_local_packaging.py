@@ -21,19 +21,19 @@ def main():
     password, session_secret, setup = (secrets.token_hex(32) for _ in range(3))
     private = work / 'runtime.env'
     contents = {
-        'KLEOS2_POSTGRES_PASSWORD': password,
-        'KLEOS2_DATABASE_URL': f'postgresql+psycopg://kleos:{password}@postgres:5432/kleos2_local',
-        'KLEOS2_SESSION_SECRET': session_secret, 'KLEOS2_SETUP_TOKEN': setup,
-        'KLEOS2_CONTROL_IMAGE': 'kleos2-control:local', 'KLEOS2_LOCAL_API_PORT': '18870',
-        'KLEOS2_LOCAL_PREVIEW_PORT': '18874', 'KLEOS2_API_ORIGIN': 'http://127.0.0.1:18870',
-        'KLEOS2_PREVIEW_ORIGIN': 'http://127.0.0.1:18874', 'KLEOS2_FRONTEND_ORIGIN': 'http://127.0.0.1:18880',
-        'KLEOS2_COMPANION_PREVIEW_ENABLED': 'true', 'KLEOS2_META_API_KEY': '', 'KLEOS_META_API_KEY': '',
-        'KLEOS2_MODAL_API_KEY': '', 'KLEOS_MODAL_LLM_KEY': '', 'KLEOS2_MODAL_BASE_URL': '', 'KLEOS_MODAL_LLM_URL': '',
+        'KLEOS_POSTGRES_PASSWORD': password,
+        'KLEOS_DATABASE_URL': f'postgresql+psycopg://kleos:{password}@postgres:5432/kleos2_local',
+        'KLEOS_SESSION_SECRET': session_secret, 'KLEOS_SETUP_TOKEN': setup,
+        'KLEOS_CONTROL_IMAGE': 'kleos2-control:local', 'KLEOS_LOCAL_API_PORT': '18870',
+        'KLEOS_LOCAL_PREVIEW_PORT': '18874', 'KLEOS_API_ORIGIN': 'http://127.0.0.1:18870',
+        'KLEOS_PREVIEW_ORIGIN': 'http://127.0.0.1:18874', 'KLEOS_FRONTEND_ORIGIN': 'http://127.0.0.1:18880',
+        'KLEOS_COMPANION_PREVIEW_ENABLED': 'true', 'KLEOS_META_API_KEY': '',
+        'KLEOS_MODAL_API_KEY': '', 'KLEOS_MODAL_LLM_KEY': '', 'KLEOS_MODAL_BASE_URL': '', 'KLEOS_MODAL_LLM_URL': '',
     }
     descriptor = os.open(private, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w') as stream:
         stream.write(''.join(f'{key}={value}\n' for key, value in contents.items()))
-    environment = {key: value for key, value in os.environ.items() if not key.startswith(('KLEOS_', 'KLEOS2_'))}
+    environment = {key: value for key, value in os.environ.items() if not key.startswith(('KLEOS_', 'KLEOS_'))}
     command = ['docker', 'compose', '--env-file', str(private), '-f', str(ROOT / 'compose.yaml'), '--project-name', project]
     report = {'qualified': False, 'scope': 'Local control-plane packaging snapshot only', 'project': project,
         'providerCalls': 0, 'nativeJobs': 0, 'workerStarted': False, 'steps': [], 'volumesRetained': True}

@@ -20,16 +20,16 @@ def test_real_cli_migrate_serve_and_http_admission(tmp_path):
     if not url.database.startswith(("kleos_rewrite_verify_", "kleos_test_")):
         pytest.fail("Use a disposable rewrite test database")
     backend = Path(__file__).parents[1]
-    env = {key: value for key, value in os.environ.items() if not key.startswith("KLEOS2_")}
+    env = {key: value for key, value in os.environ.items() if not key.startswith("KLEOS_")}
     env.update(
         {
-            "KLEOS2_DATABASE_URL": url.set(drivername="postgresql+psycopg").render_as_string(
+            "KLEOS_DATABASE_URL": url.set(drivername="postgresql+psycopg").render_as_string(
                 hide_password=False
             ),
-            "KLEOS2_ENVIRONMENT": "test",
-            "KLEOS2_DEVELOPMENT_NO_LOGIN": "true",
-            "KLEOS2_SESSION_SECRET": secrets.token_hex(32),
-            "KLEOS2_ARTIFACT_ROOT": str(tmp_path / "artifacts"),
+            "KLEOS_ENVIRONMENT": "test",
+            "KLEOS_DEVELOPMENT_NO_LOGIN": "true",
+            "KLEOS_SESSION_SECRET": secrets.token_hex(32),
+            "KLEOS_ARTIFACT_ROOT": str(tmp_path / "artifacts"),
         }
     )
     command = [str(backend / ".venv/bin/python"), "-m", "kleos.cli"]

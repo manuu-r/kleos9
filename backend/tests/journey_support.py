@@ -70,9 +70,9 @@ def real_runtime(tmp_path, lanes, upstream):
         simulation_control_root=tmp_path / 'sim', session_secret=SecretStr('s' * 40), development_no_login=True,
         native_tools=native_tools(*lanes))
     if LIVE:
-        key = os.environ.get('KLEOS2_META_API_KEY') or os.environ.get('KLEOS_META_API_KEY')
+        key = os.environ.get('KLEOS_META_API_KEY')
         if not key:
-            pytest.skip('Live mode needs KLEOS2_META_API_KEY')
+            pytest.skip('Live mode needs KLEOS_META_API_KEY')
         settings = Settings(**common, meta_api_key=SecretStr(key), max_model_cost_micro_usd=live_cap_micro_usd(),
                             max_model_calls=int(os.environ.get('KLEOS_LIVE_MAX_CALLS', '60')))
         client = None

@@ -8,8 +8,8 @@ Engineering preview metadata advertises the exact artifact ID/hash when the
 configured host can represent the bundle. No frontend changes are required.
 
 Hosting is disabled by default. Operators must explicitly enable
-`KLEOS2_COMPANION_PREVIEW_ENABLED`, configure distinct `KLEOS2_API_ORIGIN`,
-`KLEOS2_FRONTEND_ORIGIN` and `KLEOS2_PREVIEW_ORIGIN`, and run the separate
+`KLEOS_COMPANION_PREVIEW_ENABLED`, configure distinct `KLEOS_API_ORIGIN`,
+`KLEOS_FRONTEND_ORIGIN` and `KLEOS_PREVIEW_ORIGIN`, and run the separate
 `preview-serve` process. The API application never serves companion content.
 Origin validation normalizes ports and IP addresses and rejects ambiguous numeric
 address spellings and Unicode hostnames; use explicit ASCII/punycode names.

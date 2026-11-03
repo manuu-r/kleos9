@@ -28,7 +28,7 @@ def test_compose_defaults_do_not_start_workers_or_expose_private_database():
         assert config['tmpfs'] == ['/tmp:rw,noexec,nosuid,nodev,size=64m']
         assert not any('docker.sock' in str(value) for value in config['volumes'])
     assert services['preview']['volumes'] == ['artifacts:/var/lib/kleos/artifacts:ro']
-    for key in ('KLEOS2_META_API_KEY', 'KLEOS2_MODAL_API_KEY', 'KLEOS2_SETUP_TOKEN'):
+    for key in ('KLEOS_META_API_KEY', 'KLEOS_MODAL_API_KEY', 'KLEOS_SETUP_TOKEN'):
         assert services['preview']['environment'][key] == ''
     assert set(document['volumes']) == {'postgres', 'artifacts'}
     assert 'build' not in services['api']
@@ -76,28 +76,28 @@ def test_actual_compose_interpolation_preserves_existing_provider_names(tmp_path
     if probe.returncode:
         pytest.skip('Docker Compose plugin unavailable')
     path = tmp_path / 'private-fixture.env'
-    path.write_text('KLEOS2_DATABASE_URL=postgresql+psycopg://kleos:fixture@postgres/kleos2_local\n'
-        'KLEOS2_POSTGRES_PASSWORD=fixture\nKLEOS2_SESSION_SECRET=' + 's'*40 + '\nKLEOS2_SETUP_TOKEN=' + 't'*32 + '\n'
+    path.write_text('KLEOS_DATABASE_URL=postgresql+psycopg://kleos:fixture@postgres/kleos2_local\n'
+        'KLEOS_POSTGRES_PASSWORD=fixture\nKLEOS_SESSION_SECRET=' + 's'*40 + '\nKLEOS_SETUP_TOKEN=' + 't'*32 + '\n'
         'KLEOS_META_API_KEY=fixture-existing-meta\nKLEOS_MODAL_LLM_KEY=fixture-existing-modal\n'
         'KLEOS_MODAL_LLM_URL=https://fixture.modal.example/v1\n')
     path.chmod(0o600)
-    environment = {key: value for key, value in os.environ.items() if not key.startswith(('KLEOS_', 'KLEOS2_'))}
+    environment = {key: value for key, value in os.environ.items() if not key.startswith(('KLEOS_', 'KLEOS_'))}
     command = ['docker', 'compose', '--env-file', str(path), '-f', str(ROOT / 'compose.yaml'),
         '--profile', 'worker', '--profile', 'preview', 'config', '--format', 'json']
     result = subprocess.run(command, env=environment, capture_output=True, text=True, check=True)
     document = json.loads(result.stdout)
     for service in ('api', 'worker'):
         configured = document['services'][service]['environment']
-        assert configured['KLEOS2_META_API_KEY'] == configured['KLEOS_META_API_KEY'] == 'fixture-existing-meta'
-        assert configured['KLEOS2_MODAL_API_KEY'] == configured['KLEOS_MODAL_LLM_KEY'] == 'fixture-existing-modal'
-        assert configured['KLEOS2_MODAL_BASE_URL'] == configured['KLEOS_MODAL_LLM_URL'] == 'https://fixture.modal.example/v1'
-    assert document['services']['api']['environment']['KLEOS2_MODEL_CATALOG'] is None
+        assert configured['KLEOS_META_API_KEY'] == 'fixture-existing-meta'
+        assert configured['KLEOS_MODAL_API_KEY'] == configured['KLEOS_MODAL_LLM_KEY'] == 'fixture-existing-modal'
+        assert configured['KLEOS_MODAL_BASE_URL'] == configured['KLEOS_MODAL_LLM_URL'] == 'https://fixture.modal.example/v1'
+    assert document['services']['api']['environment']['KLEOS_MODEL_CATALOG'] is None
     preview = document['services']['preview']['environment']
-    assert all(preview[key] == '' for key in ('KLEOS2_META_API_KEY', 'KLEOS_META_API_KEY',
-        'KLEOS2_MODAL_API_KEY', 'KLEOS_MODAL_LLM_KEY', 'KLEOS2_MODAL_BASE_URL', 'KLEOS_MODAL_LLM_URL'))
-    result = subprocess.run(command, env={**environment, 'KLEOS2_META_API_KEY': 'fixture-new-meta',
-        'KLEOS2_MODAL_RATE_LIMIT_FALLBACK_KEY': 'fixture-explicit-fallback'},
+    assert all(preview[key] == '' for key in ('KLEOS_META_API_KEY',
+        'KLEOS_MODAL_API_KEY', 'KLEOS_MODAL_LLM_KEY', 'KLEOS_MODAL_BASE_URL', 'KLEOS_MODAL_LLM_URL'))
+    result = subprocess.run(command, env={**environment, 'KLEOS_META_API_KEY': 'fixture-new-meta',
+        'KLEOS_MODAL_RATE_LIMIT_FALLBACK_KEY': 'fixture-explicit-fallback'},
         capture_output=True, text=True, check=True)
-    assert json.loads(result.stdout)['services']['api']['environment']['KLEOS2_META_API_KEY'] == 'fixture-new-meta'
+    assert json.loads(result.stdout)['services']['api']['environment']['KLEOS_META_API_KEY'] == 'fixture-new-meta'
 
-    assert json.loads(result.stdout)['services']['worker']['environment']['KLEOS2_MODAL_RATE_LIMIT_FALLBACK_KEY'] == 'fixture-explicit-fallback'
+    assert json.loads(result.stdout)['services']['worker']['environment']['KLEOS_MODAL_RATE_LIMIT_FALLBACK_KEY'] == 'fixture-explicit-fallback'

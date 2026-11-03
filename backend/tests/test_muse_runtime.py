@@ -23,7 +23,7 @@ MODAL_MODEL = 'meta-models/Muse-Spark-Open-816B-A42B'
 def isolated_environment(monkeypatch):
     # Never inherit workstation credentials, profiles, endpoints or deployment policy.
     for name in tuple(os.environ):
-        if name.startswith(('KLEOS_', 'KLEOS2_')):
+        if name.startswith(('KLEOS_', 'KLEOS_')):
             monkeypatch.delenv(name)
     monkeypatch.setenv('KLEOS_META_API_KEY', 'mock-meta-credential')
     monkeypatch.setenv('KLEOS_MODAL_LLM_KEY', 'mock-modal-credential')

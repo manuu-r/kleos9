@@ -55,7 +55,7 @@ docker image inspect kleos-sim --format '{{.Id}}'     # the pin: sha256:<image i
 ```
 
 ```bash
-export KLEOS2_SIMULATION_INSTALLATION='{"imageDigest":"sha256:<image id>","qualificationReference":"<record>"}'
+export KLEOS_SIMULATION_INSTALLATION='{"imageDigest":"sha256:<image id>","qualificationReference":"<record>"}'
 ```
 
 Without that setting no simulator is installed and the route reports `UNKNOWN`. Staging and production reject

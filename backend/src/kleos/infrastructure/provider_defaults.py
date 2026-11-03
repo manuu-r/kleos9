@@ -5,12 +5,12 @@ mocked wire fixtures. This is not a claim that a particular account has live acc
 """
 from pydantic_settings import DotEnvSettingsSource
 
-# Only these legacy settings may cross into the fresh runtime. In particular,
-# database, authentication, native execution and physical-policy settings cannot.
+# The only settings read from the old backend's `.env`. That file shares the KLEOS_ prefix, so everything else in
+# it (database, authentication, native execution, physical policy) must never reach the fresh runtime.
 PROVIDER_NAMES = {
-    'KLEOS_META_API_KEY': 'KLEOS2_META_API_KEY',
-    'KLEOS_MODAL_LLM_KEY': 'KLEOS2_MODAL_API_KEY',
-    'KLEOS_MODAL_LLM_URL': 'KLEOS2_MODAL_BASE_URL',
+    'KLEOS_META_API_KEY': 'KLEOS_META_API_KEY',
+    'KLEOS_MODAL_LLM_KEY': 'KLEOS_MODAL_API_KEY',
+    'KLEOS_MODAL_LLM_URL': 'KLEOS_MODAL_BASE_URL',
 }
 
 
