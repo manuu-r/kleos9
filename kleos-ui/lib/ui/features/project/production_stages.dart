@@ -48,8 +48,21 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
   JsonMap get state => asMap(project['state']);
   JsonMap get proposal => asMap(state['proposal']);
   List<JsonMap> get runs => asMaps(workspace['runs']);
+  // A project reads `queued` while its latest objective is blocked or failed; that run awaits the user and has no
+  // worker, so it is retryable rather than in progress.
   bool get active =>
-      const {'queued', 'running', 'waiting'}.contains(project['status']);
+      const {'queued', 'running', 'waiting'}.contains(project['status']) &&
+      !const {'blocked', 'failed'}.contains(runs.firstOrNull?['status']);
+  JsonMap get pendingInterfaces {
+    final candidate = asMap(state['interfaceProposal']);
+    return !active &&
+            candidate['status'] == 'pending' &&
+            candidate['id'] != null &&
+            candidate['hash'] != null
+        ? candidate
+        : const {};
+  }
+
   bool get planningActive =>
       active &&
       (runs.any((run) =>
@@ -131,6 +144,15 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           : [];
     }
     if (state['confirmed'] != true) return [];
+    if (pendingInterfaces.isNotEmpty) {
+      return [
+        action('project.approveInterfaces', 'Approve interfaces', data: {
+          'proposalId': pendingInterfaces['id'],
+          'proposalHash': pendingInterfaces['hash']
+        }),
+        action('project.solveInterfaces', 'Revise proposal', primary: false),
+      ];
+    }
     if (asMap(project['interfaces']).isEmpty) {
       return [action('project.solveInterfaces', 'Establish interfaces')];
     }

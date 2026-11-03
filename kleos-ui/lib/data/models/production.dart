@@ -85,6 +85,14 @@ class Workspace {
         agents = List.unmodifiable(asMaps(json['agents']).map(AgentRecord.new)),
         externalJobs = List.unmodifiable(
             asMaps(json['externalJobs']).map(ExternalJobRecord.new));
+
+  /// A project reads `queued` while its latest objective is blocked or failed: that run waits for the user and
+  /// no worker is running it, so it can be retried and must not be presented as in progress.
+  bool get isActive =>
+      project.isActive &&
+      !(runs.isNotEmpty &&
+          const {'blocked', 'failed'}.contains(runs.first.status));
+  JsonMap get interfaceProposal => asMap(project.state['interfaceProposal']);
   final ProjectRecord project;
   final int eventCursor;
   final List<RunRecord> runs;

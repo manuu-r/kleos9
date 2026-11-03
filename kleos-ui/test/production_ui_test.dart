@@ -420,6 +420,63 @@ void main() {
     repository.dispose();
   });
 
+  testWidgets(
+      'a queued project whose objective is blocked offers retry, not a cancel that would conflict',
+      (tester) async {
+    final repository = TestRepository(snapshot(status: 'queued', runs: [
+      {
+        'id': 'r',
+        'kind': 'project.generate',
+        'status': 'blocked',
+        'blocker': 'plan_invalid'
+      }
+    ]));
+    await tester.pumpWidget(
+        scope(repository, const ProductionWorkspacePage(projectId: 'p')));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(KButton, 'Cancel run'), findsNothing);
+    final retry = find.widgetWithText(KButton, 'Retry last run');
+    await tester.scrollUntilVisible(retry, 200);
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+    expect(repository.commands.single['type'], 'project.retry');
+    await tester.pumpWidget(const SizedBox());
+    repository.dispose();
+  });
+
+  testWidgets(
+      'a pending interface proposal is reviewable and approved with its exact id and hash',
+      (tester) async {
+    final repository = TestRepository(snapshot(revision: 7, state: {
+      'confirmed': true,
+      'interfaceProposal': {
+        'id': 'run-1',
+        'hash': 'abc123',
+        'status': 'pending',
+        'candidate': {'summary': 'USB powered LED indicator'}
+      }
+    }));
+    await tester.pumpWidget(
+        scope(repository, const ProductionWorkspacePage(projectId: 'p')));
+    await tester.pumpAndSettle();
+    expect(find.text('USB powered LED indicator'), findsOneWidget);
+    final approve = find.widgetWithText(KButton, 'Approve interfaces');
+    await tester.scrollUntilVisible(approve, -200);
+    await tester.tap(approve);
+    await tester.pumpAndSettle();
+    expect(repository.commands.single, {
+      'type': 'project.approveInterfaces',
+      'payload': {
+        'projectId': 'p',
+        'proposalId': 'run-1',
+        'proposalHash': 'abc123'
+      },
+      'revision': 7
+    });
+    await tester.pumpWidget(const SizedBox());
+    repository.dispose();
+  });
+
   testWidgets('battery revisions submit finite dimensions in the API axes',
       (tester) async {
     final repository = TestRepository(snapshot(revision: 9));

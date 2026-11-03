@@ -165,6 +165,19 @@ Root causes are from code reading plus the journaled effects; model outputs are 
 | D12 | low | "New build defaults" appear browser-local | A fresh browser context reverted to Meta after "Saved for new builds" was shown. |
 | D13 | low | Concept preview geometry | In 6d7a4fd6 the second hole renders as a notch at the plate edge in the 3-D preview (preview only; the stated numbers were correct). |
 
+## Follow-up status (after this report)
+
+| Defect | Status |
+| --- | --- |
+| D2 | Fixed. A 4xx provider rejection settles at 0; only a 5xx or an uncertain outcome keeps the worst-case reservation (`orchestration/models.py`). |
+| D3 | Fixed. Memory calls use the project's pinned coordination model (`Runtime.memory_for_run`); not proven against a live trace. |
+| D4, D5, D6 | Addressed by the reliability work already on the branch (null/stringified arguments, plan-time path validation, logged exception types). |
+| D7 | Fixed. A reply that fails validation (`invalid_geometry`, `invalid_interfaces`) or an unloadable reference image releases its claim, and `project.retry` also releases cut-off capture and interface-proposal calls, so a hard crash no longer ends in `effect_uncertain`. |
+| D8 | Fixed in both Flutter workspace views: a queued project whose latest objective is blocked or failed is retryable and no longer offers a Cancel that returns 409. |
+| D9 | Fixed in both views: a pending interface proposal is shown for review with an "Approve interfaces" button that sends `project.approveInterfaces` with the exact proposal id and hash. |
+| PCB generation | A real KiCad board is generated from the contract, routed, and published with its findings and renders even when ERC/DRC report errors (`execution/qualification/PCB.md`). |
+| D1, D10-D13 | Open. D1 needs a valid Meta key; D10-D13 are low priority and untouched. |
+
 ## Decisions needed from the user
 
 1. **Provide a valid Meta key** (or confirm Modal-only operation). Without it, the default provider cannot run.

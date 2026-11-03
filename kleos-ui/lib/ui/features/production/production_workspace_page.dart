@@ -68,13 +68,27 @@ class ProductionWorkspacePage extends ConsumerWidget {
                       onPressed: value.busy
                           ? null
                           : () => controller.execute(action.$1)),
-                if (project.isActive)
+                if (_pendingInterfaces(workspace) != null)
+                  KButton(
+                      key: const ValueKey('command-project.approveInterfaces'),
+                      label: 'Approve interfaces',
+                      primary: true,
+                      onPressed: value.busy
+                          ? null
+                          : () =>
+                              controller.execute('project.approveInterfaces', {
+                                'proposalId':
+                                    _pendingInterfaces(workspace)!['id'],
+                                'proposalHash':
+                                    _pendingInterfaces(workspace)!['hash'],
+                              })),
+                if (workspace.isActive)
                   KButton(
                       label: 'Cancel run',
                       onPressed: value.busy
                           ? null
                           : () => controller.execute('project.cancel')),
-                if (!project.isActive &&
+                if (!workspace.isActive &&
                     workspace.runs.isNotEmpty &&
                     const {'blocked', 'failed'}
                         .contains(workspace.runs.first.status))
@@ -87,6 +101,22 @@ class ProductionWorkspacePage extends ConsumerWidget {
               ]),
             if (value.busy) const KLineLoader(),
           ])),
+      if (_pendingInterfaces(workspace) != null)
+        KCard(
+            title: 'Interface proposal to review',
+            child: kColumn([
+              SelectionArea(
+                  child: Text(
+                      asMap(_pendingInterfaces(workspace)!['candidate'])[
+                                  'summary']
+                              ?.toString() ??
+                          '')),
+              ProductionJsonDetails('Full interface proposal',
+                  asMap(_pendingInterfaces(workspace)!['candidate'])),
+              const KMuted(
+                  'Approving accepts these configuration choices only. It does not approve engineering '
+                  'outputs or prove electrical, firmware or physical behavior.'),
+            ], gap: 16)),
       if (proposal.isNotEmpty)
         KCard(
             title: 'Concept and findings',
@@ -259,9 +289,17 @@ class ProductionWorkspacePage extends ConsumerWidget {
   }
 }
 
+/// The complete, reviewable interface proposal that still needs the user's explicit approval, if any.
+Map<String, Object?>? _pendingInterfaces(Workspace workspace) {
+  final proposal = workspace.interfaceProposal;
+  if (workspace.isActive || proposal['status'] != 'pending') return null;
+  if (proposal['id'] == null || proposal['hash'] == null) return null;
+  return proposal;
+}
+
 List<(String, String, bool)> _actions(Workspace workspace) {
   final p = workspace.project;
-  if (p.isActive) return [];
+  if (workspace.isActive) return [];
   final state = p.state;
   if (state['proposal'] == null) {
     return [('project.research', 'Research the concept', true)];
