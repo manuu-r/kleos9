@@ -1,6 +1,6 @@
 {
   "qualified": true,
-  "imageId": "sha256:5c02cf4b3292afb89ce9de121bb616efdc282632ee9799653c61bf01d744d677",
+  "imageId": "sha256:a40af490271940aaa0731260d15d6a679d17768d0dd3c06746064255365631eb",
   "protocol": "kleos-native-session-v2",
   "lane": "pcb",
   "deployment": "local",
@@ -9,7 +9,7 @@
   "networkPolicy": "in-process-seccomp",
   "parentImageId": "sha256:57d564558ad4940153bc500a2235e5d1fba82b06feafd1a224bb8e097f136270",
   "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
-  "finishedAt": "2026-11-03T07:32:29.998405+00:00",
+  "finishedAt": "2026-11-03T19:17:35.289535+00:00",
   "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
   "circuitContract": {
     "references": [
@@ -246,6 +246,7 @@
                 "outputs/circuit-contract.json",
                 "outputs/drc.json",
                 "outputs/erc.json",
+                "outputs/findings.json",
                 "outputs/gerbers/board-B_Cu.gbr",
                 "outputs/gerbers/board-B_Mask.gbr",
                 "outputs/gerbers/board-B_Paste.gbr",
@@ -259,6 +260,8 @@
                 "outputs/gerbers/board.drl",
                 "outputs/netlist.xml",
                 "outputs/pcb-project.zip",
+                "outputs/render-bottom.png",
+                "outputs/render-top.png",
                 "outputs/routed.kicad_dru",
                 "outputs/routed.kicad_pcb",
                 "outputs/routed.kicad_pro",
@@ -280,63 +283,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "f5315351-2357-4030-87f7-c316a16c4729",
-            "path": "Fixture.pretty/TwoPin.kicad_mod",
-            "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 1251
-          },
-          {
-            "id": "342988b1-70cf-4a43-9381-fb8a4c952ed7",
-            "path": "board.kicad_pcb",
-            "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 5382
-          },
-          {
-            "id": "860d7acd-6b6a-4454-9270-9f9656ee7333",
-            "path": "board.kicad_prl",
-            "sha256": "36feff389da83c0f055a78f2dd8638a8ed0c4e8ed99e3cc8b4d6dcb1acad2f62",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 2115
-          },
-          {
-            "id": "c6d3664c-acf6-4148-8ab5-3c38b82e7766",
-            "path": "board.kicad_pro",
-            "sha256": "9c2a7f0eb9896769c964533e71fd6c358cec467eef3470d0df81b651e51f3616",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 8358
-          },
-          {
-            "id": "df7bab4d-fc31-4ec2-b4f8-0b537833d730",
-            "path": "circuit.kicad_sch",
-            "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 2887
-          },
-          {
-            "id": "3005c89d-6d80-49f7-9e86-ff16c685ca41",
-            "path": "fixture.kicad_sym",
-            "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 933
-          },
-          {
-            "id": "a05a2412-62dc-4e37-b97e-373e8ff4ce47",
-            "path": "fp-lib-table",
-            "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66",
-            "revision": 2,
-            "mediaType": "application/octet-stream",
-            "size": 123
-          },
-          {
-            "id": "6acd32aa-1377-4bb3-80d4-e9d9b6d0c16e",
+            "id": "93f5d456-2b0c-4983-9231-6b441bd85704",
             "path": "sym-lib-table",
             "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437",
             "revision": 2,
@@ -344,7 +291,71 @@
             "size": 127
           },
           {
-            "id": "171d3b73-af77-40f6-a033-2244e23173d1",
+            "id": "0a8087fe-a276-4cb8-b037-7e9cc1c06cd5",
+            "path": "project.kicad_sym",
+            "sha256": "6a06e62c7c23a22816d3819db93bb11489cc0cd259a274f0ee317a4d1fd5e767",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 1806
+          },
+          {
+            "id": "2e716d47-26b4-4110-861d-891097654551",
+            "path": "circuit.kicad_sch",
+            "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 2887
+          },
+          {
+            "id": "16e17312-a43f-4bc5-8ef8-807dd099a901",
+            "path": "board.kicad_pcb",
+            "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 5382
+          },
+          {
+            "id": "72249ca2-8fe3-42f0-937a-10717c1f0a16",
+            "path": "fp-lib-table",
+            "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 123
+          },
+          {
+            "id": "9547e505-d558-4bdf-8592-bb15fdd5353f",
+            "path": "Fixture.pretty/TwoPin.kicad_mod",
+            "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 1251
+          },
+          {
+            "id": "f12f902b-6133-4a05-bfaa-fa19b1c90e7e",
+            "path": "board.kicad_prl",
+            "sha256": "36feff389da83c0f055a78f2dd8638a8ed0c4e8ed99e3cc8b4d6dcb1acad2f62",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 2115
+          },
+          {
+            "id": "8167b76a-0edb-406d-b4cb-dae0303a4f9a",
+            "path": "board.kicad_pro",
+            "sha256": "9c2a7f0eb9896769c964533e71fd6c358cec467eef3470d0df81b651e51f3616",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 8358
+          },
+          {
+            "id": "b933c440-ab11-4547-a7fc-59713d894bfb",
+            "path": "fixture.kicad_sym",
+            "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 933
+          },
+          {
+            "id": "94aabdc7-5d84-41de-a1c6-5bb620edc84d",
             "path": "outputs/circuit-contract.json",
             "sha256": "1141050df597abaeabc9ccf4772ee488f60cc6a454554e50fd371d6347fcbb43",
             "revision": 2,
@@ -352,127 +363,151 @@
             "size": 487
           },
           {
-            "id": "cab1f0d3-24b6-4bae-9fa4-f9e10dc46893",
+            "id": "2b55f0bc-c92a-4ad1-8acc-e86c5fa5d019",
             "path": "outputs/drc.json",
-            "sha256": "4cbfe3c3036fd603a0c5b75a6dd796d2f1fc85060c9b0dc44432398de266b3f2",
+            "sha256": "ef145c09f90b83b6d4a7dbf837dd888370fb5de45d0c047935fcd4ff14eaf0dc",
             "revision": 2,
             "mediaType": "application/json",
             "size": 342
           },
           {
-            "id": "e8abdbcc-99f6-4510-903d-77d8a2e18188",
+            "id": "0eb56717-2d00-4ed1-aa24-45c29d5d76d3",
             "path": "outputs/erc.json",
-            "sha256": "17b5c8280b6c764a6d6346d4e0cbd80799261fd225177eb9d6f8553c031fd0f2",
+            "sha256": "3e2f28327a5366de5bfbef35b52fcb6f50b4d9873c73ec43b643c08966923c87",
             "revision": 2,
             "mediaType": "application/json",
             "size": 428
           },
           {
-            "id": "a005792e-4b2c-4644-800a-8fb5380296ed",
+            "id": "21f1a6a5-d5c6-4aca-a710-860b34fd0f24",
+            "path": "outputs/findings.json",
+            "sha256": "e66c9e580a95e197900238267c506a2f2c6032ad9c73b1c2181bc6b4951a9015",
+            "revision": 2,
+            "mediaType": "application/json",
+            "size": 36
+          },
+          {
+            "id": "539c725b-69c1-49fc-aab2-cb72cb092be1",
             "path": "outputs/gerbers/board-B_Cu.gbr",
-            "sha256": "c1acd9c0752ea96da495c8f21547075b1971e3e2ddbf08ccad4353831b6c50df",
+            "sha256": "c2a234b8cac5528fcd95ead7d3961ac662e3c99129ffb50076908c26387492e5",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 929
           },
           {
-            "id": "fa16970b-a3ba-4bfd-9b4e-2693ca50bd01",
+            "id": "0f3888e9-1e0f-441b-83c9-42638c3e2dc6",
             "path": "outputs/gerbers/board-B_Mask.gbr",
-            "sha256": "6e6b00b64925ac7459a0583611abba368e4b7f782a3d2f4ab727fde0d79524ec",
+            "sha256": "2c3998886e00663b5bf6e8a550af5958b239d7281a1e92968456144ce9750411",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "ecc9daf3-c9e4-470b-936a-cc0cb1971f23",
+            "id": "33563b1d-9df1-4f3e-a063-7e2282a17e2c",
             "path": "outputs/gerbers/board-B_Paste.gbr",
-            "sha256": "b543ed40728070da77a7e85665b6a8d7cb84cd2a1e4d15dc179f492610f7e491",
+            "sha256": "686dba1a1cd7c05d2b75d0abdd1350d14f07eee1906a06b8b0e07c1194a7da47",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "3173406f-642b-4c90-a651-9a27f3b756c2",
+            "id": "f9a13a35-e32e-4d69-a641-dd32e92a5a5a",
             "path": "outputs/gerbers/board-B_Silkscreen.gbr",
-            "sha256": "030031dd585f42e25e2874d08f47a83ea75dfac82196fe2ddff7027d5f173c3e",
+            "sha256": "d81e278910d942d39eddd813dcf732de1f9290d7ccfe272431bca2b197499e59",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 453
           },
           {
-            "id": "c0d80dd4-ef0d-4435-b3fb-0fbb7ba9ed29",
+            "id": "9767b1b7-2449-4fb8-a28d-d533c51d094c",
             "path": "outputs/gerbers/board-Edge_Cuts.gbr",
-            "sha256": "f93367719cb4cdf571f189ee59ef0e079d6086339c64b76d3af05248643c519b",
+            "sha256": "aad199e2f057096796e0e531d2df14248cc535dbc2a05a9b4edbe6098fedc212",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 614
           },
           {
-            "id": "3d41df26-1472-42bc-ba78-823c660cbb6f",
+            "id": "a5878977-9f88-4338-bdc5-29a95665ee9b",
             "path": "outputs/gerbers/board-F_Cu.gbr",
-            "sha256": "c1123392e76a780514f882443473db5a099f09fe8b7f2323ff20c10f886e75c9",
+            "sha256": "4e9f30fae417060a07a63dd1b343ef3f46d5a7bb765c444a73df19eb16c919f4",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 738
           },
           {
-            "id": "71d744c1-3f69-483c-b45b-498d3c4e2fd6",
+            "id": "e99d07b3-59c4-43e9-b553-72fab58fee42",
             "path": "outputs/gerbers/board-F_Mask.gbr",
-            "sha256": "9b4d7f2230d470081667823d9d1c9a640080b51cca2aca356476835195ca7901",
+            "sha256": "0d9aca303d46c9843d30f5d2668e1cb4575b98d9797137e649b535e1ecf80d62",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "1d835fc3-c4d1-4fc5-a817-c3121974c940",
+            "id": "19d11e33-2a2f-43e8-b588-db532d062b72",
             "path": "outputs/gerbers/board-F_Paste.gbr",
-            "sha256": "7b3ca4d81eae75334abc4f74862acee7ee437bf8ee52fae830f7c5e0f213bd01",
+            "sha256": "4983e8dc07ee2b4578096d1308e29ebb76b2ec2cfc2c5750668fdf86c1747299",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "b2c6d7e2-505c-4aae-8dce-cb6cbadc3bba",
+            "id": "c1110552-2b3f-4f85-a65f-542e15a5c8e9",
             "path": "outputs/gerbers/board-F_Silkscreen.gbr",
-            "sha256": "1a8e25ff06c5844476028f8fc61e3763f3b89269f7c87994e3394f13bfe07b6a",
+            "sha256": "331af14221ced6fb2d3df2a8b0cfa62ab55786d627742a632634766f5d684bb1",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 1663
           },
           {
-            "id": "dd87d6e6-749f-4cd8-9a5d-75339f19563e",
+            "id": "500a283e-e145-4696-bcfc-790c8fc45324",
             "path": "outputs/gerbers/board-job.gbrjob",
-            "sha256": "d6d21743b535dc5a1b10bfb23dbe792109d5f4ae5c0db4b7fde799cb4016427b",
+            "sha256": "977b672f4c5346b66c801d8b3f8d08eed8a1b197dee54e5df12d3a1accf51b88",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 2603
           },
           {
-            "id": "8c369c60-ec86-4701-871a-1434a84c5153",
+            "id": "0522c11e-d356-458e-9ddc-3d4318d3e340",
             "path": "outputs/gerbers/board.drl",
-            "sha256": "e8ca0e36015fc5f9441db7d16af72d2b9a60af5fca03427a249effaa5759fc21",
+            "sha256": "0467b88fb1e68be82c9e204c5c6cd1288296b678f518a07d52bbefc86265a343",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 381
           },
           {
-            "id": "6123bd29-e45b-42a1-aa23-abcba9b9d317",
+            "id": "f45b0067-f27c-4ea2-a833-b7966d34879c",
             "path": "outputs/netlist.xml",
-            "sha256": "67a6324a44f7d660c5266e1abc1526ea78629add04c7a91085c6345f0b070970",
+            "sha256": "509b6cfc944a34fb9107628b7464d191a768688f9b8b0c467612dc73fdcedf83",
             "revision": 2,
             "mediaType": "application/xml",
             "size": 2866
           },
           {
-            "id": "3b5304aa-7de0-49ae-af8a-380a112f9a68",
+            "id": "782bfec1-1924-408e-a3cf-2175b990640a",
             "path": "outputs/pcb-project.zip",
-            "sha256": "61f41791305746411ad6be8ba62b2043d284723001b1c6b673fcf05b52465506",
+            "sha256": "a0bdbce0725e5048bdbb0963c0f7b136f264be245a8cef40996aab6d1320083e",
             "revision": 2,
             "mediaType": "application/zip",
-            "size": 8061
+            "size": 8561
           },
           {
-            "id": "51e847f8-2f8f-4a91-a1fc-68078c8e40e0",
+            "id": "e75b923e-e8ca-4bd1-9b54-78dc27a98682",
+            "path": "outputs/render-bottom.png",
+            "sha256": "96308a06845229f8b8e5232f10898ad72a3231c4c82c31f61cd912e9c753f048",
+            "revision": 2,
+            "mediaType": "image/png",
+            "size": 12365
+          },
+          {
+            "id": "1320bd0a-2c6a-46a4-9700-25644454abd7",
+            "path": "outputs/render-top.png",
+            "sha256": "70f967255e490978d08183f38fe20aa1d171f937148a7d52550426cafd37dd6e",
+            "revision": 2,
+            "mediaType": "image/png",
+            "size": 12994
+          },
+          {
+            "id": "bca47fc2-fc6d-467c-bc43-114ff14d06cb",
             "path": "outputs/routed.kicad_dru",
             "sha256": "1836c6d1a8b559b428534e9f011acb4df411609d19ff25c02f8b7c8974e0522f",
             "revision": 2,
@@ -480,15 +515,15 @@
             "size": 143
           },
           {
-            "id": "10ed59e9-b48c-4882-8fc9-0b2b795c62ae",
+            "id": "59948fee-fac8-4628-b1ba-dc55bef97d36",
             "path": "outputs/routed.kicad_pcb",
-            "sha256": "91533752b686d37fbfa00421c72b988242cf3dc9b2c0c210459aee1d2a87b3cd",
+            "sha256": "71746b507b942826d3ac149ce47498af86756555a76fe3566d18b57463302e7f",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 5654
           },
           {
-            "id": "41c04785-5259-47aa-a00a-bb7150d64c18",
+            "id": "cd0ca47b-c700-4b98-a240-0ff17e2492f5",
             "path": "outputs/routed.kicad_pro",
             "sha256": "f012dcd33a0643d419e3a33faf1c0d890d2757870cd3842c11b40f4bb7769fcf",
             "revision": 2,
@@ -496,9 +531,9 @@
             "size": 8359
           },
           {
-            "id": "900e5243-0b5c-4537-9968-6f7a3d3c66c9",
+            "id": "50a750fc-5c33-4fdc-baca-ca8342b9adf8",
             "path": "outputs/routing.json",
-            "sha256": "97df6d018952fd8b07148ece2586f4d29001a03af7f8b45371da253b392fa6ef",
+            "sha256": "0870c8e3f770f46c5928c66117599f282857a651cbb6ff752e9ed8a916f67a36",
             "revision": 2,
             "mediaType": "application/json",
             "size": 312
@@ -526,14 +561,14 @@
       "name": "wrong-and-missing-accepted-reference",
       "rejected": true,
       "response": {
-        "summary": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 127, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 83, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 67, in board_check\n    raise ValueError('PCB references, values, footprints or pin nets differ from accepted circuit: '\nValueError: PCB references, values, footprints or pin nets differ from accepted circuit: {\"J1\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"J1\", \"value\": \"Connector\"}, \"R99\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"R99\", \"value\": \"1k\"}}\n",
+        "summary": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 148, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 84, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 68, in board_check\n    raise ValueError('PCB references, values, footprints or pin nets differ from accepted circuit: '\nValueError: PCB references, values, footprints or pin nets differ from accepted circuit: {\"J1\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"J1\", \"value\": \"Connector\"}, \"R99\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"R99\", \"value\": \"1k\"}}\n",
         "artifacts": [],
         "observations": [
           {
             "name": "native.build",
             "status": "ERROR",
             "details": {
-              "error": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 127, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 83, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 67, in board_check\n    raise ValueError('PCB references, values, footprints or pin nets differ from accepted circuit: '\nValueError: PCB references, values, footprints or pin nets differ from accepted circuit: {\"J1\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"J1\", \"value\": \"Connector\"}, \"R99\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"R99\", \"value\": \"1k\"}}\n",
+              "error": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 148, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 84, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 68, in board_check\n    raise ValueError('PCB references, values, footprints or pin nets differ from accepted circuit: '\nValueError: PCB references, values, footprints or pin nets differ from accepted circuit: {\"J1\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"J1\", \"value\": \"Connector\"}, \"R99\": {\"footprint\": \"Fixture:TwoPin\", \"pins\": {\"1\": \"/NET_A\", \"2\": \"/NET_B\"}, \"reference\": \"R99\", \"value\": \"1k\"}}\n",
               "executionSucceeded": false,
               "candidateOnly": true
             },
@@ -546,7 +581,7 @@
   ],
   "containers": [
     {
-      "image": "sha256:5c02cf4b3292afb89ce9de121bb616efdc282632ee9799653c61bf01d744d677",
+      "image": "sha256:a40af490271940aaa0731260d15d6a679d17768d0dd3c06746064255365631eb",
       "networkMode": "none",
       "readonlyRootfs": true,
       "memory": 4294967296,

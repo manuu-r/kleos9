@@ -55,11 +55,12 @@ def board_check(board, value):
         pins = {}
         for pad in part.Pads():
             pin, net = pad.GetNumber(), pad.GetNetname()
-            if not pin:  # Mechanical-only holes/pads are not accepted by this first routing contract.
-                raise ValueError('Unnumbered PCB pads are not supported by the accepted pin contract')
-            if pin in pins:
-                raise ValueError('Multiple physical pads for one pin require a separately qualified contract')
-            pins[pin] = net
+            if not net:  # Mechanical holes and unused pads carry no net; only connected pads are part of the contract.
+                continue
+            if not pin:
+                raise ValueError('A pad without a number cannot carry a net')
+            if pins.setdefault(pin, net) != net:  # Several physical pads of one pin (a connector shield) share its net.
+                raise ValueError('Pads sharing one pin number carry different nets')
         parts[ref] = {'reference': ref, 'value': part.GetValue(),
                       'footprint': str(part.GetFPID().GetLibNickname()) + ':' + str(part.GetFPID().GetLibItemName()), 'pins': pins}
         positions[ref] = [part.GetPosition().x, part.GetPosition().y, part.GetOrientationDegrees(), part.GetLayer()]
@@ -96,6 +97,28 @@ def prepare():
     print(json.dumps({'referencesChecked': sorted(snapshot['references']), 'routed': False}))
 
 
+def prune():
+    """Remove copper stubs the router left dangling; every other violation stays in the report for the user."""
+    accepted = contract()
+    report = json.loads(Path('outputs/drc.json').read_bytes())
+    stubs = {item['uuid'] for violation in report.get('violations', []) if violation.get('type') in {'track_dangling', 'via_dangling'}
+             for item in violation.get('items', []) if item.get('uuid')}
+    board = pcbnew.LoadBoard(str(ROOT / 'board.kicad_pcb'))
+    removed = [track for track in board.GetTracks() if track.m_Uuid.AsString() in stubs]
+    for track in removed:
+        board.Remove(track)
+    if removed:
+        if board_check(board, accepted) != json.loads((ROOT / 'before-routing.json').read_bytes()):
+            raise ValueError('Pruning changed accepted component placement, identities or outline')
+        if not pcbnew.SaveBoard(str(ROOT / 'board.kicad_pcb'), board):
+            raise ValueError('Cannot save pruned PCB')
+        routing = json.loads(Path('outputs/routing.json').read_bytes())
+        routing.update(trackCount=len(list(board.GetTracks())),
+                       boardSha256=hashlib.sha256((ROOT / 'board.kicad_pcb').read_bytes()).hexdigest())
+        Path('outputs/routing.json').write_text(json.dumps(routing))
+    print(json.dumps({'pruned': len(removed)}))
+
+
 def finish():
     accepted = contract()
     board = pcbnew.LoadBoard(str(ROOT / 'board.kicad_pcb'))
@@ -106,8 +129,6 @@ def finish():
     if snapshot != before:
         raise ValueError('Routing changed accepted component placement, identities or outline')
     tracks = list(board.GetTracks())
-    if not tracks:
-        raise ValueError('Router produced no copper tracks')
     for track in tracks:
         if track.GetWidth() < pcbnew.FromMM(accepted['constraints']['minTrackWidthMm']):
             raise ValueError('Routed track violates accepted minimum width')
@@ -127,5 +148,7 @@ if __name__ == '__main__':
         prepare()
     elif sys.argv[1:] == ['finish']:
         finish()
+    elif sys.argv[1:] == ['prune']:
+        prune()
     else:
         raise SystemExit('Unsupported fixed PCB operation')

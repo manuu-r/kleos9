@@ -15,9 +15,11 @@ import uuid
 from itertools import count
 from pathlib import Path
 
+from kleos.execution.protocol import PCB_SCAFFOLD_VERSION
+
 QUALIFICATION = Path(__file__).resolve().parent / 'qualification'
 
-VERSION = 'pcb-contract-scaffold-v1'
+VERSION = PCB_SCAFFOLD_VERSION
 LIBRARY = 'Project'
 NAMESPACE = uuid.UUID('3f0d9a5e-6b6c-4d5b-9f5e-8f8a7d2c1b00')
 PIN_PITCH = 2.54

@@ -14,7 +14,7 @@ from kleos.artifacts.storage import BlobStore
 from kleos.contracts.models import Actor, DomainError, TaskSpec
 from kleos.execution.docker import NativeSettings, Resources, container_spec
 from kleos.execution.gateway import NativeAction, NativeGateway, NativeJob, export_path
-from kleos.execution.native_runner import NativeSession, atomic_json, clean_environment, run_fixed
+from kleos.execution.native_runner import NativeSession, atomic_json, clean_environment, has_errors, run_fixed
 from kleos.execution.protocol import PROTOCOL, digest, fingerprint, source_path
 from kleos.projects.graph_repository import GraphRepository
 from kleos.projects.store import ProjectStore
@@ -1022,13 +1022,64 @@ async def test_a_task_that_ends_unfinished_releases_its_job_and_can_continue_fro
         assert {job.request.get('resumeAttempt', 1) for job in session.scalars(select(NativeJob))} == {1, 2}
 
 
-def routing_session(tmp_path, drc_failures):
+async def test_rule_violations_fail_the_observation_but_the_candidate_is_still_published(gateway):
+    native, scope, task = gateway
+    finding = {'source': 'drc', 'severity': 'error', 'kind': 'clearance', 'message': 'too close', 'items': []}
+
+    def add_findings(envelope):
+        if envelope['actionId'] in {'build-1', 'finish-1'} and envelope['response']['status'] == 'succeeded':
+            envelope['response']['result']['findings'] = [finding]
+
+    native.docker.tamper = add_findings
+    await patch(gateway)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+    assert built['observations'][0]['status'] == 'FAIL'
+    assert built['observations'][0]['details']['findings'] == [finding] and built['observations'][0]['details']['candidateOnly']
+    finished = await native.invoke(scope, task, 'finish', {'actionId': 'finish-1'})
+    assert finished['observations'][0]['status'] == 'FAIL' and finished['observations'][0]['details']['findings'] == [finding]
+    assert finished['artifacts']  # the board is delivered with its errors so the user can ask for a fix of just those
+
+
+async def test_warnings_alone_leave_the_candidate_observation_unknown(gateway):
+    native, scope, task = gateway
+    warning = {'source': 'drc', 'severity': 'warning', 'kind': 'silk_overlap', 'message': 'text', 'items': []}
+    native.docker.tamper = lambda envelope: envelope['response'].get('result', {}).update(findings=[warning]) if (
+        envelope['actionId'] == 'build-1') else None
+    await patch(gateway)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+    assert built['observations'][0]['status'] == 'UNKNOWN' and built['observations'][0]['details']['findings'] == [warning]
+
+
+async def test_a_build_cannot_claim_a_generated_source_outside_the_scaffold_authority(gateway):
+    native, scope, task = gateway
+
+    def claim(envelope):
+        if envelope['actionId'] == 'build-1':
+            envelope['response']['result']['generatedSources'] = [{'path': 'model.py', 'sha256': 'b' * 64}]
+
+    native.docker.tamper = claim
+    await patch(gateway)
+    with pytest.raises(ValueError, match='generated a source outside its authority'):
+        await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+
+
+def routing_session(tmp_path, violations_by_run):
+    """A session whose DRC reports the scripted violation types per run and whose router output is numbered."""
     commands = []
 
     def execute(command, work, timeout, limits, application):
         commands.append(command)
-        if 'drc' in command and sum('drc' in value for value in commands) <= drc_failures:
-            raise RuntimeError('Found 1 unconnected items')
+        if 'drc' in command:
+            run = sum('drc' in value for value in commands)
+            kinds = violations_by_run[min(run, len(violations_by_run)) - 1]
+            (work / 'outputs').mkdir(exist_ok=True)
+            (work / 'outputs/drc.json').write_text(json.dumps({'violations': [
+                {'type': kind, 'severity': 'warning' if kind == 'track_dangling' else 'error', 'description': kind,
+                 'items': [{'description': 'Track', 'pos': {'x': 1, 'y': 2}}]} for kind in kinds], 'unconnected_items': []}))
+        if command[-1:] == ['finish']:
+            (work / 'build/pcb/board.kicad_pcb').write_bytes(b'routed %d' % sum(c[-1:] == ['finish'] for c in commands))
+            (work / 'outputs').mkdir(exist_ok=True)
+            (work / 'outputs/routing.json').write_text('{}')
         return 'ok'
 
     session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', execute)
@@ -1038,16 +1089,34 @@ def routing_session(tmp_path, drc_failures):
     return session, stage, commands
 
 
-def test_pcb_routing_restarts_from_the_authored_board_when_drc_fails(tmp_path):
-    session, stage, commands = routing_session(tmp_path, 1)
-    session._route(stage, b'authored board')
+def test_pcb_routing_restarts_from_the_authored_board_until_a_clean_result(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['unconnected_items'], []])
+    findings = session._route(stage, b'authored board')
+    assert findings == []
     assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 2
     assert sum(command[-1:] == ['prepare'] for command in commands) == 1
-    assert (stage / 'board.kicad_pcb').read_bytes() == b'authored board'
+    assert (stage / 'board.kicad_pcb').read_bytes() == b'routed 2'
 
 
-def test_pcb_routing_reports_the_last_failure_after_bounded_attempts(tmp_path):
-    session, stage, commands = routing_session(tmp_path, 99)
-    with pytest.raises(RuntimeError, match='unconnected'):
-        session._route(stage, b'authored board')
+def test_pcb_routing_keeps_the_cleanest_attempt_and_reports_what_remains(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['clearance'] * 3, ['clearance'] * 2, ['clearance'] * 5])
+    findings = session._route(stage, b'authored board')
     assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 3
+    assert [item['kind'] for item in findings] == ['clearance', 'clearance'] and has_errors(findings)
+    assert findings[0] | {'items': None} == {'source': 'drc', 'severity': 'error', 'kind': 'clearance', 'message': 'clearance',
+                                              'items': None, 'positionMm': [1, 2]}
+    assert (stage / 'board.kicad_pcb').read_bytes() == b'routed 2'  # the board of the second attempt is the one delivered
+    assert json.loads((tmp_path / 'work/outputs/drc.json').read_bytes())['violations'].__len__() == 2
+
+
+def test_pcb_dangling_router_stubs_are_pruned_not_reported(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['track_dangling'], []])
+    assert session._route(stage, b'authored board') == []
+    assert sum(command[-1:] == ['prune'] for command in commands) == 1
+    assert sum('drc' in command for command in commands) == 2 and sum('/opt/freerouting/freerouting.jar' in c for c in commands) == 1
+
+
+def test_pcb_warnings_are_findings_but_do_not_fail_the_board(tmp_path):
+    session, stage, _ = routing_session(tmp_path, [['track_dangling'] * 3])  # still dangling after three prune rounds
+    findings = session._route(stage, b'authored board')
+    assert len(findings) == 3 and not has_errors(findings)

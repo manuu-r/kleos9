@@ -18,7 +18,7 @@ WORKDIR /opt/kleos-native
 RUN mkdir -p kleos/execution && touch kleos/__init__.py kleos/execution/__init__.py
 COPY src/kleos/execution/protocol.py src/kleos/execution/native_runner.py src/kleos/execution/pcb_contract.py kleos/execution/
 COPY src/kleos/execution/web_bundle.py kleos/execution/
-COPY src/kleos/execution/bootstrap.py src/kleos/execution/result_reader.py src/kleos/execution/pcb_runner.py /opt/kleos-native/
+COPY src/kleos/execution/bootstrap.py src/kleos/execution/result_reader.py src/kleos/execution/pcb_runner.py src/kleos/execution/pcb_generate.py /opt/kleos-native/
 # libseccomp is mandatory, not an optional weakened local mode.
 RUN python -c "import ctypes; ctypes.CDLL('libseccomp.so.2')" \
     && test ! -e /app/kleos && test ! -e /workspace/kleos

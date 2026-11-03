@@ -12,6 +12,9 @@ NATIVE_MAX_SESSION_SECONDS = 4 * 3600
 MAX_FILE = 32 * 1024 * 1024
 MAX_SOURCES = 16 * 1024 * 1024
 MAX_RESULT = 64 * 1024 * 1024
+# Starter project the control plane seeds for a PCB job; the supervisor recognizes it by version and hash.
+PCB_SCAFFOLD_VERSION = 'pcb-contract-scaffold-v1'
+MAX_FINDINGS = 50
 
 
 def digest(value: bytes) -> str:

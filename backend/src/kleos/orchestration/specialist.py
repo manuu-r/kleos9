@@ -322,7 +322,9 @@ class ModelSpecialist:
             if result.artifacts:
                 # Files were published from a successful build: failures recorded earlier in the session (a patch
                 # rejected for a stale hash, a read of a missing file) were superseded and changed nothing.
-                for name in [name for name, check in observed.items() if check.status in {'FAIL', 'ERROR'}]:
+                # The published call's own findings are the point of publishing them, so they stay.
+                current = {observation.name for observation in result.observations}
+                for name in [name for name, check in observed.items() if check.status in {'FAIL', 'ERROR'} and name not in current]:
                     del observed[name]
             tool_blockers[tool.name] = result.blockers
             history.append({'tool': tool.name, 'result': result.model_dump(mode='json')})

@@ -75,7 +75,7 @@ explicit reconciliation; no lease timeout can prove a container is gone.
 | Capability | Sources | Candidate exports |
 | --- | --- | --- |
 | CAD | `model.py`, importing build123d, defines `parts: dict[str, Shape]` with 1–24 stable physical IDs. Other task-scoped source files may be imported explicitly. | Per-part STEP and STL plus `parts.json`; optional SVG projections. Manufacturing geometry remains in its actual assembly coordinates. |
-| PCB | `circuit.kicad_sch` and `board.kicad_pcb`, with all local libraries included in input closure. | Accepted circuit/reference validation, fixed offline DSN/Freerouting/SES routing, ERC/DRC, routed project ZIP, Gerbers and drills. All checks must complete without violations. |
+| PCB | `circuit.kicad_sch` and `board.kicad_pcb`, with all local libraries included in input closure. | Accepted circuit/reference validation, real-footprint board generation from the contract (pcbnew), fixed offline DSN/Freerouting/SES routing, ERC/DRC reported as findings (errors give status `FAIL` but the board is still published), routed project ZIP, Gerbers, drills and top/bottom renders. |
 | Firmware | Complete Zephyr app (`CMakeLists.txt`, `prj.conf`, `src/main.c` and any referenced sources). Explicit `interfaces.firmware.board`, allowed by the installation's qualification report. | `firmware.elf` and `firmware.bin`. Only `nrf52840dk/nrf52840` currently qualified; no implicit board, firmware execution or device flashing. |
 | Application | Complete Flutter project, including `pubspec.yaml`, `pubspec.lock`, `lib/main.dart`, web entry files and bundled assets. Dependencies must already exist in the pinned offline cache. | `companion-web.zip`. APK packaging is not implemented here. |
 

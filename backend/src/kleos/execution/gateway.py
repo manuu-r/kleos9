@@ -60,7 +60,7 @@ def export_path(lane, path):
     basename = path.removeprefix('outputs/')
     patterns = {
         'cad': r'(parts\.json|[A-Za-z0-9][A-Za-z0-9_-]{0,63}\.(step|stl|svg))',
-        'pcb': r'((erc|drc)\.(rpt|json)|routing\.json|pcb-project\.zip|circuit-contract\.json|netlist\.xml|routed\.kicad_(pcb|pro|dru)|gerbers/[A-Za-z0-9_.-]+\.(gbr|drl|gbrjob|map))',
+        'pcb': r'((erc|drc)\.(rpt|json)|routing\.json|pcb-project\.zip|circuit-contract\.json|netlist\.xml|routed\.kicad_(pcb|pro|dru)|findings\.json|render-(top|bottom)\.png|gerbers/[A-Za-z0-9_.-]+\.(gbr|drl|gbrjob|map))',
         'firmware': r'firmware\.(elf|bin)',
         'application': r'companion-web\.zip',
     }
@@ -537,14 +537,22 @@ class NativeGateway:
                         or observed.get('sha256') != digest(expected['content'].encode())
                         or job.source_manifest.get(expected['path']) != expected['expectedSha256']):
                     raise ValueError('Native patch acknowledgement differs from authorized input')
+            generated = [] if failed or action != 'build' else response['result'].get('generatedSources', [])
+            if generated and (job.request.get('scaffold') != pcb_scaffold.VERSION or job.request['lane'] != 'pcb'
+                              or [item.get('path') for item in generated] != ['board.kicad_pcb']
+                              or 'board.kicad_pcb' not in task.allowed_paths
+                              or not re.fullmatch(r'[a-f0-9]{64}', str(generated[0].get('sha256')))):
+                raise ValueError('Native build generated a source outside its authority')
             artifacts = await self._publish(scope, task, job, response, composition=composition) if action == 'finish' and not failed else []
+            findings = [] if failed else response['result'].get('findings', [])
             result = {'summary': (response.get('error', 'Native action failed') if failed
                                   else response.get('result', {}).get('summary', f'Native {action} completed'))[:12000],
                       'artifacts': artifacts,
-                      'observations': [{'name': 'native.' + action, 'status': 'ERROR' if failed else 'UNKNOWN',
+                      'observations': [{'name': 'native.' + action, 'status': 'ERROR' if failed else (
+                                            'FAIL' if any(item.get('severity') == 'error' for item in findings) else 'UNKNOWN'),
                                         'details': ({'error': response.get('error', '')[:12000], 'executionSucceeded': False,
                                                      'candidateOnly': True} if failed else
-                                                    {**{k: v for k, v in response['result'].items() if k != 'files'},
+                                                    {**{k: v for k, v in response['result'].items() if k not in {'files', 'generatedSources'}},
                                                      'executionSucceeded': True, 'candidateOnly': True}),
                                         'independent': False}], 'blockers': []}
             await self.repository.assert_active(scope)
@@ -557,6 +565,8 @@ class NativeGateway:
                 if action == 'patch' and not failed:
                     current.source_manifest = {**current.source_manifest,
                                                item['arguments']['path']: response['result']['sha256']}
+                if generated:
+                    current.source_manifest = {**current.source_manifest, generated[0]['path']: generated[0]['sha256']}
                 current.status = 'finished' if action == 'finish' and not failed else 'running'
             if action == 'finish' and not failed:
                 try:

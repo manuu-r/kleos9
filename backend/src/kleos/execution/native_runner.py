@@ -22,8 +22,10 @@ from kleos.execution.pcb_contract import circuit_contract
 from kleos.execution.protocol import (
     LANES,
     MAX_FILE,
+    MAX_FINDINGS,
     MAX_RESULT,
     MAX_SOURCES,
+    PCB_SCAFFOLD_VERSION,
     PROTOCOL,
     action_request,
     digest,
@@ -166,6 +168,7 @@ def restrict_sockets():
     library.seccomp_syscall_resolve_name.restype = ctypes.c_int
     library.seccomp_load.argtypes = [ctypes.c_void_p]
     library.seccomp_release.argtypes = [ctypes.c_void_p]
+
     class Comparison(ctypes.Structure):
         _fields_ = [('arg', ctypes.c_uint), ('op', ctypes.c_int),
                     ('datum_a', ctypes.c_uint64), ('datum_b', ctypes.c_uint64)]
@@ -294,9 +297,31 @@ def run_fixed(command, work, timeout, limits, application=False):
             reap_generated_processes()
 
 
+def report_findings(source, payload):
+    """Rule-check violations as bounded findings. A warning is shown but does not fail the board."""
+    if source == 'erc':
+        items = [item for sheet in payload.get('sheets', []) for item in sheet.get('violations', [])]
+    else:
+        items = [*payload.get('violations', []), *payload.get('unconnected_items', [])]
+    found = []
+    for item in items:
+        where = [part for part in item.get('items', []) if isinstance(part, dict)]
+        found.append({'source': source, 'severity': item.get('severity', 'error'), 'kind': str(item.get('type', 'violation'))[:64],
+                      'message': str(item.get('description', ''))[:300],
+                      'items': [str(part.get('description', ''))[:120] for part in where[:3]],
+                      **({'positionMm': [round(where[0]['pos']['x'], 2), round(where[0]['pos']['y'], 2)]}
+                         if where and isinstance(where[0].get('pos'), dict) else {})})
+    return found
+
+
+def has_errors(findings):
+    return any(item['severity'] == 'error' for item in findings)
+
+
 class NativeSession:
     """Private journal outside generated writable paths; failed observations never accept work."""
     def __init__(self, request, control: Path, work: Path, execute=run_fixed):
+        self.build_extra = {}
         if request.get('protocol') != PROTOCOL or request.get('lane') not in LANES:
             raise ValueError('Unsupported native protocol or lane')
         self.request, self.control, self.work, self.execute = request, control, work, execute
@@ -357,6 +382,7 @@ class NativeSession:
         shutil.rmtree(outputs)
         outputs.mkdir()
         lane = self.request['lane']
+        self.state['findings'], self.build_extra = [], {}
         if lane == 'cad':
             if 'model.py' not in self.state['sources']:
                 raise ValueError('CAD source contract requires model.py with parts mapping')
@@ -405,7 +431,12 @@ class NativeSession:
         for path in found:
             safe_file(self.work, output_path(path))
         self.state['outputs'], self.state['built'] = sorted(found), True
-        return {'summary': 'Native build completed; outputs are candidates', 'outputs': self.state['outputs']}
+        findings = self.state['findings']
+        summary = 'Native build completed; outputs are candidates'
+        if has_errors(findings):
+            summary += f'; {sum(item["severity"] == "error" for item in findings)} rule violations remain and are listed in findings'
+        return {'summary': summary, 'outputs': self.state['outputs'], **({'findings': findings} if findings else {}),
+                **self.build_extra}
 
     def _rule_check(self, command, report):
         try:
@@ -415,11 +446,21 @@ class NativeSession:
             details = safe_file(self.work, report).read_bytes()[:16000].decode(errors='replace') if path.exists() else ''
             raise RuntimeError(str(error) + '\nRule-check report: ' + details) from error
 
+    def _drc(self):
+        """Check the routed board and drop router stubs; what remains is reported, never raised."""
+        for round_ in range(3):
+            self._command(['kicad-cli', 'pcb', 'drc', '--format', 'json', '--output', 'outputs/drc.json', 'build/pcb/board.kicad_pcb'])
+            report = json.loads(safe_file(self.work, 'outputs/drc.json').read_bytes())
+            if round_ == 2 or not any(item.get('type') in {'track_dangling', 'via_dangling'} for item in report.get('violations', [])):
+                return report_findings('drc', report)
+            self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'prune'])
+
     def _route(self, stage, source_board):
+        best = None
         for attempt in range(ROUTING_ATTEMPTS):
-            # The autorouter is multithreaded and not deterministic: one run may leave a net unconnected or a
-            # dangling track that another run of the same board avoids. Each attempt restarts from the
-            # authored board, and only the last attempt's rule-check failure is reported.
+            # The autorouter is multithreaded and not deterministic: one run may leave a net unconnected that another
+            # run of the same board avoids. Each attempt restarts from the authored board and the cleanest result is
+            # kept, so a board that cannot be routed perfectly is still delivered together with what is wrong.
             if attempt:
                 (stage / 'board.kicad_pcb').write_bytes(source_board)
                 self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'prepare'])
@@ -428,13 +469,41 @@ class NativeSession:
                            '-de', 'build/pcb/board.dsn', '-do', 'build/pcb/board.ses', '-da', '-mp', '20', '-mt', '2',
                            '--gui.enabled=false', '--api_server.enabled=false', '--router.job_timeout=00:02:00'])
             self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'finish'])
-            try:
-                self._rule_check(['kicad-cli', 'pcb', 'drc', '--exit-code-violations', '--format', 'json',
-                               '--output', 'outputs/drc.json', 'build/pcb/board.kicad_pcb'], 'outputs/drc.json')
-                return
-            except RuntimeError:
-                if attempt == ROUTING_ATTEMPTS - 1 or self._remaining() < ROUTING_RETRY_SECONDS:
-                    raise
+            findings = self._drc()
+            score = sum(item['severity'] == 'error' for item in findings)
+            if best is None or score < best[0]:
+                best = (score, findings, *[safe_file(self.work, name).read_bytes() for name in
+                                           ('build/pcb/board.kicad_pcb', 'outputs/drc.json', 'outputs/routing.json')])
+            if not score or attempt == ROUTING_ATTEMPTS - 1 or self._remaining() < ROUTING_RETRY_SECONDS:
+                break
+        for name, content in zip(('build/pcb/board.kicad_pcb', 'outputs/drc.json', 'outputs/routing.json'), best[2:], strict=True):
+            self._write(name, content)
+        return best[1]
+
+    def _generate_board(self, accepted):
+        """Replace the untouched starter board with one built from KiCad's real footprints (pcbnew, no model involved)."""
+        seeded = {item['path']: item['sha256'] for item in self.request['sources']}
+        if (self.request.get('scaffold') != PCB_SCAFFOLD_VERSION or 'board.kicad_pcb' not in self.request['allowedPaths']
+                or self.state['sources'].get('board.kicad_pcb') != seeded.get('board.kicad_pcb')):
+            return []
+        (self.work / 'build').mkdir(exist_ok=True)
+        (self.work / 'build/generate-contract.json').write_text(json.dumps(accepted))
+        generated = self.work / 'build/generated'
+        if generated.exists():
+            shutil.rmtree(generated)
+        try:
+            self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_generate.py',
+                           'build/generate-contract.json', '.', 'build/generated'])
+        except RuntimeError as error:
+            return [{'source': 'generator', 'severity': 'warning', 'kind': 'generic_footprints',
+                     'message': 'Real footprints could not be placed, so the generic starter board is used: ' + str(error)[-300:]}]
+        board = safe_file(self.work, 'build/generated/board.kicad_pcb').read_bytes()
+        meta = json.loads(safe_file(self.work, 'build/generated/generated.json').read_bytes())
+        self._write('board.kicad_pcb', board)
+        self.state['sources']['board.kicad_pcb'] = digest(board)
+        self.build_extra['generatedSources'] = [{'path': 'board.kicad_pcb', 'sha256': digest(board)}]
+        self.build_extra['generated'] = {key: meta[key] for key in ('version', 'widthMm', 'heightMm', 'library')}
+        return [item for item in meta['findings'] if isinstance(item, dict)]
 
     def _pcb_build(self):
         accepted = circuit_contract(self.request.get('circuitContract'), self.request.get('peripheralConceptIds'))
@@ -444,6 +513,7 @@ class NativeSession:
             raise ValueError('PCB contract requires circuit.kicad_sch and board.kicad_pcb')
         if digest(Path('/opt/freerouting/freerouting.jar').read_bytes()) != '2c07d58f75dac03782664081e7a58b41c25400d871a9fcf166a2ea6fe60d5def':
             raise ValueError('Freerouting dependency differs from the qualified installation')
+        findings = self._generate_board(accepted)
         stage = self.work / 'build/pcb'
         if stage.exists():
             shutil.rmtree(stage)
@@ -454,6 +524,12 @@ class NativeSession:
                 target = stage / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(safe_file(self.work, name).read_bytes())
+        library = self.work / 'build/generated/files'
+        if self.build_extra.get('generated'):  # the board carries the real footprints, so the staged libraries must too
+            for file in sorted(library.rglob('*.kicad_mod')):
+                relative = str(file.relative_to(library))
+                if (stage / relative).exists():
+                    (stage / relative).write_bytes(safe_file(library, relative).read_bytes())
         contract_data = {'circuitContract': accepted, 'peripheralConceptIds': self.request['peripheralConceptIds']}
         (self.work / 'build/pcb-contract.json').write_text(json.dumps(contract_data))
         limits = accepted['constraints']
@@ -469,9 +545,19 @@ class NativeSession:
         self._command(['kicad-cli', 'sch', 'export', 'netlist', '--format', 'kicadxml',
                        '--output', 'build/pcb/netlist.xml', 'build/pcb/circuit.kicad_sch'])
         self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'prepare'])
-        self._rule_check(['kicad-cli', 'sch', 'erc', '--exit-code-violations', '--format', 'json',
-                       '--output', 'outputs/erc.json', 'build/pcb/circuit.kicad_sch'], 'outputs/erc.json')
-        self._route(stage, safe_file(self.work, 'board.kicad_pcb').read_bytes())
+        self._command(['kicad-cli', 'sch', 'erc', '--format', 'json', '--output', 'outputs/erc.json', 'build/pcb/circuit.kicad_sch'])
+        findings += report_findings('erc', json.loads(safe_file(self.work, 'outputs/erc.json').read_bytes()))
+        findings += self._route(stage, safe_file(self.work, 'board.kicad_pcb').read_bytes())
+        for side in ('top', 'bottom'):
+            try:
+                self._command(['kicad-cli', 'pcb', 'render', '--side', side, '--width', '1600', '--height', '900', '--quality', 'basic',
+                               '--background', 'opaque', '--output', f'outputs/render-{side}.png', 'build/pcb/board.kicad_pcb'])
+            except RuntimeError as error:
+                findings.append({'source': 'render', 'severity': 'warning', 'kind': 'render_unavailable',
+                                 'message': f'The {side} preview could not be rendered: ' + str(error)[-200:]})
+        self.state['findings'] = findings[:MAX_FINDINGS]
+        self._write('outputs/findings.json', json.dumps({'findings': self.state['findings'], 'truncated': len(findings) > MAX_FINDINGS,
+                                                         **self.build_extra.get('generated', {})}, sort_keys=True).encode())
         self._command(['kicad-cli', 'pcb', 'export', 'gerbers', '--output', 'outputs/gerbers/',
                        '--no-protel-ext', '--layers', 'F.Cu,B.Cu,F.Mask,B.Mask,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,Edge.Cuts',
                        'build/pcb/board.kicad_pcb'])
@@ -556,7 +642,8 @@ class NativeSession:
             files.append({'path': path, 'contentBase64': base64.b64encode(raw).decode(), 'sha256': digest(raw),
                           'size': len(raw), 'role': 'source' if path in self.state['sources'] else 'output'})
         self.state['finished'] = True
-        return {'summary': 'Native candidate files collected', 'files': files, 'checks': []}
+        return {'summary': 'Native candidate files collected', 'files': files, 'checks': [],
+                **({'findings': self.state['findings']} if self.state.get('findings') else {})}
 
     def apply(self, value):
         item = action_request(value)

@@ -72,21 +72,25 @@ PCB source contract (KiCad 9, two copper layers). The accepted circuit contract 
 reference with its Value, Footprint and a net for each pin; it is authoritative and is checked exactly. The server
 has already turned that connection table into a starter project in the workspace, so do not write KiCad from
 scratch: `circuit.kicad_sch` (each reference once, pins numbered by the contract's pin keys, every net a global
-label), `board.kicad_pcb` (footprints placed inside the outline, pads numbered by pin key and assigned to the
-contract's nets), and local libraries (`sym-lib-table`, `fp-lib-table`, `project.kicad_sym`,
-`<Lib>.pretty/*.kicad_mod`). Its footprints are plain numbered pads, not vendor geometry.
+label), `board.kicad_pcb`, and local libraries (`sym-lib-table`, `fp-lib-table`, `project.kicad_sym`,
+`<Lib>.pretty/*.kicad_mod`). While `board.kicad_pcb` is still the starter, the first `build` replaces it with a real
+board: footprints from KiCad's own library (real pads, silkscreen, courtyards; a footprint the library lacks keeps
+the generic starter pads and is reported), placed by connectivity with connectors at the edge, inside a rounded
+outline, all by script, so you never author placement for the sake of appearance.
 
 Your work, in this order: (1) `build`, which compares the netlist and board to the contract, runs ERC, routes with
-the offline router, runs DRC and exports Gerbers; a result of "Native build completed" means every one of those
-passed, and an unchanged project gives the same result, so do not rebuild it: edit, or finish. Otherwise read the
-real rule-check report. (2) Change the placement only for a concrete requirement the brief states that a
-generator cannot know (for example a button, port or antenna that must sit at an edge or corner); the starter is
-otherwise acceptable, so finish. To move a footprint, `read` just its block in a small window (a footprint block is about 1-2 KB
-and starts at its `(footprint` line), `patch` that file with the file's current sha256, and keep every
-footprint inside the outline.  (3) Repair only the observed cause of any error and rebuild. Never change a
-reference, value, footprint, pad number, net or net name, never add or remove components, and keep the outline
-within the contract's maximum size. Library files are inputs and are not editable. Report assumptions you could
-not check, such as real footprint geometry, as UNKNOWN in the finish summary.'''
+the offline router, removes dangling stubs, runs DRC, exports Gerbers and renders top and bottom previews. The result
+lists `findings` (ERC and DRC violations, unconnected nets, footprint fallbacks). An unchanged project gives the same
+result, so do not rebuild it: edit, or finish. (2) Change the placement only for a concrete requirement the brief
+states that a generator cannot know (for example a button, port or antenna that must sit at an edge or corner). To
+move a footprint, `read` just its block in a small window (a footprint block starts at its `(footprint` line),
+`patch` `board.kicad_pcb` with its current sha256, and keep every footprint inside the outline. (3) Repair an
+observed cause only when a small `patch` clearly fixes it, then rebuild once. When findings remain, still call
+`finish`: the board, its previews and the findings are published so the user can see exactly what is wrong and ask
+for a fix of just that; never hide a finding and never edit a reference, value, footprint, pad number, net or net
+name, add or remove components, or exceed the contract's maximum size. Library files are inputs and are not
+editable. Report assumptions you could not check, such as the footprints' electrical suitability, as UNKNOWN in the
+finish summary.'''
 
 
 GUIDES = {'cad': CAD}
