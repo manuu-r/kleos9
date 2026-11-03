@@ -312,7 +312,11 @@ class DesignService:
                 from kleos.projects.interfaces import baseline
                 run.data = {**run.data, 'kind': 'project.solveInterfaces',
                     'objective': 'Propose the circuit interface needed for the approved electronic peripheral concept IDs. '
-                        'Include firmware only if requested by the project. All choices require user review: ' + project.data['brief'],
+                        'Include firmware only if requested by the project. Choose every part, footprint and pin-to-net map yourself '
+                        'from common, available components that fit the approved concept and the user answers, and record '
+                        'each choice as an assumption for the user to review; ask a question only when a requirement '
+                        'cannot be derived at all, never for part numbers you can select. All choices require user '
+                        'review: ' + project.data['brief'],
                     'interfaceRequest': {'baselineHash': baseline(project), 'previousCandidate': None}}
             self.projects._emit(session, project, 'concept.confirmed', {'sceneHash': scene_hash, 'runId': run_id})
             return {'projectId': project.id, 'runId': run_id, 'revision': project.revision}

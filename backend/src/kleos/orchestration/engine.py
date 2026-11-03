@@ -6,9 +6,10 @@ from typing import Any, Awaitable, Callable, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from kleos.contracts.models import (
+    MAX_COMPUTE_BUDGET_SECONDS,
     Actor,
     ArtifactRef,
     DomainError,
@@ -29,7 +30,7 @@ class RunScope(WireModel):
     deadline_at: datetime
     max_plan_calls: int = Field(default=8, ge=1, le=32)
     max_tasks: int = Field(default=32, ge=1, le=128)
-    compute_budget_seconds: int | None = Field(default=None, ge=1, le=7200)
+    compute_budget_seconds: int | None = Field(default=None, ge=1, le=MAX_COMPUTE_BUDGET_SECONDS)
 
     @property
     def thread_id(self):
@@ -42,6 +43,14 @@ class PlanDecision(WireModel):
     question: str | None = Field(default=None, max_length=4000)
     done: bool = False
     summary: str = Field(default='', max_length=4000)
+
+    @field_validator('question', mode='before')
+    @classmethod
+    def _no_question_placeholder(cls, value):
+        # Models sometimes spell an absent optional field as text; it must not pause the run.
+        if isinstance(value, str) and value.strip().lower() in {'', 'null', 'none', 'n/a'}:
+            return None
+        return value
 
 
 class Repository(Protocol):
@@ -85,8 +94,11 @@ class GraphState(TypedDict, total=False):
 
 class ObjectiveEngine:
     def __init__(self, repository: Repository, planner: Planner, specialist: Specialist, *,
-                 checkpointer, store=None, concurrency=4, external_waits=None, composition=None, prerequisites=None):
+                 checkpointer, store=None, concurrency=4, external_waits=None, composition=None, prerequisites=None,
+                 task_closed=None):
         self.repository, self.planner, self.specialist = repository, planner, specialist
+        # Called with (scope, task_id) when a task ends without finishing, so it can release what it holds.
+        self.task_closed = task_closed
         self.external_waits = external_waits
         self.composition = composition
         self.prerequisites = prerequisites
@@ -150,10 +162,25 @@ class ObjectiveEngine:
         decision = PlanDecision.model_validate(await self.repository.run_once(scope, f'plan:{turn}', call))
         await self._guard(scope)
         tasks = dict(state.get('tasks', {}))
+        replacements = {**state.get('superseded', {}), **decision.supersedes}
+
+        def resolved(raw):
+            # Dependents follow a supersession automatically (see _effective_tasks), so naming the
+            # replacement in depends_on is the same task, not a rewrite.
+            def follow(key):
+                for _ in range(len(replacements) + 1):
+                    if key not in replacements:
+                        break
+                    key = replacements[key]
+                return key
+            return {**raw, 'depends_on': [follow(d) for d in raw['depends_on']]}
+
         for task in decision.tasks:
             encoded = task.model_dump(mode='json')
             if task.id in tasks and tasks[task.id] != encoded:
-                raise DomainError('A task identity cannot be rewritten; create a dependent repair task', 'task_conflict')
+                if resolved(tasks[task.id]) != resolved(encoded):
+                    raise DomainError('A task identity cannot be rewritten; create a dependent repair task', 'task_conflict')
+                continue
             tasks[task.id] = encoded
         results = state.get('results', {})
         superseded = dict(state.get('superseded', {}))
@@ -399,6 +426,11 @@ class ObjectiveEngine:
                     raise DomainError('Only waiting tasks can carry external waits', 'wait_scope')
                 await self._guard(scope)
                 await self.repository.publish(scope, result)
+                if self.task_closed is not None and result.status not in {TaskStatus.SUCCEEDED, TaskStatus.WAITING}:
+                    try:
+                        await self.task_closed(scope, task.id)
+                    except Exception:  # noqa: BLE001 - maintenance reconciles anything this could not release
+                        pass
                 return task.id, result.model_dump(mode='json')
         ready = self._ready(self._effective_tasks(state['tasks'], state.get('superseded', {})),
                             state.get('results', {}))

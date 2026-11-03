@@ -18,6 +18,7 @@ from kleos.artifacts.service import Artifact, NativePublication
 from kleos.contracts.models import Actor, DomainError, TaskResult, TaskSpec
 from kleos.execution.composition import NativeComposition
 from kleos.execution.native_runner import atomic_json
+from kleos.execution.pcb_scaffold import scaffold
 from kleos.execution.protocol import PROTOCOL, digest, fingerprint
 from kleos.projects.composition_results import CompositionResults
 from kleos.projects.store import Objective, Project
@@ -76,10 +77,14 @@ async def preview_composition(composed):
     await service.repository.publish_plan(scope, tasks=[*tasks, pcb], superseded={}, turn=1, summary='Fixture PCB', question=None)
     service.gateway.settings = replace(service.gateway.settings, images={**service.gateway.settings.images, 'pcb': 'sha256:'+'c'*64})
     service.gateway.docker = PreviewDocker()
+    # A PCB job starts from the server-derived starter board, so replacing it needs that file's real hash.
+    starter = digest(scaffold(accepted_circuit())['board.kicad_pcb'].encode())
     await service.gateway.invoke(scope, pcb, 'patch', {'actionId': 'patch', 'path': 'board.kicad_pcb',
-        'content': BOARD.decode(), 'expectedSha256': None})
+        'content': BOARD.decode(), 'expectedSha256': starter})
     await service.gateway.invoke(scope, pcb, 'build', {'actionId': 'build'})
     result = await service.gateway.invoke(scope, pcb, 'finish', {'actionId': 'finish'})
+    # The generated starter files (library tables, symbols, footprints) are published with the board's sources.
+    assert {'sym-lib-table', 'fp-lib-table', 'project.kicad_sym'} <= {ref['path'] for ref in result['artifacts']}
     await service.repository.publish(scope, TaskResult(task_id=pcb.id, status='succeeded', summary='Fixture', artifacts=result['artifacts']))
     authored = {**authored, 'pcb': result['artifacts']}
     grant = service.freeze(scope)

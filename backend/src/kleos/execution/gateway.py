@@ -13,6 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from kleos.artifacts.service import Artifact
 from kleos.contracts.models import DomainError
+from kleos.execution import pcb_scaffold
 from kleos.execution.native_runner import atomic_json, safe_file
 from kleos.execution.pcb_contract import circuit_contract
 from kleos.execution.protocol import (
@@ -20,6 +21,7 @@ from kleos.execution.protocol import (
     MAX_FILE,
     MAX_RESULT,
     MAX_SOURCES,
+    NATIVE_MAX_SESSION_SECONDS,
     PROTOCOL,
     action_request,
     digest,
@@ -69,7 +71,7 @@ def export_path(lane, path):
 
 def original_duration(request):
     values = [request[key] for key in ('durationSeconds', 'sessionSeconds') if key in request]
-    if not values or any(not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= 1800
+    if not values or any(not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= NATIVE_MAX_SESSION_SECONDS
                          for value in values):
         raise DomainError('Original native duration contract is missing or invalid', 'native_history_missing')
     return min(values)
@@ -80,6 +82,40 @@ def capacity_resources(request):
     resources = dict(request['resources'])
     resources['scratchBytes'] += 128 * 1024**2
     return resources
+
+
+def starter_paths(job):
+    """Paths of the starter files the server generated for this job, each reproduced from its pinned contract."""
+    if job.request.get('scaffold') != pcb_scaffold.VERSION or 'circuitContract' not in job.request:
+        return set()
+    starter = pcb_scaffold.scaffold(job.request['circuitContract'])
+    return {item['path'] for item in job.request.get('sources', []) if not item.get('artifactId')
+            and item['path'] in starter and digest(starter[item['path']].encode()) == item['sha256']}
+
+
+def artifact_inputs(session, job):
+    """The artifact-backed task inputs of a producer job, after verifying every other source.
+
+    A source without an artifact is legitimate only when it can be reproduced: a starter file must equal the
+    scaffold regenerated from the job's pinned circuit contract, and a resumed file must match what the job it
+    continues recorded. Anything else means the producer's inputs are not what its plan authorized.
+    """
+    inputs, starter = [], None
+    for item in job.request.get('sources', []):
+        if item.get('artifactId'):
+            inputs.append(item)
+            continue
+        path, checksum = item['path'], item['sha256']
+        if job.request.get('scaffold') == pcb_scaffold.VERSION and 'circuitContract' in job.request:
+            if starter is None:
+                starter = pcb_scaffold.scaffold(job.request['circuitContract'])
+            if path in starter and digest(starter[path].encode()) == checksum:
+                continue
+        prior = session.get(NativeJob, job.request['resumeOf']) if job.request.get('resumeOf') else None
+        if prior is not None and path in job.request.get('resumedSourcePaths', []) and prior.source_manifest.get(path) == checksum:
+            continue
+        raise DomainError('Native producer input provenance changed', 'composition_input_unverified')
+    return inputs
 
 
 class NativeGateway:
@@ -144,7 +180,7 @@ class NativeGateway:
             if existing:
                 if existing.task_hash != task_hash:
                     raise DomainError('Native task contract changed during replay', 'task_conflict')
-                return existing
+                return self._latest_attempt(session, scope, task, ident, existing)
             firmware_target = None
             if task.capability.value == 'firmware':
                 firmware_target = project.data.get('interfaces', {}).get('firmware')
@@ -192,6 +228,25 @@ class NativeGateway:
                 sources.append({'path': name, 'sha256': digest(raw), 'artifactId': row.id,
                                 'contentBase64': base64.b64encode(raw).decode()})
                 seen.add(name)
+            scaffolded = False
+            if accepted_circuit is not None and circuit_identity['mode'] == 'approved_concept':
+                # The contract already names every part, pin and net, so the starter project is derived from it
+                # mechanically rather than asked of a model; explicit task inputs win over a generated file.
+                try:
+                    starter = pcb_scaffold.scaffold(accepted_circuit)
+                except (ValueError, KeyError):
+                    starter = {}
+                for path, text in starter.items():
+                    if path in seen:
+                        continue
+                    raw = text.encode()
+                    total += len(raw)
+                    if len(raw) > MAX_FILE or total > MAX_SOURCES or len(sources) >= 50:
+                        raise DomainError('Native input closure exceeds its bound', 'artifact_limit')
+                    self.artifacts.blobs.put(raw)  # exact input bytes must survive, like every authorized input
+                    sources.append({'path': path, 'sha256': digest(raw), 'contentBase64': base64.b64encode(raw).decode()})
+                    seen.add(path)
+                    scaffolded = True
             baselines = {}
             manifest = project.data.get('sourceManifest', {})
             for path in task.allowed_paths:
@@ -213,6 +268,8 @@ class NativeGateway:
             if firmware_target is not None:
                 request.update(board=firmware_target['board'], firmwareTarget=dict(firmware_target),
                                firmwareTargetHash=fingerprint(firmware_target))
+            if scaffolded:
+                request['scaffold'] = pcb_scaffold.VERSION
             if accepted_circuit is not None:
                 request.update(circuitContract=accepted_circuit, peripheralConceptIds=peripheral_ids,
                                circuitContractHash=fingerprint(accepted_circuit), acceptedCircuitIdentity=circuit_identity)
@@ -222,6 +279,52 @@ class NativeGateway:
                             active_action=None)
             session.add(job)
             return job
+
+    @staticmethod
+    def _attempt_ident(ident, attempt):
+        return ident if attempt == 1 else fingerprint({'job': ident, 'attempt': attempt})
+
+    def _latest_attempt(self, session, scope, task, ident, first):
+        """The task's current native job; a closed one with a confirmed-stopped container is continued.
+
+        Progress is never discarded: the continuation starts from the exact bytes every successful patch left in
+        the immutable blob store, so a retry after a timeout or a block resumes the work instead of redoing it.
+        """
+        job, attempt = first, 1
+        while (following := session.get(NativeJob, self._attempt_ident(ident, attempt + 1))) is not None:
+            job, attempt = following, attempt + 1
+        if job.status not in {'failed', 'cancelled'} or job.active_action is not None:
+            return job
+        proof = session.get(NativeAction, (job.id, '_termination'))
+        if (proof is None or proof.status != 'completed' or proof.request_hash != job.request_hash
+                or proof.result != {'kind': 'termination-proof', 'jobId': job.id, 'containerStopped': True}):
+            return job
+        if session.scalar(select(NativeAction.job_id).where(
+                NativeAction.job_id == job.id, NativeAction.status != 'completed',
+                NativeAction.action_id.not_in(('_dispatch', '_termination', '_cleanup'))).limit(1)) is not None:
+            return job
+        sources, total = [], 0
+        original = {item['path']: item for item in job.request['sources']}
+        for path, checksum in sorted(job.source_manifest.items()):
+            source_path(path)
+            raw = self.artifacts.blobs.get(checksum)
+            total += len(raw)
+            if total > MAX_SOURCES or len(sources) >= 50:
+                raise DomainError('Native resume source closure exceeds bounds', 'artifact_limit')
+            kept = original.get(path)
+            sources.append(copy.deepcopy(kept) if kept is not None and kept['sha256'] == checksum else
+                           {'path': path, 'sha256': checksum, 'contentBase64': base64.b64encode(raw).decode()})
+        resumed = sorted(item['path'] for item in sources
+                         if 'artifactId' not in item and item['path'] in task.allowed_paths)
+        request = {**copy.deepcopy(job.request), 'jobId': self._attempt_ident(ident, attempt + 1),
+                   'revision': scope.revision, 'sources': sources, 'resumeOf': job.id, 'resumeAttempt': attempt + 1,
+                   'resumedSourcePaths': resumed, 'sessionSeconds': self.settings.session_seconds,
+                   'deadline': min(scope.deadline_at.timestamp(), time.time() + self.settings.session_seconds)}
+        continued = NativeJob(id=request['jobId'], project_id=job.project_id, run_id=job.run_id, task_id=job.task_id,
+                              task_hash=job.task_hash, request_hash=fingerprint(request), request=request,
+                              status='pending', source_manifest=dict(job.source_manifest), active_action=None)
+        session.add(continued)
+        return continued
 
     def _claim(self, scope, job, action):
         with self.projects.transaction() as session:
@@ -291,7 +394,12 @@ class NativeGateway:
 
     async def _publish(self, scope, task, job, response, *, composition=None):
         files, seen, source_names, total = [], set(), set(), 0
-        originals = {item['path']: item['sha256'] for item in job.request['sources']}
+        resumed = set(job.request.get('resumedSourcePaths', []))
+        # Starter files the server generated from the accepted contract belong to this task's authored closure: later
+        # compilation needs them (library tables, symbols, footprints), and no earlier artifact holds them.
+        generated = ({item['path'] for item in job.request['sources'] if 'artifactId' not in item}
+                     if job.request.get('scaffold') else set())
+        originals = {item['path']: item['sha256'] for item in job.request['sources'] if item['path'] not in resumed}
         result = response['result']
         if not isinstance(result.get('files'), list) or not 1 <= len(result['files']) <= 256:
             raise ValueError('Native finish requires a bounded file manifest')
@@ -312,7 +420,8 @@ class NativeGateway:
                 if path not in task.allowed_paths:
                     if originals.get(path) != digest(raw):
                         raise ValueError('Native source changed outside task authority')
-                    continue
+                    if path not in generated:
+                        continue  # an existing input is already an artifact of this project
             elif role == 'output':
                 export_path(job.request['lane'], path)
             else:
@@ -326,6 +435,10 @@ class NativeGateway:
             raise ValueError('Native finish produced no outputs')
         provenance = {'nativeJobId': job.id, 'imageDigest': job.request['imageDigest'],
                       'requestHash': job.request_hash, 'inputs': originals, 'resources': job.request['resources']}
+        if job.request.get('scaffold'):
+            provenance['scaffold'] = job.request['scaffold']
+        if job.request.get('resumeOf'):
+            provenance.update(resumeOf=job.request['resumeOf'], resumeAttempt=job.request['resumeAttempt'])
         if job.request.get('rebuildOf'):
             provenance.update(rebuildOf=job.request['rebuildOf'],
                               rebuildRootJobId=job.request['rebuildRootJobId'],
@@ -340,7 +453,9 @@ class NativeGateway:
         else:
             if composition is not None:
                 raise DomainError('Compilation cannot publish through an ordinary native job', 'composition_conflict')
-            refs = await self.publisher(scope, task, files, provenance)
+            # The generated starter files are published with this task's sources, so they join its publication scope.
+            published = task.model_copy(update={'allowed_paths': sorted({*task.allowed_paths, *generated})}) if generated else task
+            refs = await self.publisher(scope, published, files, provenance)
         return [ref.model_dump(mode='json', by_alias=True) for ref in refs]
 
     async def invoke(self, scope, task, action, arguments):
@@ -460,6 +575,24 @@ class NativeGateway:
             except Exception:
                 pass  # Durable failed job is discoverable by reconciliation.
             raise
+
+    async def close_task(self, scope, task_id):
+        """Release the native jobs of a task that ended without finishing.
+
+        A blocked or failed task must not keep its container, and the shared capacity it reserves, until the
+        session deadline. Its saved sources stay in the blob store, so a retry continues them on a new job.
+        """
+        with self.projects.transaction() as session:
+            idle = [job.id for job in session.scalars(select(NativeJob).where(
+                NativeJob.run_id == scope.run_id, NativeJob.task_id == task_id,
+                NativeJob.status.in_({'pending', 'running'}), NativeJob.active_action.is_(None)))]
+            for ident in idle:
+                session.get(NativeJob, ident).status = 'cancelled'
+        for ident in idle:
+            with self.projects.transaction() as session:
+                job = session.get(NativeJob, ident)
+            (self._directory(job) / 'cancel').touch(mode=0o600)
+            await self._confirm_termination(ident)
 
     def rebuild_snapshot(self, session, actor, job):
         """Server-only admission: exact trusted source bytes, never inferred from a lost container."""

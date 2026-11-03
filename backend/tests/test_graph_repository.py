@@ -65,3 +65,29 @@ async def test_cancellation_fences_publication_even_after_effect(repository):
         await repo.run_once(scope, "one", effect)
     with pytest.raises(DomainError):
         await repo.assert_active(scope)
+
+
+async def test_settled_model_failure_releases_its_claim_but_other_failures_stay_uncertain(repository):
+    repo, scope = repository
+    calls = []
+
+    async def rejected():
+        calls.append("rejected")
+        raise DomainError("Model returned an invalid action", "model_response_invalid", 502)
+
+    async def recovered():
+        calls.append("recovered")
+        return {"observed": "result"}
+
+    with pytest.raises(DomainError, match="invalid action"):
+        await repo.run_once(scope, "model", rejected)
+    assert await repo.run_once(scope, "model", recovered) == {"observed": "result"}
+    assert calls == ["rejected", "recovered"]
+
+    async def lost():
+        raise DomainError("Model request outcome is uncertain", "model_uncertain", 502)
+
+    with pytest.raises(DomainError, match="uncertain"):
+        await repo.run_once(scope, "other", lost)
+    with pytest.raises(DomainError, match="reconciliation"):
+        await repo.run_once(scope, "other", recovered)

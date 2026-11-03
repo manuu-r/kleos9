@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from kleos.execution.protocol import MAX_RESULT, PROTOCOL
+from kleos.execution.protocol import MAX_RESULT, NATIVE_MAX_SESSION_SECONDS, PROTOCOL
 from kleos.execution.security import daemon_socket_profile
 
 
@@ -50,7 +50,7 @@ class NativeSettings:
             raise ValueError('Firmware board allowlist contains an unsupported target')
         if any(not re.fullmatch(r'sha256:[a-f0-9]{64}', image) for image in self.images.values()):
             raise ValueError('Native images must be pinned immutable Docker image IDs')
-        if not 1 <= self.session_seconds <= 1800 or not .01 <= self.poll_seconds <= 5:
+        if not 1 <= self.session_seconds <= NATIVE_MAX_SESSION_SECONDS or not .01 <= self.poll_seconds <= 5:
             raise ValueError('Native time bounds are invalid')
 
 

@@ -3,6 +3,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import logging
 from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, Literal
@@ -22,6 +23,8 @@ from kleos.contracts.models import DomainError, WireModel
 from kleos.orchestration.observability import model_task
 from kleos.projects.graph_repository import GraphRepository
 from kleos.projects.store import Base, Objective, fingerprint
+
+logger = logging.getLogger(__name__)
 
 
 class ModelConfiguration(WireModel):
@@ -77,6 +80,9 @@ class ModelAttempt(Base):
     run_id: Mapped[str] = mapped_column(String(36), index=True)
     status: Mapped[str] = mapped_column(String(30))
     data: Mapped[dict] = mapped_column(JSON)
+
+
+AUTO_ONLY_TOOL_CHOICE_PROVIDERS = frozenset({'meta'})
 
 
 def _price(config, input_tokens, output_tokens):
@@ -185,6 +191,13 @@ class ModelGateway:
             raise DomainError('Model output exceeds the configured allowance', 'model_budget_exhausted')
         body = {'model': config.model, 'messages': wire, 'max_tokens': limit, 'stream': False}
         if tools:
+            # Meta's API returns 400 for any tool_choice other than "auto"; typed output still
+            # fails closed because the structured-output parser requires the tool call.
+            if config.provider in AUTO_ONLY_TOOL_CHOICE_PROVIDERS:
+                tool_choice = 'auto'
+                # Without a forced call the model may answer in prose, which carries no typed output.
+                body['messages'] = [*wire, {'role': 'system', 'content': 'Reply only by calling the provided '
+                                    'function once with complete arguments; do not answer in prose.'}]
             body.update(tools=tools, tool_choice=tool_choice or 'auto')
         if stop:
             body['stop'] = stop
@@ -292,6 +305,11 @@ class ModelGateway:
                for key in ('prompt_tokens', 'completion_tokens')):
             usage = {'input_tokens': reported['prompt_tokens'], 'output_tokens': reported['completion_tokens'],
                      'total_tokens': reported['prompt_tokens'] + reported['completion_tokens']}
+        if not calls or any(not call['args'] for call in calls):
+            # Shape only (never content): replies without a usable function call are diagnosed from this.
+            logger.warning('provider reply without usable function call: finish=%s calls=%d content_chars=%d '
+                           'usage=%s', choice['finish_reason'], len(calls), len(message.get('content') or ''),
+                           payload.get('usage'))
         # Do not retain provider reasoning fields or raw response objects.
         result = AIMessage(content=message.get('content') or '', tool_calls=calls, usage_metadata=usage,
                            response_metadata={'finish_reason': choice['finish_reason']})

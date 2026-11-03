@@ -33,6 +33,8 @@ from kleos.execution.protocol import (
 )
 
 UID = 10001
+ROUTING_ATTEMPTS = 3
+ROUTING_RETRY_SECONDS = 300
 CAD_BUILD = '''import json,runpy,re,sys
 from pathlib import Path
 from build123d import export_step,export_stl
@@ -413,6 +415,27 @@ class NativeSession:
             details = safe_file(self.work, report).read_bytes()[:16000].decode(errors='replace') if path.exists() else ''
             raise RuntimeError(str(error) + '\nRule-check report: ' + details) from error
 
+    def _route(self, stage, source_board):
+        for attempt in range(ROUTING_ATTEMPTS):
+            # The autorouter is multithreaded and not deterministic: one run may leave a net unconnected or a
+            # dangling track that another run of the same board avoids. Each attempt restarts from the
+            # authored board, and only the last attempt's rule-check failure is reported.
+            if attempt:
+                (stage / 'board.kicad_pcb').write_bytes(source_board)
+                self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'prepare'])
+            self._command(['java', '-Xmx768m', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true',
+                           '-Djava.io.tmpdir=' + str(self.work / '.tmp'), '-jar', '/opt/freerouting/freerouting.jar',
+                           '-de', 'build/pcb/board.dsn', '-do', 'build/pcb/board.ses', '-da', '-mp', '20', '-mt', '2',
+                           '--gui.enabled=false', '--api_server.enabled=false', '--router.job_timeout=00:02:00'])
+            self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'finish'])
+            try:
+                self._rule_check(['kicad-cli', 'pcb', 'drc', '--exit-code-violations', '--format', 'json',
+                               '--output', 'outputs/drc.json', 'build/pcb/board.kicad_pcb'], 'outputs/drc.json')
+                return
+            except RuntimeError:
+                if attempt == ROUTING_ATTEMPTS - 1 or self._remaining() < ROUTING_RETRY_SECONDS:
+                    raise
+
     def _pcb_build(self):
         accepted = circuit_contract(self.request.get('circuitContract'), self.request.get('peripheralConceptIds'))
         if fingerprint(accepted) != self.request.get('circuitContractHash'):
@@ -448,13 +471,7 @@ class NativeSession:
         self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'prepare'])
         self._rule_check(['kicad-cli', 'sch', 'erc', '--exit-code-violations', '--format', 'json',
                        '--output', 'outputs/erc.json', 'build/pcb/circuit.kicad_sch'], 'outputs/erc.json')
-        self._command(['java', '-Xmx768m', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true',
-                       '-Djava.io.tmpdir=' + str(self.work / '.tmp'), '-jar', '/opt/freerouting/freerouting.jar',
-                       '-de', 'build/pcb/board.dsn', '-do', 'build/pcb/board.ses', '-da', '-mp', '20', '-mt', '2',
-                       '--gui.enabled=false', '--api_server.enabled=false', '--router.job_timeout=00:02:00'])
-        self._command(['/usr/bin/python3', '-I', '/opt/kleos-native/pcb_runner.py', 'finish'])
-        self._rule_check(['kicad-cli', 'pcb', 'drc', '--exit-code-violations', '--format', 'json',
-                       '--output', 'outputs/drc.json', 'build/pcb/board.kicad_pcb'], 'outputs/drc.json')
+        self._route(stage, safe_file(self.work, 'board.kicad_pcb').read_bytes())
         self._command(['kicad-cli', 'pcb', 'export', 'gerbers', '--output', 'outputs/gerbers/',
                        '--no-protel-ext', '--layers', 'F.Cu,B.Cu,F.Mask,B.Mask,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,Edge.Cuts',
                        'build/pcb/board.kicad_pcb'])

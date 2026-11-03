@@ -6,7 +6,7 @@ return its unused time. Callers hold the project row lock for every mutation.
 """
 from datetime import UTC, datetime
 
-from kleos.contracts.models import DomainError
+from kleos.contracts.models import MAX_COMPUTE_BUDGET_SECONDS, DomainError
 
 QUANTUM_MS = 30_000
 
@@ -45,7 +45,7 @@ def _budget(run, scope):
         if raw is not None:
             _conflict()
         return None
-    if type(limit) is not int or not 1 <= limit <= 7200:
+    if type(limit) is not int or not 1 <= limit <= MAX_COMPUTE_BUDGET_SECONDS:
         _conflict()
     if raw is None:
         return {'limitMs': limit * 1000, 'committedMs': 0, 'deadlineMs': deadline, 'lease': None}

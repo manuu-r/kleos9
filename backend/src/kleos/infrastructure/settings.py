@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from kleos.contracts.models import MAX_COMPUTE_BUDGET_SECONDS
+
 
 class Settings(BaseSettings):
     # Configuration comes from process environment variables named KLEOS_<SETTING>. The preserved old backend `.env`
@@ -20,6 +22,8 @@ class Settings(BaseSettings):
     native_control_root: Path = Path(".data/rewrite/native")
     native_daemon_control_root: str | None = None
     native_docker_desktop_compatibility: bool = False
+    # Wall-clock length of one native job; model latency between its actions counts against it.
+    native_session_seconds: int = Field(default=600, ge=60, le=4 * 3600)  # keep equal to NATIVE_MAX_SESSION_SECONDS
     docker_socket: str = "/var/run/docker.sock"
     native_capacity_pool_id: str = Field(default="local-docker", pattern=r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$')
     native_capacity_cpus: int = Field(default=4, ge=1, le=256)
@@ -52,8 +56,8 @@ class Settings(BaseSettings):
     max_context_chars: int = Field(default=60000, ge=4000, le=200000)
     max_tasks: int = Field(default=32, ge=1, le=128)
     max_actions: int = Field(default=24, ge=1, le=64)
-    max_run_seconds: int = Field(default=1800, ge=30, le=7200)
-    max_objective_lifetime_seconds: int = Field(default=7 * 86400, ge=7200, le=30 * 86400)
+    max_run_seconds: int = Field(default=1800, ge=30, le=MAX_COMPUTE_BUDGET_SECONDS)
+    max_objective_lifetime_seconds: int = Field(default=7 * 86400, ge=12 * 3600, le=30 * 86400)
     max_model_calls: int = Field(default=100, ge=1, le=1000)
     max_model_cost_micro_usd: int = Field(default=5_000_000, ge=1, le=1_000_000_000)
     model_catalog: list[dict] = Field(default_factory=list)

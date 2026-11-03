@@ -58,3 +58,28 @@ def test_development_cors_accepts_both_loopback_spellings_of_the_frontend_only()
     hosted = Settings(_env_file=None, environment='development', frontend_origin='https://workbench.example',
                       preview_origin='https://preview.example')
     assert frontend_origins(hosted) == ['https://workbench.example']
+
+
+def test_native_session_length_is_configurable_within_the_native_bound(monkeypatch):
+    monkeypatch.delenv("KLEOS_NATIVE_SESSION_SECONDS", raising=False)
+    assert Settings(_env_file=None).native_session_seconds == 600
+    monkeypatch.setenv("KLEOS_NATIVE_SESSION_SECONDS", "14400")
+    assert Settings(_env_file=None).native_session_seconds == 14400
+    monkeypatch.setenv("KLEOS_NATIVE_SESSION_SECONDS", "14401")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_every_validator_of_the_run_compute_budget_accepts_the_configured_maximum(monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from kleos.contracts.models import MAX_COMPUTE_BUDGET_SECONDS, Actor
+    from kleos.orchestration.engine import RunScope
+    monkeypatch.setenv("KLEOS_MAX_RUN_SECONDS", str(MAX_COMPUTE_BUDGET_SECONDS))
+    assert Settings(_env_file=None).max_run_seconds == MAX_COMPUTE_BUDGET_SECONDS
+    scope = RunScope(actor=Actor(tenant_id="t", user_id="u"), project_id="p", run_id="r", revision=1,
+                     deadline_at=datetime.now(UTC) + timedelta(days=1), compute_budget_seconds=MAX_COMPUTE_BUDGET_SECONDS)
+    assert scope.compute_budget_seconds == MAX_COMPUTE_BUDGET_SECONDS
+    monkeypatch.setenv("KLEOS_MAX_RUN_SECONDS", str(MAX_COMPUTE_BUDGET_SECONDS + 1))
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)

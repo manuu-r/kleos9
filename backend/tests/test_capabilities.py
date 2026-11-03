@@ -119,3 +119,14 @@ async def test_external_action_references_cannot_bypass_server_policy():
     with pytest.raises(ValidationError):
         await tools[1].invoke(None, task('human_work'),
             {'preparedActionId': 'prepared', 'approvalId': 'invented', 'approved': True})
+
+
+def test_native_patch_hash_is_optional_for_a_new_file_and_still_validated():
+    from pydantic import ValidationError
+
+    from kleos.capabilities.native import PatchInput
+    created = PatchInput.model_validate({'actionId': 'a1', 'path': 'model.py', 'content': 'x = 1'})
+    assert created.expected_sha256 is None
+    assert created.model_dump(mode='json', by_alias=True)['expectedSha256'] is None
+    with pytest.raises(ValidationError):
+        PatchInput.model_validate({'actionId': 'a1', 'path': 'model.py', 'content': 'x', 'expectedSha256': 'abc'})

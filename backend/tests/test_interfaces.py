@@ -262,6 +262,28 @@ async def test_real_graph_model_result_and_publication_replay_do_not_rebill(setu
     assert 'acceptedInterfaces' not in current(*setup).data
 
 
+async def test_runner_re_asks_once_when_the_proposed_circuit_misses_an_approved_concept(setup):
+    service, actor, ident = setup
+    _, scope = queue(setup)
+    bad = proposal()
+    bad['interfaces']['circuit']['conceptReferences'] = {}
+    outputs = iter([bad, proposal()])
+
+    class Retrying(Model):
+        last: str = ''
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.output = next(outputs)
+            self.last = messages[-1].content
+            return super()._generate(messages, stop, run_manager, **kwargs)
+    model = Retrying(output=bad)
+    runner = InterfaceRunner(model, InterfaceRepository(service.projects, service), service)
+    result = await runner.execute(scope, TaskSpec(id='interfaces', objective='Propose', capability='research'),
+        service.projects.context(actor, ident))
+    assert model.calls == 2 and 'Correction needed' in model.last
+    assert result.observations[0].details['candidate']['interfaces']['circuit']['conceptReferences'] == {'power-input': 'J1'}
+
+
 async def test_unknown_model_effect_blocks_without_repeating(setup):
     service, actor, ident = setup
     _, scope = queue(setup)

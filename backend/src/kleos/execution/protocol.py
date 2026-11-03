@@ -7,6 +7,8 @@ from pathlib import PurePosixPath
 PROTOCOL = 'kleos-native-session-v2'
 ACTIONS = frozenset({'read', 'patch', 'build', 'analyze', 'render', 'finish'})
 LANES = frozenset({'cad', 'pcb', 'firmware', 'application'})
+# Wall-clock ceiling for one native job; model latency between its actions counts against it.
+NATIVE_MAX_SESSION_SECONDS = 4 * 3600
 MAX_FILE = 32 * 1024 * 1024
 MAX_SOURCES = 16 * 1024 * 1024
 MAX_RESULT = 64 * 1024 * 1024

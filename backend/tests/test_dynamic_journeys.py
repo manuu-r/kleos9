@@ -32,6 +32,8 @@ async def test_existing_project_single_part_journey(tmp_path, repair, expand_sco
     def provider(request):
         body = json.loads(request.content)
         name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        if any(tool['function']['name'] == 'complete_task' for tool in body.get('tools', [])):
+            name = 'Action'  # a specialist turn: every tool is offered as its own function
         calls.append((name, body))
         number = sum(kind == name for kind, _ in calls)
         if name == 'PlanDecision':
@@ -59,6 +61,11 @@ async def test_existing_project_single_part_journey(tmp_path, repair, expand_sco
             return httpx.Response(200, json={'id': 'memory', 'choices': [{'finish_reason': 'stop',
                 'message': {'role': 'assistant', 'content': 'No reusable memory facts.'}}],
                 'usage': {'prompt_tokens': 10, 'completion_tokens': 5}})
+        if name == 'Action':
+            if payload['action'] == 'tool':
+                name, payload = payload['tool'].replace('.', '__'), payload['arguments']
+            else:
+                name, payload = ('complete_task' if payload['action'] == 'finish' else 'block_task'), {'summary': payload['summary']}
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls',
             'message': {'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

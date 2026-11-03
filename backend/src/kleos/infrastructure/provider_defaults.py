@@ -32,7 +32,7 @@ class ProviderFileSource(DotEnvSettingsSource):
 def muse_catalog(*, meta_enabled, modal_enabled, modal_url):
     from kleos.orchestration.models import ModelConfiguration
     common = dict(protocol='openai_chat', version='documented-wire-2026-11-03',
-        vision=True, tool_calls=True, qualified=True, max_input_tokens=131072, max_output_tokens=16384,
+        vision=True, tool_calls=True, qualified=True, max_input_tokens=131072, max_output_tokens=32768,
         input_price_micro_usd_per_million=1250000, output_price_micro_usd_per_million=4250000)
     models = []
     if meta_enabled:

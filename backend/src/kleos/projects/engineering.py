@@ -1,10 +1,11 @@
 """Workbench engineering commands over dynamic objectives, with conservative recovery."""
 import copy
+import hashlib
 import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from kleos.artifacts.service import Artifact
 from kleos.artifacts.storage import source_path
@@ -12,6 +13,7 @@ from kleos.contracts.models import ArtifactRef, DomainError
 from kleos.execution.gateway import NativeAction, NativeJob
 from kleos.orchestration.engine import RunScope
 from kleos.orchestration.models import ModelAttempt
+from kleos.orchestration.specialist import ToolResult
 from kleos.projects.graph_repository import Effect
 from kleos.projects.store import Objective
 from kleos.validation.service import Candidate, ValidationCheck
@@ -77,8 +79,16 @@ class EngineeringService:
                     'toolPolicySnapshot': copy.deepcopy({'policy': project.data.get('state', {}).get('toolPolicy', {}),
                                                         'bindings': project.data.get('toolPolicyBindings', {})})}
             if kind == 'project.generate':
-                text = objective or 'Generate the engineering files needed for the current project brief and accepted design context.'
-                text += '\nChoose only the capabilities needed for the requested outcome; do not force a complete device pipeline. Preserve accepted design references and unchanged sources. Outputs remain candidates until independent checking and a separate acceptance command.'
+                if objective:
+                    text = objective + ('\nChoose only the capabilities needed for the requested outcome; do not force a '
+                                        'complete device pipeline.')
+                else:
+                    text = ('Generate the engineering files for the whole device described by the brief and the accepted design '
+                            'context. Plan one task per deliverable the device needs, using only registered capabilities: '
+                            'mechanical CAD for its enclosure and parts, electronics (PCB) for its circuit, and a companion '
+                            'application when the device has a display, controls or connectivity worth controlling or '
+                            'mirroring. Omit a lane only when the brief makes it unnecessary.')
+                text += ' Preserve accepted design references and unchanged sources. Outputs remain candidates until independent checking and a separate acceptance command.'
                 if requested_paths:
                     data['editAllowedPaths'] = requested_paths
                     text += '\nThe user-authorized source edit paths are exactly: '+json.dumps(requested_paths)
@@ -152,7 +162,81 @@ class EngineeringService:
         return self.projects._command(actor, key, {'type': 'project.cancel', 'projectId': project_id,
             'runId': run_id, 'expectedRevision': expected_revision}, operation)
 
+    @staticmethod
+    def _reconcile_native_claims(session, run):
+        """Settle tool claims left behind when a run was fenced or its native container was lost.
+
+        A claimed tool effect whose native action is durably completed is simply recorded from that result: the
+        work happened exactly once and nothing is repeated. A claim whose container is proven stopped and whose
+        action never completed is released when the action only reads or builds (patched bytes reach the blob
+        store only after the container acknowledged them), so the retry re-issues it on a continuation job.
+        A claim with no native action record never reached the container and is released. Cut-off model calls of
+        a blocked run are settled the same way (see the end of this method). `finish` publishes
+        files, so a started but unfinished one, and any started claim without proof, stays uncertain.
+        """
+        jobs = {}
+        for job in session.scalars(select(NativeJob).where(NativeJob.run_id == run.id)):
+            if job.task_id not in jobs or job.request.get('resumeAttempt', 1) > jobs[job.task_id].request.get('resumeAttempt', 1):
+                jobs[job.task_id] = job
+        for task_id, latest in jobs.items():
+            attempts = [job for job in session.scalars(select(NativeJob).where(
+                NativeJob.run_id == run.id, NativeJob.task_id == task_id))]
+            for effect in session.scalars(select(Effect).where(
+                    Effect.run_id == run.id, Effect.status == 'claimed', Effect.key.like(f'{task_id}:tool:%'))):
+                turn = effect.key.rsplit(':', 1)[1]
+                model = session.scalar(select(Effect).where(Effect.run_id == run.id, Effect.key == f'{task_id}:model:{turn}'))
+                tool = (model.value or {}).get('tool') if model is not None and model.status == 'completed' else None
+                if not isinstance(tool, str) or not turn.isdigit():
+                    continue
+                action_id = hashlib.sha256(json.dumps([run.id, task_id, int(turn), tool]).encode()).hexdigest()
+                done = next((record for job in attempts if (record := session.get(NativeAction, (job.id, action_id))) is not None
+                             and record.status == 'completed'), None)
+                if done is not None:
+                    effect.status = 'completed'
+                    effect.value = ToolResult.model_validate(done.result).model_dump(mode='json')
+                    continue
+                if not any(session.get(NativeAction, (job.id, action_id)) is not None for job in attempts):
+                    # The native action record is written before dispatch, so none means it never ran.
+                    session.delete(effect)
+                    continue
+                proof = session.get(NativeAction, (latest.id, '_termination'))
+                if (tool.endswith('.finish') or latest.status not in {'failed', 'cancelled'} or proof is None
+                        or proof.status != 'completed' or proof.request_hash != latest.request_hash
+                        or proof.result != {'kind': 'termination-proof', 'jobId': latest.id, 'containerStopped': True}):
+                    continue
+                pending = session.get(NativeAction, (latest.id, action_id))
+                if pending is not None:
+                    session.delete(pending)
+                session.delete(effect)
+                if latest.active_action == action_id:
+                    latest.active_action = None
+        # A blocked run has no worker, so a still-reserved model attempt is a call that was cut off: its reserved
+        # cost stays committed (as a cancellation settles it) and its claim is released so the turn can be asked again.
+        for attempt in session.scalars(select(ModelAttempt).where(ModelAttempt.run_id == run.id, ModelAttempt.status == 'reserved')):
+            attempt.status = 'uncertain'
+        if session.scalar(select(ModelAttempt.id).where(ModelAttempt.run_id == run.id, ModelAttempt.status == 'reserved').limit(1)) is None:
+            for effect in session.scalars(select(Effect).where(
+                    Effect.run_id == run.id, Effect.status == 'claimed',
+                    or_(Effect.key.like('%:model:%'), Effect.key.like('plan:%')))):
+                session.delete(effect)
+        if run.data.get('blocker') == 'invalid_plan':
+            # The engine rejects a plan before publishing or running any of it, so the rejected decision produced
+            # nothing; keeping it journaled would replay the same invalid plan on every retry.
+            latest = session.scalars(select(Effect).where(Effect.run_id == run.id, Effect.key.like('plan:%'),
+                                                          Effect.status == 'completed')).all()
+            if latest:
+                session.delete(max(latest, key=lambda effect: int(effect.key.split(':')[1])))
+        session.flush()
+
     def retry(self, actor, project_id, run_id, expected_revision, key):
+        # Settling claims is committed on its own: it is durable progress even if the retry below is refused.
+        with self.projects.transaction() as session:
+            project = self._project(session, actor, project_id, expected_revision)
+            runs = self._runs(session, project)
+            target = next((item for item in runs if item.id == run_id), None) if run_id else self._latest(runs)
+            if target is not None and target.status in {'blocked', 'failed'}:
+                self._reconcile_native_claims(session, target)
+
         def operation(session):
             project = self._project(session, actor, project_id, expected_revision)
             runs = self._runs(session, project)

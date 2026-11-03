@@ -79,6 +79,12 @@ async def test_dynamic_single_part_objective_never_runs_unrequested_lanes():
     assert planner.calls[1][2] == ['bracket']
 
 
+@pytest.mark.parametrize('placeholder', ['null', ' None ', 'N/A', ''])
+def test_plan_question_placeholder_text_is_not_a_question(placeholder):
+    assert PlanDecision(question=placeholder).question is None
+    assert PlanDecision(question='Which material?').question == 'Which material?'
+
+
 async def test_dependencies_and_expansion_follow_actual_task_results():
     repo, runner = Repo(), Runner()
     planner = Planner([PlanDecision(tasks=[task('a'), task('b', 'pcb'), task('verify', 'validation', ['a', 'b'])]),
@@ -193,6 +199,27 @@ async def test_failed_task_supersession_preserves_history_and_redirects_dependen
     assert result['superseded'] == {'original': 'repair'}
 
 
+async def test_replan_may_name_the_replacement_in_dependents_but_not_rewrite_them():
+    class RepairRunner(Runner):
+        async def execute(self, scope, task, context):
+            self.calls.append(task.id)
+            return TaskResult(task_id=task.id, status='failed' if task.id == 'original' else 'succeeded',
+                              summary='Observed fixture result')
+    def plans(verify):
+        return [PlanDecision(tasks=[task('original'), task('verify', 'validation', ['original'])]),
+                PlanDecision(tasks=[task('repair'), verify], supersedes={'original': 'repair'}),
+                PlanDecision(), PlanDecision(done=True)]
+    runner = RepairRunner()
+    result = await ObjectiveEngine(Repo(), Planner(plans(task('verify', 'validation', ['repair']))), runner,
+        checkpointer=InMemorySaver()).start(scope(), 'Repair bracket')
+    assert runner.calls == ['original', 'repair', 'verify']
+    assert result['tasks']['verify']['depends_on'] == ['original']
+    rewritten = task('verify', 'validation', ['repair']).model_copy(update={'objective': 'A different job'})
+    with pytest.raises(DomainError, match='cannot be rewritten'):
+        await ObjectiveEngine(Repo(), Planner(plans(rewritten)), RepairRunner(),
+            checkpointer=InMemorySaver()).start(scope(), 'Repair bracket')
+
+
 async def test_supersession_cannot_expand_allowed_edit_scope():
     class Failed(Runner):
         async def execute(self, scope, task, context):
@@ -250,6 +277,85 @@ async def test_actual_model_specialist_observes_tools_and_replays_receipts_witho
     assert first == second and first.status == 'succeeded'
     assert model.calls == 2 and calls == ['tool']
     assert first.observations[0].independent is False
+
+
+async def test_specialist_reports_schema_invalid_tool_arguments_and_lets_the_model_correct_them():
+    from pydantic import BaseModel
+
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+
+    class Read(BaseModel):
+        path: str
+    repo, calls = Repo(), []
+    async def permit(scope, task, args):
+        Read.model_validate(args)
+    async def invoke(scope, task, args):
+        calls.append(args)
+        return ToolResult(summary='Read fixture', observations=[Observation(name='geometry', status='PASS')])
+    model = scripted_model([{'action': 'tool', 'tool': 'read', 'arguments': {'secret': 'do-not-echo'}},
+                            {'action': 'tool', 'tool': 'read', 'arguments': {'path': 'bracket.py'}},
+                            {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    harness = ModelSpecialist(model, [RegisteredTool('read', 'Read', frozenset({'cad'}), invoke, permit)], repo)
+    s = scope()
+    result = await harness.execute(s, task().model_copy(update={'max_actions': 3}), await repo.context(s))
+    assert result.status == 'succeeded' and calls == [{'path': 'bracket.py'}]
+    assert list(repo.receipts) == ['bracket:model:0', 'bracket:model:1', 'bracket:tool:1', 'bracket:model:2']
+
+
+async def test_specialist_retries_one_schema_invalid_reply_then_fails_with_a_stable_code():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+
+    async def permit(*args):
+        pass
+    async def invoke(*args):
+        return ToolResult(summary='Read fixture', observations=[Observation(name='geometry', status='PASS')])
+    tool = RegisteredTool('read', 'Read', frozenset({'cad'}), invoke, permit)
+    finish = {'action': 'finish', 'summary': 'Observed geometry; candidate only'}
+    use = {'action': 'tool', 'tool': 'read', 'arguments': {}}
+    repo, s = Repo(), scope()
+    context = await repo.context(s)
+    recovered = scripted_model([{'action': 'not-an-action'}, use, finish])
+    result = await ModelSpecialist(recovered, [tool], repo).execute(s, task().model_copy(update={'max_actions': 2}), context)
+    assert result.status == 'succeeded' and recovered.calls == 3
+    failing = scripted_model([{'action': 'not-an-action'}, {'action': 'still-wrong'}])
+    with pytest.raises(DomainError) as raised:
+        await ModelSpecialist(failing, [tool], Repo()).execute(s, task(), context)
+    assert raised.value.code == 'model_response_invalid' and failing.calls == 2
+
+
+def test_action_infers_a_tool_call_only_when_a_tool_is_named():
+    from pydantic import ValidationError
+
+    from kleos.orchestration.specialist import Action
+    assert Action.model_validate({'tool': 'cad.read', 'arguments': {'path': 'model.py'}}).action == 'tool'
+    decoded = Action.model_validate({'action': 'tool', 'tool': 'cad.read', 'arguments': '{"path": "model.py"}'})
+    assert decoded.arguments == {'path': 'model.py'}
+    assert Action.model_validate({'action': 'tool', 'tool': 'cad.build', 'arguments': None}).arguments == {}
+    for broken in ('[1, 2]', 'not json', 7):
+        with pytest.raises(ValidationError):
+            Action.model_validate({'action': 'tool', 'tool': 'cad.read', 'arguments': broken})
+    for incomplete in ({'summary': 'Done'}, {'tool': '', 'summary': 'Done'}, {'tool': None}):
+        with pytest.raises(ValidationError):
+            Action.model_validate(incomplete)
+
+
+async def test_specialist_rejects_a_missing_tool_name_without_failing_the_objective():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    async def permit(*args):
+        pass
+    async def invoke(*args):
+        return ToolResult(summary='Read fixture', observations=[Observation(name='geometry', status='PASS')])
+    tool = RegisteredTool('read', 'Read', frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    model = scripted_model([{'action': 'tool', 'tool': None, 'arguments': {'path': 'a.py'}},
+                            {'action': 'tool', 'tool': 'read', 'arguments': {}},
+                            {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    result = await ModelSpecialist(model, [tool], repo).execute(
+        s, task().model_copy(update={'max_actions': 3}), await repo.context(s))
+    assert result.status == 'succeeded' and model.calls == 3
 
 
 async def test_specialist_cannot_finish_from_prose_or_model_invented_tools():
@@ -437,3 +543,368 @@ async def test_dependency_artifact_hash_mismatch_blocks_dispatch():
     planner = Planner([PlanDecision(tasks=[task('cad'), task('verify', 'validation', ['cad'])]), PlanDecision()])
     with pytest.raises(DomainError, match='version changed'):
         await ObjectiveEngine(repo, planner, Produce(), checkpointer=InMemorySaver()).start(scope(), 'Inspect')
+
+
+def test_lane_guides_state_each_native_source_contract_from_the_qualified_fixtures():
+    from kleos.capabilities.lane_guides import lane_guide
+    assert 'model.py' in lane_guide('cad') and 'parts' in lane_guide('cad')
+    pcb = lane_guide('pcb')
+    assert 'circuit.kicad_sch' in pcb and 'board.kicad_pcb' in pcb and 'starter project' in pcb and 'global' in pcb
+    app = lane_guide('application')
+    assert all(name in app for name in ('pubspec.lock', 'web/index.html', 'lib/main.dart')) and 'packages:' in app
+    assert lane_guide('research') == ''
+
+
+async def test_specialist_prompt_carries_the_lane_guide_for_its_task_capability():
+    from kleos.orchestration.specialist import ModelSpecialist
+    seen = []
+
+    class Recorder:
+        def with_structured_output(self, schema):
+            return self
+
+        def bind(self, **settings):
+            return self
+
+        async def ainvoke(self, messages):
+            seen.append(messages[0]['content'])
+            return {'action': 'block', 'summary': 'Nothing to do'}
+    async def permit(*args):
+        pass
+    async def invoke(*args):
+        return None
+    from kleos.orchestration.specialist import RegisteredTool
+    tool = RegisteredTool('read', 'Read', frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    harness = ModelSpecialist(Recorder(), [tool], repo, lane_guides=lambda capability: f'GUIDE for {capability}')
+    await harness.execute(s, task(), await repo.context(s))
+    assert seen[0].endswith('GUIDE for cad')
+
+
+async def test_planner_rejects_directory_style_native_paths_with_a_stable_code():
+    from kleos.orchestration.planner import ModelPlanner
+
+    class Model:
+        def __init__(self, paths):
+            self.paths = paths
+
+        def with_structured_output(self, schema):
+            return self
+
+        def bind(self, **settings):
+            return self
+
+        async def ainvoke(self, messages):
+            return PlanDecision(tasks=[TaskSpec(id='board', objective='Route', capability='pcb', allowed_paths=self.paths)])
+    repo, s = Repo(), scope()
+    context = await repo.context(s)
+    good = await ModelPlanner(Model(['circuit.kicad_sch', 'board.kicad_pcb']), ['pcb']).plan(
+        s, 'Route board', context, [], [], None)
+    assert good.tasks[0].allowed_paths == ['circuit.kicad_sch', 'board.kicad_pcb']
+    for bad in (['pcb/'], ['pcb/**'], ['/abs.kicad_pcb']):
+        with pytest.raises(DomainError) as raised:
+            await ModelPlanner(Model(bad), ['pcb']).plan(s, 'Route board', context, [], [], None)
+        assert raised.value.code == 'invalid_plan'
+
+
+def test_tool_functions_expose_exact_parameters_without_the_host_owned_action_id():
+    from kleos.orchestration.specialist import RegisteredTool, action_from_message, tool_functions
+    schema = {'type': 'object', 'required': ['actionId', 'path'],
+              'properties': {'actionId': {'type': 'string'}, 'path': {'type': 'string'}}}
+    async def noop(*args):
+        return None
+    tool = RegisteredTool('cad.read', 'Read a file', frozenset({'cad'}), noop, noop, schema)
+    functions = {f['function']['name']: f['function'] for f in tool_functions({'cad.read': tool})}
+    assert set(functions) == {'cad__read', 'complete_task', 'block_task'}
+    assert functions['cad__read']['parameters']['required'] == ['path']
+    assert list(functions['cad__read']['parameters']['properties']) == ['path']
+    assert schema['required'] == ['actionId', 'path']  # the registered schema is not mutated
+
+    from langchain_core.messages import AIMessage
+    call = AIMessage(content='Reading', tool_calls=[{'id': '1', 'name': 'cad__read', 'args': {'path': 'model.py'}, 'type': 'tool_call'}])
+    assert action_from_message(call).model_dump() == {
+        'action': 'tool', 'tool': 'cad.read', 'arguments': {'path': 'model.py'}, 'summary': 'Reading'}
+    done = AIMessage(content='', tool_calls=[{'id': '2', 'name': 'complete_task', 'args': {'summary': 'Candidate only'}, 'type': 'tool_call'}])
+    assert action_from_message(done).action == 'finish' and action_from_message(done).summary == 'Candidate only'
+    assert action_from_message(AIMessage(content='I will build it')) is None
+
+
+async def test_specialist_in_function_mode_calls_tools_and_retries_a_reply_without_a_call():
+    from langchain_core.language_models.chat_models import BaseChatModel
+    from langchain_core.messages import AIMessage
+    from langchain_core.outputs import ChatGeneration, ChatResult
+
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+
+    class Functions(BaseChatModel):
+        replies: list
+        offered: list = []
+
+        @property
+        def _llm_type(self):
+            return 'fixture-no-network'
+
+        def bind_tools(self, tools, **kwargs):
+            self.offered = [tool['function']['name'] for tool in tools]
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(generations=[ChatGeneration(message=self.replies.pop(0))])
+
+    def call(name, **args):
+        return AIMessage(content='', tool_calls=[{'id': name, 'name': name, 'args': args, 'type': 'tool_call'}])
+    repo, seen = Repo(), []
+    async def permit(*args):
+        pass
+    async def invoke(scope, task, args):
+        seen.append(args)
+        return ToolResult(summary='Read fixture', observations=[Observation(name='geometry', status='PASS')])
+    tool = RegisteredTool('cad.read', 'Read', frozenset({'cad'}), invoke, permit, {'type': 'object', 'properties': {'path': {'type': 'string'}}})
+    model = Functions(replies=[AIMessage(content='Let me think'), call('cad__read', path='model.py'), call('complete_task', summary='Observed geometry; candidate only')])
+    s = scope()
+    result = await ModelSpecialist(model, [tool], repo, function_calls=True).execute(
+        s, task().model_copy(update={'max_actions': 2}), await repo.context(s))
+    assert result.status == 'succeeded' and seen == [{'path': 'model.py'}]
+    assert model.offered == ['cad__read', 'complete_task', 'block_task']
+
+
+async def test_a_tool_call_on_a_closed_native_job_is_reported_to_the_model_not_fatal_to_the_run():
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool
+    async def permit(*args):
+        pass
+    async def invoke(*args):
+        raise DomainError('Native job is closed', 'native_closed')
+    tool = RegisteredTool('read', 'Read', frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    model = scripted_model([{'action': 'tool', 'tool': 'read', 'arguments': {}},
+                            {'action': 'finish', 'summary': 'Candidate files were already published'}])
+    result = await ModelSpecialist(model, [tool], repo).execute(
+        s, task().model_copy(update={'max_actions': 2}), await repo.context(s))
+    assert result.summary == 'Candidate files were already published' and model.calls == 2
+
+
+def test_a_run_that_cannot_start_is_blocked_instead_of_crashing_the_worker(tmp_path, caplog):
+    import asyncio
+
+    from kleos.orchestration.worker import ObjectiveWorker
+    worker = ObjectiveWorker.__new__(ObjectiveWorker)
+    blocked = []
+
+    class Locks:
+        class _Hold:
+            async def __aenter__(self):
+                return object()
+
+            async def __aexit__(self, *exc):
+                return False
+
+        def hold(self, run_id):
+            return self._Hold()
+    worker.locks = Locks()
+    worker._begin = lambda run_id: (_ for _ in ()).throw(KeyError('internal detail'))
+    worker._block = lambda run_id, code, **kw: blocked.append((run_id, code))
+    with caplog.at_level('ERROR'):
+        assert asyncio.run(worker.process('run-1')) is True
+    assert blocked == [('run-1', 'execution_error')]
+    assert 'KeyError' in caplog.text and 'internal detail' not in caplog.text
+
+
+async def test_repeating_an_answered_call_without_changing_files_is_rejected_until_a_patch_intervenes():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    calls = []
+    async def permit(*args):
+        pass
+    def tool(name):
+        async def invoke(scope, task, args):
+            calls.append(name)
+            return ToolResult(summary=name, observations=[Observation(name='geometry', status='PASS')])
+        return RegisteredTool(name, name, frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    model = scripted_model([{'action': 'tool', 'tool': 'cad.build', 'arguments': {}},
+                            {'action': 'tool', 'tool': 'cad.build', 'arguments': {}},
+                            {'action': 'tool', 'tool': 'cad.patch', 'arguments': {}},
+                            {'action': 'tool', 'tool': 'cad.build', 'arguments': {}},
+                            {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    result = await ModelSpecialist(model, [tool('cad.build'), tool('cad.patch')], repo).execute(
+        s, task().model_copy(update={'max_actions': 5}), await repo.context(s))
+    assert calls == ['cad.build', 'cad.patch', 'cad.build'] and result.status == 'succeeded'
+
+
+def test_older_bulky_results_are_compacted_to_fit_while_the_latest_stay_whole():
+    from kleos.orchestration.specialist import compact_history
+    big = lambda tag: {'tool': 'cad.read', 'result': {'summary': 'ok', 'observations': [{'details': {'content': tag * 20000}}]}}  # noqa: E731
+    history = [big('a'), big('b'), big('c'), big('d')]
+    fitted = compact_history(history, 50000)
+    assert len(str(fitted)) < 51000 and fitted[-1] == history[-1] and fitted[-2] == history[-2]
+    assert 'omitted for space' in str(fitted[0]) and history[0]['result']['observations'][0]['details']['content'] == 'a' * 20000
+    assert compact_history(history[:1], 100000) == history[:1]
+    # When even the newest results do not fit, they are shortened too rather than failing the task.
+    assert len(str(compact_history(history, 20000))) <= 22000
+
+
+async def test_failures_superseded_by_a_successful_publish_do_not_block_the_task():
+    from kleos.contracts.models import ArtifactRef, Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    s, repo = scope(), Repo()
+    published = ArtifactRef(id='a1', path='outputs/part.step', sha256='a' * 64, revision=s.revision, media_type='model/step', size=1)
+
+    async def permit(*args):
+        pass
+
+    async def invoke_patch(scope, task, args):
+        return ToolResult(summary='Patch source hash conflict', observations=[Observation(name='native.patch', status='ERROR')])
+
+    async def invoke_finish(scope, task, args):
+        return ToolResult(summary='Native candidate files collected', artifacts=[published],
+                          observations=[Observation(name='native.finish', status='UNKNOWN', details={
+                              'executionSucceeded': True, 'candidateOnly': True})])
+    tools = [RegisteredTool('cad.patch', 'Patch', frozenset({'cad'}), invoke_patch, permit),
+             RegisteredTool('cad.finish', 'Finish', frozenset({'cad'}), invoke_finish, permit)]
+    model = scripted_model([{'action': 'tool', 'tool': 'cad.patch', 'arguments': {}},
+                            {'action': 'tool', 'tool': 'cad.finish', 'arguments': {}},
+                            {'action': 'finish', 'summary': 'Candidate published; not independently validated'}])
+    result = await ModelSpecialist(model, tools, repo).execute(
+        s, task().model_copy(update={'max_actions': 3}), await repo.context(s))
+    assert result.status == 'succeeded' and result.artifacts and all(check.status != 'ERROR' for check in result.observations)
+
+
+async def test_planner_reads_compact_task_results_when_full_ones_would_overflow_its_context():
+    from kleos.contracts.models import ArtifactRef, Observation
+    from kleos.orchestration.planner import ModelPlanner
+    seen = []
+
+    class Model:
+        def with_structured_output(self, schema):
+            return self
+
+        def bind(self, **settings):
+            return self
+
+        async def ainvoke(self, messages):
+            seen.append(messages[1]['content'])
+            return PlanDecision(done=True)
+    repo, s = Repo(), scope()
+    context = await repo.context(s)
+    refs = [ArtifactRef(id=f'a{i}', path=f'outputs/p{i}.step', sha256='b' * 64, revision=1, media_type='x/y', size=9)
+            for i in range(40)]
+    bulky = TaskResult(task_id='cad', status=TaskStatus.SUCCEEDED, summary='Built', artifacts=refs, observations=[
+        Observation(name='native.build', status='UNKNOWN', details={'content': 'x' * 5000})])
+    planner = ModelPlanner(Model(), ['cad'], max_context_chars=6000)
+    await planner.plan(s, 'Review', context, [], [bulky], None)
+    assert len(seen[0]) <= 6000 and '"a39"' in seen[0] and 'x' * 100 not in seen[0] and 'sha256' not in seen[0]
+
+
+async def test_planner_gets_one_corrective_re_ask_for_replacements_it_did_not_define():
+    from kleos.orchestration.planner import ModelPlanner
+
+    class Model:
+        def __init__(self, decisions):
+            self.decisions, self.messages = iter(decisions), []
+
+        def with_structured_output(self, schema):
+            return self
+
+        def bind(self, **settings):
+            return self
+
+        async def ainvoke(self, messages):
+            self.messages.append(messages)
+            return next(self.decisions)
+    repo, s = Repo(), scope()
+    context = await repo.context(s)
+    existing = [task('original')]
+    broken = PlanDecision(supersedes={'original': 'repair'})
+    fixed = PlanDecision(tasks=[task('repair')], supersedes={'original': 'repair'})
+    model = Model([broken, fixed])
+    decision = await ModelPlanner(model, ['cad']).plan(s, 'Repair', context, existing, [], None)
+    assert decision.supersedes == {'original': 'repair'} and len(model.messages) == 2
+    assert 'not defined in this plan' in model.messages[1][-1]['content']
+    with pytest.raises(DomainError) as raised:
+        await ModelPlanner(Model([broken, broken]), ['cad']).plan(s, 'Repair', context, existing, [], None)
+    assert raised.value.code == 'invalid_plan'
+
+
+async def test_planner_is_told_not_to_repeat_a_lane_that_already_succeeded():
+    from kleos.orchestration.planner import ModelPlanner
+
+    class Model:
+        def __init__(self, decisions):
+            self.decisions, self.messages = iter(decisions), []
+
+        def with_structured_output(self, schema):
+            return self
+
+        def bind(self, **settings):
+            return self
+
+        async def ainvoke(self, messages):
+            self.messages.append(messages)
+            return next(self.decisions)
+    repo, s = Repo(), scope()
+    context = await repo.context(s)
+    finished = TaskResult(task_id='cad_first', status=TaskStatus.SUCCEEDED, summary='Built')
+    repeat = PlanDecision(tasks=[task('cad_second')])
+    model = Model([repeat, PlanDecision(done=True)])
+    decision = await ModelPlanner(model, ['cad']).plan(s, 'Next', context, [task('cad_first')], [finished], None)
+    assert decision.done and not decision.tasks
+    assert "'cad_first'" in model.messages[1][-1]['content'] and 'done=true' in model.messages[1][-1]['content']
+    # A repair of a failed task in the same lane stays allowed.
+    failed = TaskResult(task_id='cad_first', status=TaskStatus.FAILED, summary='Broken')
+    repair = PlanDecision(tasks=[task('cad_repair')], supersedes={'cad_first': 'cad_repair'})
+    assert (await ModelPlanner(Model([repair]), ['cad']).plan(
+        s, 'Fix', context, [task('cad_first')], [failed], None)).supersedes == {'cad_first': 'cad_repair'}
+
+
+async def test_engine_releases_what_a_task_holds_when_it_ends_blocked_but_not_when_it_succeeds():
+    released = []
+
+    class Mixed(Runner):
+        async def execute(self, scope, task, context):
+            self.calls.append(task.id)
+            return TaskResult(task_id=task.id, status=TaskStatus.BLOCKED if task.id == 'stuck' else TaskStatus.SUCCEEDED,
+                              summary='Observed fixture result')
+
+    async def closed(scope, task_id):
+        released.append(task_id)
+    planner = Planner([PlanDecision(tasks=[task('stuck'), task('fine')]), PlanDecision(question='What next?')])
+    await ObjectiveEngine(Repo(), planner, Mixed(), checkpointer=InMemorySaver(), task_closed=closed).start(scope(), 'Make both')
+    assert released == ['stuck']
+
+
+async def test_a_failed_call_may_be_repeated_because_the_failure_can_be_transient():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    outcomes = iter(['ERROR', 'UNKNOWN'])
+    async def permit(*args):
+        pass
+    async def invoke(scope, task, args):
+        return ToolResult(summary='build', observations=[Observation(name='native.build', status=next(outcomes))])
+    tool = RegisteredTool('pcb.build', 'Build', frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    model = scripted_model([{'action': 'tool', 'tool': 'pcb.build', 'arguments': {}},
+                            {'action': 'tool', 'tool': 'pcb.build', 'arguments': {}},
+                            {'action': 'finish', 'summary': 'Candidate built; not independently validated'}])
+    result = await ModelSpecialist(model, [tool], repo).execute(
+        s, task().model_copy(update={'max_actions': 3}), await repo.context(s))
+    assert next(outcomes, None) is None and result.status in {'succeeded', 'blocked'}
+
+
+async def test_a_file_already_read_several_times_without_an_edit_is_not_read_again():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import MAX_READS_PER_FILE, ModelSpecialist, RegisteredTool, ToolResult
+    reads = []
+    async def permit(*args):
+        pass
+    async def invoke(scope, task, args):
+        reads.append(args['path'])
+        return ToolResult(summary='read', observations=[Observation(name='native.read', status='UNKNOWN')])
+    tool = RegisteredTool('cad.read', 'Read', frozenset({'cad'}), invoke, permit)
+    repo, s = Repo(), scope()
+    steps = [{'action': 'tool', 'tool': 'cad.read', 'arguments': {'path': 'model.py', 'offset': n * 1000}}
+             for n in range(MAX_READS_PER_FILE + 2)]
+    model = scripted_model([*steps, {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    await ModelSpecialist(model, [tool], repo).execute(
+        s, task().model_copy(update={'max_actions': len(steps) + 1}), await repo.context(s))
+    assert len(reads) == MAX_READS_PER_FILE

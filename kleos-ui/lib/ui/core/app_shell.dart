@@ -491,6 +491,8 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
   Widget build(BuildContext context) {
     final controller = ref.watch(kleosProvider);
     final q = query.text.trim();
+    final simulated = controller.state['production'] != true ||
+        controller.state['simulationAvailable'] == true;
     final items = <({String group, String label, VoidCallback run})>[
       (
         group: 'Actions',
@@ -502,22 +504,24 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
         label: 'Browse connectors',
         run: () => widget.onNavigate('/connections')
       ),
-      (
-        group: 'Actions',
-        label: 'Run simulations at ${controller.speed == 1 ? '4×' : '1×'}',
-        run: () {
-          controller.setSpeed(controller.speed == 1 ? 4 : 1);
-          Navigator.of(context).pop();
-        }
-      ),
-      (
-        group: 'Actions',
-        label: 'Reset demo',
-        run: () {
-          controller.resetDemo();
-          widget.onNavigate('/');
-        }
-      ),
+      if (simulated) ...[
+        (
+          group: 'Actions',
+          label: 'Run simulations at ${controller.speed == 1 ? '4×' : '1×'}',
+          run: () {
+            controller.setSpeed(controller.speed == 1 ? 4 : 1);
+            Navigator.of(context).pop();
+          }
+        ),
+        (
+          group: 'Actions',
+          label: 'Reset demo',
+          run: () {
+            controller.resetDemo();
+            widget.onNavigate('/');
+          }
+        ),
+      ],
       for (final p in asMaps(controller.state['projects']))
         (
           group: 'Projects',

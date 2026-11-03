@@ -2,6 +2,7 @@
 import json
 
 import httpx
+from function_calls import function_call, provider_name
 from sqlalchemy import select
 from test_interface_runtime import configured_runtime
 from test_repository_import import Downloader, archive, request
@@ -15,7 +16,7 @@ async def test_real_worker_planner_reads_context_without_native_input_authority(
     calls, closure, metadata_ids = [], [], []
     def provider(upstream_request):
         body = json.loads(upstream_request.content)
-        name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        name = provider_name(body)
         calls.append((name, body))
         count = sum(kind == name for kind, _ in calls)
         if name == 'PlanDecision':
@@ -32,6 +33,7 @@ async def test_real_worker_planner_reads_context_without_native_input_authority(
             return httpx.Response(200, json={'id': 'memory', 'choices': [{'finish_reason': 'stop',
                 'message': {'role': 'assistant', 'content': 'No reusable memory facts.'}}],
                 'usage': {'prompt_tokens': 10, 'completion_tokens': 5}})
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls',
             'message': {'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

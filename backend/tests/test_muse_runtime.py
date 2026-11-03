@@ -66,7 +66,7 @@ def assert_capture_wire(request, provider):
     assert body['model'] == (META_MODEL if provider == 'meta' else MODAL_MODEL)
     assert body['tools'][0]['function']['name'] == 'CaptureResult'
     assert body['tools'][0]['function']['parameters']['properties']['scene']
-    assert body['max_tokens'] == 8192 and body['stream'] is False
+    assert body['max_tokens'] == 32768 and body['stream'] is False
     images = [part for message in body['messages'] if isinstance(message['content'], list)
               for part in message['content'] if part['type'] == 'image_url']
     assert len(images) == 1

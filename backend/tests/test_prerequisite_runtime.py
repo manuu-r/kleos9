@@ -6,6 +6,7 @@ import json
 
 import httpx
 import pytest
+from function_calls import function_call, provider_name
 from PIL import Image
 from sqlalchemy import select
 from test_execution import FakeDocker
@@ -26,7 +27,7 @@ async def test_firmware_objective_approves_and_resumes_same_budget_and_thread(tm
     calls = []
     def provider(request):
         body = json.loads(request.content)
-        name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        name = provider_name(body)
         calls.append(name)
         count = calls.count(name)
         if name == 'PlanDecision':
@@ -49,6 +50,7 @@ async def test_firmware_objective_approves_and_resumes_same_budget_and_thread(tm
             return httpx.Response(200, json={'id': 'memory', 'choices': [{'finish_reason': 'stop',
                 'message': {'role': 'assistant', 'content': 'No reusable facts.'}}],
                 'usage': {'prompt_tokens': 10, 'completion_tokens': 5}})
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls',
             'message': {'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

@@ -2,8 +2,11 @@
 
 import asyncio
 import hashlib
+import logging
+import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 from sqlalchemy import select, text
@@ -13,6 +16,8 @@ from kleos.orchestration.engine import RunScope
 from kleos.projects import compute
 from kleos.projects.graph_repository import execution_owner
 from kleos.projects.store import Objective, Project
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresRunLocks:
@@ -217,6 +222,11 @@ class ObjectiveWorker:
             except DomainError as exc:
                 self._block(run_id, exc.code)
                 return True
+            except Exception as exc:
+                # One run that cannot start must not take the worker, and every other run, down with it.
+                self._log_failure(run_id, exc)
+                self._block(run_id, "execution_error")
+                return True
             if started is None:
                 return False
             scope, objective, answer, worker_token = started
@@ -224,6 +234,7 @@ class ObjectiveWorker:
             try:
                 return await self._process_owned(scope, objective, answer, connection)
             except Exception as exc:
+                self._log_failure(run_id, exc)
                 self._block(
                     run_id,
                     exc.code if isinstance(exc, DomainError) else "execution_error",
@@ -235,6 +246,14 @@ class ObjectiveWorker:
                     self._finish(scope, worker_token)
                 finally:
                     execution_owner.reset(token)
+
+    @staticmethod
+    def _log_failure(run_id, exc):
+        # Type, stable code and frames only: messages can carry credentials or provider payloads.
+        frames = " <- ".join(f"{Path(f.filename).name}:{f.lineno} {f.name}"
+                             for f in reversed(traceback.extract_tb(exc.__traceback__)[-4:]))
+        code = f" ({exc.code})" if isinstance(exc, DomainError) else ""
+        logger.error("objective %s failed with %s%s at %s", run_id, type(exc).__name__, code, frames)
 
     def _block(self, run_id, code, *, worker_token=None):
         """Worker maintenance may stop unauthorized work, never perform it or publish files."""
@@ -279,6 +298,7 @@ class ObjectiveWorker:
             await self._guarded(call, engine, scope, connection)
         except Exception as exc:
             error = exc
+            self._log_failure(scope.run_id, exc)
         after = await engine.graph.aget_state(config)
         if self.on_observed and error is None and after.values.get("done") and not after.next:
 

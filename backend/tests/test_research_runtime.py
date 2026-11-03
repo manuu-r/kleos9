@@ -5,6 +5,7 @@ import json
 import httpx
 import pytest
 from alembic import command
+from function_calls import function_call, provider_name
 from pydantic import SecretStr
 from test_interface_runtime import Locks, configured_runtime, model, persistence
 from test_research_installation import settings as qualified_settings
@@ -20,7 +21,7 @@ async def test_runtime_source_research_requires_actual_retrieval(tmp_path, fabri
     calls, source_ids = [], []
     def provider(request):
         body = json.loads(request.content)
-        name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        name = provider_name(body)
         calls.append(name)
         if name == 'PlanDecision':
             payload = {'done': True, 'summary': 'Research finished'} if calls.count(name) > 1 else {
@@ -35,6 +36,7 @@ async def test_runtime_source_research_requires_actual_retrieval(tmp_path, fabri
             return httpx.Response(200, json={'id': 'memory', 'choices': [{'finish_reason': 'stop',
                 'message': {'role': 'assistant', 'content': 'No reusable memory facts.'}}],
                 'usage': {'prompt_tokens': 20, 'completion_tokens': 5}})
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls',
             'message': {'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],
@@ -84,7 +86,7 @@ async def test_runtime_web_research_real_http_adapter_with_reviewed_fixture_only
     model_calls, searches = [], []
     def provider(request):
         body = json.loads(request.content)
-        name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        name = provider_name(body)
         model_calls.append(name)
         if name == 'PlanDecision':
             payload = {'done': True, 'summary': 'Retrieved sources; physical feasibility remains unverified'} if model_calls.count(name) > 1 else {
@@ -99,6 +101,7 @@ async def test_runtime_web_research_real_http_adapter_with_reviewed_fixture_only
             return httpx.Response(200, json={'id': 'memory', 'choices': [{'finish_reason': 'stop',
                 'message': {'role': 'assistant', 'content': 'No reusable memory facts.'}}],
                 'usage': {'prompt_tokens': 20, 'completion_tokens': 5}})
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls',
             'message': {'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

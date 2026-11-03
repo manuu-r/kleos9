@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from kleos.artifacts.service import Artifact, NativePublication
 from kleos.contracts.models import ArtifactRef, DomainError, TaskResult, TaskSpec
-from kleos.execution.gateway import NativeAction, NativeJob, original_duration
+from kleos.execution.gateway import NativeAction, NativeJob, artifact_inputs, original_duration, starter_paths
 from kleos.execution.protocol import LANES, MAX_SOURCES, PROTOCOL, source_path
 from kleos.projects.graph_repository import resolve_dependencies
 from kleos.projects.store import fingerprint
@@ -52,7 +52,7 @@ def source_successors(session, run, rows):
         for ident, row in versions.items():
             task = plans.get(row.details.get('taskId'))
             job = session.get(NativeJob, row.details.get('nativeJobId'))
-            if task is None or job is None or path not in task.allowed_paths:
+            if task is None or job is None or path not in {*task.allowed_paths, *starter_paths(job)}:
                 fail('Source ownership is outside its producer task')
             reads = [value for value in job.request.get('sources', []) if value.get('path') == path]
             if len(reads) > 1:
@@ -267,7 +267,7 @@ class CompositionService:
                 if (job.request.get('acceptedCircuitIdentity') != identity or job.request.get('circuitContract') != circuit
                         or job.request.get('circuitContractHash') != fingerprint(circuit)):
                     fail('PCB producer differs from current accepted circuit')
-            inputs = job.request.get('sources', [])
+            inputs = artifact_inputs(session, job)
             input_ids = [item.get('artifactId') for item in inputs]
             if len(input_ids) != len(set(input_ids)) or any(not ident for ident in input_ids):
                 fail('Native input identities are missing or ambiguous')
@@ -301,7 +301,7 @@ class CompositionService:
                     fail('Candidate differs from its native publication')
                 if row.details.get('role') == 'source':
                     path = source_path(row.name)
-                    if (path not in task.allowed_paths
+                    if (path not in {*task.allowed_paths, *starter_paths(job)}
                             or job.source_manifest.get(path) != row.sha256
                             or row.details.get('sourceClosure', {}).get(path) != row.id
                             or job.request.get('baselines', {}).get(path) !=

@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from function_calls import function_call, provider_name
 from test_design import generate, result
 from test_runtime import migrate, model, runtime_actor, settings, test_persistence
 
@@ -188,13 +189,14 @@ async def test_actual_runtime_dispatch_uses_queued_binding_then_next_selected_ve
 
     def respond(request):
         body = json.loads(request.content)
-        name = body['tools'][0]['function']['name']
+        name = provider_name(body)
         if name == 'PlanDecision':
             payload = {'tasks': [{'id': 'bracket', 'capability': 'cad', 'objective': 'Build bracket'}]} if turns['plan'] % 2 == 0 else {'done': True}
             turns['plan'] += 1
         else:
             payload = {'action': 'tool', 'tool': 'cad.build', 'arguments': {}} if turns['action'] % 2 == 0 else {'action': 'finish'}
             turns['action'] += 1
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'tool_calls', 'message': {
             'role': 'assistant', 'tool_calls': [{'id': 'fixture', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

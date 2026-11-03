@@ -12,7 +12,7 @@ from sqlalchemy import select
 from kleos.artifacts.service import Artifact, NativePublication
 from kleos.contracts.models import ArtifactRef, DomainError, TaskResult, TaskSpec
 from kleos.execution.composition import compilation_job_id, compilation_task, fixed_action, succeeded
-from kleos.execution.gateway import NativeAction, NativeJob
+from kleos.execution.gateway import NativeAction, NativeJob, artifact_inputs
 from kleos.orchestration.specialist import ToolResult
 from kleos.projects.composition import (
     CompositionService,
@@ -124,7 +124,7 @@ def _current_grant(session, run, authored, *, grant=None, historical=False):
                  for value in grant.get('authoringPlan', authoring_plan(run))['tasks']}
         task = plans.get(target['taskId'])
         if (task is None or fingerprint(task.model_copy(update={
-                'input_artifact_ids': [value.get('artifactId') for value in job.request.get('sources', [])]
+                'input_artifact_ids': [value.get('artifactId') for value in artifact_inputs(session, job)]
                 }).model_dump(mode='json')) != job.task_hash):
             reject('Frozen authoring plan differs from its actual producer job')
         _closed_job(session, job)

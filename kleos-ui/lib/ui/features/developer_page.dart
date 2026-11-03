@@ -92,6 +92,9 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
     final kind = '${dev['kind'] ?? 'service'}';
     final steps = asMap(dev['steps']);
     final running = steps.values.contains('running');
+    // The kit runs against the simulation; production without one has no manifest.
+    final unavailable = widget.controller.state['production'] == true &&
+        widget.controller.state['simulationAvailable'] != true;
     bool valid = true;
     JsonMap parsed = {};
     String parseError = '';
@@ -156,22 +159,27 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
             }.entries)
               (value: entry.key, label: entry.value, icon: null)
           ],
-          onSelected: running
+          onSelected: running || unavailable
               ? null
               : (value) => widget.controller
                   .execute('developer.configure', {'kind': value})),
       KResponsive(children: [
         KCard(
             title: 'kleos.manifest.json',
-            trailing: KBadge(valid ? 'Valid JSON' : 'Invalid',
-                tone: valid ? 'pass' : 'fail'),
+            trailing: unavailable
+                ? const KBadge('Simulation not connected', tone: 'unknown')
+                : KBadge(valid ? 'Valid JSON' : 'Invalid',
+                    tone: valid ? 'pass' : 'fail'),
             child: kColumn([
+              if (unavailable)
+                const KMuted(
+                    'The connector kit tests against a simulation, which is not connected to this backend.'),
               TextField(
                   controller: manifest,
                   focusNode: focus,
                   maxLines: 22,
                   minLines: 15,
-                  enabled: !running,
+                  enabled: !running && !unavailable,
                   onChanged: (_) => setState(() {}),
                   style: const TextStyle(
                       fontFamily: 'GeistMono', fontSize: 12, height: 1.7),
@@ -179,7 +187,7 @@ class _DeveloperPageState extends ConsumerState<DeveloperPage> {
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none)),
-              if (!valid)
+              if (!valid && !unavailable)
                 Text(parseError,
                     style: const TextStyle(color: KColors.fail, fontSize: 12)),
               const KMuted('Operations Kleos9 will call'),

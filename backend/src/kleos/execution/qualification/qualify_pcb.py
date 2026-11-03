@@ -16,6 +16,7 @@ from kleos.artifacts.storage import BlobStore
 from kleos.contracts.models import Actor, TaskSpec
 from kleos.execution.docker import DockerClient, NativeSettings, Resources
 from kleos.execution.gateway import NativeGateway, NativeJob
+from kleos.execution.pcb_scaffold import scaffold
 from kleos.execution.protocol import digest, fingerprint
 from kleos.execution.security import daemon_socket_profile
 from kleos.projects.graph_repository import GraphRepository
@@ -51,10 +52,12 @@ async def qualify(args):
         resources=Resources(), session_seconds=600, docker_desktop_compatibility=not args.strict_linux, deployment='local'),
         docker, GraphRepository(store))
     observations, negatives, success = [], [], False
+    # The gateway seeds the contract-derived starter, so these fixture sources replace those exact bytes.
+    starter = {path: digest(content.encode()) for path, content in scaffold(CONTRACT).items()}
     try:
         for number, (path, source) in enumerate(sorted(sources.items())):
             result = await gateway.invoke(scope, task, 'patch', {'actionId': 'source-' + str(number),
-                'path': path, 'content': source, 'expectedSha256': None})
+                'path': path, 'content': source, 'expectedSha256': starter.get(path)})
             observations.append({'action': 'patch', 'path': path, 'response': result})
             assert result['observations'][0]['status'] != 'ERROR', result['summary']
         wrong = sources['board.kicad_pcb'].replace('"R1"', '"R99"')

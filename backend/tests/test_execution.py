@@ -494,6 +494,38 @@ async def test_native_pcb_job_pins_accepted_circuit_and_peripheral_identity(gate
     assert job.request['circuitContract'] == accepted_circuit()
     assert job.request['circuitContractHash'] == fingerprint(accepted_circuit())
     assert job.request['peripheralConceptIds'] == ['port']
+    # The connection table in the contract is turned into a starter project, so a model need not write KiCad.
+    seeded = {item['path']: item for item in job.request['sources']}
+    assert job.request['scaffold'] == 'pcb-contract-scaffold-v1'
+    assert {'circuit.kicad_sch', 'board.kicad_pcb', 'sym-lib-table', 'fp-lib-table'} <= set(seeded)
+    assert all('artifactId' not in item for item in seeded.values())
+    assert job.source_manifest == {path: item['sha256'] for path, item in seeded.items()}
+
+
+async def test_composition_accepts_a_starter_source_only_when_it_can_be_reproduced_from_the_contract(gateway):
+    from kleos.contracts.models import Capability
+    from kleos.execution.gateway import artifact_inputs
+
+    native, scope, task = gateway
+    native.settings.images['pcb'] = native.settings.images['cad']
+    with native.projects.transaction() as session:
+        project = native.projects.authorized(session, scope.actor, scope.project_id, write=True)
+        project.data = {**project.data, 'interfaces': {'circuit': accepted_circuit()},
+                        'approvedDesign': {'peripheralConceptIds': ['port']}}
+    job = native._job(scope, task.model_copy(update={'capability': Capability.PCB}))
+    with native.projects.transaction() as session:
+        stored = session.get(NativeJob, job.id)
+        assert artifact_inputs(session, stored) == []  # every source is a reproducible starter file
+        tampered = dict(stored.request)
+        tampered['sources'] = [{**item, 'sha256': digest(b'edited')} if item['path'] == 'sym-lib-table' else item
+                               for item in stored.request['sources']]
+        stored.request = tampered
+        with pytest.raises(DomainError, match='provenance'):
+            artifact_inputs(session, stored)
+        unexplained = dict(stored.request, scaffold=None)
+        stored.request = unexplained
+        with pytest.raises(DomainError, match='provenance'):
+            artifact_inputs(session, stored)
 
 
 async def test_firmware_requires_explicit_report_qualified_target_before_dispatch(gateway):
@@ -946,3 +978,76 @@ async def test_imported_pcb_admission_pins_complete_sources_and_disallows_patch(
             await native._invoke_job(scope, pcb_task, {'action': 'patch', 'actionId': 'overwrite',
                 'arguments': {'path': 'board.kicad_pcb', 'content': 'replacement', 'expectedSha256': refs[0].sha256}}, job)
     assert native.docker.dispatches == 0
+
+
+async def test_closed_job_is_continued_from_its_saved_sources_instead_of_redoing_the_work(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    with native.projects.transaction() as session:
+        first = session.scalar(select(NativeJob))
+        first.status, first_id = 'failed', first.id
+    # Without proof that its container stopped, the closed job is never silently replaced.
+    with pytest.raises(DomainError, match='closed'):
+        await native.invoke(scope, task, 'build', {'actionId': 'build-early'})
+    await native._confirm_termination(first_id)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-2'})
+    assert built['observations'][0]['status'] == 'UNKNOWN'  # model.py was already there: no new patch was needed
+    result = await native.invoke(scope, task, 'finish', {'actionId': 'finish-2'})
+    assert len(result['artifacts']) == 4
+    with native.projects.transaction() as session:
+        jobs = {job.id: job for job in session.scalars(select(NativeJob))}
+        assert len(jobs) == 2 and jobs[first_id].status == 'failed'
+        resumed = next(job for job in jobs.values() if job.id != first_id)
+        assert resumed.status == 'finished' and resumed.request['resumeOf'] == first_id
+        assert resumed.request['resumedSourcePaths'] == ['model.py']
+        assert resumed.source_manifest == {'model.py': digest(b'fixture')}
+        from kleos.artifacts.service import Artifact
+        details = session.scalars(select(Artifact)).first().details
+        assert details['resumeOf'] == first_id and details['resumeAttempt'] == 2 and details['inputs'] == {}
+
+
+async def test_a_task_that_ends_unfinished_releases_its_job_and_can_continue_from_its_saved_sources(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    await native.close_task(scope, task.id)
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.status == 'cancelled' and job.active_action is None
+        proof = session.get(NativeAction, (job.id, '_termination'))
+        assert proof is not None and proof.status == 'completed'
+    assert native.docker.stopped  # the container is gone, so its shared capacity is free again
+    result = await native.invoke(scope, task, 'build', {'actionId': 'after-close'})
+    assert result['observations'][0]['status'] == 'UNKNOWN'  # model.py was carried over; nothing was redone
+    with native.projects.transaction() as session:
+        assert {job.request.get('resumeAttempt', 1) for job in session.scalars(select(NativeJob))} == {1, 2}
+
+
+def routing_session(tmp_path, drc_failures):
+    commands = []
+
+    def execute(command, work, timeout, limits, application):
+        commands.append(command)
+        if 'drc' in command and sum('drc' in value for value in commands) <= drc_failures:
+            raise RuntimeError('Found 1 unconnected items')
+        return 'ok'
+
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', execute)
+    session.state['deadline'] = time.time() + 3600
+    stage = tmp_path / 'work/build/pcb'
+    stage.mkdir(parents=True)
+    return session, stage, commands
+
+
+def test_pcb_routing_restarts_from_the_authored_board_when_drc_fails(tmp_path):
+    session, stage, commands = routing_session(tmp_path, 1)
+    session._route(stage, b'authored board')
+    assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 2
+    assert sum(command[-1:] == ['prepare'] for command in commands) == 1
+    assert (stage / 'board.kicad_pcb').read_bytes() == b'authored board'
+
+
+def test_pcb_routing_reports_the_last_failure_after_bounded_attempts(tmp_path):
+    session, stage, commands = routing_session(tmp_path, 99)
+    with pytest.raises(RuntimeError, match='unconnected'):
+        session._route(stage, b'authored board')
+    assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 3

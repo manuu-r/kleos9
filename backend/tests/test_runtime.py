@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 import pytest
 from alembic import command
+from function_calls import function_call, provider_name
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.memory import InMemoryStore
 from PIL import Image
@@ -122,7 +123,7 @@ async def test_runtime_vision_selection_actual_graph_and_model_policy_survive_se
         nonlocal plan_count, action_count
         body = json.loads(request.content)
         calls.append(body)
-        name = body['tools'][0]['function']['name']
+        name = provider_name(body)
         if name == 'PlanDecision':
             payload = {'tasks': [{'id': 'inspect', 'objective': 'Inspect reference', 'capability': 'research',
                                  'maxActions': 4}]} if plan_count == 0 else {'done': True}
@@ -130,6 +131,7 @@ async def test_runtime_vision_selection_actual_graph_and_model_policy_survive_se
         else:
             payload = {'action': 'tool', 'tool': 'research.inspect', 'arguments': {'query': 'Shape'}} if action_count == 0 else {'action': 'finish'}
             action_count += 1
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'test-request', 'choices': [{'finish_reason': 'tool_calls', 'message': {
             'role': 'assistant', 'tool_calls': [{'id': 'call', 'type': 'function', 'function': {
                 'name': name, 'arguments': json.dumps(payload)}}]}}],
@@ -352,7 +354,7 @@ async def test_queued_lane_selection_remains_pinned_when_project_policy_changes(
 
     def provider(request):
         body = json.loads(request.content)
-        name = body['tools'][0]['function']['name']
+        name = provider_name(body)
         calls.append((name, body['model']))
         if name == 'PlanDecision':
             payload = {'tasks': [{'id': 'research', 'objective': 'Inspect', 'capability': 'research'}]} if not turns['plan'] else {'done': True}
@@ -360,6 +362,7 @@ async def test_queued_lane_selection_remains_pinned_when_project_policy_changes(
         else:
             payload = {'action': 'tool', 'tool': 'research.inspect', 'arguments': {'query': 'Inspect'}} if not turns['action'] else {'action': 'finish'}
             turns['action'] += 1
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'tool_calls', 'message': {
             'role': 'assistant', 'tool_calls': [{'id': str(len(calls)), 'type': 'function', 'function': {
                 'name': name, 'arguments': json.dumps(payload)}}]}}],

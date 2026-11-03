@@ -21,7 +21,8 @@ class ReadInput(ActionInput):
 class PatchInput(ActionInput):
     path: str = Field(min_length=1, max_length=240)
     content: str = Field(max_length=240000)
-    expected_sha256: str | None = Field(pattern=r'^[a-f0-9]{64}$')
+    # Omitted means null (a new file); the runner still refuses it for a path that already exists.
+    expected_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
 
 
 class RenderInput(ActionInput):

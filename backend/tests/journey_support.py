@@ -13,6 +13,7 @@ from pathlib import Path
 import httpx
 import pytest
 from alembic import command
+from function_calls import function_call, provider_name
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.memory import InMemoryStore
 from pydantic import SecretStr
@@ -98,7 +99,7 @@ class Script:
 
     def __call__(self, request):
         body = json.loads(request.content)
-        name = body.get('tools', [{}])[0].get('function', {}).get('name')
+        name = provider_name(body)
         self.calls.append(name)
         queue = self.payloads.get(name)
         if not queue:
@@ -106,6 +107,7 @@ class Script:
                 'role': 'assistant', 'content': 'No reusable memory facts.'}}],
                 'usage': {'prompt_tokens': 10, 'completion_tokens': 5}})
         payload = queue.pop(0) if len(queue) > 1 or name == 'Action' else queue[0]
+        name, payload = function_call(name, payload)
         return httpx.Response(200, json={'id': 'fixture', 'choices': [{'finish_reason': 'tool_calls', 'message': {
             'role': 'assistant', 'tool_calls': [{'id': 'typed', 'type': 'function',
                 'function': {'name': name, 'arguments': json.dumps(payload)}}]}}],

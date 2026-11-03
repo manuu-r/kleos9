@@ -13,6 +13,11 @@ from kleos.projects.store import Base, Objective, fingerprint
 
 # Trusted worker context, inherited by its async tool tasks. Never supplied by models.
 execution_owner = ContextVar("kleos_execution_owner", default=None)
+# Codes after which nothing durable happened, so the claim may be released: the model spend ledger had already
+# settled the attempt (rejected, rate limited or unusable), or the native gateway refused an action on a closed
+# job before it recorded anything, or the request was refused before it was sent.
+SETTLED_MODEL_FAILURES = frozenset({"model_provider_error", "model_rate_limited", "model_response_invalid",
+                                    "native_closed", "context_too_large"})
 
 
 def resolve_dependencies(task_ids, superseded, dependencies):
@@ -327,8 +332,18 @@ class GraphRepository:
             raise DomainError(
                 "Operation is already claimed; reconcile before retry", "effect_uncertain"
             ) from None
-        # No transaction is held across external work. Failure leaves the durable claim uncertain.
-        result = await operation()
+        # No transaction is held across external work. Failure leaves the durable claim uncertain,
+        # except a model failure the spend ledger already settled exactly: nothing was produced, so
+        # a retry may ask again (as a new, separately metered attempt) instead of being refused.
+        try:
+            result = await operation()
+        except DomainError as exc:
+            if exc.code in SETTLED_MODEL_FAILURES:
+                with self.store.transaction() as session:
+                    row = session.get(Effect, effect_id)
+                    if row is not None and row.status == "claimed":
+                        session.delete(row)
+            raise
         with self.store.transaction() as session:
             row = session.get(Effect, effect_id)
             row.status, row.value = "completed", result

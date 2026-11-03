@@ -38,6 +38,7 @@ from kleos.capabilities.design.service import DesignService
 from kleos.capabilities.external_wait_tools import register_external_wait
 from kleos.capabilities.fabrication.connections import BambuConnections
 from kleos.capabilities.fabrication.credentials import EncryptedCredentialStore
+from kleos.capabilities.lane_guides import lane_guide
 from kleos.capabilities.native import register_native
 from kleos.capabilities.registry import CapabilityRegistry
 from kleos.capabilities.research import register_project_sources
@@ -58,7 +59,7 @@ from kleos.orchestration.external_waits import ExternalWaits
 from kleos.orchestration.models import ModelConfiguration, ModelGateway, ModelLedger, ModelPolicy
 from kleos.orchestration.persistence import postgres_runtime
 from kleos.orchestration.planner import ModelPlanner
-from kleos.orchestration.specialist import Action, ModelSpecialist
+from kleos.orchestration.specialist import ModelSpecialist
 from kleos.orchestration.worker import ObjectiveWorker
 from kleos.projects.engineering import EngineeringService
 from kleos.projects.graph_repository import GraphRepository
@@ -71,6 +72,8 @@ from kleos.projects.verification import VerificationService
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 LOOPBACK_ALIASES = {'localhost': '127.0.0.1', '127.0.0.1': 'localhost'}
+# Reasoning models spend completion tokens before emitting typed output; a concept needs ~8.5k in total.
+STRUCTURED_OUTPUT_TOKENS = 32768
 
 
 def frontend_origins(settings):
@@ -338,6 +341,7 @@ class Runtime:
                 if (pin := next((p for p in self.native_pins if p['capability'] == 'application'), None))
                 else NativeSettings(self.settings.native_control_root, {}).application_resources,
             daemon_control_root=self.settings.native_daemon_control_root,
+            session_seconds=self.settings.native_session_seconds,
             docker_desktop_compatibility=self.settings.native_docker_desktop_compatibility,
             deployment='ecs' if self.settings.environment == 'production' else 'local')
         self.docker = DockerClient(socket=self.settings.docker_socket)
@@ -426,7 +430,7 @@ class Runtime:
             repository = InterfaceRepository(self.projects, self.interfaces)
             runner = InterfaceRunner(gateway.chat_model(scope, images=bool(context.reference_images), model_key=coordinator_key),
                 repository, self.interfaces, self.artifacts.planner_images,
-                output_tokens=min(8192, config.max_output_tokens), max_context_chars=pins['maxContextChars'])
+                output_tokens=min(STRUCTURED_OUTPUT_TOKENS, config.max_output_tokens), max_context_chars=pins['maxContextChars'])
             return ObjectiveEngine(repository, InterfacePlanner(), runner, checkpointer=self.checkpointer, store=self.memory_store)
         if capture:
             config = gateway.select(images=bool(context.reference_images), model_key=coordinator_key)
@@ -434,7 +438,7 @@ class Runtime:
                 raise DomainError('Capture requires typed model output', 'model_capability_missing')
             repository = DesignRepository(self.projects, self.design)
             runner = DesignRunner(gateway.chat_model(scope, images=bool(context.reference_images), model_key=coordinator_key), repository,
-                self.design, self.artifacts.planner_images, output_tokens=min(8192, config.max_output_tokens),
+                self.design, self.artifacts.planner_images, output_tokens=min(STRUCTURED_OUTPUT_TOKENS, config.max_output_tokens),
                 max_context_chars=pins['maxContextChars'])
             return ObjectiveEngine(repository, DesignPlanner(), runner, checkpointer=self.checkpointer, store=self.memory_store)
         tools = self.registry.tools(pins['tools'])
@@ -449,7 +453,7 @@ class Runtime:
             return gateway.chat_model(selected_scope, images=bool(selected_context.reference_images), model_key=coordinator_key)
 
         planner = BoundedPlanner(gateway.chat_model(scope, images=bool(context.reference_images), model_key=coordinator_key), capabilities,
-            output_tokens=min(4096, planner_config.max_output_tokens), max_actions=pins['maxActions'],
+            output_tokens=min(STRUCTURED_OUTPUT_TOKENS, planner_config.max_output_tokens), max_actions=pins['maxActions'],
             max_context_chars=pins['maxContextChars'], image_loader=self.artifacts.planner_images,
             memory_loader=self.planner_memory, model_resolver=planner_model)
         def specialist_model(selected_scope, task):
@@ -458,13 +462,12 @@ class Runtime:
             selected = gateway.select(model_key=pins.get('laneModels', {}).get(lane))
             if not selected.tool_calls:
                 raise DomainError('Selected specialist model requires typed tool output', 'model_capability_missing')
-            return gateway.chat_model(selected_scope, model_key=selected.key).with_structured_output(Action).bind(
-                max_tokens=min(4096, selected.max_output_tokens))
+            return gateway.chat_model(selected_scope, model_key=selected.key)
 
         repository = ResearchRepository(self.projects) if research else self.repository
         specialist = ModelSpecialist(gateway.chat_model(scope), tools, repository,
-            output_tokens=min(4096, specialist_config.max_output_tokens), max_context_chars=pins['maxContextChars'],
-            model_resolver=specialist_model)
+            output_tokens=min(STRUCTURED_OUTPUT_TOKENS, specialist_config.max_output_tokens), max_context_chars=pins['maxContextChars'],
+            model_resolver=specialist_model, lane_guides=lane_guide, function_calls=True)
         composition = None
         prerequisites = None
         if not research and self.native_gateway is not None:
@@ -477,10 +480,11 @@ class Runtime:
                     raise DomainError('Interface prerequisites require typed output', 'model_capability_missing')
                 return gateway.chat_model(selected_scope, images=bool(selected_context.reference_images), model_key=coordinator_key)
             prerequisites = InterfacePrerequisites(repository, self.prerequisites, prerequisite_model,
-                image_loader=self.artifacts.planner_images, output_tokens=min(8192, planner_config.max_output_tokens),
+                image_loader=self.artifacts.planner_images, output_tokens=min(STRUCTURED_OUTPUT_TOKENS, planner_config.max_output_tokens),
                 max_context_chars=pins['maxContextChars'])
         return ObjectiveEngine(repository, planner, specialist, checkpointer=self.checkpointer, store=self.memory_store,
-            external_waits=self.external_waits, composition=composition, prerequisites=prerequisites)
+            external_waits=self.external_waits, composition=composition, prerequisites=prerequisites,
+            task_closed=self.native_gateway.close_task if self.native_gateway is not None else None)
 
     async def planner_memory(self, scope, objective):
         await self.repository.assert_active(scope)

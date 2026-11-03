@@ -57,7 +57,7 @@ def test_generate_dynamic_objective_and_idempotent_active_reuse(env):
         runs = list(session.scalars(select(Objective)))
         assert len(runs) == 1 and runs[0].status == 'pending'
         assert runs[0].data['tasks'] == []
-        assert 'do not force a complete device pipeline' in runs[0].data['objective']
+        assert 'whole device' in runs[0].data['objective'] and 'registered capabilities' in runs[0].data['objective']
         assert session.get(Project, project).data['state']['planning']['runId'] == receipt['runId']
     with pytest.raises(DomainError, match='active'):
         command(facade, actor, project, 'project.generate', 2, 'another', objective='Now also make a PCB')
@@ -96,7 +96,7 @@ def test_retry_preserves_scope_pins_history_cost_and_run_identity(env):
         assert (budget.calls, budget.committed_cost, budget.max_calls, budget.max_cost) == (3, 700, 8, 2000)
 
 
-@pytest.mark.parametrize('kind', ['effect', 'model', 'validation', 'native'])
+@pytest.mark.parametrize('kind', ['effect', 'validation', 'native'])
 def test_retry_blocks_unknown_effects_without_mutating_run(env, kind):
     projects, actor, project, _, facade, _ = env
     scope = blocked(env)
@@ -192,3 +192,134 @@ def test_generate_pins_explicit_edit_scope(env):
         run = session.get(Objective, receipt['runId'])
         assert run.data['editAllowedPaths'] == ['clip.py']
         assert 'clip.py' in run.data['objective']
+
+
+def stopped_job(projects, scope, project, *, tool, proof=True, status='failed'):
+    """A closed native job whose in-flight action never completed, with the matching journaled effects."""
+    import hashlib
+    import json
+    request = {'sources': [], 'resumeAttempt': 1}
+    action_id = hashlib.sha256(json.dumps([scope.run_id, 'task', 4, tool]).encode()).hexdigest()
+    with projects.transaction() as session:
+        session.add(NativeJob(id='job', project_id=project, run_id=scope.run_id, task_id='task', task_hash='a'*64,
+                              request_hash='b'*64, request=request, status=status, source_manifest={'model.py': 'c'*64},
+                              active_action=action_id))
+        session.add(NativeAction(job_id='job', action_id=action_id, request_hash='d'*64, status='pending', result={}))
+        session.add(Effect(id='model', run_id=scope.run_id, key='task:model:4', status='completed',
+                           value={'action': 'tool', 'tool': tool}))
+        session.add(Effect(id='tool', run_id=scope.run_id, key='task:tool:4', status='claimed', value={}))
+        if proof:
+            session.add(NativeAction(job_id='job', action_id='_termination', request_hash='b'*64, status='completed',
+                                     result={'kind': 'termination-proof', 'jobId': 'job', 'containerStopped': True}))
+
+
+def test_retry_releases_an_in_flight_native_action_only_when_its_container_is_proven_stopped(env):
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    stopped_job(projects, scope, project, tool='cad.build')
+    receipt = command(facade, actor, project, 'project.retry', 2, 'retry-stopped', runId=scope.run_id)
+    assert receipt['runId'] == scope.run_id
+    with projects.transaction() as session:
+        assert session.get(Objective, scope.run_id).status == 'pending'
+        assert session.scalar(select(Effect).where(Effect.key == 'task:tool:4')) is None
+        assert session.scalar(select(Effect).where(Effect.key == 'task:model:4')) is not None  # the paid turn is kept
+        assert session.get(NativeJob, 'job').active_action is None
+        assert session.scalar(select(NativeAction).where(NativeAction.status == 'pending')) is None
+
+
+@pytest.mark.parametrize('case', ['finish', 'no-proof'])
+def test_retry_keeps_publishing_or_unproven_native_claims_uncertain(env, case):
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    stopped_job(projects, scope, project, tool='cad.finish' if case == 'finish' else 'cad.build', proof=case == 'finish')
+    with pytest.raises(DomainError) as exc:
+        command(facade, actor, project, 'project.retry', 2, 'retry-uncertain', runId=scope.run_id)
+    assert exc.value.code == 'effect_uncertain'
+    with projects.transaction() as session:
+        assert session.scalar(select(Effect).where(Effect.key == 'task:tool:4')) is not None
+
+
+def test_retry_records_a_claimed_tool_whose_native_action_durably_completed(env):
+    import hashlib
+    import json
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    action_id = hashlib.sha256(json.dumps([scope.run_id, 'task', 6, 'cad.finish']).encode()).hexdigest()
+    result = {'summary': 'Native finish completed', 'artifacts': [], 'blockers': [],
+              'observations': [{'name': 'native.finish', 'status': 'UNKNOWN', 'details': {}, 'independent': False}]}
+    with projects.transaction() as session:
+        session.add(NativeJob(id='job', project_id=project, run_id=scope.run_id, task_id='task', task_hash='a'*64,
+                              request_hash='b'*64, request={'sources': []}, status='finished', source_manifest={}, active_action=None))
+        session.add(NativeAction(job_id='job', action_id=action_id, request_hash='d'*64, status='completed', result=result))
+        session.add(Effect(id='model', run_id=scope.run_id, key='task:model:6', status='completed',
+                           value={'action': 'tool', 'tool': 'cad.finish'}))
+        session.add(Effect(id='tool', run_id=scope.run_id, key='task:tool:6', status='claimed', value={}))
+    command(facade, actor, project, 'project.retry', 2, 'retry-recorded', runId=scope.run_id)
+    with projects.transaction() as session:
+        effect = session.scalar(select(Effect).where(Effect.key == 'task:tool:6'))
+        assert effect.status == 'completed' and effect.value['summary'] == 'Native finish completed'
+        assert effect.value['observations'][0]['name'] == 'native.finish'
+
+
+def test_recorded_native_progress_is_kept_even_when_the_retry_is_still_refused(env):
+    import hashlib
+    import json
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    action_id = hashlib.sha256(json.dumps([scope.run_id, 'task', 2, 'cad.build']).encode()).hexdigest()
+    with projects.transaction() as session:
+        session.add(NativeJob(id='job', project_id=project, run_id=scope.run_id, task_id='task', task_hash='a'*64,
+                              request_hash='b'*64, request={'sources': []}, status='running', source_manifest={}, active_action=None))
+        session.add(NativeAction(job_id='job', action_id=action_id, request_hash='d'*64, status='completed',
+                                 result={'summary': 'Native build completed', 'artifacts': [], 'observations': [], 'blockers': []}))
+        session.add(Effect(id='model', run_id=scope.run_id, key='task:model:2', status='completed',
+                           value={'action': 'tool', 'tool': 'cad.build'}))
+        session.add(Effect(id='tool', run_id=scope.run_id, key='task:tool:2', status='claimed', value={}))
+        session.add(Effect(id='other', run_id=scope.run_id, key='memory:final', status='claimed', value={}))
+    with pytest.raises(DomainError) as exc:
+        command(facade, actor, project, 'project.retry', 2, 'retry-refused', runId=scope.run_id)
+    assert exc.value.code == 'effect_uncertain'
+    with projects.transaction() as session:
+        assert session.scalar(select(Effect).where(Effect.key == 'task:tool:2')).status == 'completed'
+
+
+def test_retry_settles_a_cut_off_model_call_of_a_blocked_run_and_keeps_its_reserved_cost(env):
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    with projects.transaction() as session:
+        session.add(ModelAttempt(id='cut-off', run_id=scope.run_id, status='reserved', data={'committedMicroUsd': 120}))
+        session.add(Effect(id='asked', run_id=scope.run_id, key='task:model:3', status='claimed', value={}))
+        session.add(Effect(id='replan', run_id=scope.run_id, key='plan:1', status='claimed', value={}))
+        session.add(Effect(id='planned', run_id=scope.run_id, key='plan:0', status='completed', value={'tasks': []}))
+    command(facade, actor, project, 'project.retry', 2, 'retry-cut-off', runId=scope.run_id)
+    with projects.transaction() as session:
+        attempt = session.get(ModelAttempt, 'cut-off')
+        assert attempt.status == 'uncertain' and attempt.data['committedMicroUsd'] == 120
+        budget = session.get(ModelBudget, scope.run_id)
+        assert budget.committed_cost == 700  # spend history is never reset
+        assert session.scalar(select(Effect).where(Effect.key == 'task:model:3')) is None
+        assert session.scalar(select(Effect).where(Effect.key == 'plan:1')) is None
+        assert session.scalar(select(Effect).where(Effect.key == 'plan:0')).status == 'completed'
+
+
+def test_an_explicit_partial_request_keeps_its_narrow_scope(env):
+    projects, actor, project, _, facade, _ = env
+    command(facade, actor, project, 'project.generate', 1, 'partial', objective='Replace only the mounting bracket')
+    with projects.transaction() as session:
+        text = session.scalar(select(Objective)).data['objective']
+        assert text.startswith('Replace only the mounting bracket') and 'do not force a complete device pipeline' in text
+        assert 'whole device' not in text
+
+
+def test_retry_discards_a_plan_the_engine_rejected_so_it_is_asked_again_not_replayed(env):
+    projects, actor, project, _, facade, _ = env
+    scope = blocked(env)
+    with projects.transaction() as session:
+        run = session.get(Objective, scope.run_id)
+        run.data = {**run.data, 'blocker': 'invalid_plan'}
+        for turn in (0, 1):
+            session.add(Effect(id=f'plan{turn}', run_id=scope.run_id, key=f'plan:{turn}', status='completed', value={'tasks': []}))
+    command(facade, actor, project, 'project.retry', 2, 'retry-invalid-plan', runId=scope.run_id)
+    with projects.transaction() as session:
+        keys = sorted(effect.key for effect in session.scalars(select(Effect).where(Effect.run_id == scope.run_id)))
+        assert keys == ['plan:0']  # the accepted first plan stays; only the rejected latest one is dropped

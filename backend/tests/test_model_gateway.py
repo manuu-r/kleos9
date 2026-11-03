@@ -49,6 +49,27 @@ def gateway(authority, handler, *, configurations=None, policy=None):
     return instance, scope, client
 
 
+@pytest.mark.parametrize(('provider', 'expected_choice'), [('meta', 'auto'), ('modal', 'required')])
+async def test_structured_output_tool_choice_follows_provider_support(authority, provider, expected_choice):
+    requests = []
+
+    class Shape(BaseModel):
+        width: int
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=completion(choices=[{'finish_reason': 'tool_calls', 'message': {
+            'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'shape', 'type': 'function',
+                'function': {'name': 'Shape', 'arguments': '{"width": 7}'}}]}}]))
+
+    adapter, scope, client = gateway(authority, respond, configurations=[configuration(provider=provider)])
+    async with client:
+        result = await adapter.chat_model(scope).with_structured_output(Shape).bind(max_tokens=512).ainvoke('Measure')
+    assert result.width == 7 and requests[0]['tool_choice'] == expected_choice
+    # Only a provider that cannot force the call is told to answer through the function.
+    assert (requests[0]['messages'][-1]['role'] == 'system') == (provider == 'meta')
+
+
 async def test_real_http_request_structured_output_and_scoped_redacted_ledger(authority):
     requests = []
 
@@ -67,7 +88,7 @@ async def test_real_http_request_structured_output_and_scoped_redacted_ledger(au
     async with client:
         result = await adapter.chat_model(scope).with_structured_output(Shape).bind(max_tokens=512).ainvoke('Measure shape')
     assert result.width == 42
-    assert requests[0]['tool_choice'] == 'required' and requests[0]['max_tokens'] == 512
+    assert requests[0]['tool_choice'] == 'auto' and requests[0]['max_tokens'] == 512
     assert requests[0]['tools'][0]['function']['name'] == 'Shape'
     records = adapter.ledger.records(scope.actor, scope.project_id, scope.run_id)
     assert records[0]['status'] == 'completed' and records[0]['committedMicroUsd'] == 140

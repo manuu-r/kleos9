@@ -6,6 +6,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+# Ceiling for an objective's active-compute budget (KLEOS_MAX_RUN_SECONDS), shared by every validator of it.
+MAX_COMPUTE_BUDGET_SECONDS = 12 * 3600
 
 class WireModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
