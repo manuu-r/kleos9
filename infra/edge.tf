@@ -1,116 +1,128 @@
-resource "aws_lb" "api" {
-  name               = "${var.name}-api"
-  internal           = false
-  load_balancer_type = "application"
-  subnets            = aws_subnet.public[*].id
-  security_groups    = [aws_security_group.edge.id]
-  idle_timeout       = 120
+# One us-east-1 certificate for every CloudFront hostname. With DNS on Cloudflare, add the
+# certificate_validation_records output as DNS-only CNAMEs while apply waits for validation.
+locals {
+  edge_hostnames = merge(
+    { app = var.app_hostname },
+    local.api_enabled ? { api = var.api_hostname } : {},
+    local.preview_enabled ? { preview = var.preview_hostname } : {}
+  )
 }
-resource "aws_lb" "internal" {
-  name               = "${var.name}-jobs"
-  internal           = true
-  load_balancer_type = "application"
-  subnets            = aws_subnet.private[*].id
-  security_groups    = [aws_security_group.internal_lb.id]
-  idle_timeout       = 120
+resource "aws_acm_certificate" "edge" {
+  provider                  = aws.global
+  domain_name               = var.app_hostname
+  subject_alternative_names = [var.api_hostname, var.preview_hostname]
+  validation_method         = "DNS"
+  lifecycle { create_before_destroy = true }
 }
-resource "aws_lb_target_group" "api" {
-  name        = "${var.name}-api"
-  port        = 8000
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = aws_vpc.main.id
-  health_check { path = "/api/v1/health" }
-}
-resource "aws_lb_target_group" "internal" {
-  name        = "${var.name}-jobs"
-  port        = 8000
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = aws_vpc.main.id
-  health_check { path = "/api/v1/health" }
-}
-resource "aws_lb_listener" "api" {
-  load_balancer_arn = aws_lb.api.arn
-  port              = 443
-  protocol          = "HTTPS"
-  certificate_arn   = var.certificate_arn
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
-  }
-}
-resource "aws_lb_listener_rule" "deny_internal" {
-  listener_arn = aws_lb_listener.api.arn
-  priority     = 1
-  condition {
-    path_pattern { values = ["/api/v1/internal/*"] }
-  }
-  action {
-    type = "fixed-response"
-    fixed_response {
-      content_type = "text/plain"
-      status_code  = "404"
-      message_body = "Not found"
-    }
-  }
-}
-resource "aws_lb_listener" "internal" {
-  load_balancer_arn = aws_lb.internal.arn
-  port              = 443
-  protocol          = "HTTPS"
-  certificate_arn   = var.certificate_arn
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  default_action {
-    type = "fixed-response"
-    fixed_response {
-      content_type = "text/plain"
-      status_code  = "404"
-    }
-  }
-}
-resource "aws_lb_listener_rule" "native_api" {
-  listener_arn = aws_lb_listener.internal.arn
-  priority     = 1
-  condition {
-    path_pattern { values = ["/api/v1/internal/*"] }
-  }
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.internal.arn
-  }
-}
-resource "aws_route53_record" "api" {
-  count   = var.public_zone_id == "" ? 0 : 1
-  zone_id = var.public_zone_id
-  name    = local.api_hostname
-  type    = "A"
-  alias {
-    name                   = aws_lb.api.dns_name
-    zone_id                = aws_lb.api.zone_id
-    evaluate_target_health = true
-  }
-}
-resource "aws_route53_record" "api_private" {
-  zone_id = aws_route53_zone.private.zone_id
-  name    = local.api_hostname
-  type    = "A"
-  alias {
-    name                   = aws_lb.api.dns_name
-    zone_id                = aws_lb.api.zone_id
-    evaluate_target_health = true
-  }
-}
-resource "aws_route53_record" "jobs" {
-  zone_id = aws_route53_zone.private.zone_id
-  name    = local.jobs_hostname
-  type    = "A"
-  alias {
-    name                   = aws_lb.internal.dns_name
-    zone_id                = aws_lb.internal.zone_id
-    evaluate_target_health = true
-  }
+resource "aws_acm_certificate_validation" "edge" {
+  provider        = aws.global
+  certificate_arn = aws_acm_certificate.edge.arn
 }
 
-output "api_dns_target" { value = aws_lb.api.dns_name }
+# --- Workbench (Flutter web bundle) ---
+resource "aws_s3_bucket" "frontend" {
+  bucket_prefix = "${var.name}-frontend-"
+}
+resource "aws_s3_bucket_public_access_block" "frontend" {
+  bucket                  = aws_s3_bucket.frontend.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+resource "aws_s3_bucket_versioning" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  versioning_configuration { status = "Enabled" }
+}
+resource "aws_s3_bucket_lifecycle_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  rule {
+    id     = "superseded-bundles"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration { noncurrent_days = 30 }
+  }
+}
+resource "aws_cloudfront_origin_access_control" "frontend" {
+  name                              = "${var.name}-frontend"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+resource "aws_cloudfront_distribution" "frontend" {
+  enabled             = true
+  default_root_object = "index.html"
+  aliases             = [var.app_hostname]
+  price_class         = "PriceClass_100"
+  origin {
+    domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
+    origin_id                = "frontend"
+    origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
+  }
+  default_cache_behavior {
+    target_origin_id       = "frontend"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
+  }
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+  viewer_certificate {
+    acm_certificate_arn      = aws_acm_certificate_validation.edge.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+}
+resource "aws_s3_bucket_policy" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{
+    Effect    = "Allow", Principal = { Service = "cloudfront.amazonaws.com" },
+    Action    = "s3:GetObject", Resource = "${aws_s3_bucket.frontend.arn}/*",
+    Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.frontend.arn } }
+  }] })
+}
+
+# --- API and preview: CloudFront in front of Lambda Function URLs (custom hostnames, TLS) ---
+data "aws_cloudfront_cache_policy" "optimized" { name = "Managed-CachingOptimized" }
+data "aws_cloudfront_cache_policy" "disabled" { name = "Managed-CachingDisabled" }
+# Forward cookies, query strings and headers, but not Host: the Function URL needs its own.
+data "aws_cloudfront_origin_request_policy" "all_except_host" { name = "Managed-AllViewerExceptHostHeader" }
+
+resource "aws_cloudfront_distribution" "lambda" {
+  for_each    = aws_lambda_function_url.app
+  enabled     = true
+  aliases     = [local.edge_hostnames[each.key]]
+  price_class = "PriceClass_100"
+  origin {
+    domain_name = split("/", trimprefix(each.value.function_url, "https://"))[0]
+    origin_id   = "lambda"
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+      # Event streams send a heartbeat every second, well inside the read timeout.
+      origin_read_timeout = 60
+    }
+  }
+  default_cache_behavior {
+    target_origin_id         = "lambda"
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods           = ["GET", "HEAD"]
+    compress                 = false
+    cache_policy_id          = data.aws_cloudfront_cache_policy.disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_except_host.id
+  }
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+  viewer_certificate {
+    acm_certificate_arn      = aws_acm_certificate_validation.edge.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+}

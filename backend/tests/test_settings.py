@@ -45,3 +45,16 @@ def test_enabled_production_companion_preview_requires_https_api():
     with pytest.raises(ValidationError, match='HTTPS API origin'):
         Settings(**options)
     assert Settings(**options, api_origin='https://api.example').companion_preview_enabled
+
+
+def test_development_cors_accepts_both_loopback_spellings_of_the_frontend_only():
+    from kleos.infrastructure.runtime import frontend_origins
+    dev = Settings(_env_file=None, environment='development', frontend_origin='http://127.0.0.1:5180/',
+                   preview_origin='http://127.0.0.1:8004')
+    assert frontend_origins(dev) == ['http://127.0.0.1:5180', 'http://localhost:5180']
+    test = Settings(_env_file=None, environment='test', frontend_origin='http://localhost:5180',
+                    preview_origin='http://localhost:8004')
+    assert frontend_origins(test) == ['http://localhost:5180']
+    hosted = Settings(_env_file=None, environment='development', frontend_origin='https://workbench.example',
+                      preview_origin='https://preview.example')
+    assert frontend_origins(hosted) == ['https://workbench.example']

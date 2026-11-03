@@ -5,6 +5,7 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
@@ -69,6 +70,24 @@ from kleos.projects.store import ProjectStore, fingerprint
 from kleos.projects.verification import VerificationService
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
+LOOPBACK_ALIASES = {'localhost': '127.0.0.1', '127.0.0.1': 'localhost'}
+
+
+def frontend_origins(settings):
+    """Origins allowed to make credentialed API calls.
+
+    Development also accepts the other loopback spelling of the configured frontend
+    (localhost <-> 127.0.0.1) on the same scheme and port. Other ports, including
+    the preview origin, stay excluded.
+    """
+    origin = settings.frontend_origin.rstrip('/')
+    origins = [origin]
+    parts = urlsplit(origin)
+    alias = LOOPBACK_ALIASES.get(parts.hostname or '')
+    if settings.environment == 'development' and alias:
+        port = f':{parts.port}' if parts.port else ''
+        origins.append(f'{parts.scheme}://{alias}{port}')
+    return origins
 
 
 def readiness_endpoint(request: Request):
@@ -297,7 +316,7 @@ class Runtime:
         self.app = create_app(self.services)
         self.app.state.runtime = self
         self.app.router.lifespan_context = self._lifespan
-        self.app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin.rstrip('/')],
+        self.app.add_middleware(CORSMiddleware, allow_origins=frontend_origins(settings),
             allow_credentials=True, allow_methods=['GET', 'POST', 'DELETE', 'OPTIONS'],
             allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key', 'X-CSRF-Token', 'X-Organization-Id'])
         self.app.add_api_route('/api/v1/ready', readiness_endpoint, methods=['GET'])

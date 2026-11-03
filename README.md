@@ -114,9 +114,8 @@ Further details: [native execution](backend/src/kleos/execution/README.md),
 ## Prerequisites
 
 - Python **3.12** for the backend and its locked development environment.
-- Flutter/Dart for the workbench; CI currently pins Flutter **3.47.8** in
-  [ci.yml](.github/workflows/ci.yml). The companion image separately pins Flutter
-  **3.35.4**; these are different build environments.
+- Flutter/Dart **3.47.8** for the workbench. The companion image separately pins
+  Flutter **3.35.4**; these are different build environments.
 - Docker Engine/Desktop and Compose v2. Native dispatch needs Engine API 1.45+.
 - Native images target **linux/amd64**. Apple Silicon uses Docker emulation;
   native CAD execution directly on the development host is unsupported.
@@ -349,17 +348,15 @@ does not execute generated project code.
 
 ## Deployment
 
-The existing AWS Terraform and deployment workflow still describe parts of the
-previous backend and are not a deployment path for this replacement. Fresh cloud
-storage/execution adapters, configuration, release tooling and qualification are
-unfinished. Do not infer cloud readiness from the local container smoke test.
-No cloud resources were changed by the rewrite verification.
-
-Keep [infrastructure guidance](infra/README.md),
-[native networking constraints](infra/native-network.md) and
-[capacity constraints](infra/native-capacity.md) as review inputs for that phase.
-A main-branch push can trigger the existing workflow; do not push or deploy without
-the requested deployment scope and a reviewed concrete release.
+[infra/](infra/README.md) provisions a near-zero-idle-cost AWS layout for this
+replacement: the API on Lambda, workers and Docker-based tools on an on-demand EC2
+host, Aurora Serverless v2 that pauses at 0 ACU, and S3 artifacts. It has not been
+applied. It depends on backend changes listed in its README (S3 artifact storage, SSM
+settings loading, host wake and idle-check, Lambda packaging). The previous ECS stack
+is in [infra/legacy-ecs/](infra/legacy-ecs/README.md) only for its eventual teardown.
+There are no CI/CD workflows: run the checks in [AGENTS.md](AGENTS.md) locally and
+release from an operator workstation as described in the infra README. Do not deploy
+without the requested deployment scope and a reviewed concrete release.
 
 ## Troubleshooting
 
