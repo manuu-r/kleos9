@@ -128,7 +128,7 @@ The exact local PCB image passed reference, routing and manufacturing-export qua
 documented in `qualification/PCB.md` and `qualification/pcb-exact-image.json`.
 The exact local CAD image passed the two-part qualification documented in
 `qualification/README.md` and `qualification/cad-exact-image.json`. This qualifies
-that image's local Docker Desktop protocol only. CAD and PCB were additionally qualified on a plain
+that image's local Docker Desktop protocol only. CAD, PCB, firmware and Flutter web were additionally qualified on a plain
 Linux engine with in-tree toolchain parents ([`qualification/LINUX.md`](qualification/LINUX.md)). Explicit NRF52840 firmware
 compilation and Flutter web compilation passed separately in `qualification/FIRMWARE.md`
 and `qualification/WEB.md`. Other boards, Android/iOS, device execution and

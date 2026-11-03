@@ -3,7 +3,7 @@
 # These stages install third-party tools only; they contain no Kleos code. Build a stage, record its image
 # ID, then build ../Dockerfile with `--build-arg TOOLCHAIN_IMAGE=<that image ID>`; qualify that child image.
 # Targets: mechanics-toolchain (build123d CAD), electronics-toolchain (KiCad, Freerouting, atopile),
-# firmware-toolchain (Zephyr 4.2.0, ARM GCC).
+# firmware-toolchain (Zephyr 4.2.0, ARM GCC), application-toolchain (Flutter 3.35.4 web).
 # Others are added only once built and qualified here.
 #
 # Optional inputs for restricted networks (nothing is retained in the image):
@@ -83,4 +83,26 @@ RUN --mount=type=bind,from=extra-ca,target=/extra-ca \
 RUN --mount=type=bind,from=extra-ca,target=/extra-ca \
     set -eux; kleos-net begin; \
     cd /opt/zephyrproject; west update --narrow --fetch-opt=--depth=1 hal_nordic; \
+    kleos-net end
+
+# Flutter web for companion applications. Jobs have no network, so the pub cache is primed here with the
+# packages a default `flutter create` app resolves (cupertino_icons, flutter_lints, flutter_test and their
+# dependencies for this exact Flutter tag). An app needing any other package fails `pub get --offline`; adding
+# one means changing this stage, rebuilding and re-qualifying. Android and iOS are not part of this image.
+FROM base AS application-toolchain
+ARG FLUTTER_VERSION=3.35.4
+ENV PUB_CACHE=/opt/pub-cache FLUTTER_SUPPRESS_ANALYTICS=true CI=true
+RUN --mount=type=bind,from=extra-ca,target=/extra-ca \
+    set -eux; kleos-net begin; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl git unzip xz-utils libglu1-mesa ca-certificates; \
+    git clone --depth 1 --branch "${FLUTTER_VERSION}" https://github.com/flutter/flutter.git /opt/flutter; \
+    git config --system --add safe.directory /opt/flutter; \
+    /opt/flutter/bin/flutter config --no-analytics --enable-web; \
+    /opt/flutter/bin/flutter precache --web; \
+    mkdir -p /opt/pub-cache /tmp/primer; \
+    cd /tmp/primer; /opt/flutter/bin/flutter create --platforms web --project-name primer . ; \
+    /opt/flutter/bin/flutter pub get; \
+    cd /; rm -rf /tmp/primer; \
+    chown -R 10001:10001 /opt/flutter /opt/pub-cache; \
     kleos-net end

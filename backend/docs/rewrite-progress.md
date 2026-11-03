@@ -20,8 +20,8 @@ Do not declare completion based on fixtures or code-size reduction alone.
   no composed coverage. Full backend suite after the change: 1,577 passed, 11 skipped;
   Ruff, mock-backend (15 passed), OpenAPI export and `git diff --check` passed. The
   Dart transport check and Flutter suites were not run (no Dart/Flutter SDK).
-- Native toolchain parents for CAD, PCB and firmware were reconstructed in `execution/toolchains/`
-  (the old recipes were deleted with `backend/docker`). CAD, PCB and firmware native images built
+- Native toolchain parents for CAD, PCB, firmware and Flutter web were reconstructed in `execution/toolchains/`
+  (the old recipes were deleted with `backend/docker`). CAD, PCB, firmware and Flutter web native images built
   from them passed strict Linux-engine qualification; defects found on the way were fixed (a supervisor
   IPv6 assumption, a missing per-job Zephyr cache directory, and settings tests that CI's exported
   `KLEOS2_DATABASE_URL` broke).

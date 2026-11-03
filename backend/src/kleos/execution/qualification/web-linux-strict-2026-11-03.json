@@ -1,0 +1,262 @@
+{
+  "qualified": true,
+  "imageId": "sha256:50f070cf4bae30f529e44f8eb17804e2d4c1d9d7d4dd0973935dbb0e1ad8ec17",
+  "protocol": "kleos-native-session-v2",
+  "lane": "application",
+  "applicationTarget": "web",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "storagePolicy": "hard-bounded-private-tmpfs",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "pids": 256,
+    "scratchBytes": 4294967296
+  },
+  "networkPolicy": "linux-supervisor-seccomp",
+  "parentImageId": "sha256:a34070c14bff09f3a31285f77f6bbf73d01857a05aa8942c7da1e2ff9f1fed64",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-03T05:26:55.224732+00:00",
+  "fixtureSourcesSha256": "6f99742b69481daf142a12af0d07ac06d8c6a0dafe14fa8e9d59a6e295987c4d",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.yaml",
+              "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "lib/main.dart",
+              "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "web/index.html",
+              "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.lock",
+              "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/companion-web.zip"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "edb4d347-e4af-4d80-8bd1-da0f21e28f49",
+            "path": "pubspec.yaml",
+            "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+            "revision": 2,
+            "mediaType": "application/yaml",
+            "size": 225
+          },
+          {
+            "id": "d74c64d8-1c3e-44fb-a94c-474fe52b6d27",
+            "path": "lib/main.dart",
+            "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+            "revision": 2,
+            "mediaType": "application/vnd.dart",
+            "size": 663
+          },
+          {
+            "id": "060deaaa-119a-45b5-a665-4c6b9798e097",
+            "path": "web/index.html",
+            "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+            "revision": 2,
+            "mediaType": "text/html",
+            "size": 266
+          },
+          {
+            "id": "7bfc8ba0-732b-43fd-a593-02ed8aa52e74",
+            "path": "pubspec.lock",
+            "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 1485
+          },
+          {
+            "id": "d6b0c8eb-ca1e-4eae-bba0-4cab58af68e0",
+            "path": "outputs/companion-web.zip",
+            "sha256": "fdfb6f1deea075cd0f1ec1e271362c4ee69101884ee32ba30147f8dc6e006103",
+            "revision": 2,
+            "mediaType": "application/zip",
+            "size": 11353929
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:50f070cf4bae30f529e44f8eb17804e2d4c1d9d7d4dd0973935dbb0e1ad8ec17",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 6442450944,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 256,
+      "scratch": "rw,nosuid,nodev,size=4294967296,mode=1777,exec",
+      "writableHostMounts": false
+    }
+  ],
+  "webArchiveEntries": [
+    ".last_build_id",
+    "assets/",
+    "assets/AssetManifest.bin",
+    "assets/AssetManifest.bin.json",
+    "assets/AssetManifest.json",
+    "assets/FontManifest.json",
+    "assets/NOTICES",
+    "assets/fonts/",
+    "assets/fonts/MaterialIcons-Regular.otf",
+    "assets/fonts/kleos-default-roboto/",
+    "assets/fonts/kleos-default-roboto/LICENSE.txt",
+    "assets/fonts/kleos-default-roboto/Roboto-Black.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-BlackItalic.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Bold.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-BoldItalic.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Italic.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Light.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-LightItalic.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Medium.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-MediumItalic.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Regular.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-Thin.ttf",
+    "assets/fonts/kleos-default-roboto/Roboto-ThinItalic.ttf",
+    "assets/kleos-default-fonts.json",
+    "assets/shaders/",
+    "assets/shaders/ink_sparkle.frag",
+    "canvaskit/",
+    "canvaskit/canvaskit.js",
+    "canvaskit/canvaskit.js.symbols",
+    "canvaskit/canvaskit.wasm",
+    "canvaskit/chromium/",
+    "canvaskit/chromium/canvaskit.js",
+    "canvaskit/chromium/canvaskit.js.symbols",
+    "canvaskit/chromium/canvaskit.wasm",
+    "canvaskit/skwasm.js",
+    "canvaskit/skwasm.js.symbols",
+    "canvaskit/skwasm.wasm",
+    "canvaskit/skwasm_heavy.js",
+    "canvaskit/skwasm_heavy.js.symbols",
+    "canvaskit/skwasm_heavy.wasm",
+    "flutter.js",
+    "flutter_bootstrap.js",
+    "flutter_service_worker.js",
+    "index.html",
+    "main.dart.js",
+    "version.json"
+  ],
+  "limitations": [
+    "Offline Flutter web build fixture only",
+    "No browser/device execution or acceptance",
+    "APK remains unqualified; no silent platform substitution"
+  ]
+}

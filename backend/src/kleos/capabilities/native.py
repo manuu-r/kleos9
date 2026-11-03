@@ -49,7 +49,7 @@ def register_native(registry: CapabilityRegistry, gateway: NativeGateway, *, cap
     if any(action not in _ACTIONS or (capability == Capability.VALIDATION and action == 'patch') for action in actions):
         raise ValueError('Unsupported native capability action')
     lane_limits = {
-        Capability.APPLICATION: 'Current application exports are web archives only. APK, iOS, BLE and browser/device behavior are not qualified.',
+        Capability.APPLICATION: 'Current application exports are web archives only. APK, iOS, BLE and browser/device behavior are not qualified. Builds have no network: only the Flutter SDK and the default flutter-create packages (cupertino_icons, flutter_lints, flutter_test and their dependencies) resolve; any other pub package fails the offline build.',
         Capability.FIRMWARE: 'Requires an explicitly accepted qualified firmware board. ELF/BIN compilation does not prove execution or peripheral behavior.',
         Capability.PCB: 'Requires the accepted circuit contract with exact references and peripheral identities. Routing/ERC/DRC do not prove physical function.',
         Capability.CAD: 'Produce separate part exports with manufacturing coordinates. Exploded offsets are display-only; generator checks cannot accept a release.'}
