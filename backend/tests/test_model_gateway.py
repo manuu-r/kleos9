@@ -149,7 +149,9 @@ async def test_no_implicit_provider_retry_or_switch(authority, status):
             await adapter.chat_model(scope).ainvoke('Shape')
     assert len(calls) == 1
     records = adapter.ledger.records(scope.actor, scope.project_id, scope.run_id)
-    assert records[0]['status'] == ('rate_limited' if status == 429 else 'provider_error')
+    assert records[0]['status'] == {429: 'rate_limited', 500: 'provider_error', 401: 'provider_rejected'}[status]
+    # A refusal before any generation (429, 4xx) is free; a 5xx may have consumed provider work and keeps its reservation.
+    assert (records[0]['committedMicroUsd'] == 0) == (status != 500)
     assert 'Never persist' not in json.dumps(records)
 
 

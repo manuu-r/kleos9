@@ -290,6 +290,8 @@ def test_retry_settles_a_cut_off_model_call_of_a_blocked_run_and_keeps_its_reser
         session.add(ModelAttempt(id='cut-off', run_id=scope.run_id, status='reserved', data={'committedMicroUsd': 120}))
         session.add(Effect(id='asked', run_id=scope.run_id, key='task:model:3', status='claimed', value={}))
         session.add(Effect(id='replan', run_id=scope.run_id, key='plan:1', status='claimed', value={}))
+        session.add(Effect(id='captured', run_id=scope.run_id, key='capture:design:model', status='claimed', value={}))
+        session.add(Effect(id='solved', run_id=scope.run_id, key='solve:interfaces:model', status='claimed', value={}))
         session.add(Effect(id='planned', run_id=scope.run_id, key='plan:0', status='completed', value={'tasks': []}))
     command(facade, actor, project, 'project.retry', 2, 'retry-cut-off', runId=scope.run_id)
     with projects.transaction() as session:
@@ -299,6 +301,8 @@ def test_retry_settles_a_cut_off_model_call_of_a_blocked_run_and_keeps_its_reser
         assert budget.committed_cost == 700  # spend history is never reset
         assert session.scalar(select(Effect).where(Effect.key == 'task:model:3')) is None
         assert session.scalar(select(Effect).where(Effect.key == 'plan:1')) is None
+        # Capture and interface proposals journal their model call under their own keys; a crash must not strand them.
+        assert session.scalar(select(Effect).where(Effect.key.in_(['capture:design:model', 'solve:interfaces:model']))) is None
         assert session.scalar(select(Effect).where(Effect.key == 'plan:0')).status == 'completed'
 
 

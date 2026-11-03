@@ -217,7 +217,8 @@ class EngineeringService:
         if session.scalar(select(ModelAttempt.id).where(ModelAttempt.run_id == run.id, ModelAttempt.status == 'reserved').limit(1)) is None:
             for effect in session.scalars(select(Effect).where(
                     Effect.run_id == run.id, Effect.status == 'claimed',
-                    or_(Effect.key.like('%:model:%'), Effect.key.like('plan:%')))):
+                    or_(Effect.key.like('%:model:%'), Effect.key.like('plan:%'),
+                        Effect.key.like('%:design:model'), Effect.key.like('%:interfaces:model')))):
                 session.delete(effect)
         if run.data.get('blocker') == 'invalid_plan':
             # The engine rejects a plan before publishing or running any of it, so the rejected decision produced

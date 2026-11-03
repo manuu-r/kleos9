@@ -17,7 +17,10 @@ execution_owner = ContextVar("kleos_execution_owner", default=None)
 # settled the attempt (rejected, rate limited or unusable), or the native gateway refused an action on a closed
 # job before it recorded anything, or the request was refused before it was sent.
 SETTLED_MODEL_FAILURES = frozenset({"model_provider_error", "model_rate_limited", "model_response_invalid",
-                                    "native_closed", "context_too_large"})
+                                    "native_closed", "context_too_large",
+                                    # The call settled and its reply failed validation, or the request never left: no side
+                                    # effect exists to reconcile, so a retry asks again as a new metered attempt.
+                                    "invalid_geometry", "invalid_interfaces", "vision_input_unavailable"})
 
 
 def resolve_dependencies(task_ids, superseded, dependencies):

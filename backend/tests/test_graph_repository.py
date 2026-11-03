@@ -91,3 +91,18 @@ async def test_settled_model_failure_releases_its_claim_but_other_failures_stay_
         await repo.run_once(scope, "other", lost)
     with pytest.raises(DomainError, match="reconciliation"):
         await repo.run_once(scope, "other", recovered)
+
+
+@pytest.mark.parametrize("code", ["invalid_geometry", "invalid_interfaces", "vision_input_unavailable"])
+async def test_unusable_model_output_releases_the_claim_so_a_retry_can_ask_again(repository, code):
+    repo, scope = repository
+
+    async def unusable():
+        raise DomainError("Model returned data that failed validation", code, 502)
+
+    async def usable():
+        return {"observed": "result"}
+
+    with pytest.raises(DomainError):
+        await repo.run_once(scope, "design", unusable)
+    assert await repo.run_once(scope, "design", usable) == {"observed": "result"}

@@ -135,8 +135,8 @@ class ModelLedger:
             cost = attempt.data['reservedMicroUsd']
             if usage is not None:
                 cost = _price(config, usage['input_tokens'], usage['output_tokens'])
-            elif status == 'rate_limited':
-                cost = 0
+            elif status in {'rate_limited', 'provider_rejected'}:
+                cost = 0  # nothing was served, so nothing is charged
             budget.committed_cost += cost - attempt.data['committedMicroUsd']
             attempt.status = status
             attempt.data = {**attempt.data, 'committedMicroUsd': cost, 'usage': usage,
@@ -258,7 +258,9 @@ class ModelGateway:
                                                        images=images, fallback_of=attempt)
                         raise DomainError('Model rate limited; explicit retry is required', 'model_rate_limited', 429)
                     if not 200 <= response.status_code < 300:
-                        self.ledger.settle(attempt, 'provider_error')
+                        # A 4xx (a bad key, a malformed request) is refused before any generation; only a 5xx may
+                        # have consumed provider work, so only it keeps the worst-case reservation.
+                        self.ledger.settle(attempt, 'provider_rejected' if 400 <= response.status_code < 500 else 'provider_error')
                         raise DomainError('Model provider rejected the request', 'model_provider_error', 502)
                     content = bytearray()
                     async for chunk in response.aiter_bytes():

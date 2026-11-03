@@ -26,5 +26,5 @@ def model_record(projects, access, actor, invocation_id):
                       if type(usage.get(key)) is int},
             'reservedMicroUsd': data['reservedMicroUsd'],
             'committedMicroUsd': data['committedMicroUsd'],
-            'usageKnown': data.get('usage') is not None or attempt.status == 'rate_limited',
+            'usageKnown': data.get('usage') is not None or attempt.status in {'rate_limited', 'provider_rejected'},
         }

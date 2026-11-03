@@ -499,7 +499,9 @@ class Runtime:
                 raise DomainError('Memory scope differs from the objective', 'forbidden', 403)
             await self.repository.assert_active(scope)
             return await self.authorize_memory(actor, project_id, write=write)
-        return Knowledge(self.memory_store, authorize, model=self._gateway(scope, pins).chat_model(scope))
+        # Background memory work follows the project's own coordination model, not the server default provider.
+        return Knowledge(self.memory_store, authorize, model=self._gateway(scope, pins).chat_model(
+            scope, model_key=pins.get('laneModels', {}).get('coordination')))
 
     async def observe_memory(self, scope, state):
         with self.projects.transaction() as session:

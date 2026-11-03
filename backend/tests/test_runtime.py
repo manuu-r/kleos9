@@ -170,6 +170,20 @@ async def test_runtime_vision_selection_actual_graph_and_model_policy_survive_se
             encoded = json.dumps(session.get(Objective, scope.run_id).data['runtimePins'])
             assert 'not-a-real-key' not in encoded and 'session_secret' not in encoded
         assert runtime.memory_for_run(scope).extractor is not None
+        seen, original = {}, runtime._gateway
+
+        class Spy:
+            def __init__(self, inner):
+                self.inner = inner
+
+            def chat_model(self, chat_scope, **kwargs):
+                seen.update(kwargs)
+                return self.inner.chat_model(chat_scope, **kwargs)
+
+        runtime._gateway = lambda gateway_scope, gateway_pins: Spy(original(gateway_scope, gateway_pins))
+        runtime.memory_for_run(scope)
+        # Background memory calls use the project's pinned coordination model, never the server default provider.
+        assert seen == {'model_key': pins['laneModels'].get('coordination')}
 
 
 async def test_missing_tools_block_engine_without_provider_requests(tmp_path):
