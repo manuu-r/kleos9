@@ -90,6 +90,8 @@ accepts its older names `KLEOS_MODAL_LLM_KEY` and `KLEOS_MODAL_LLM_URL` as alias
 configuration: only the three provider credentials are read from it, and its database, authentication and
 execution settings are never inherited. Set a **fresh local PostgreSQL database URL** and a persistent
 `KLEOS_SESSION_SECRET` through your private environment before running these commands.
+[`.env.example`](.env.example) lists every setting with its default and a safe placeholder; copy it to a private
+location (not `backend/.env`), fill it in and export it or pass it to `docker compose --env-file`.
 
 ```bash
 .venv/bin/python -m kleos.cli migrate

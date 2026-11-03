@@ -143,6 +143,7 @@ cd backend
 uv sync --locked
 ```
 
+Start from [`backend/.env.example`](backend/.env.example) (copy it to a private location, not `backend/.env`).
 Set `KLEOS_DATABASE_URL` to the fresh database and configure a persistent
 `KLEOS_SESSION_SECRET` in your private process environment. For authenticated
 setup, also configure `KLEOS_SETUP_TOKEN`. Local-only no-login mode is an explicit

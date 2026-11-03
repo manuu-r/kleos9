@@ -11,7 +11,7 @@ not subsequent working-tree edits or unrestricted frontend cutover.
 From the repository root:
 
 ```bash
-docker build -t kleos2-control:local -f backend/Dockerfile backend
+docker build -t kleos-control:local -f backend/Dockerfile backend
 ```
 
 The Dockerfile pins official Python3.12.16 and uv0.8.11 image indexes, installs
@@ -37,7 +37,7 @@ This example refuses to overwrite an existing file and prints only its path:
 python3 - <<'PY'
 import os, secrets
 from pathlib import Path
-path = Path.home() / '.config/kleos2/local-runtime.env'
+path = Path.home() / '.config/kleos/local-runtime.env'
 path.parent.mkdir(parents=True, exist_ok=True)
 password = secrets.token_hex(32)
 values = {
@@ -52,10 +52,10 @@ with os.fdopen(fd, 'w') as stream:
 print(path)
 PY
 
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml config --quiet
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml up -d --wait postgres
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml --profile setup run --rm migrate
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml up -d api
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml config --quiet
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml up -d --wait postgres
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml --profile setup run --rm migrate
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml up -d api
 ```
 
 Migration explicitly creates replacement business and graph/store schemas and
@@ -80,7 +80,7 @@ Starting the API does not start an objective worker. After selecting credentials
 and allowances, explicitly enable it:
 
 ```bash
-docker compose --env-file backend/.env --env-file "$HOME/.config/kleos2/local-runtime.env" \
+docker compose --env-file backend/.env --env-file "$HOME/.config/kleos/local-runtime.env" \
   -f backend/compose.yaml --profile worker up -d worker
 ```
 
@@ -97,8 +97,8 @@ Set `KLEOS_COMPANION_PREVIEW_ENABLED=true` in the private file, recreate the API
 and explicitly start the preview:
 
 ```bash
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml up -d api
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml --profile preview up -d preview
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml up -d api
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml --profile preview up -d preview
 ```
 
 Preview defaults to loopback8004, distinct from API8000 and workbench5180. It gets
@@ -115,7 +115,7 @@ preserves sessions, projects and immutable files. Stop this project while keepin
 its volumes:
 
 ```bash
-docker compose --env-file "$HOME/.config/kleos2/local-runtime.env" -f backend/compose.yaml \
+docker compose --env-file "$HOME/.config/kleos/local-runtime.env" -f backend/compose.yaml \
   --profile worker --profile preview down
 ```
 

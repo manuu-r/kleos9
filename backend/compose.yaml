@@ -28,7 +28,7 @@ x-runtime-env: &runtime-env
   KLEOS_MAX_MODEL_COST_MICRO_USD: ${KLEOS_MAX_MODEL_COST_MICRO_USD:-5000000}
 
 x-control: &control
-  image: ${KLEOS_CONTROL_IMAGE:-kleos2-control:local}
+  image: ${KLEOS_CONTROL_IMAGE:-kleos-control:local}
   pull_policy: never
   init: true
   user: "10001:10001"

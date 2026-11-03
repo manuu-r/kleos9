@@ -15,7 +15,7 @@ ROOT = Path(__file__).parents[1]
 
 def main():
     stamp = secrets.token_hex(5)
-    project = 'kleos2-packaging-' + stamp
+    project = 'kleos-packaging-' + stamp
     work = ROOT / '.data/qualification' / project
     work.mkdir(parents=True)
     password, session_secret, setup = (secrets.token_hex(32) for _ in range(3))
@@ -24,7 +24,7 @@ def main():
         'KLEOS_POSTGRES_PASSWORD': password,
         'KLEOS_DATABASE_URL': f'postgresql+psycopg://kleos:{password}@postgres:5432/kleos2_local',
         'KLEOS_SESSION_SECRET': session_secret, 'KLEOS_SETUP_TOKEN': setup,
-        'KLEOS_CONTROL_IMAGE': 'kleos2-control:local', 'KLEOS_LOCAL_API_PORT': '18870',
+        'KLEOS_CONTROL_IMAGE': 'kleos-control:local', 'KLEOS_LOCAL_API_PORT': '18870',
         'KLEOS_LOCAL_PREVIEW_PORT': '18874', 'KLEOS_API_ORIGIN': 'http://127.0.0.1:18870',
         'KLEOS_PREVIEW_ORIGIN': 'http://127.0.0.1:18874', 'KLEOS_FRONTEND_ORIGIN': 'http://127.0.0.1:18880',
         'KLEOS_COMPANION_PREVIEW_ENABLED': 'true', 'KLEOS_META_API_KEY': '',
