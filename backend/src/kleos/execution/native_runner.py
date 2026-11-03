@@ -323,7 +323,8 @@ class NativeSession:
             if sum((work / p).stat().st_size for p in self.state['sources']) > MAX_SOURCES:
                 raise ValueError('Source closure exceeds bound')
             atomic_json(self.state_path, self.state)
-        for name in ('.home', '.tmp', 'outputs'):
+        # Zephyr probes $HOME/.cache with os.access and otherwise falls back to a path in its read-only tree.
+        for name in ('.home', '.home/.cache', '.tmp', 'outputs'):
             (work / name).mkdir(mode=0o755, exist_ok=True)
 
     def _write(self, path, content):

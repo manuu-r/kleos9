@@ -1,7 +1,7 @@
 {
   "qualified": true,
-  "imageId": "sha256:9896224c9b02bfafa67703fd89222ceb6de6e396fc5002e8670a7db12a529697",
-  "finishedAt": "2026-11-03T04:38:49.774165+00:00",
+  "imageId": "sha256:31729cee7be71109542d7cf4448151d8ef494ee8ec770d9e28ee8c8d9a8474cf",
+  "finishedAt": "2026-11-03T04:56:09.616546+00:00",
   "fixtureSha256": "2e5906486a1130c2cacd2893127ee25c783474bcf9ece3c98132745277ba6e86",
   "protocol": "kleos-native-session-v2",
   "lane": "cad",
@@ -107,7 +107,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "2875f822-a009-40ce-b511-76ce431a31e1",
+            "id": "348fbce9-6b38-4149-9fc9-4d15520ef87d",
             "path": "model.py",
             "sha256": "2e5906486a1130c2cacd2893127ee25c783474bcf9ece3c98132745277ba6e86",
             "revision": 2,
@@ -115,15 +115,15 @@
             "size": 1404
           },
           {
-            "id": "5809bca0-2156-4a13-826a-fbadb1e87279",
+            "id": "a7534968-3105-4bd2-bfa2-a613c8e98b6a",
             "path": "outputs/base.step",
-            "sha256": "3025cb44232afcff64dcc1d6edfeca9440fd28185be604ec620398bb7ea9c1dd",
+            "sha256": "19822a2c00ae3b24461efd611fe08bf2c77fafa2a9486fb07cf5b8073c1306d1",
             "revision": 2,
             "mediaType": "model/step",
             "size": 19035
           },
           {
-            "id": "5ff4a154-e0c6-4dd3-8a13-83e29a0fc7ab",
+            "id": "8a6d789d-58b4-47dd-a105-cc5abe3b7d20",
             "path": "outputs/base.stl",
             "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
             "revision": 2,
@@ -131,15 +131,15 @@
             "size": 26084
           },
           {
-            "id": "959161e4-b0ce-4f4e-86c9-79e36a3143da",
+            "id": "710aa361-d040-4248-b96f-cc14a9d4769a",
             "path": "outputs/lid.step",
-            "sha256": "653b9fae69c027fb8e3efe1b9ea75927bb57e594c188c0d637da8378c916e268",
+            "sha256": "4b3c08bf9a4bc8373edc197132a2126a5760dfe8c508df8c09e173b7dd2c8a3d",
             "revision": 2,
             "mediaType": "model/step",
             "size": 16946
           },
           {
-            "id": "4c85b076-a9ed-4458-a024-4b2b1d84457d",
+            "id": "741ee8f5-ee45-49b2-b5ce-c393a70af3c2",
             "path": "outputs/lid.stl",
             "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
             "revision": 2,
@@ -147,7 +147,7 @@
             "size": 684
           },
           {
-            "id": "aa0029f7-cd9c-46ee-9629-bf8a31814972",
+            "id": "6418002d-4fdc-441c-8374-27b3e4d5bf28",
             "path": "outputs/parts.json",
             "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
             "revision": 2,
@@ -155,7 +155,7 @@
             "size": 120
           },
           {
-            "id": "e28f37aa-2b78-4bd4-b77a-35df574cfcfd",
+            "id": "5ea273e3-795b-44d5-acbd-d384b7709b0c",
             "path": "outputs/lid.svg",
             "sha256": "7cd4c721950d03fadbbc7371e81c4db4a072de4cf450dfa8831104967814b47b",
             "revision": 2,
@@ -163,7 +163,7 @@
             "size": 1393
           },
           {
-            "id": "6b2518bd-da66-4a49-903a-7ca141a3bc8a",
+            "id": "f5555860-2523-4ebd-a0ee-833d6ecec65f",
             "path": "outputs/base.svg",
             "sha256": "303ef85a55004fc67d58b5bf59c70b2386bc51adaa14f08700976f4b0d96c421",
             "revision": 2,
@@ -191,7 +191,7 @@
   "containers": [
     {
       "runtimeLogs": "",
-      "image": "sha256:9896224c9b02bfafa67703fd89222ceb6de6e396fc5002e8670a7db12a529697",
+      "image": "sha256:31729cee7be71109542d7cf4448151d8ef494ee8ec770d9e28ee8c8d9a8474cf",
       "status": "exited",
       "readonlyRootfs": true,
       "networkMode": "none",

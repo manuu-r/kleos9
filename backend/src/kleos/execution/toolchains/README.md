@@ -9,7 +9,7 @@ verified, and a build on a restricted network leaves no proxy certificate or pro
 |---|---|---|
 | `mechanics-toolchain` | CPython 3.12.16, build123d 0.10.0, ocp-gordon 0.1.18 | built; native CAD qualification passed |
 | `electronics-toolchain` | + KiCad 9.0.8 (and libraries), Temurin JRE 21.0.13, Freerouting 2.1.0, atopile 0.12.5 | built; native PCB qualification passed |
-| `firmware-toolchain` | Zephyr v4.2.0, west 1.5.0, ARM GCC, cmsis/cmsis_6/hal_stm32/hal_nordic | recipe only: not yet built or qualified in this tree |
+| `firmware-toolchain` | Zephyr v4.2.0, west 1.5.0, ARM GCC, cmsis/cmsis_6/hal_stm32/hal_nordic | built; native firmware qualification passed (compile-only) |
 
 There is no `application-toolchain` target yet: the Flutter web lane's parent also needs a pre-baked pub cache
 from a companion template that is no longer in the tree. Its previously qualified image evidence

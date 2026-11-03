@@ -21,10 +21,12 @@ Do not declare completion based on fixtures or code-size reduction alone.
   Ruff, mock-backend (15 passed), OpenAPI export and `git diff --check` passed. The
   Dart transport check and Flutter suites were not run (no Dart/Flutter SDK).
 - Native toolchain parents for CAD, PCB and firmware were reconstructed in `execution/toolchains/`
-  (the old recipes were deleted with `backend/docker`). CAD and PCB native images built from them
-  passed strict Linux-engine qualification; two test-suite defects found on the way were fixed (a
-  supervisor IPv6 assumption and settings tests that CI's exported `KLEOS2_DATABASE_URL` broke).
-  With a local PostgreSQL 16 the full suite passed including every PostgreSQL opt-in test.
+  (the old recipes were deleted with `backend/docker`). CAD, PCB and firmware native images built
+  from them passed strict Linux-engine qualification; defects found on the way were fixed (a supervisor
+  IPv6 assumption, a missing per-job Zephyr cache directory, and settings tests that CI's exported
+  `KLEOS2_DATABASE_URL` broke).
+  With a local PostgreSQL 16 and the opt-in solver/container tests enabled, the full suite passed:
+  1,675 passed, 0 failed, 0 skipped.
 - Circuit simulation (this branch's ngspice work) was rebuilt as `validation/simulation`: a
   deterministic deck compiler, bounded parser/checks, an isolated one-deck-per-container
   executor and stored, hash-verified evidence behind the unchanged route. It is advisory and

@@ -1,6 +1,6 @@
 {
   "qualified": true,
-  "imageId": "sha256:ed5fad655ba694c3ba6f1c3249cafa032c716d378ab12522f2e0f705e7f5a904",
+  "imageId": "sha256:5c02cf4b3292afb89ce9de121bb616efdc282632ee9799653c61bf01d744d677",
   "protocol": "kleos-native-session-v2",
   "lane": "pcb",
   "deployment": "local",
@@ -9,7 +9,7 @@
   "networkPolicy": "linux-supervisor-seccomp",
   "parentImageId": "sha256:57d564558ad4940153bc500a2235e5d1fba82b06feafd1a224bb8e097f136270",
   "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
-  "finishedAt": "2026-11-03T04:48:40.150767+00:00",
+  "finishedAt": "2026-11-03T04:56:23.266873+00:00",
   "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
   "circuitContract": {
     "references": [
@@ -280,7 +280,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "fc280680-f00b-45b7-87fb-fd0601bd7376",
+            "id": "952af0c5-e04d-43ae-86a3-6aaeed4d414a",
             "path": "Fixture.pretty/TwoPin.kicad_mod",
             "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273",
             "revision": 2,
@@ -288,7 +288,7 @@
             "size": 1251
           },
           {
-            "id": "a38e4ef0-13a2-45ba-a2fa-bc7114a71bca",
+            "id": "7f202ff7-505d-4e03-acd0-dbee58222523",
             "path": "board.kicad_pcb",
             "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474",
             "revision": 2,
@@ -296,7 +296,7 @@
             "size": 5382
           },
           {
-            "id": "54eebfe0-09bd-4d5a-9d2a-9ce0a63638a5",
+            "id": "7f9f55fd-f090-4eac-b5ec-c41dcbaacfe6",
             "path": "board.kicad_prl",
             "sha256": "36feff389da83c0f055a78f2dd8638a8ed0c4e8ed99e3cc8b4d6dcb1acad2f62",
             "revision": 2,
@@ -304,7 +304,7 @@
             "size": 2115
           },
           {
-            "id": "2bfe9d32-e556-4442-ab2a-103bf279e491",
+            "id": "e6b36d95-3210-48f8-87e4-3d993b606f77",
             "path": "board.kicad_pro",
             "sha256": "9c2a7f0eb9896769c964533e71fd6c358cec467eef3470d0df81b651e51f3616",
             "revision": 2,
@@ -312,7 +312,7 @@
             "size": 8358
           },
           {
-            "id": "df9f23c6-bd44-459c-9d70-99581051859a",
+            "id": "15f97585-4194-4b3a-8b3a-3c7f007070cb",
             "path": "circuit.kicad_sch",
             "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f",
             "revision": 2,
@@ -320,7 +320,7 @@
             "size": 2887
           },
           {
-            "id": "e61dac6f-c4b6-4a8a-b9bb-4b051cc7db73",
+            "id": "a4fa09b6-605d-4708-95cb-aa96d3a870f4",
             "path": "fixture.kicad_sym",
             "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac",
             "revision": 2,
@@ -328,7 +328,7 @@
             "size": 933
           },
           {
-            "id": "f0960ed4-7878-4c2b-ac96-1a4e4d21d36d",
+            "id": "68155530-3756-447b-9dae-542074aee649",
             "path": "fp-lib-table",
             "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66",
             "revision": 2,
@@ -336,7 +336,7 @@
             "size": 123
           },
           {
-            "id": "ed70f68b-551e-47d1-af87-e9be8b8de00c",
+            "id": "348bef63-d098-44d6-ba50-54dc702a06aa",
             "path": "sym-lib-table",
             "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437",
             "revision": 2,
@@ -344,7 +344,7 @@
             "size": 127
           },
           {
-            "id": "80f81678-ceec-46e4-b33a-41337596d9bf",
+            "id": "886124e0-f0b2-4f02-8014-d8de6c416182",
             "path": "outputs/circuit-contract.json",
             "sha256": "1141050df597abaeabc9ccf4772ee488f60cc6a454554e50fd371d6347fcbb43",
             "revision": 2,
@@ -352,127 +352,127 @@
             "size": 487
           },
           {
-            "id": "228ece3d-0575-49c8-a723-659335874ae7",
+            "id": "3d47b1f1-f762-4675-b320-90419bdc26e7",
             "path": "outputs/drc.json",
-            "sha256": "0236d5c4228846b0399bff3472e0b24e6395db5ead92faad05919690418f6cf9",
+            "sha256": "d56186d8c64e00a99da8383bf3471fa6faf7f050ffa7c086123ccaa2e5b7c382",
             "revision": 2,
             "mediaType": "application/json",
             "size": 342
           },
           {
-            "id": "35e3a1bd-34a5-41f0-a591-4420ced00648",
+            "id": "93028a22-ca08-48f7-b40b-5934f8021e66",
             "path": "outputs/erc.json",
-            "sha256": "ccad4ee513da50fd1bab6bd1f05550a0e153c4f5d4e0f82df24c3df0d3f6b30d",
+            "sha256": "e7a3dd4dbd802249e2a30867d78d42053a5f218db3b4b8b9d2438cb11254c743",
             "revision": 2,
             "mediaType": "application/json",
             "size": 428
           },
           {
-            "id": "8c1a590c-f217-4371-bd50-2921278682d4",
+            "id": "f29c1d03-61aa-4826-9fb2-5675144a0545",
             "path": "outputs/gerbers/board-B_Cu.gbr",
-            "sha256": "d484400bf6716f7719697c9ca2279655bff438a521f1b585fc6a47a3a3f646af",
+            "sha256": "bba6d4c0ac839a6fba4c809c1f5cb00ba85d92ac9011bbdd7755035de1f131b5",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 929
           },
           {
-            "id": "e130ae9e-1e48-4f68-a06d-a3cc50f291ef",
+            "id": "8fa37260-63ff-43a0-a710-12eab63e74cb",
             "path": "outputs/gerbers/board-B_Mask.gbr",
-            "sha256": "722c7991248ffff7be18822273fc99d78e347aa2be7ad6530b2646dbb7523b78",
+            "sha256": "5dd4fcde931fe5b7bfd5b328a84c95025eef4a73dcf328d4fc3c3aebc688418f",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "52dd4a97-ff58-4789-9d46-6d5a6ef822a8",
+            "id": "9c532a0c-08fa-42a0-8a86-95cc8159bf88",
             "path": "outputs/gerbers/board-B_Paste.gbr",
-            "sha256": "a7912c5fde15b0012c7d0515fd4295625f58cadb1ad3f931aaf03e114144b73f",
+            "sha256": "40ad8736f885b06fcb1b2e41d79e161edf1bcbf29e3a5c68c00c905f209001ad",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "ef80d4dc-803c-49ee-a198-3bb6e728c19f",
+            "id": "80ce3359-60e0-47ad-ab00-5b95289c5e21",
             "path": "outputs/gerbers/board-B_Silkscreen.gbr",
-            "sha256": "9254b493649663fbf3ea3fdc9778e1d3e7ffee3999f823dff5a5cf583ad94f6e",
+            "sha256": "f5f09eeda7bada90fdf0874ddeca0477ce44b48b58c619ea8458158ad7a4ce56",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 453
           },
           {
-            "id": "f546e136-4108-4662-a2f6-60af56229d83",
+            "id": "56685e13-6fb1-4607-a416-d73e58009ab4",
             "path": "outputs/gerbers/board-Edge_Cuts.gbr",
-            "sha256": "5357f82e8d256c9a3ca1835ff5eb64cbc0c448587c18d5aa3888907f194ee588",
+            "sha256": "38455e8e960228330e5e5d8d38fdef686ff80ee5c1782a2514f54e3201154050",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 614
           },
           {
-            "id": "77feb440-ece3-4431-9d7a-a463e0873f6f",
+            "id": "c364d1cc-3467-48c0-9887-613800130cbb",
             "path": "outputs/gerbers/board-F_Cu.gbr",
-            "sha256": "d5d1f8778b9f0bdd4802f9311148e6f630a99a2d472e118992b5982165a4a495",
+            "sha256": "24be988843cf0e7db46471bbe9ae6d2d3d38b7f4841077b715a47cd5520a5368",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 738
           },
           {
-            "id": "8a7c289a-b9ad-472f-94ad-fd9563084ba4",
+            "id": "e839f60b-0900-4674-9bd6-5579a75cd4a4",
             "path": "outputs/gerbers/board-F_Mask.gbr",
-            "sha256": "12e80f9e843f81426842d4db0d80c6c214fe898a838b2d799ad4dc6db5b3b34f",
+            "sha256": "c58f1d9bfbe824c482c6914fbc584f98fd70ed1609bd1089f3fbc5725f5ceabb",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "87eb5ef9-ef48-40a9-b561-9f9fd10a71ca",
+            "id": "1186fc7a-7b9a-4219-ae5f-51f51394ed32",
             "path": "outputs/gerbers/board-F_Paste.gbr",
-            "sha256": "d4bca19c214252c5ffc4a7793ce9c857c826a2997b235be3401048d48e38587b",
+            "sha256": "1dfbbae31507d37d896e3feabb04f26d0350e48caee24be9e72c4a644fce9b5a",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "c4bed2f6-594d-4395-9ce5-8411ad4b1203",
+            "id": "6348559b-334a-4c8c-81f5-c978478757cb",
             "path": "outputs/gerbers/board-F_Silkscreen.gbr",
-            "sha256": "cca492cbe04bcad1a86ac90283a50cba8a3431e9770957fa2cf23128b201e302",
+            "sha256": "034ed59851a9db2272b3cc9fbc4aa0c804ea2555698115c05ba1f470d786964c",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 1663
           },
           {
-            "id": "b2cef7ba-1e3c-4758-8789-d2f4849835fa",
+            "id": "e1a9bff0-dd1b-4ee0-a598-04596469fb84",
             "path": "outputs/gerbers/board-job.gbrjob",
-            "sha256": "e35b45b0f947b139d36a711c80cdef2f4feab78f058777bfe6908bda54d2f574",
+            "sha256": "948d29c9680faf39a5f7ca9fdb39579c6273d6af4a46c70af80aec2212d7f27e",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 2603
           },
           {
-            "id": "09dc420e-7c62-40b6-bc92-b310984ac19a",
+            "id": "84be655f-0803-4b3e-b9a2-ba022c0911dd",
             "path": "outputs/gerbers/board.drl",
-            "sha256": "ccd9fdbd093fc5e38b5d92ee90073a156ffe9ae5aa5792d9cbd2ca3f1019406c",
+            "sha256": "4f83b0fa7a5ab5f8c8f6827d30db6eab1120040375b6377c911a3c1591c7d510",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 381
           },
           {
-            "id": "7785d6e2-324c-408b-9251-89ddce314b86",
+            "id": "6235f0c0-ab0b-4916-a1fb-81cd3d711c72",
             "path": "outputs/netlist.xml",
-            "sha256": "7a8bb153ae012eab1b76ef467ee4f5e6d3086516454c968a06ede46d1b7d0cb4",
+            "sha256": "43a06ab43ef1dd4dabc6af34b1c72241c4eeecd763c2e79b9d04d51e8e41db9e",
             "revision": 2,
             "mediaType": "application/xml",
             "size": 2866
           },
           {
-            "id": "3d22d731-f136-4032-85f8-7c11fcb71c0c",
+            "id": "b7877c7d-dea0-4fd8-8064-f34145985922",
             "path": "outputs/pcb-project.zip",
-            "sha256": "c6039d1d66cdff680574363d66575b1a9b65f296198f3a51c11c1340d0472b73",
+            "sha256": "6fb6ebd99204466da53025d378360e28d1b5cc44e31d3c18c85bd9d14c2da68a",
             "revision": 2,
             "mediaType": "application/zip",
-            "size": 8060
+            "size": 8062
           },
           {
-            "id": "0648f537-25e8-4899-bc5d-cf3a56ca67d2",
+            "id": "e7230809-0233-424f-9b0f-e83cc6e6aa43",
             "path": "outputs/routed.kicad_dru",
             "sha256": "1836c6d1a8b559b428534e9f011acb4df411609d19ff25c02f8b7c8974e0522f",
             "revision": 2,
@@ -480,15 +480,15 @@
             "size": 143
           },
           {
-            "id": "7774b12d-1c3d-4100-a79a-30f59a62eeb7",
+            "id": "edcbfe5b-cfa1-4c5b-880a-82aa66ca8a8a",
             "path": "outputs/routed.kicad_pcb",
-            "sha256": "4d0d40722e6bb47114ec66efbf7b3f0f976aa79bd8629d1cdd5619dfc1b30f56",
+            "sha256": "c1de515fb280fc0f160a024a0fb91bc5c8479681e3f0262a3d41d4fe29205a4c",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 5654
           },
           {
-            "id": "de2224d2-ad17-43a2-95cb-b1b826ddf34d",
+            "id": "01f9daad-dda2-45a7-a95e-8c63c6267647",
             "path": "outputs/routed.kicad_pro",
             "sha256": "f012dcd33a0643d419e3a33faf1c0d890d2757870cd3842c11b40f4bb7769fcf",
             "revision": 2,
@@ -496,9 +496,9 @@
             "size": 8359
           },
           {
-            "id": "bc7af1bf-f3ce-46d1-8ab4-bd218c36bbc4",
+            "id": "fd5916a2-924b-418d-bc95-1d6cd61b5d4f",
             "path": "outputs/routing.json",
-            "sha256": "cf51d9d1fb61486087967e48e98562c30aec37025590e1ec8ecf6ad7f2beee2c",
+            "sha256": "e77147a7a970ef319a7ecf2a0c67bdd13dbcf232978568bd9aa0fc3d5ecf63be",
             "revision": 2,
             "mediaType": "application/json",
             "size": 312
@@ -546,7 +546,7 @@
   ],
   "containers": [
     {
-      "image": "sha256:ed5fad655ba694c3ba6f1c3249cafa032c716d378ab12522f2e0f705e7f5a904",
+      "image": "sha256:5c02cf4b3292afb89ce9de121bb616efdc282632ee9799653c61bf01d744d677",
       "networkMode": "none",
       "readonlyRootfs": true,
       "memory": 4294967296,

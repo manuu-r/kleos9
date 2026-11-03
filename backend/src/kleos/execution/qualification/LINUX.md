@@ -8,10 +8,11 @@ Environment: Docker Engine 29.9.2, Linux kernel 6.18 (cgroup v1, no IPv6), conta
 
 | Lane | Native image | Toolchain parent | Evidence |
 |---|---|---|---|
-| CAD | `sha256:9896224c9b02bfafa67703fd89222ceb6de6e396fc5002e8670a7db12a529697` | `sha256:4765e4236200f30190dee984c5639f84fac1249c4a9135c153fdf2d3b26e79fa` | `cad-linux-strict-2026-11-03.json` |
-| PCB | `sha256:ed5fad655ba694c3ba6f1c3249cafa032c716d378ab12522f2e0f705e7f5a904` | `sha256:57d564558ad4940153bc500a2235e5d1fba82b06feafd1a224bb8e097f136270` | `pcb-linux-strict-2026-11-03.json` |
+| CAD | `sha256:31729cee7be71109542d7cf4448151d8ef494ee8ec770d9e28ee8c8d9a8474cf` | `sha256:4765e4236200f30190dee984c5639f84fac1249c4a9135c153fdf2d3b26e79fa` | `cad-linux-strict-2026-11-03.json` |
+| PCB | `sha256:5c02cf4b3292afb89ce9de121bb616efdc282632ee9799653c61bf01d744d677` | `sha256:57d564558ad4940153bc500a2235e5d1fba82b06feafd1a224bb8e097f136270` | `pcb-linux-strict-2026-11-03.json` |
+| Firmware | `sha256:ce590cbe375da00753b24f9a6b00d1b72ed52ba3e2a481c20be13b91c025ffeb` | `sha256:d149b201aaabc9668b3bdaa86f7170be89033e17630958e1200e3e84bcac53a7` | `firmware-linux-strict-2026-11-03.json` |
 
-Commands: `python -m kleos.execution.qualification.qualify_cad|qualify_pcb --image <native image ID>
+Commands: `python -m kleos.execution.qualification.qualify_cad|qualify_pcb|qualify_firmware --image <native image ID>
 --parent-image <toolchain ID> --strict-linux --output <file>`.
 
 **CAD** ran the production gateway against the image: a fresh build123d two-part model was patched, built,
@@ -24,10 +25,18 @@ sockets, read-only authority paths and the exact CPU, memory and PID cgroup limi
 routing, DRC and Gerber/drill export (28 artifacts including `routed.kicad_pcb`), and rejected wrong and missing
 accepted references.
 
-Findings fixed while running them: the supervisor treated a missing `/proc/net/ipv6_route` (a kernel without
+Findings fixed while running them: Zephyr fell back to a read-only cache path because the supervisor never created
+`$HOME/.cache` (it now does, in each job's private home); the supervisor treated a missing `/proc/net/ipv6_route` (a kernel without
 IPv6) as a failure (now only that case is tolerated, regression in `tests/test_execution.py`), and the CAD
 fixture's cgroup assertions only knew the v2 layout (now layout-aware, same limits). Both scripts gained
 `--strict-linux` and `--parent-image` so they no longer hardcode the Docker Desktop mode or an old parent ID.
+
+**Firmware** compiled the fixed three-file Zephyr application for `nrf52840dk/nrf52840` with Zephyr 4.2.0 (commit
+`413b789d...`, the one in the earlier record), west 1.5.0 and GNU Arm 12.2.1, producing `firmware.elf` and
+`firmware.bin`. It was compile-only: nothing was flashed or executed.
+
+All three records were re-run after the final supervisor change below, so each image ID corresponds to the
+committed code. Earlier runs on superseded images are not retained.
 
 **Not established:** independent CAD/PCB checker images (those adapters still require Docker Desktop and were not
 changed or re-run), Flutter web and Android lanes, any composed multi-lane release, hosted/ECS execution, or
