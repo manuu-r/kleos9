@@ -129,7 +129,10 @@ def verify_no_network(net_root=Path('/sys/class/net'), routes_file=Path('/proc/n
     routes = routes_file.read_text().splitlines()[1:]
     if any(line.split()[0] != 'lo' for line in routes if line.split()):
         raise RuntimeError('Native namespace contains an external route')
-    ipv6 = ipv6_file.read_text().splitlines()
+    try:
+        ipv6 = ipv6_file.read_text().splitlines()
+    except FileNotFoundError:
+        ipv6 = []  # A kernel without IPv6 cannot hold an IPv6 route; any other read failure still fails closed.
     if any(line.split()[-1] != 'lo' for line in ipv6 if line.split()):
         raise RuntimeError('Native namespace contains an external IPv6 route')
 

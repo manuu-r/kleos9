@@ -5,6 +5,7 @@ from kleos.infrastructure.settings import Settings
 
 
 def test_new_runtime_does_not_reuse_legacy_database_configuration(monkeypatch):
+    monkeypatch.delenv("KLEOS2_DATABASE_URL", raising=False)  # CI exports it for the PostgreSQL tests
     monkeypatch.setenv("KLEOS_DATABASE_URL", "postgresql://legacy/kleos")
     assert Settings().database_url.endswith("/kleos_rewrite")
 

@@ -98,7 +98,8 @@ hashes. Total finished file bytes are limited to 32 MiB.
 
 ## Native image and resource boundary
 
-Build `execution/Dockerfile` with backend as context and a pinned toolchain parent.
+Build `execution/Dockerfile` with backend as context and a pinned toolchain parent; the
+parents are reproducible from [`toolchains/`](toolchains/README.md).
 The Dockerfile removes known old application/package locations and installs only
 the newly written protocol/supervisor. Each parent image requires an independent
 inspection for additional old-code locations before qualification. Never invoke
@@ -127,7 +128,8 @@ The exact local PCB image passed reference, routing and manufacturing-export qua
 documented in `qualification/PCB.md` and `qualification/pcb-exact-image.json`.
 The exact local CAD image passed the two-part qualification documented in
 `qualification/README.md` and `qualification/cad-exact-image.json`. This qualifies
-that image's local Docker Desktop protocol only. Explicit NRF52840 firmware
+that image's local Docker Desktop protocol only. CAD and PCB were additionally qualified on a plain
+Linux engine with in-tree toolchain parents ([`qualification/LINUX.md`](qualification/LINUX.md)). Explicit NRF52840 firmware
 compilation and Flutter web compilation passed separately in `qualification/FIRMWARE.md`
 and `qualification/WEB.md`. Other boards, Android/iOS, device execution and
 nonlocal/strict Linux deployment remain unqualified. Leave unsupported scopes

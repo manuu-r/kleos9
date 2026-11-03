@@ -55,7 +55,7 @@ async def qualify(args):
     docker = DockerClient(socket=args.socket)
     artifacts = ArtifactService(store, BlobStore(work / 'blobs'))
     settings = NativeSettings(work / 'control', {'firmware': args.image}, resources=Resources(),
-        session_seconds=600, docker_desktop_compatibility=True, deployment='local', firmware_boards=(BOARD,))
+        session_seconds=600, docker_desktop_compatibility=not args.strict_linux, deployment='local', firmware_boards=(BOARD,))
     gateway = NativeGateway(store, artifacts, settings, docker, GraphRepository(store))
     observations, success = [], False
     try:
@@ -100,7 +100,8 @@ async def qualify(args):
                 await docker.cleanup(job.id)
         report = {'qualified': success, 'imageId': args.image, 'protocol': 'kleos-native-session-v2', 'lane': 'firmware',
             'deployment': 'local', 'sourceOverride': False, 'qualificationKind': 'exact-image', 'firmwareBoard': BOARD,
-            'networkPolicy': 'docker-desktop-daemon-seccomp', 'daemonSeccompSha256': fingerprint(daemon_socket_profile()),
+            'networkPolicy': 'linux-supervisor-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
+            'parentImageId': args.parent_image, 'daemonSeccompSha256': fingerprint(daemon_socket_profile()),
             'finishedAt': datetime.now(UTC).isoformat(), 'fixtureSourcesSha256': fingerprint(SOURCES),
             'checks': observations, 'containers': containers,
             'limitations': ['Compile-only nrf52840dk/nrf52840 fixture', 'Firmware was not executed',
@@ -115,4 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--image', required=True)
     parser.add_argument('--socket', default='/var/run/docker.sock')
     parser.add_argument('--output', required=True)
+    parser.add_argument('--parent-image', required=True, help='Toolchain parent image ID recorded in the evidence')
+    parser.add_argument('--strict-linux', action='store_true',
+                        help='Use the supervisor seccomp path on a Linux engine instead of the Docker Desktop mode')
     asyncio.run(qualify(parser.parse_args()))

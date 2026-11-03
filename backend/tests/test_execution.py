@@ -343,6 +343,25 @@ def test_network_namespace_check_ignores_linux_bonding_control_file(tmp_path):
         verify_no_network(network, routes, ipv6)
 
 
+def test_network_namespace_check_accepts_kernels_without_ipv6_but_not_other_failures(tmp_path):
+    from kleos.execution.native_runner import verify_no_network
+
+    network = tmp_path / 'net'
+    network.mkdir()
+    (network / 'lo').mkdir()
+    routes = tmp_path / 'route'
+    routes.write_text('Iface Destination Gateway\n')
+    verify_no_network(network, routes, tmp_path / 'absent_ipv6_route')  # no IPv6 in this kernel: no IPv6 routes
+    with pytest.raises(RuntimeError, match='external route'):
+        routes.write_text('Iface Destination Gateway\neth0 00000000 0102A8C0\n')
+        verify_no_network(network, routes, tmp_path / 'absent_ipv6_route')
+    routes.write_text('Iface Destination Gateway\n')
+    ipv6 = tmp_path / 'ipv6_route'
+    ipv6.mkdir()  # an unreadable (non-missing) file must still fail closed
+    with pytest.raises(OSError):
+        verify_no_network(network, routes, ipv6)
+
+
 def test_desktop_mode_is_explicit_local_only_and_preserves_docker_baseline(tmp_path):
     from kleos.execution.security import daemon_socket_profile
 

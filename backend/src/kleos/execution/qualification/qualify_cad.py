@@ -37,9 +37,12 @@ for path in ['/run/kleos-control/journal/state.json','/control/forged-result','/
 try: socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 except OSError as error: assert error.errno==errno.EPERM
 else: raise AssertionError('Internet sockets were allowed')
-assert Path('/sys/fs/cgroup/memory.max').read_text().strip()=='4294967296'
-assert Path('/sys/fs/cgroup/pids.max').read_text().strip()=='128'
-assert Path('/sys/fs/cgroup/cpu.max').read_text().split()[0]=='200000'
+def cgroup(v2,v1):
+ root=Path('/sys/fs/cgroup')
+ return (root/v2 if (root/v2).exists() else root/v1).read_text().split()[0]
+assert cgroup('memory.max','memory/memory.limit_in_bytes')=='4294967296'
+assert cgroup('pids.max','pids/pids.max')=='128'
+assert cgroup('cpu.max','cpu/cpu.cfs_quota_us')=='200000'
 base=Box(24,16,4)-Cylinder(2,10)
 lid=Pos(0,0,7)*Box(24,16,2)
 parts={'base':base,'lid':lid}
@@ -60,7 +63,7 @@ async def qualify(args):
     docker = DockerClient(socket=args.socket)
     artifacts = ArtifactService(store, BlobStore(work / 'blobs'))
     settings = NativeSettings(work / 'control', {'cad': args.image}, resources=Resources(), session_seconds=600,
-                              docker_desktop_compatibility=True, deployment="local")
+                              docker_desktop_compatibility=not args.strict_linux, deployment="local")
     gateway = NativeGateway(store, artifacts, settings, docker, GraphRepository(store))
     observations = []
     success = False
@@ -129,8 +132,9 @@ async def qualify(args):
                 await docker.cleanup(job.id)
         evidence = {'qualified': success, 'imageId': args.image, 'finishedAt': datetime.now(UTC).isoformat(),
                     'fixtureSha256': digest(FIXTURE.encode()), 'protocol': 'kleos-native-session-v2', 'lane': 'cad',
-                    'sourceOverride': False, 'networkPolicy': 'docker-desktop-daemon-seccomp',
-                    'parentImageId': 'sha256:50fe4f6f1c6f90bcd7a0886e09f313136edd7a72ecdfbe2b2bc4ea67603c8173', 'scope': 'exact-image CAD two-part fixture only',
+                    'sourceOverride': False,
+                    'networkPolicy': 'linux-supervisor-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
+                    'parentImageId': args.parent_image, 'scope': 'exact-image CAD two-part fixture only',
                     'checks': observations, 'containers': inspections,
                     'limitations': ['No physical acceptance', 'No PCB/firmware/application qualification',
                                     'No independent manufacturing or tolerancing validation']}
@@ -144,4 +148,7 @@ if __name__ == '__main__':
     parser.add_argument('--image', required=True)
     parser.add_argument('--socket', default='/var/run/docker.sock')
     parser.add_argument('--output', required=True)
+    parser.add_argument('--parent-image', required=True, help='Toolchain parent image ID recorded in the evidence')
+    parser.add_argument('--strict-linux', action='store_true',
+                        help='Use the supervisor seccomp path on a Linux engine instead of the Docker Desktop mode')
     asyncio.run(qualify(parser.parse_args()))

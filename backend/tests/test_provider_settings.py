@@ -15,7 +15,8 @@ def clear_provider_environment(monkeypatch):
         monkeypatch.delenv(key, raising=False)
 
 
-def test_existing_names_load_only_providers_from_file(tmp_path):
+def test_existing_names_load_only_providers_from_file(tmp_path, monkeypatch):
+    monkeypatch.delenv('KLEOS2_DATABASE_URL', raising=False)  # CI exports it for the PostgreSQL tests
     path = tmp_path / '.env'
     path.write_text('KLEOS_META_API_KEY=private-meta\nKLEOS_MODAL_LLM_KEY=private-modal\n'
         'KLEOS_MODAL_LLM_URL=https://fixture.modal.run\nKLEOS_DATABASE_URL=postgresql://old/data\n'
