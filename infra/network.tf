@@ -180,7 +180,7 @@ locals {
   # never a repository/account wildcard, including approved alternative tools.
   ecr_image_pattern = "^([0-9]{12})[.]dkr[.]ecr[.]([a-z0-9-]+)[.]${replace(data.aws_partition.current.dns_suffix, ".", "[.]")}/([a-z0-9][a-z0-9._/-]*)@sha256:[a-f0-9]{64}$"
   configured_ecr_repositories = flatten([
-    for image in distinct(compact(concat(values(var.native_images), [var.control_image, var.simulation_image, var.conductor_image]))) : [
+    for image in distinct(compact(concat(values(var.native_images), [var.control_image, var.simulation_image]))) : [
       for match in regexall(local.ecr_image_pattern, image) :
       "arn:${data.aws_partition.current.partition}:ecr:${match[1]}:${match[0]}:repository/${match[2]}"
     ]

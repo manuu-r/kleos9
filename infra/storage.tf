@@ -53,13 +53,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "artifacts" {
     noncurrent_version_expiration { noncurrent_days = 30 }
   }
   rule {
-    id     = "qdrant-snapshots"
-    status = "Enabled"
-    filter { prefix = "qdrant-snapshots/" }
-    expiration { days = 30 }
-    noncurrent_version_expiration { noncurrent_days = 30 }
-  }
-  rule {
     id     = "incomplete-uploads"
     status = "Enabled"
     filter {}
@@ -111,18 +104,6 @@ resource "aws_secretsmanager_secret" "runtime" {
   recovery_window_in_days = 30
   description             = "JSON runtime configuration. Populate via bootstrap and provider setup; values not stored in Terraform."
 }
-resource "aws_secretsmanager_secret" "qdrant" {
-  name_prefix = "${var.name}/qdrant-"
-  kms_key_id  = aws_kms_key.data.arn
-}
-resource "random_password" "qdrant" {
-  length  = 48
-  special = false
-}
-resource "aws_secretsmanager_secret_version" "qdrant" {
-  secret_id     = aws_secretsmanager_secret.qdrant.id
-  secret_string = random_password.qdrant.result
-}
 # One-time token for creating the first owner from the sign-in page. It stops working
 # as soon as any account exists. Read it in the Secrets Manager console.
 resource "aws_secretsmanager_secret" "setup" {
@@ -138,91 +119,6 @@ resource "aws_secretsmanager_secret_version" "setup" {
   secret_id     = aws_secretsmanager_secret.setup.id
   secret_string = random_password.setup.result
 }
-resource "aws_security_group" "qdrant" {
-  name   = "${var.name}-qdrant"
-  vpc_id = aws_vpc.main.id
-  ingress {
-    from_port       = 6333
-    to_port         = 6333
-    protocol        = "tcp"
-    security_groups = [aws_security_group.api.id, aws_security_group.trusted.id]
-  }
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 data "aws_ssm_parameter" "al2023" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
-}
-resource "aws_iam_role" "qdrant" {
-  name = "${var.name}-qdrant"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17", Statement = [
-      { Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }
-    ]
-  })
-}
-resource "aws_iam_role_policy" "qdrant" {
-  role = aws_iam_role.qdrant.id
-  policy = jsonencode({
-    Version = "2012-10-17", Statement = [
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = aws_secretsmanager_secret.qdrant.arn },
-      { Effect = "Allow", Action = ["kms:Decrypt", "kms:GenerateDataKey"], Resource = aws_kms_key.data.arn },
-      { Effect = "Allow", Action = ["s3:PutObject"], Resource = "${aws_s3_bucket.artifacts.arn}/qdrant-snapshots/*" }
-    ]
-  })
-}
-resource "aws_iam_role_policy_attachment" "qdrant_ssm" {
-  role       = aws_iam_role.qdrant.name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-resource "aws_iam_instance_profile" "qdrant" {
-  name = "${var.name}-qdrant"
-  role = aws_iam_role.qdrant.name
-}
-resource "aws_ebs_volume" "qdrant" {
-  availability_zone = local.azs[0]
-  size              = 30
-  type              = "gp3"
-  encrypted         = true
-  kms_key_id        = aws_kms_key.data.arn
-  tags              = { Name = "${var.name}-qdrant-data" }
-}
-resource "aws_instance" "qdrant" {
-  ami                    = data.aws_ssm_parameter.al2023.value
-  instance_type          = "t4g.small"
-  subnet_id              = aws_subnet.private[0].id
-  vpc_security_group_ids = [aws_security_group.qdrant.id]
-  iam_instance_profile   = aws_iam_instance_profile.qdrant.name
-  metadata_options {
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
-  root_block_device {
-    volume_size = 12
-    encrypted   = true
-  }
-  user_data = templatefile("${path.module}/qdrant-user-data.sh.tftpl", {
-    volume_id  = replace(aws_ebs_volume.qdrant.id, "-", "")
-    secret_arn = aws_secretsmanager_secret.qdrant.arn
-    bucket     = aws_s3_bucket.artifacts.id
-    region     = var.region
-  })
-  depends_on = [aws_secretsmanager_secret_version.qdrant, aws_nat_gateway.main, aws_iam_role_policy.qdrant, aws_vpc_endpoint.s3_trusted, aws_route_table_association.private]
-  tags       = { Name = "${var.name}-qdrant" }
-}
-resource "aws_volume_attachment" "qdrant" {
-  device_name = "/dev/sdf"
-  volume_id   = aws_ebs_volume.qdrant.id
-  instance_id = aws_instance.qdrant.id
-}
-resource "aws_route53_record" "qdrant" {
-  zone_id = aws_route53_zone.private.zone_id
-  name    = "qdrant.${var.base_domain}"
-  type    = "A"
-  ttl     = 30
-  records = [aws_instance.qdrant.private_ip]
 }

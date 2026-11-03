@@ -4,7 +4,7 @@ Flutter frontend for the Kleos9 engineering workbench, with separate production 
 
 The default mock mode preserves the existing design fixtures and simulated journey against `mock-backend`. Production mode connects to the sibling `backend` service and uses scoped Riverpod state, authenticated REST commands, and reconnectable project events. Physical fulfillment remains explicitly simulated in both modes.
 
-Production Connections → Printers, CAD and home-print views expose [real Bambu plate preparation](../backend/docs/bambu-printers.md):
+Production Connections → Printers, CAD and home-print views expose [real Bambu plate preparation](../backend/src/kleos/capabilities/fabrication/README.md):
 reported-model selection or a dropdown, qualified nozzle/material profiles,
 accepted STL selection, durable preparation status and authenticated sliced-plate
 download/share. A customer-run local adapter performs offline slicing and can
@@ -19,7 +19,7 @@ Enter credentials locally; access codes remain in expiring API memory and the
 API verifies the Bambu certificate chain and printer serial automatically.
 Hosted APIs never enable this form.
 
-[RentAHuman.ai](../backend/docs/rentahuman.md) discovery appears in production
+[RentAHuman.ai](../backend/src/kleos/capabilities/human_work/README.md) discovery appears in production
 Human tasks and Connections → Human tasks. The physical-check stage offers local
 task drafting, an explicit noncommitting provider preview, manual handoff and
 owned-job status observation. API keys stay on the trusted server. Simulated
@@ -174,7 +174,7 @@ selection, replay/pause/reset, time scrubbing, limit lines, a tolerance band and
 per-check status. LED indication follows recorded current. It is explicitly
 simulated, not measured, and advisory; missing/unsupported evidence stays visible.
 Reduced motion preserves manual inspection. The original mock simulation and
-PCB/CAD controls remain separate. See [supported circuit contracts and limits](../backend/docs/circuit-simulation.md).
+PCB/CAD controls remain separate. The replacement backend currently reports circuit simulation as `UNKNOWN`; see the [remaining-work audit](../backend/docs/rewrite-remaining-audit.md).
 
 ```bash
 flutter analyze
@@ -247,7 +247,7 @@ The existing build123d and atopile/KiCad defaults remain. Qualified installed
 alternatives appear in the appropriate lane; unavailable tools show their status.
 Saving applies to subsequent attempts. Active attempts retain their pinned tools,
 and selecting another generator never bypasses independent validation. Installation
-uses the [backend adapter contract](../docs/engineering-tool-plugins.md).
+uses the [backend adapter contract](../backend/src/kleos/capabilities/README.md).
 
 For the local network preview, run the original simulation service separately:
 
@@ -286,14 +286,13 @@ stay expandable, and all existing simulation sections retain their behavior.
 The versioned feature scene adds real profile holes, pocket floors, revolved
 bores, lofts and swept tubes in the same preview and selection controls. Unknown
 or invalid feature geometry displays an error instead of substituting a box.
-See [capture geometry](../backend/docs/capture-design-geometry.md) for limits.
+See [capture geometry](../backend/src/kleos/capabilities/design/README.md) for limits.
 When a multi-part scene supplies identical explode offsets, including all zeros,
 the preview computes display spacing from the actual rotated mesh bounds. Parts
 remain individually selectable and the assembled view keeps its existing shape
 and placement. The source scene, stable part IDs and manufacturing coordinates
 are unchanged; distinct supplied explode offsets remain authoritative. A genuine
 single-part concept remains one part.
-See [saved-scene exploded-view verification](../backend/verification/concept-exploded-view-fix.md).
 
 Build cards and workspaces expose **⋯ → Delete build**, followed by an explicit
 **Delete and clear build** confirmation. Real build cleanup continues server-side

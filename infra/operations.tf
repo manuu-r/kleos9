@@ -90,18 +90,6 @@ resource "aws_cloudwatch_metric_alarm" "database_storage" {
   comparison_operator = "LessThanThreshold"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
-resource "aws_cloudwatch_metric_alarm" "qdrant_health" {
-  alarm_name          = "${var.name}-qdrant-instance"
-  namespace           = "AWS/EC2"
-  metric_name         = "StatusCheckFailed"
-  dimensions          = { InstanceId = aws_instance.qdrant.id }
-  statistic           = "Maximum"
-  period              = 60
-  evaluation_periods  = 2
-  threshold           = 0
-  comparison_operator = "GreaterThanThreshold"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
-}
 resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
   for_each            = var.activate_services ? toset(["engineering", "connectors"]) : toset([])
   alarm_name          = "${var.name}-${each.key}-heartbeat"

@@ -46,6 +46,17 @@ The integrator owns shared contracts, dependency locks, migrations and compositi
 Specialists exchange exact artifact references and observations through the
 orchestrator. They do not directly mutate another specialist's state.
 
+## Test layout
+
+`tests/` holds module-focused suites plus these named groups: `tests/contracts/`
+(frozen frontend obligations), `tests/scenarios/` (Phase 4 workflows over fake
+capabilities in the real LangGraph engine: route a PCB, replacement parts and
+affected work, human verification with exactly-once dispatch, complete device with
+dependency order and repair) and `tests/fixtures/`. The missing-part and
+resume-without-duplicate-effects workflows run through the real runtime in
+`tests/test_dynamic_journeys.py` and `tests/test_external_wait_graph.py`.
+Scenario tests prove orchestration behavior, not engineering quality.
+
 ## Explicit process commands
 
 Run from this directory with the locked environment. Configuration uses the

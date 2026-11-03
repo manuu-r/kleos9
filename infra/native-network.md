@@ -9,8 +9,8 @@ applied to AWS or qualified with a live image pull.
 Native tasks use a dedicated IPv4 VPC, `10.43.0.0/16`, with two subnets:
 `10.43.0.0/24` and `10.43.1.0/24`. There is no internet gateway, NAT, public-IP
 assignment, default route, transit gateway or IPv6 egress in that VPC.
-The existing `10.42.0.0/16` VPC retains its API, trusted workers, Qdrant,
-Conductor, hosted simulation, private subnets and NAT/provider connectivity.
+The existing `10.42.0.0/16` VPC retains its API, trusted workers,
+hosted simulation, private subnets and NAT/provider connectivity.
 
 The internal callback ALB moves from the former native subnets into the existing
 trusted private subnets. Same-account, same-region peering routes only those two
@@ -51,15 +51,14 @@ must be digest-pinned private ECR images in this account and region; mirror
 public, cross-account or cross-region images first. There is no free-form
 repository wildcard or extra DNS exception variable. The trusted policy also
 covers managed control/simulation repositories and explicit private ECR image
-references in control/simulation/Conductor configuration. Public images used by
+references in control/simulation configuration. Public images used by
 trusted services continue to use their existing NAT path.
 
 Logs policies permit only stream creation and event delivery. The trusted
 endpoint admits the control/native execution roles and explicit recovery roles,
 scoped to the existing application log group. The native endpoint admits only
 native/recovery execution roles and `native-*` streams in that group. There is no
-log reading, log group creation or arbitrary destination. Qdrant has no configured
-CloudWatch log sender in the current deployment, so its role is not added.
+log reading, log group creation or arbitrary destination.
 
 Route 53 DNS Firewall is associated only with the dedicated native VPC; its VPC
 scope is why a separate VPC is necessary. The allow rule accepts these exact
@@ -111,7 +110,7 @@ Before an eventual deployment:
    resuming native dispatch. Worker deployment must depend on that network gate.
 4. Use a canary execution task to prove an approved image pull, permitted native
    log stream and scoped callback. Verify the exact runtime DNS chain, including
-   ECR S3 layers, and preservation of trusted provider/Qdrant/Conductor traffic.
+   ECR S3 layers, and preservation of trusted provider traffic.
 5. Verify arbitrary/encoded subdomains and provider domains return NXDOMAIN;
    denied repository principals/repositories cannot pull; other log groups and
    log-read APIs fail; arbitrary S3 writes and direct non-callback main-VPC

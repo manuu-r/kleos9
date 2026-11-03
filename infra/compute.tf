@@ -38,9 +38,8 @@ resource "aws_iam_role_policy" "runtime_secrets" {
   role = aws_iam_role.execution.id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = compact([
-      aws_secretsmanager_secret.runtime.arn, aws_secretsmanager_secret.qdrant.arn,
-      aws_secretsmanager_secret.setup.arn,
-      var.conductor_license_secret_arn
+      aws_secretsmanager_secret.runtime.arn,
+      aws_secretsmanager_secret.setup.arn
     ]) },
     { Effect = "Allow", Action = ["kms:Decrypt"], Resource = aws_kms_key.data.arn }
   ] })
@@ -151,7 +150,6 @@ locals {
     KLEOS_AWS_REGION                  = var.region
     KLEOS_FRONTEND_URL                = var.frontend_url
     KLEOS_CORS_ORIGINS                = jsonencode([var.frontend_url])
-    KLEOS_QDRANT_URL                  = "http://qdrant.${var.base_domain}:6333"
     KLEOS_ECS_CLUSTER                 = aws_ecs_cluster.main.arn
     KLEOS_ECS_SUBNETS                 = jsonencode(aws_subnet.native[*].id)
     KLEOS_ECS_SECURITY_GROUPS         = jsonencode([aws_security_group.native.id])
@@ -167,12 +165,11 @@ locals {
     KLEOS_SQS_COMPLETION_QUEUE        = aws_sqs_queue.completions.url
     KLEOS_PROJECT_BUDGET_USD          = tostring(var.project_budget_usd)
     KLEOS_DAILY_BUDGET_USD            = tostring(var.daily_budget_usd)
-    KLEOS_CONDUCTOR_URL               = local.conductor_enabled ? "wss://${local.jobs_hostname}/" : ""
     KLEOS_OTLP_ENDPOINT               = "http://localhost:4318/v1/traces"
   }
   runtime_secret_keys = [
-    "KLEOS_DATABASE_URL", "KLEOS_DBOS_DATABASE_URL", "KLEOS_SESSION_KEY",
-    "KLEOS_META_API_KEY", "KLEOS_CONDUCTOR_KEY",
+    "KLEOS_DATABASE_URL", "KLEOS_SESSION_KEY",
+    "KLEOS_META_API_KEY",
     "KLEOS_MODAL_LLM_URL", "KLEOS_MODAL_LLM_KEY",
     "KLEOS_DIGIKEY_CLIENT_ID", "KLEOS_DIGIKEY_CLIENT_SECRET", "KLEOS_WEBHOOK_SECRETS",
     "MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"
@@ -180,7 +177,7 @@ locals {
   runtime_secrets = concat([
     for key in local.runtime_secret_keys :
     { name = key, valueFrom = "${aws_secretsmanager_secret.runtime.arn}:${key}::" }
-  ], [{ name = "KLEOS_QDRANT_KEY", valueFrom = aws_secretsmanager_secret.qdrant.arn }])
+  ])
 }
 resource "aws_ecs_task_definition" "control" {
   for_each                 = toset(["api", "engineering", "connectors"])

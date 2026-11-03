@@ -147,15 +147,6 @@ variable "recovery_execution_role_arns" {
   default     = []
   description = "Previous native execution roles used by recovery task definitions; never grant generated code a task role."
 }
-variable "conductor_image" {
-  type    = string
-  default = ""
-}
-variable "conductor_license_secret_arn" {
-  type        = string
-  default     = ""
-  description = "Existing Secrets Manager secret containing the Conductor license."
-}
 variable "activate_services" {
   type        = bool
   default     = false
@@ -181,10 +172,9 @@ data "aws_availability_zones" "available" { state = "available" }
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 locals {
-  azs               = slice(data.aws_availability_zones.available.names, 0, 2)
-  api_hostname      = "api.${var.base_domain}"
-  jobs_hostname     = "jobs.${var.base_domain}"
-  conductor_enabled = var.conductor_license_secret_arn != "" && var.conductor_image != ""
+  azs           = slice(data.aws_availability_zones.available.names, 0, 2)
+  api_hostname  = "api.${var.base_domain}"
+  jobs_hostname = "jobs.${var.base_domain}"
 }
 
 variable "native_sessions_enabled" {

@@ -563,12 +563,14 @@ and the explicit opt-in; no paid provider/native run is implied.
    and digital preparation with the replacement API and deterministic providers.
 5. Full backend gate: `cd backend && .venv/bin/ruff check src tests migrations && .venv/bin/pytest -q`,
    then `git diff --check`. Unit fixture counts are scoped evidence only.
-6. Deployment gate: replace references to removed `backend/docker/deploy.py`,
-   `backend/kleos/native-resources.json`, old compose files and DBOS environment in
-   `.github/workflows/deploy.yml`, `infra/compute.tf`, `infra/conductor.tf` and root
-   README/setup docs. Validate packaging locally; do not push, deploy or mutate
-   cloud resources as part of these checks. Cloud native execution remains
-   unqualified by Docker Desktop reports.
+6. Deployment gate (partly done 3 November 2026): the broken `deploy.yml`, the
+   Conductor/Qdrant/DBOS Terraform and their variables were removed. Still open:
+   `infra/compute.tf` control task commands/env still target the retired runtime
+   (`kleos.kernel.api`, `KLEOS_*`, ECS native dispatch, SQS completions); rewire to
+   `python -m kleos.cli`, `KLEOS2_*` settings and hosted adapters, then add a new
+   release workflow. Terraform edits were `fmt`-checked and reference-scanned only
+   (`validate` needs the provider registry). Validate packaging locally; do not push,
+   deploy or mutate cloud resources as part of these checks.
 
 ## Follow-up completed while the audit was open
 

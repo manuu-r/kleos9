@@ -8,6 +8,21 @@ human-work lifecycles, existing Flutter contract. Reuse only Bambu connection
 logic and public certificates; do not copy the old backend implementation.
 Do not declare completion based on fixtures or code-size reduction alone.
 
+## Cleanup and gap-closing pass — 3 November 2026
+
+- Removed documentation that described the retired DBOS/Pydantic AI/Qdrant backend
+  (`docs/`), fixed `CLAUDE.md`, `AGENTS.md`, `README.md` and `kleos-ui/README.md`
+  links and statements, and removed the broken `deploy.yml` (it called deleted scripts).
+- Removed Conductor/Qdrant/DBOS Terraform, variables, secrets and alarms. `terraform fmt`
+  and a reference scan passed; `terraform validate`, plan and apply were not run. The
+  control task definitions still target the retired runtime (see `infra/README.md`).
+- Added `tests/scenarios/test_workflows.py` (7 tests) for the Phase 4 workflows that had
+  no composed coverage. Full backend suite after the change: 1,577 passed, 11 skipped;
+  Ruff, mock-backend (15 passed), OpenAPI export and `git diff --check` passed. The
+  Dart transport check and Flutter suites were not run (no Dart/Flutter SDK).
+- Known unrestored behavior: circuit simulation (the ngspice work this branch started
+  from) reports `UNKNOWN`; the rewrite has no ngspice runner or checker.
+
 ## Latest integrated phase — 3 November 2026
 
 This section supersedes earlier missing-capability statements only for the exact

@@ -4,7 +4,18 @@ This Terraform module provisions the us-east-1 deployment. It does not
 deploy by running tests. Public DNS may use Route53 or an external provider such
 as Cloudflare. An issued ACM certificate covering api.DOMAIN and jobs.DOMAIN is
 an input. Use encrypted remote Terraform
-state with locking; generated Qdrant credentials are sensitive state.
+state with locking.
+
+> **Status after the backend replacement.** The old DBOS/Conductor/Qdrant
+> resources and the old release workflow were removed from this tree. The control
+> task definitions in `compute.tf` (commands, `KLEOS_*` runtime variables, ECS
+> native dispatch, SQS completion queue) still describe the retired runtime and
+> must be rewired to the replacement's `python -m kleos.cli` entry points,
+> `KLEOS2_*` settings and a hosted native/object-store adapter before any
+> `terraform apply`. There is intentionally no automatic deployment workflow
+> until that wiring is qualified. The edits here were checked with
+> `terraform fmt` and a reference scan only; `terraform validate` could not run
+> offline, and nothing was planned or applied.
 
 ## Deployment sequence
 
@@ -17,8 +28,8 @@ state with locking; generated Qdrant credentials are sensitive state.
    protection, encrypted storage, daily backups and a required final snapshot.
 3. Run the bootstrap task definition once in the private subnets with the trusted
    security group. Its dedicated role alone can read the RDS admin secret and
-   write runtime configuration. It creates separate application, DBOS and
-   Conductor databases and login roles. Rerunning preserves existing passwords.
+   write runtime configuration. It creates the application database and login role.
+   Rerunning preserves existing passwords.
    The task prints no credentials. Wait for successful task exit.
 4. Update the runtime JSON secret with the direct Meta key
    and, for Modal-hosted Muse Spark Open, KLEOS_MODAL_LLM_URL and KLEOS_MODAL_LLM_KEY
@@ -28,19 +39,10 @@ state with locking; generated Qdrant credentials are sensitive state.
    paid generation.
 5. Run the control task once with command ["alembic", "upgrade", "head"] using
    private subnets and the trusted security group. Review migration logs.
-6. If using Conductor, obtain its production license, set a digest-pinned image
-   and operator SSO issuer/audience, and provide its license secret ARN. Set
-   activate_conductor=true while leaving activate_services=false. It uses
-   its own database role and an internal TLS listener. Register the application
-   through the authenticated self-hosted API from a VPC-connected operator
-   environment (for example, VPC CloudShell using the trusted security group)
-   and store its key in
-   KLEOS_CONDUCTOR_KEY. Conductor is optional until license setup; durable DBOS
-   execution still uses PostgreSQL. Its web console is not publicly deployed.
-7. Enable activate_services only after the above steps. Roll out versioned worker
+6. Enable activate_services only after the above steps. Roll out versioned worker
    deployments while old workflows drain. Measure the documented load targets
    before expanding invite limits.
-8. Create the first owner. Open the app and use the "Set up Kleos9" form that the
+7. Create the first owner. Open the app and use the "Set up Kleos9" form that the
    sign-in page shows while no account exists. Its setup token is the Secrets Manager
    secret named by the setup_token_secret output; read it in the AWS console. After
    the owner exists the form disappears and the token no longer works. The owner then
@@ -74,21 +76,20 @@ run as UID 10001 without root or an AWS role. CPU/memory profiles, process limit
 deadlines and global/per-project admission are independently enforced. Local
 Docker application jobs use disposable disk scratch; Fargate uses task-local
 ephemeral storage. See [native capacity](native-capacity.md),
-[network hardening/migration](native-network.md) and the
-[Android toolchain](../backend/docker/android-toolchain.md).
+[network hardening/migration](native-network.md).
 
-Qdrant uses a private EC2 instance, encrypted persistent EBS, authenticated HTTP
-within the VPC and daily S3 snapshots. It is initially a single node; this is not
-an HA deployment. PostgreSQL is initially single-AZ unless database_multi_az=true.
+PostgreSQL is initially single-AZ unless database_multi_az=true.
 One NAT gateway is a deliberate initial cost/availability tradeoff. Add redundancy
 before requiring continuous availability.
 
 ## Operations and recovery
 
-Control and frontend releases use the automatic main-branch workflow and version-aware worker drain described
-in [DEPLOYMENT.md](../backend/docker/DEPLOYMENT.md). Terraform owns provisioning;
-the release workflow owns service task-definition revisions. Native tool images
-remain separately qualified and pinned through infrastructure inputs.
+There is no release workflow for the replacement backend yet; the former
+main-branch workflow called deleted scripts and was removed. Terraform owns
+provisioning. A new release workflow must build the control image from
+`backend/Dockerfile`, run `python -m kleos.cli migrate`, and roll API and worker
+task definitions only after the hosted-adapter gaps in the status note are closed.
+Native tool images remain separately qualified and pinned through infrastructure inputs.
 
 CloudWatch has 30-day logs and alerts for API errors, stuck completion events,
 dead letters, RDS storage and EC2 health. Product alarms fire for a daily allowance
@@ -110,14 +111,11 @@ to avoid recording signed URLs and token query parameters.
 
 Restore RDS to a new instance and update runtime secrets before restarting any
 workers. Restore S3 artifact versions; accepted artifacts have no automatic
-expiration. Redacted transcripts and Qdrant snapshots expire after 30 days.
-Rebuild retrieval from PostgreSQL/S3 or restore a Qdrant snapshot to compatible
-storage. Freeze connector dispatch during restore and reconcile durable external
+expiration. Redacted transcripts expire after 30 days.
+Rebuild derived retrieval from PostgreSQL/S3. Freeze connector dispatch during restore and reconcile durable external
 intents before resuming. Test restores and the 100-client/10-project load envelope
 in a separate staging account; Terraform validation does not prove runtime scale.
 
-Conductor configuration follows the
-[self-hosting documentation](https://docs.dbos.dev/conductor/self-hosting/hosting-conductor).
 All credentials, provider quotas, engineering tool qualifications and actual AWS
 permissions still require deployment-time checks. No cloud resources are created
 by the repository's unit tests.
@@ -158,7 +156,7 @@ permissions until that policy is applied. Its creation trust policy is recorded 
 Create the GitHub production environment and restrict its deployment branches to
 main before enabling deployment permissions. Set AWS_DEPLOY_ROLE_ARN to
 arn:aws:iam::750420487076:role/kleos9-production-github-deploy and configure the other
-variables documented in backend/docker/DEPLOYMENT.md. Never create access keys for
+variables the new release workflow requires. Never create access keys for
 this role or place root credentials in GitHub.
 
 Production inputs for kleos9.com are recorded in production.tfvars.example.
@@ -191,8 +189,7 @@ kleos9-tfstate-750420487076-us-east-1/kleos9/terraform.tfstate with native S3 lo
 
 Trusted private subnets use a separate S3 gateway endpoint that also permits
 read access to Amazon Linux package repositories. Native worker subnets retain
-the restrictive artifact/ECR endpoint. Qdrant provisioning waits for private routes
-and its trusted endpoint before installing Docker.
+the restrictive artifact/ECR endpoint.
 
 Keep enable_github_deploy=false until the production GitHub environment has a
 main-only branch policy. Set it to true and apply only after that restriction is
@@ -203,13 +200,12 @@ verified; the dedicated OIDC role otherwise has no release policy attached.
 The kleos9-production stack is provisioned in account 750420487076, us-east-1.
 Database bootstrap and Alembic migrations succeeded. The production web bundle
 is published to the private frontend bucket. The initial six immutable ECR image
-references are recorded in production-images.json. Conductor is not activated;
-paid model generation remains disabled with zero project/daily allowances until
+references are recorded in production-images.json. Paid model generation remains disabled with zero project/daily allowances until
 provider credentials and approved allowances are configured.
 
 Verified through the AWS load balancer using the api.kleos9.com TLS hostname:
 health and database readiness return HTTP 200, first-owner setup is required,
-and public internal routes return HTTP 404. Qdrant reports HTTP 200 health.
+and public internal routes return HTTP 404.
 The CloudFront distribution serves the Flutter bundle with HTTP 200.
 
 Public Cloudflare app/api CNAMEs are configured. The GitHub production environment

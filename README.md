@@ -35,8 +35,7 @@ are not enabled by those capabilities.
 | [Flutter README](kleos-ui/README.md) | Frontend modes, routing, authentication, transport and UI verification |
 | [Mock backend README](mock-backend/README.md) | Scripted journey, seeded data and zero-provider-cost development |
 | [Native image guide](backend/src/kleos/execution/README.md) | Native toolchains, image builds and qualification |
-| [Engineering tool plugins](docs/engineering-tool-plugins.md) | Adding qualified alternative CAD/PCB tools |
-| [Integration contracts](docs/backend-integrations.md) | Research, catalogs, printers, connectors and Modal compute/training |
+| [Capability registry](backend/src/kleos/capabilities/README.md) | Installing qualified tools and external-service capabilities |
 | [Infrastructure README](infra/README.md) | AWS provisioning, deployment and recovery |
 | [Native engineering review](backend/docs/rewrite-progress.md) | Latest scoped local verification and known limits |
 

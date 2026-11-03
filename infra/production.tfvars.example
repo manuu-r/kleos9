@@ -10,7 +10,6 @@ github_repository        = "manuu-r/kleos9"
 github_environment       = "production"
 github_oidc_provider_arn = "arn:aws:iam::750420487076:oidc-provider/token.actions.githubusercontent.com"
 activate_services        = false
-activate_conductor       = false
 # Supply real ECR digests after building and pushing; never use example digests.
 # control_image = "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control@sha256:..."
 # native_images = { mechanics = "...@sha256:...", ... }

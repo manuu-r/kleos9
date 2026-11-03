@@ -9,8 +9,9 @@ point so it does not drift from the shared guidance.
 
 - Flutter is the existing customer workbench. Preserve its UI, routes, simulation
   controls and responsive behavior unless the task explicitly changes them.
-- FastAPI, SQLAlchemy/Alembic, Pydantic AI and DBOS implement the control plane.
-  PostgreSQL is authoritative; Qdrant is derived retrieval; artifacts are immutable.
+- FastAPI, SQLAlchemy/Alembic, LangGraph and LangMem implement the control plane as
+  separate API and worker processes. PostgreSQL is authoritative; LangMem retrieval
+  is derived advisory state; artifacts are immutable.
 - Trusted workers coordinate isolated native CAD, PCB, firmware and companion-app
   jobs. Run generated code only inside those native environments.
 - Product inference uses Meta and configured Modal endpoints. Assistant
@@ -40,8 +41,7 @@ Useful references:
 
 - [Backend setup and API](backend/README.md)
 - [Flutter setup and transports](kleos-ui/README.md)
-- [Native images and qualification](backend/docker/README.md)
-- [Engineering tool plugins](docs/engineering-tool-plugins.md)
-- [Native session contract](backend/docs/native-sessions.md)
+- [Native execution and image qualification](backend/src/kleos/execution/README.md)
+- [Capability registry and tool plugins](backend/src/kleos/capabilities/README.md)
+- [Rewrite progress and remaining audit](backend/docs/rewrite-progress.md)
 - [Infrastructure and deployment](infra/README.md)
-- [Recent engineering verification](backend/docs/reviews/2026-10-31-native-engineering.md)
