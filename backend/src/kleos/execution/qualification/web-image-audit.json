@@ -1,0 +1,32 @@
+{
+  "imageId": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+  "backendLocations": [
+    "/opt/kleos-native/kleos"
+  ],
+  "legacyBackendAbsent": true,
+  "legacyApplicationTemplatesAbsent": true,
+  "flutterVersion": {
+    "frameworkVersion": "3.35.4",
+    "channel": "[user-branch]",
+    "repositoryUrl": "unknown source",
+    "frameworkRevision": "d693b4b9dbac2acd4477aea4555ca6dcbea44ba2",
+    "frameworkCommitDate": "2025-09-16 14:27:41 +0000",
+    "engineRevision": "c29809135135e262a912cf583b2c90deb9ded610",
+    "engineCommitDate": "2025-09-15 14:04:24.000Z",
+    "engineContentHash": "feee8ee8fb8b975dd9990f86d3bda11e6e75faf3",
+    "engineBuildDate": "2025-09-15 14:37:23.590",
+    "dartSdkVersion": "3.9.2",
+    "devToolsVersion": "2.48.0",
+    "flutterVersion": "3.35.4"
+  },
+  "runtimeFiles": {
+    "pcb_runner.py": "01874371bf98b93b950717575e11d5206a2a42619edaf3c326a5e93ea99966d9",
+    "result_reader.py": "5c375e4e3e87122479d536ce97bcf996f343331b420beb611ad2204731fc6898",
+    "bootstrap.py": "e1d432ce82530d626cd25beda9929a05aff0e6aec44de7d1e7c4c2dd3a17c609",
+    "kleos/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/pcb_contract.py": "15e2300145ef0df851fdab5bd0cb09edf34b51bbf169f1f9e651c17d4a07dfd6",
+    "kleos/execution/native_runner.py": "1eee8b3cd761fd475e10243c4d36efb1052e1fd62337868ded53044228d3f6d3",
+    "kleos/execution/protocol.py": "6323ef668fe00cef9eacd2540b93d2c66e2e04d80f30165a96fb3241e4ec8fac"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "provider": "searxng",
+  "qualified": true,
+  "testOnly": true,
+  "scope": "http-mocked-read-only",
+  "sourceSha256": {
+    "capabilities/web_research.py": "935a69503366c29b42ec4d3e1683fdab95eb827bf89b7d245bb9243470b641de",
+    "capabilities/research.py": "f2c14bf76a9683c8793cd88f780a25d2878ac347269b9f45991420ed04acce56",
+    "projects/research.py": "a42dab3d2c5e882900ab8975452ef4a1facea72bc8e051b9df94263167c0399c",
+    "infrastructure/research.py": "f34f769e30c62d2fbbb1c012af70a63d2348eeafb6c47877ec32017bea60a1ef"
+  },
+  "checks": [
+    {
+      "name": "authorization_fences",
+      "status": "PASS",
+      "evidence": "Current actor/project/run/context and admitted installation are checked; cancellation during HTTP fences evidence publication; source-only scopes cannot call web search."
+    },
+    {
+      "name": "candidate_evidence",
+      "status": "PASS",
+      "evidence": "Completion requires matching persisted retrieval observations; source-only evidence cannot satisfy web scope and model-only completion is blocked; findings remain candidates without feasibility acceptance."
+    },
+    {
+      "name": "durable_replay",
+      "status": "PASS",
+      "evidence": "Same action identity reuses the persisted receipt; changed arguments conflict; uncertain claimed requests never silently repeat."
+    },
+    {
+      "name": "fixed_endpoint",
+      "status": "PASS",
+      "evidence": "Mock HTTP requests use the configured HTTPS /search host, GET, fixed engine list and no redirects or authorization credentials; invalid URLs and numeric address aliases are rejected."
+    },
+    {
+      "name": "query_selectors",
+      "status": "PASS",
+      "evidence": "Explicit engine/redirect selectors and control characters are rejected before HTTP calls."
+    },
+    {
+      "name": "request_budget",
+      "status": "PASS",
+      "evidence": "Request allowance is durably reserved before HTTP and remains spent on errors/uncertain outcomes; exhausted allowance cannot issue more requests."
+    },
+    {
+      "name": "response_bounds",
+      "status": "PASS",
+      "evidence": "Compressed content is rejected before decoding; identity responses are byte bounded and reduced to bounded citation fields; malformed, oversized and missing results fail closed."
+    },
+    {
+      "name": "runtime_source_flow",
+      "status": "PASS",
+      "evidence": "Actual Runtime command, planner, specialist, tool receipts, checkpoint worker and conversation tested with HTTP/model mocks for project-source and web scopes; read-only research preserves engineering context."
+    }
+  ],
+  "review": {
+    "independent": true,
+    "reviewer": "Codex independent review agent /root/rewrite_bambu",
+    "reference": "independent-review:/root/rewrite_bambu/searxng-readonly/2026-11-03",
+    "reviewedAt": "2026-11-02T19:53:07.539949+00:00",
+    "sourceHash": "90e963c942e6d342cbfba63d746997b049b69510f687a736e8c23b337441676d"
+  },
+  "verification": {
+    "command": ".venv/bin/pytest tests/test_research.py tests/test_web_research.py tests/test_research_runtime.py tests/test_research_installation.py -q --tb=short",
+    "passed": 48,
+    "failed": 0,
+    "ruff": "PASS for four source modules and four test modules",
+    "testSha256": {
+      "tests/test_research.py": "784338182bd5c332eb0adf4bb626e413e781bed15bb0498a38171066746a8b40",
+      "tests/test_web_research.py": "10183609c63ad5a8bfa2942f2d701395270b5f6f92861cd2ef1c924e3509af1f",
+      "tests/test_research_runtime.py": "66e9c03c34316d3873749153f604acfd38d64fbe0ef18dc4e5e77b697aecc9a4",
+      "tests/test_research_installation.py": "61c28dff8a6abdf8b161664ac9686285c7d43dea033c6f2c7d502817789275ae"
+    },
+    "warnings": [
+      "Existing trustcall import of langgraph.constants.Send is deprecated."
+    ]
+  },
+  "resolvedFindings": [
+    "Rejected compressed responses before transparent decoding to prevent response-bound bypass.",
+    "Preserved project contextRevision for read-only research admission.",
+    "Rejected noncanonical numeric IP host aliases and tested matching allowed_host values.",
+    "Bound the project-source adapter to reviewed source hashes alongside the web adapter, evidence repository and installation validator."
+  ],
+  "limitations": [
+    "No live SearXNG instance, search engine, paid model, hardware, purchase or human-work call was made.",
+    "This report is accepted only in environment=test; it does not qualify development or production endpoints.",
+    "The endpoint and allowed host are trusted operator configuration. DNS resolution/ownership and network egress of a live operator instance were not verified.",
+    "The self_hosted_no_query_fees setting is an operator assertion; actual provider billing, engine/plugin configuration and price behavior were not verified.",
+    "Returned data are search snippets. Referenced source pages were not fetched or independently verified.",
+    "No result establishes device feasibility, manufacturing readiness, independent engineering validation or physical acceptance."
+  ]
+}

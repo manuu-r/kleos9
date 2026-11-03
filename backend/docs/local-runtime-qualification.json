@@ -1,0 +1,104 @@
+{
+  "qualified": true,
+  "scope": "Local control-plane packaging snapshot only",
+  "providerCalls": 0,
+  "nativeJobs": 0,
+  "workerStarted": false,
+  "steps": [
+    {
+      "operation": [
+        "config",
+        "--quiet"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "up",
+        "-d",
+        "--wait",
+        "postgres"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "--profile",
+        "setup",
+        "run",
+        "--rm",
+        "migrate"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "up",
+        "-d",
+        "api"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "up",
+        "-d",
+        "--no-deps",
+        "--force-recreate",
+        "api"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "--profile",
+        "preview",
+        "up",
+        "-d",
+        "preview"
+      ],
+      "exitCode": 0
+    },
+    {
+      "operation": [
+        "--profile",
+        "preview",
+        "--profile",
+        "setup",
+        "down",
+        "--remove-orphans"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "volumesRetained": true,
+  "databaseSessionAndArtifactSurvivedApiRecreation": true,
+  "previewHasNoApiRoute": true,
+  "imageId": "sha256:92547cf922aa82c3e8997bb509ecf6897345a2a6ccb46b102bbd73866e5c7476",
+  "platform": "linux/arm64",
+  "pythonImage": "docker.io/library/python:3.12.16-slim-bookworm@sha256:e697c81897302a4c4333bade000d98038fbb21eb064f8ee1fd42d02ebcd9d337",
+  "uvImage": "ghcr.io/astral-sh/uv:0.8.11@sha256:8101ad825250a114e7bef89eefaa73c31e34e10ffbe5aff01562740bac97553c",
+  "postgresImage": "postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929",
+  "sourceFiles": {
+    "Dockerfile": "fb8e0c705ba7a77cd82a14c2495847eddaac85f23c2c6dd5a543ec4d903dd5ba",
+    "Dockerfile.dockerignore": "9a865e02508c95edd7e55a880b414dca4b5fa7bc043ea38dcd30a5fef7cd46b2",
+    "compose.yaml": "90a575eca40f1387a8210977fd60f718ab8f2981af532bc3930e774455a5df4e",
+    "uv.lock": "a87ba3964ccac06d873048abde79622aa1da8c2fd9aa01a13707c8226cd32bfe"
+  },
+  "tests": {
+    "focusedPackaging": 4
+  },
+  "limitations": [
+    "Packaging snapshot built while other backend edits continued; rebuild after coordinated code hold before cutover.",
+    "No objective worker, model call, native execution, cloud rollout or generalized frontend acceptance.",
+    "Fresh fixture database/artifact volumes retained; only owned containers and network stopped."
+  ],
+  "postSmokeConfigurationCheck": {
+    "scope": "Actual Compose interpolation only; no additional service restart",
+    "composeSha256": "dd3a714e80a879227ee2b8b6a7f4ffd98f788261f7fe15a0d0e113f5329f9d5a",
+    "existingProviderAliases": true,
+    "nonemptyNewAliasPrecedence": true,
+    "optionalModalFallbackForwarded": true,
+    "focusedTests": 4
+  }
+}

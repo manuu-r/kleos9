@@ -172,7 +172,7 @@ locals {
   }
   runtime_secret_keys = [
     "KLEOS_DATABASE_URL", "KLEOS_DBOS_DATABASE_URL", "KLEOS_SESSION_KEY",
-    "KLEOS_META_API_KEY", "KLEOS_GEMINI_API_KEY", "KLEOS_CONDUCTOR_KEY",
+    "KLEOS_META_API_KEY", "KLEOS_CONDUCTOR_KEY",
     "KLEOS_MODAL_LLM_URL", "KLEOS_MODAL_LLM_KEY",
     "KLEOS_DIGIKEY_CLIENT_ID", "KLEOS_DIGIKEY_CLIENT_SECRET", "KLEOS_WEBHOOK_SECRETS",
     "MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"
@@ -194,7 +194,7 @@ resource "aws_ecs_task_definition" "control" {
   container_definitions = jsonencode([{
     name = "control", image = var.control_image, essential = true, user = "1000",
     command = (each.key == "api" ?
-      ["uvicorn", "kleos.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"] :
+      ["uvicorn", "kleos.kernel.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"] :
     ["python", "-m", "kleos.worker", "--kind", each.key]),
     portMappings = each.key == "api" ? [{ containerPort = 8000, protocol = "tcp" }] : [],
     environment  = [for key, value in local.runtime_env : { name = key, value = value }],

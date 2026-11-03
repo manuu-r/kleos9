@@ -14,8 +14,7 @@ const engineeringLanes = <String, String>{
 String providerLabel(String provider) => switch (provider) {
       'meta' => 'Muse',
       'modal' => 'Muse on Modal',
-      'google' => 'Gemini',
-      _ => provider,
+      _ => 'Unsupported provider',
     };
 
 @immutable
@@ -82,13 +81,49 @@ class Workspace {
         artifacts = List.unmodifiable(
             asMaps(json['artifacts']).map(ArtifactRecord.new)),
         checks = immutableJson(asList(json['checks'])) as List<Object?>,
-        trainingOptedIn = json['trainingOptedIn'] == true;
+        trainingOptedIn = json['trainingOptedIn'] == true,
+        agents = List.unmodifiable(asMaps(json['agents']).map(AgentRecord.new)),
+        externalJobs = List.unmodifiable(
+            asMaps(json['externalJobs']).map(ExternalJobRecord.new));
   final ProjectRecord project;
   final int eventCursor;
   final List<RunRecord> runs;
   final List<ArtifactRecord> artifacts;
   final List<Object?> checks;
   final bool trainingOptedIn;
+  final List<AgentRecord> agents;
+  final List<ExternalJobRecord> externalJobs;
+}
+
+@immutable
+class AgentRecord {
+  AgentRecord(JsonMap json) : data = immutableJson(json) as JsonMap;
+  final JsonMap data;
+  String get id => data['id'] as String;
+  String get agentType => data['agentType'] as String;
+  String get lifecycle => data['lifecycle'] as String;
+  String? get currentNode => data['currentNode'] as String?;
+  bool get historical => data['historical'] == true;
+  DateTime? get nextWakeAt =>
+      DateTime.tryParse(data['nextWakeAt'] as String? ?? '');
+}
+
+@immutable
+class ExternalJobRecord {
+  ExternalJobRecord(JsonMap json) : data = immutableJson(json) as JsonMap;
+  final JsonMap data;
+  String get id => data['id'] as String;
+  String get agentType => data['agentType'] as String;
+  String get lifecycle => data['lifecycle'] as String;
+  String get state => data['state'] as String;
+  bool get historical => data['historical'] == true;
+  DateTime? get deadline =>
+      DateTime.tryParse(data['deadline'] as String? ?? '');
+  bool expiredAt(DateTime time) =>
+      data['expired'] == true ||
+      (deadline != null && !time.isBefore(deadline!));
+  bool get stale =>
+      historical || state.toLowerCase() == 'stale' || expiredAt(DateTime.now());
 }
 
 @immutable
@@ -136,10 +171,14 @@ class AcceptedCommand {
       : commandId = json['commandId'] as String,
         projectId = json['projectId'] as String,
         runId = json['runId'] as String?,
+        jobId = json['jobId'] as String?,
+        agentInstanceId = json['agentInstanceId'] as String?,
         revision = (json['revision'] as num).toInt();
   final String commandId;
   final String projectId;
   final String? runId;
+  final String? jobId;
+  final String? agentInstanceId;
   final int revision;
 }
 

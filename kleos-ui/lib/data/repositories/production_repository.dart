@@ -28,7 +28,7 @@ class ProductionRepository {
 
   Future<Workspace> workspace(String id) async {
     final incoming = Workspace.fromJson(ApiWorkspaceView.fromJson(await api.get(
-            '/projects/${Uri.encodeComponent(id)}/workspace',
+            '/projects/${Uri.encodeComponent(id)}/workspace?includeAgentState=true',
             organizationId: organizationId))
         .toJson());
     final current = _workspaces[id];
@@ -39,6 +39,19 @@ class ProductionRepository {
     _workspaces[id] = incoming;
     return incoming;
   }
+
+  Future<JsonMap> uploadReferenceImage(String projectId,
+          {required String name,
+          required String mediaType,
+          required String contentBase64}) =>
+      api.post(
+          '/projects/${Uri.encodeComponent(projectId)}/reference-images',
+          {
+            'name': name,
+            'mediaType': mediaType,
+            'contentBase64': contentBase64
+          },
+          organizationId: organizationId);
 
   Future<JsonMap> deleteProject(String id, {required int revision}) async {
     final result = await api.delete(

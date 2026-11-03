@@ -87,7 +87,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
               onPressed: () => ref.invalidate(modelCatalogProvider)),
         ])),
         data: (models) => KResponsive(columns: 3, children: [
-          for (final provider in ['meta', 'modal', 'google'])
+          for (final provider in ['meta', 'modal'])
             KCard(
                 title: providerLabel(provider),
                 child: kColumn([

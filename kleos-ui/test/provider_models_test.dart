@@ -98,13 +98,14 @@ void main() {
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Muse'), findsWidgets);
     expect(find.text('Muse on Modal'), findsWidgets);
-    await tester.tap(find.text('Use gemini-3.8-flash for all lanes'));
+    await tester.tap(find.text('Use muse-wonder-1.0 for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));
     await tester.pumpAndSettle();
     expect(
-        Defaults.saved!.values.every((choice) => choice.provider == 'google'),
+        Defaults.saved!.values.every((choice) =>
+            choice.provider == 'meta' && choice.model == 'muse-wonder-1.0'),
         true);
     expect(commands, isEmpty);
     await tester.ensureVisible(find.text('Services'));
@@ -126,8 +127,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI model providers'), findsOneWidget);
     expect(find.text('Real build'), findsOneWidget);
-    await tester.ensureVisible(find.text('Use gemini-3.8-flash for all lanes'));
-    await tester.tap(find.text('Use gemini-3.8-flash for all lanes'));
+    await tester.ensureVisible(find.text('Use muse-wonder-1.0 for all lanes'));
+    await tester.tap(find.text('Use muse-wonder-1.0 for all lanes'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save model choices'));
     await tester.tap(find.text('Save model choices'));
@@ -135,9 +136,10 @@ void main() {
     expect(commands.single['type'], 'project.setModelPolicy');
     expect(asMap(commands.single['payload'])['projectId'], 'p');
     expect(
-        asMap(asMap(commands.single['payload'])['modelPolicy'])
-            .values
-            .every((value) => asMap(value)['provider'] == 'google'),
+        asMap(asMap(commands.single['payload'])['modelPolicy']).values.every(
+            (value) =>
+                asMap(value)['provider'] == 'meta' &&
+                asMap(value)['model'] == 'muse-wonder-1.0'),
         true);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

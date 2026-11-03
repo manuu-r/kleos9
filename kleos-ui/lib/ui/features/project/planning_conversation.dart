@@ -1,4 +1,6 @@
 import 'dart:math';
+import '../../../data/services/reference_images.dart';
+import '../../core/reference_image_attachments.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +19,9 @@ class PlanningConversation extends StatefulWidget {
     required this.onSend,
     required this.canWrite,
     required this.busy,
+    this.onUploadImage,
+    this.onSendWithReferences,
+    this.loadImage,
     this.pending = false,
     this.allowSendWhileBusy = true,
     this.phase = 'capture',
@@ -31,6 +36,11 @@ class PlanningConversation extends StatefulWidget {
   final List<JsonMap> messages;
   final Future<CommandResult> Function(String text, String clientMessageId)
       onSend;
+  final Future<String> Function(ReferenceImageDraft image)? onUploadImage;
+  final Future<CommandResult> Function(
+          String text, String clientMessageId, List<String> imageIds)?
+      onSendWithReferences;
+  final Future<Uint8List> Function(String id)? loadImage;
   final bool canWrite, busy, pending, allowSendWhileBusy;
   final String phase;
   final String? selectedPartLabel, selectedPartId;
@@ -49,6 +59,8 @@ class _PlanningConversationState extends State<PlanningConversation> {
   bool showEarlier = false;
   String? messageId;
   String? error;
+  List<ReferenceImageDraft> images = [];
+  final imageLoads = <String, Future<Uint8List>>{};
 
   @override
   void initState() {
@@ -89,7 +101,9 @@ class _PlanningConversationState extends State<PlanningConversation> {
   }
 
   Future<void> send() async {
-    final text = draft.text.trim();
+    final text = draft.text.trim().isEmpty && images.isNotEmpty
+        ? 'Use these images to refine the concept.'
+        : draft.text.trim();
     if (!canSend || text.isEmpty || !draft.value.composing.isCollapsed) return;
     messageId ??=
         'message-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(0x7fffffff)}';
@@ -100,10 +114,20 @@ class _PlanningConversationState extends State<PlanningConversation> {
       error = null;
     });
     try {
-      final result = await widget.onSend(text, identity);
+      final sendWithReferences = widget.onSendWithReferences;
+      final sendMessage = widget.onSend;
+      final uploadImage = widget.onUploadImage;
+      final ids = <String>[];
+      for (final image in images) {
+        ids.add(await uploadImage!(image));
+      }
+      final result = ids.isNotEmpty && sendWithReferences != null
+          ? await sendWithReferences(text, identity, ids)
+          : await sendMessage(text, identity);
       if (!mounted) return;
       if (result.ok) {
         draft.clear();
+        images = [];
         messageId = null;
         widget.onClearPart?.call();
       } else {
@@ -146,6 +170,34 @@ class _PlanningConversationState extends State<PlanningConversation> {
         ),
         child: pColumn([
           pText(user ? 'You' : 'Kleos', muted: true, small: true),
+          if (widget.loadImage != null &&
+              asList(message['referenceImageIds']).isNotEmpty)
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final id
+                  in asList(message['referenceImageIds']).whereType<String>())
+                FutureBuilder<Uint8List>(
+                    future:
+                        imageLoads.putIfAbsent(id, () => widget.loadImage!(id)),
+                    builder: (context, snapshot) => snapshot.hasError
+                        ? TextButton.icon(
+                            onPressed: () => setState(() {
+                                  imageLoads.remove(id);
+                                }),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry image'))
+                        : snapshot.hasData
+                            ? Image.memory(snapshot.data!,
+                                width: 100,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                semanticLabel: 'Reference image',
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.broken_image_outlined))
+                            : const SizedBox(
+                                width: 100,
+                                height: 80,
+                                child: Icon(Icons.image_outlined))),
+            ]),
           Text('${message['text'] ?? ''}',
               style: const TextStyle(fontSize: 14, height: 1.5)),
         ], gap: 5),
@@ -214,44 +266,63 @@ class _PlanningConversationState extends State<PlanningConversation> {
       if (widget.selectedPartLabel != null)
         InputChip(
           avatar: const Icon(Icons.view_in_ar_outlined, size: 16),
-          label:
-              Text(widget.selectedPartLabel!, overflow: TextOverflow.ellipsis),
+          label: Text('Redo ${widget.selectedPartLabel}',
+              overflow: TextOverflow.ellipsis),
           onDeleted: sending ? null : widget.onClearPart,
         ),
-      CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.enter): send,
-          const SingleActivator(LogicalKeyboardKey.enter, control: true): send,
-          const SingleActivator(LogicalKeyboardKey.enter, meta: true): send,
-        },
-        child: TextField(
-          key: const ValueKey('planning-chat-input'),
-          controller: draft,
+      if (widget.selectedPartLabel != null)
+        pText(
+            'Only this part will be rebuilt from scratch. The other parts stay unchanged.',
+            muted: true,
+            small: true),
+      ReferenceImageAttachments(
+          images: images,
           enabled: canSend,
-          minLines: 1,
-          maxLines: 5,
-          maxLength: 2000,
-          textInputAction: TextInputAction.send,
-          onSubmitted: (_) => send(),
-          onChanged: (_) => setState(() {
-            messageId = null;
-            error = null;
-          }),
-          decoration: InputDecoration(
-            labelText: 'Tell Kleos what you’d like',
-            hintText: widget.selectedPartLabel == null
-                ? 'Make it smaller, change the shape, add a feature…'
-                : 'What would you like to change about this part?',
-            counterText: '',
-            suffixIcon: IconButton(
-              key: const ValueKey('planning-chat-send'),
-              tooltip: 'Send message',
-              onPressed: canSend && draft.text.trim().isNotEmpty ? send : null,
-              icon: Icon(sending ? Icons.hourglass_top : Icons.arrow_upward),
+          supported: widget.onUploadImage != null,
+          onChanged: (value) => setState(() {
+                images = value;
+                messageId = null;
+                error = null;
+              }),
+          input: CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.enter): send,
+              const SingleActivator(LogicalKeyboardKey.enter, control: true):
+                  send,
+              const SingleActivator(LogicalKeyboardKey.enter, meta: true): send,
+            },
+            child: TextField(
+              key: const ValueKey('planning-chat-input'),
+              controller: draft,
+              enabled: canSend,
+              minLines: 1,
+              maxLines: 5,
+              maxLength: 2000,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => send(),
+              onChanged: (_) => setState(() {
+                messageId = null;
+                error = null;
+              }),
+              decoration: InputDecoration(
+                labelText: 'Tell Kleos what you’d like',
+                hintText: widget.selectedPartLabel == null
+                    ? 'Make it smaller, change the shape, add a feature…'
+                    : 'Describe the replacement for this part…',
+                counterText: '',
+                suffixIcon: IconButton(
+                  key: const ValueKey('planning-chat-send'),
+                  tooltip: 'Send message',
+                  onPressed: canSend &&
+                          (draft.text.trim().isNotEmpty || images.isNotEmpty)
+                      ? send
+                      : null,
+                  icon:
+                      Icon(sending ? Icons.hourglass_top : Icons.arrow_upward),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
+          )),
       if (error != null) pText(error, color: KColors.fail, small: true),
       pText(
           widget.canWrite

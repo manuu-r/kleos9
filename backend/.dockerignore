@@ -1,5 +1,4 @@
-.env
-.env.*
+.env*
 .data
 .venv
 __pycache__
@@ -9,4 +8,3 @@ __pycache__
 tests
 *.pyc
 *.log
-*.egg-info

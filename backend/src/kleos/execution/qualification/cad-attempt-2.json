@@ -1,0 +1,25 @@
+{
+  "qualified": false,
+  "imageId": "sha256:2feee19bb1b026dcb4f5bab37dff9aec55b08ad88fe65ecbf9ac35a23acdf800",
+  "finishedAt": "2026-11-02T14:59:13.860307+00:00",
+  "fixtureSha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [],
+  "containers": [
+    {
+      "runtimeLogs": "\u0002\u0000\u0000\u0000\u0000\u0000\u0000#Traceback (most recent call last):\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000=  File \"/opt/kleos-native/bootstrap.py\", line 7, in <module>\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u000b    main()\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000O  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 446, in main\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0018    verify_no_network()\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\\  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 121, in verify_no_network\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000g    if entry.name != 'lo' and (entry / 'operstate').read_text().strip() not in {'down', 'notpresent'}:\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000@                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000G  File \"/usr/local/lib/python3.12/pathlib.py\", line 1027, in read_text\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000E    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000?         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000B  File \"/usr/local/lib/python3.12/pathlib.py\", line 1013, in open\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000E    return io.open(self, mode, buffering, encoding, errors, newline)\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000E           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000[NotADirectoryError: [Errno 20] Not a directory: '/sys/class/net/bonding_masters/operstate'\n",
+      "image": "sha256:2feee19bb1b026dcb4f5bab37dff9aec55b08ad88fe65ecbf9ac35a23acdf800",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

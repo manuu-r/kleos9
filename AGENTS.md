@@ -17,17 +17,17 @@ experience intact unless the task explicitly calls for a UI or simulation change
 | Location | Responsibility |
 |---|---|
 | `kleos-ui/` | Kleos Flutter frontend, production/mock transports, Riverpod state and UI tests |
-| `backend/kleos/api.py` | FastAPI commands, queries, event streams and internal native-job endpoints |
-| `backend/kleos/domain.py` | Authoritative business transitions, permissions, revision and release gates |
-| `backend/kleos/engine.py`, `worker.py` | Engineering attempts, DBOS workflows, outbox dispatch and recovery |
-| `backend/kleos/models.py`, `planning.py` | Provider routing, typed model outputs and bounded planning context |
-| `backend/kleos/execution.py` | Durable native-job submission, capacity, cancellation and reconciliation |
-| `backend/kleos/native_runner.py`, `native_session.py` | Isolated tool execution and bounded edit/build/observe actions |
-| `backend/kleos/source_closure.py`, `source_templates.py` | Exact source manifests, incremental repairs and vetted templates |
-| `backend/docker/` | Control/native images, trusted templates, qualification fixtures and deployment tooling |
-| `backend/migrations/` | Alembic migrations; existing migrations are historical records |
+| `backend/src/kleos/api/`, `access/` | FastAPI commands, queries, streams, authentication and frontend adapters |
+| `backend/src/kleos/projects/`, `artifacts/` | Authoritative state, revisions, command/effect receipts, source closures and private files |
+| `backend/src/kleos/orchestration/` | LangGraph planning, specialists, provider routing, spend accounting and thin worker dispatch |
+| `backend/src/kleos/memory/` | LangMem extraction and project-scoped advisory retrieval |
+| `backend/src/kleos/execution/` | Fresh isolated native supervisor, fixed actions, durable jobs and image qualification |
+| `backend/src/kleos/capabilities/` | Qualified tool registry, sourcing, human work and Bambu connections |
+| `backend/src/kleos/validation/` | Independent checks and immutable accepted release manifests |
+| `backend/src/kleos/infrastructure/` | Fresh settings, schema registration and runtime composition |
+| `backend/migrations/` | Fresh replacement schema; archived migrations remain historical records, not a migration path |
 | `backend/contracts/openapi.json` | Exported API contract consumed by Flutter's transport generator |
-| `backend/verification/` | Scoped runtime evidence, including preserved failed qualification attempts |
+| `backend/docs/rewrite-progress.md` | Current replacement scope, verification and remaining integration gates |
 | `mock-backend/` | Separate in-memory simulation; no real model or commercial work |
 | `infra/` | AWS Terraform, resource/network policy and mocked infrastructure tests |
 | `docs/`, `backend/docs/` | Integration contracts, engineering constraints, operations and review records |
@@ -35,7 +35,7 @@ experience intact unless the task explicitly calls for a UI or simulation change
 ## Product and authority invariants
 
 - PostgreSQL owns project state, memberships, revisions, requirements, interfaces,
-  approvals and budgets. Qdrant is derived retrieval state; summaries and search
+  approvals and budgets. LangMem/LangGraph retrieval is derived state; summaries and search
   results cannot overwrite authoritative records.
 - Persist commands, state changes and outbox entries transactionally. Preserve
   idempotency keys, expected revisions, attempt fences and recovery identities.
@@ -81,8 +81,8 @@ classic build contract. Custom tools retain the classic path until their session
 runtime is qualified. Existing attempts keep their original resource/tool/limit
 contracts when operator settings change.
 
-See [native sessions](backend/docs/native-sessions.md),
-[tool plugins](docs/engineering-tool-plugins.md),
+See [native execution](backend/src/kleos/execution/README.md),
+[capability registry](backend/src/kleos/capabilities/README.md),
 [native capacity](infra/native-capacity.md) and
 [native networking](infra/native-network.md) before changing these boundaries.
 
@@ -90,9 +90,9 @@ See [native sessions](backend/docs/native-sessions.md),
 
 1. Inspect the branch, working tree and relevant implementation/tests first.
    Preserve unrelated user changes and avoid broad formatting or dependency churn.
-2. Make the smallest complete change consistent with the existing architecture.
-   Keep the nine logical business modules in one codebase with separate process
-   entry points; do not introduce another orchestration framework without need.
+2. Keep the authorized rewrite modular in one codebase with separate process
+   entry points. LangGraph owns workflow checkpoints and resumption; do not build
+   a second workflow engine. Assign disjoint module ownership for parallel work.
 3. Add a new Alembic migration for schema changes. Do not rewrite applied history.
 4. Preserve camelCase JSON. Export OpenAPI and regenerate Dart transport models
    together when the API contract changes; never hand-edit generated DTOs.

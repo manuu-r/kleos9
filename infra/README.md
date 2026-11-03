@@ -20,7 +20,7 @@ state with locking; generated Qdrant credentials are sensitive state.
    write runtime configuration. It creates separate application, DBOS and
    Conductor databases and login roles. Rerunning preserves existing passwords.
    The task prints no credentials. Wait for successful task exit.
-4. Update the runtime JSON secret with the direct Meta key, the Gemini key (embeddings)
+4. Update the runtime JSON secret with the direct Meta key
    and, for Modal-hosted Muse Spark Open, KLEOS_MODAL_LLM_URL and KLEOS_MODAL_LLM_KEY
    (empty strings are fine and leave Modal off) without changing other keys. Every key
    listed in runtime_secret_keys must exist in the secret before tasks start. Never put credentials in Terraform variables.

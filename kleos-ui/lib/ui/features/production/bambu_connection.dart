@@ -9,6 +9,7 @@ import '../../core/widgets.dart';
 import '../project/bambu_print.dart';
 import '../project/common.dart';
 import 'bambu_local_connection.dart';
+import 'bambu_test_print.dart';
 
 final bambuConnectionProvider =
     FutureProvider.autoDispose<JsonMap>((ref) async {
@@ -41,6 +42,17 @@ bool hasBambuStatus(JsonMap data) =>
           telemetry['stale'] != true;
     });
 
+bool hasBambuPairing(JsonMap data) {
+  final local = asMap(data['local']);
+  return local['paired'] == true || local['credentialsStored'] == true;
+}
+
+String bambuConnectionStatus(JsonMap data) => hasBambuStatus(data)
+    ? 'Printer connected'
+    : hasBambuPairing(data)
+        ? 'Printer paired · status needs refresh'
+        : 'Printer not connected';
+
 class BambuConnectionCard extends ConsumerWidget {
   const BambuConnectionCard({super.key, required this.onSetup});
   final VoidCallback onSetup;
@@ -68,9 +80,12 @@ class BambuConnectionCard extends ConsumerWidget {
                 final profiles = asMaps(asMap(data['catalog'])['profiles'])
                     .where((p) => p['qualified'] == true)
                     .length;
+                final testReady = asMap(data['local'])['enabled'] == true &&
+                    asMaps(asMap(data['catalog'])['profiles'])
+                        .any((p) => p['testPreparation'] == true);
                 return pText(
-                    '${profiles == 0 ? 'Slicing setup needed' : '$profiles approved slicing profiles'} · '
-                    '${hasBambuStatus(data) ? 'Local status bridge connected' : 'Local status bridge not connected'}',
+                    '${profiles == 0 ? (testReady ? 'Test slicing ready' : 'Slicing setup needed') : '$profiles approved slicing profiles'} · '
+                    '${bambuConnectionStatus(data)}',
                     small: true);
               }),
           KButton(
@@ -117,50 +132,65 @@ class BambuConnectionDialog extends ConsumerWidget {
                       data: (data) => BambuConnectionControls(
                           data: data,
                           projects: projects,
-                          connection: (model) => asMap(
-                                      data['local'])['enabled'] ==
-                                  true
-                              ? BambuLocalConnectionForm(
+                          testPrint: asMap(data['local'])['enabled'] == true
+                              ? (model) => BambuTestPrintPanel(
                                   modelId: model,
-                                  state: asMap(data['local']),
-                                  onCertificate: (body) {
-                                    final repository =
-                                        ref.read(productionRepositoryProvider);
-                                    return repository.api.bambuCertificate(body,
-                                        organizationId:
-                                            repository.organizationId);
-                                  },
-                                  onConnect: (body) async {
-                                    final repository =
-                                        ref.read(productionRepositoryProvider);
-                                    final result = await repository.api
-                                        .connectLocalBambu(body,
+                                  profiles: asMaps(
+                                      asMap(data['catalog'])['profiles']))
+                              : null,
+                          discoveredConnection: (model, onModelSelected) =>
+                              asMap(data['local'])['enabled'] == true
+                                  ? BambuLocalConnectionForm(
+                                      modelId: model,
+                                      onModelSelected: onModelSelected,
+                                      onDiscover: () {
+                                        final repository = ref
+                                            .read(productionRepositoryProvider);
+                                        return repository.api
+                                            .discoverLocalBambu(
+                                                organizationId:
+                                                    repository.organizationId);
+                                      },
+                                      state: asMap(data['local']),
+                                      onCertificate: (body) {
+                                        final repository = ref
+                                            .read(productionRepositoryProvider);
+                                        return repository.api.bambuCertificate(
+                                            body,
                                             organizationId:
                                                 repository.organizationId);
-                                    ref.invalidate(bambuConnectionProvider);
-                                    return result;
-                                  },
-                                  onRefresh: () async {
-                                    final repository =
-                                        ref.read(productionRepositoryProvider);
-                                    final result = await repository.api
-                                        .refreshLocalBambu(
-                                            organizationId:
-                                                repository.organizationId);
-                                    ref.invalidate(bambuConnectionProvider);
-                                    return result;
-                                  },
-                                  onForget: () async {
-                                    final repository =
-                                        ref.read(productionRepositoryProvider);
-                                    final result = await repository.api
-                                        .forgetLocalBambu(
-                                            organizationId:
-                                                repository.organizationId);
-                                    ref.invalidate(bambuConnectionProvider);
-                                    return result;
-                                  })
-                              : const SizedBox.shrink(),
+                                      },
+                                      onConnect: (body) async {
+                                        final repository = ref
+                                            .read(productionRepositoryProvider);
+                                        final result = await repository.api
+                                            .connectLocalBambu(body,
+                                                organizationId:
+                                                    repository.organizationId);
+                                        ref.invalidate(bambuConnectionProvider);
+                                        return result;
+                                      },
+                                      onRefresh: () async {
+                                        final repository = ref
+                                            .read(productionRepositoryProvider);
+                                        final result = await repository.api
+                                            .refreshLocalBambu(
+                                                organizationId:
+                                                    repository.organizationId);
+                                        ref.invalidate(bambuConnectionProvider);
+                                        return result;
+                                      },
+                                      onForget: () async {
+                                        final repository = ref
+                                            .read(productionRepositoryProvider);
+                                        final result = await repository.api
+                                            .forgetLocalBambu(
+                                                organizationId:
+                                                    repository.organizationId);
+                                        ref.invalidate(bambuConnectionProvider);
+                                        return result;
+                                      })
+                                  : const SizedBox.shrink(),
                           onGuide: () async {
                             if (!await launchUrl(
                                 Uri.parse(
@@ -188,12 +218,17 @@ class BambuConnectionControls extends StatefulWidget {
       required this.projects,
       required this.onGuide,
       required this.preparation,
-      this.connection});
+      this.connection,
+      this.testPrint,
+      this.discoveredConnection});
   final JsonMap data;
   final List<JsonMap> projects;
   final Future<void> Function() onGuide;
   final Widget Function(JsonMap project, String? modelId) preparation;
   final Widget Function(String? modelId)? connection;
+  final Widget Function(String? modelId)? testPrint;
+  final Widget Function(String? modelId, ValueChanged<String> onModelSelected)?
+      discoveredConnection;
 
   @override
   State<BambuConnectionControls> createState() =>
@@ -208,8 +243,13 @@ class _BambuConnectionControlsState extends State<BambuConnectionControls> {
     final catalog = asMap(widget.data['catalog']);
     final models = asMaps(catalog['models']);
     final detected = detectedBambuModel(widget.data);
-    final model =
-        models.any((m) => m['id'] == selectedModel) ? selectedModel : detected;
+    final localModel = asMap(widget.data['local'])['modelId'];
+    final model = models.any((m) => m['id'] == selectedModel)
+        ? selectedModel
+        : detected ??
+            (models.any((m) => m['id'] == localModel)
+                ? localModel as String
+                : null);
     final profiles = asMaps(catalog['profiles'])
         .where((p) => p['qualified'] == true && p['printerModelId'] == model)
         .toList();
@@ -223,7 +263,7 @@ class _BambuConnectionControlsState extends State<BambuConnectionControls> {
         projects.where((p) => p['id'] == selectedProject).firstOrNull;
     return pColumn([
       pText(
-          'Select your model and a build with an accepted part. Printer access codes stay on your computer.',
+          'Find your printer below or choose its model for manual setup. Printer access codes stay on your computer.',
           small: true,
           muted: true),
       if (detected != null && selectedModel == null)
@@ -241,20 +281,28 @@ class _BambuConnectionControlsState extends State<BambuConnectionControls> {
                       maxLines: 1, overflow: TextOverflow.ellipsis))
           ],
           onChanged: (value) => setState(() => selectedModel = value)),
-      pText(
-          hasBambuStatus(widget.data)
-              ? 'Local status bridge: connected (read-only).'
-              : 'Local status bridge: not connected.',
-          small: true),
+      pText(bambuConnectionStatus(widget.data), small: true),
       if (widget.connection != null) widget.connection!(model),
+      if (widget.discoveredConnection != null)
+        KeyedSubtree(
+            key: const ValueKey('bambu-local-connection'),
+            child: widget.discoveredConnection!(model, (value) {
+              if (models.any((item) => item['id'] == value)) {
+                setState(() => selectedModel = value);
+              }
+            })),
       if (model != null)
         pText(
             profiles.isEmpty
                 ? 'Slicing setup needed: no approved nozzle/material profile is installed for this model.'
                 : '${profiles.length} approved nozzle/material profiles installed for this model.',
             small: true),
+      if (widget.testPrint != null)
+        KeyedSubtree(
+            key: const ValueKey('bambu-small-test-print'),
+            child: widget.testPrint!(model)),
       pText(
-          'Finish local setup with the guide: install the slicing adapter and a reviewed profile. For optional live status, enroll the LAN bridge on your computer.',
+          'Printing needs an accepted part and a reviewed slicing profile. You can connect and check status before setting up slicing.',
           small: true,
           muted: true),
       KButton(
@@ -290,7 +338,9 @@ class _BambuConnectionControlsState extends State<BambuConnectionControls> {
             onChanged: (value) => setState(() => selectedProject = value)),
       if (project != null) widget.preparation(project, model),
       pText(
-          'Printing starts only after your review in Bambu Connect. A prepared plate does not establish physical acceptance.',
+          catalog['localPrintingEnabled'] == true
+              ? 'Paired A1 mini, A1, P1S and X1 Carbon printers have an experimental, separately reviewed direct LAN print path; exact profiles and firmware require qualification. Other setups retain Bambu Connect. A prepared plate does not establish physical acceptance.'
+              : 'Printing starts only after your review in Bambu Connect. A prepared plate does not establish physical acceptance.',
           small: true,
           muted: true),
     ]);

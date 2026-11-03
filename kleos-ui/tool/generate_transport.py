@@ -12,13 +12,15 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-ROOTS = ["ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
+ROOTS = ["ReferenceImageView", "ReferenceImageUpload", "AgentsPage", "ExternalJobsPage", "ExternalJobEventsPage", "EngineeringToolCatalogView", "ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
          "EventView", "ArtifactDownloadView", "Command", "CommandAccepted",
          "CompanionPreviewRequest", "CompanionPreviewView", "CircuitSimulationView",
          "BambuCatalogView", "PrintPreparationView", "PrintPreparationsView", "PreparePrint", "PreparedPrint",
+         "BambuTestPrintRequest", "BambuTestPrintView",
          "RentAHumanStatusView", "HumanSearchView", "HumanBountiesView", "HumanTaskDraftsView",
          "HumanTaskDraftView", "HumanTaskDraftRequest", "HumanTaskDraftAction", "HumanTaskLinkRequest",
-         "BambuLocalState", "BambuCertificateView", "BambuAddressRequest", "BambuConnectionRequest"]
+         "BambuLocalState", "BambuCertificateView", "BambuAddressRequest", "BambuConnectionRequest", "BambuDiscoveryView",
+         "BambuDispatchRequest", "BambuDispatchView", "BambuDispatchesView", "BambuReconcileRequest"]
 
 
 def name(value):

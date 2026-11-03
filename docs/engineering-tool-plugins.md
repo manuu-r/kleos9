@@ -1,5 +1,28 @@
 # CAD and PCB tool adapters
 
+The shared registry also describes firmware/app, sourcing, print monitoring and
+human-task capabilities. The existing CAD/PCB API fields and selectors remain
+unchanged. Additional selectors are deferred; authorized API clients can save
+optional `firmwareApp`, `sourcing`, `printMonitor` and `humanTasks` entries in
+`toolPolicy`. A two-key CAD/PCB save preserves already saved entries for other
+agents. These choices apply to subsequent attempts/jobs, never an active pin.
+
+`GET /api/v1/engineering-tools` retains `tools` and `defaultPolicy`, and adds
+`agents` and `defaultAgentPolicy`. Agent metadata declares input/result schemas,
+capabilities, limitations, reproducible/generative operations and qualification
+fixtures. Public metadata excludes installation configuration and tenant lists.
+The defaults for added agents are `zephyr-flutter@1`,
+`sandbox-procurement@1`, `bambu-lan-readonly@1` and `rentahuman-portal@1`.
+Contract registration does not qualify a new toolchain, workflow or live device.
+
+Operators register non-CAD/PCB manifests with `KLEOS_AGENT_PLUGINS` and immutable
+installation identities with `KLEOS_AGENT_PLUGIN_INSTALLATIONS` (`id@version` to
+`sha256:<64 lowercase hex digits>`). This is an identity registry, not an import
+path or command executor. Installed trusted capability code must implement the
+typed contracts in `backend/kleos/plugins/contracts.py`; Kleos owns workflows,
+transitions, schedules and independent gates. CAD/PCB retain the installation
+contract below. Bambu stays read-only and RentAHuman does not hire or pay.
+
 The defaults are **build123d@1** for mechanical generation and the deterministic
 **KiCad circuit compiler (`atopile-kicad@2`)** for PCB generation. The older
 `atopile-kicad@1` source workflow remains available for pinned/explicit choices.

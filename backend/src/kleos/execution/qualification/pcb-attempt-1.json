@@ -1,0 +1,85 @@
+{
+  "qualified": false,
+  "imageId": "sha256:efd864c930aa2cb4e72747de73bede06c6c83fb36145d91b15db87324818a700",
+  "protocol": "kleos-native-session-v2",
+  "lane": "pcb",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T15:35:44.028808+00:00",
+  "fixtureSourcesSha256": "91c9499572956e47ecc5d31016d06057046d088c5673e4438b6264749901aa9c",
+  "circuitContract": {
+    "references": [
+      {
+        "reference": "J1",
+        "value": "Connector",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "NET_A",
+          "2": "NET_B"
+        }
+      },
+      {
+        "reference": "R1",
+        "value": "1k",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "NET_A",
+          "2": "NET_B"
+        }
+      }
+    ],
+    "conceptReferences": {
+      "power-connector": "J1"
+    },
+    "constraints": {
+      "maxWidthMm": 42,
+      "maxHeightMm": 32,
+      "minTrackWidthMm": 0.25,
+      "minClearanceMm": 0.2,
+      "copperLayers": [
+        "F.Cu",
+        "B.Cu"
+      ]
+    }
+  },
+  "circuitContractHash": "db0e19e3f302120f776d832aaf2a70a363e1f225e1fcd705642ebec6cf197234",
+  "checks": [
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 123, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 77, in prepare\n    schematic(accepted)\n  File \"/opt/kleos-native/pcb_runner.py\", line 42, in schematic\n    raise ValueError('Schematic references, values, footprints or pin nets differ from accepted circuit')\nValueError: Schematic references, values, footprints or pin nets differ from accepted circuit\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "ERROR",
+            "details": {
+              "error": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 123, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 77, in prepare\n    schematic(accepted)\n  File \"/opt/kleos-native/pcb_runner.py\", line 42, in schematic\n    raise ValueError('Schematic references, values, footprints or pin nets differ from accepted circuit')\nValueError: Schematic references, values, footprints or pin nets differ from accepted circuit\n",
+              "executionSucceeded": false,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:efd864c930aa2cb4e72747de73bede06c6c83fb36145d91b15db87324818a700",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "Two-layer passive circuit fixture only",
+    "No physical fabrication or acceptance"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "imageId": "sha256:6e3efde745d5a1e773737bcaf86d56320576b6c2ccf27c57cf6d5b62c3cf421f",
+  "backendLocations": [
+    "/opt/kleos-native/kleos"
+  ],
+  "legacyBackendAbsent": true,
+  "kicadVersion": "9.0.8",
+  "freeroutingVersion": "2.1.0",
+  "freeroutingSha256": "2c07d58f75dac03782664081e7a58b41c25400d871a9fcf166a2ea6fe60d5def",
+  "runtimeFiles": {
+    "pcb_runner.py": "01874371bf98b93b950717575e11d5206a2a42619edaf3c326a5e93ea99966d9",
+    "result_reader.py": "5c375e4e3e87122479d536ce97bcf996f343331b420beb611ad2204731fc6898",
+    "bootstrap.py": "e1d432ce82530d626cd25beda9929a05aff0e6aec44de7d1e7c4c2dd3a17c609",
+    "kleos/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/pcb_contract.py": "15e2300145ef0df851fdab5bd0cb09edf34b51bbf169f1f9e651c17d4a07dfd6",
+    "kleos/execution/native_runner.py": "dd333d23cc717fa1f90f4ad9d4e6272bf413f46781062407a26fd810fedacda9",
+    "kleos/execution/protocol.py": "6323ef668fe00cef9eacd2540b93d2c66e2e04d80f30165a96fb3241e4ec8fac"
+  }
+}

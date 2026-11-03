@@ -55,6 +55,7 @@ class NewBuildModelPolicy extends AsyncNotifier<Map<String, ModelChoice>> {
       ModelCatalog catalog, String lane, JsonMap value) {
     return catalog.models
         .where((model) =>
+            const {'meta', 'modal'}.contains(model.choice.provider) &&
             model.lanes.contains(lane) &&
             model.choice.provider == value['provider'] &&
             model.choice.model == value['model'])

@@ -1,0 +1,21 @@
+{
+  "proofs": [
+    {
+      "kind": "container-removed",
+      "identity": "e8d375e907b27e5bf55b9927602258bb81f01cc8e6402cc0bce7df0c47736f0e"
+    }
+  ],
+  "capacityAfter": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

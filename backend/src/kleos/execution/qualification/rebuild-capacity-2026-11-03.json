@@ -1,0 +1,11 @@
+{
+  "qualified": false,
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "qualificationKind": "native-only-rebuild",
+  "sourceOverride": false,
+  "modelCalls": 0,
+  "retrievalCalls": 0,
+  "parentActions": [],
+  "scope": "Exact saved two-part CAD source, same pinned image/resources, new bounded linked grant",
+  "finishedAt": "2026-11-02T18:49:17.874571+00:00"
+}

@@ -1,0 +1,30 @@
+{
+  "qualified": false,
+  "imageId": "sha256:1e526b4650ffd40137e0492d35af1a7ef4ee7b576ec0958acb92d4726ad2850a",
+  "finishedAt": "2026-11-02T15:10:48.361746+00:00",
+  "fixtureSha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+  "protocol": "kleos-native-session-v2",
+  "lane": "cad",
+  "sourceOverride": false,
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "parentImageId": "sha256:50fe4f6f1c6f90bcd7a0886e09f313136edd7a72ecdfbe2b2bc4ea67603c8173",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [],
+  "containers": [
+    {
+      "runtimeLogs": "",
+      "image": "sha256:1e526b4650ffd40137e0492d35af1a7ef4ee7b576ec0958acb92d4726ad2850a",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

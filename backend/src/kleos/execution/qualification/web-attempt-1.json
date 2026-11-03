@@ -1,0 +1,246 @@
+{
+  "qualified": true,
+  "imageId": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+  "protocol": "kleos-native-session-v2",
+  "lane": "application",
+  "applicationTarget": "web",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "storagePolicy": "hard-bounded-private-tmpfs",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "pids": 256,
+    "scratchBytes": 4294967296
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T17:11:14.909635+00:00",
+  "fixtureSourcesSha256": "6f99742b69481daf142a12af0d07ac06d8c6a0dafe14fa8e9d59a6e295987c4d",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.yaml",
+              "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "lib/main.dart",
+              "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "web/index.html",
+              "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.lock",
+              "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/companion-web.zip"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "8c4da20d-438d-4430-94f0-d7075c363473",
+            "path": "pubspec.yaml",
+            "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 225
+          },
+          {
+            "id": "b935e17b-133d-4dab-9a46-f81d0a4d6a99",
+            "path": "lib/main.dart",
+            "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+            "revision": 2,
+            "mediaType": "application/vnd.dart",
+            "size": 663
+          },
+          {
+            "id": "ba2cde6c-d254-4958-9985-3d33b82460a4",
+            "path": "web/index.html",
+            "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+            "revision": 2,
+            "mediaType": "text/html",
+            "size": 266
+          },
+          {
+            "id": "a4b158f0-c289-4be3-992e-e257eb647c89",
+            "path": "pubspec.lock",
+            "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 1485
+          },
+          {
+            "id": "2d6e8ec9-65bb-433b-9311-201bbdeb9652",
+            "path": "outputs/companion-web.zip",
+            "sha256": "6428a588de6561d515d21bcc0c9ddc24a77f0852c56bbf48387a15a613ec91ec",
+            "revision": 2,
+            "mediaType": "application/zip",
+            "size": 10221372
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 6442450944,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 256,
+      "scratch": "rw,nosuid,nodev,size=4294967296,mode=1777,exec",
+      "writableHostMounts": false
+    }
+  ],
+  "webArchiveEntries": [
+    ".last_build_id",
+    "assets/",
+    "assets/AssetManifest.bin",
+    "assets/AssetManifest.bin.json",
+    "assets/AssetManifest.json",
+    "assets/FontManifest.json",
+    "assets/NOTICES",
+    "assets/fonts/",
+    "assets/fonts/MaterialIcons-Regular.otf",
+    "assets/shaders/",
+    "assets/shaders/ink_sparkle.frag",
+    "canvaskit/",
+    "canvaskit/canvaskit.js",
+    "canvaskit/canvaskit.js.symbols",
+    "canvaskit/canvaskit.wasm",
+    "canvaskit/chromium/",
+    "canvaskit/chromium/canvaskit.js",
+    "canvaskit/chromium/canvaskit.js.symbols",
+    "canvaskit/chromium/canvaskit.wasm",
+    "canvaskit/skwasm.js",
+    "canvaskit/skwasm.js.symbols",
+    "canvaskit/skwasm.wasm",
+    "canvaskit/skwasm_heavy.js",
+    "canvaskit/skwasm_heavy.js.symbols",
+    "canvaskit/skwasm_heavy.wasm",
+    "flutter.js",
+    "flutter_bootstrap.js",
+    "flutter_service_worker.js",
+    "index.html",
+    "main.dart.js",
+    "version.json"
+  ],
+  "limitations": [
+    "Offline Flutter web build fixture only",
+    "No browser/device execution or acceptance",
+    "APK remains unqualified; no silent platform substitution"
+  ]
+}

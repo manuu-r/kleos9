@@ -13,7 +13,7 @@ point so it does not drift from the shared guidance.
   PostgreSQL is authoritative; Qdrant is derived retrieval; artifacts are immutable.
 - Trusted workers coordinate isolated native CAD, PCB, firmware and companion-app
   jobs. Run generated code only inside those native environments.
-- Product inference uses Meta, Gemini and configured Modal endpoints. Assistant
+- Product inference uses Meta and configured Modal endpoints. Assistant
   tooling guidance is separate from the platform's provider registry.
 - Generated companion apps are separate from `kleos-ui`. Android delivery is a
   development-signed APK plus web/source packages; iOS delivery is source-only.

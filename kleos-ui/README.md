@@ -16,7 +16,8 @@ and actual profile/bridge readiness. Its simulated wizard is confined to mock mo
 An explicitly enabled loopback development API also exposes a read-only LAN
 connection form in that setup dialog. It needs no slicing profile or Docker.
 Enter credentials locally; access codes remain in expiring API memory and the
-form requires a verified TLS fingerprint. Hosted APIs never enable this form.
+API verifies the Bambu certificate chain and printer serial automatically.
+Hosted APIs never enable this form.
 
 [RentAHuman.ai](../backend/docs/rentahuman.md) discovery appears in production
 Human tasks and Connections → Human tasks. The physical-check stage offers local
@@ -51,9 +52,9 @@ flutter build web --no-web-resources-cdn --dart-define=KLEOS_BACKEND=production
 
 On HTTPS web the API defaults to `/api/v1` on the same origin. Set `API_BASE_URL=https://your-api.example/api/v1` for native release builds. Local Android development defaults to `http://10.0.2.2:8000/api/v1`; iOS defaults to localhost. Configure the API's allowed origin for local web development. Native transport settings currently allow local HTTP development; use HTTPS for hosted deployments.
 
-Production includes project creation, per-lane Muse/Gemini settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
+Production includes project creation, per-lane Muse settings, research and engineering commands, requirements and battery revisions, independent-check results, artifacts, explicit simulated fulfillment steps, opt-in training consent, and a run inspector with task dependencies, attempts, provider/model details, context, outputs, usage, costs, and role-restricted redacted transcripts. Unconfigured providers and unsupported checks remain visible as blockers. Provider changes apply to subsequent attempts; the backend pins current attempts.
 
-Configured providers also offer an explicit “Use Gemini for all lanes” (or Muse) shortcut. It changes the editable choices only; creating the project or saving settings persists them. The backend's explicitly configured Modal rate-limit fallback to Meta is the only provider fallback exception; it is recorded on the invocation and event stream. Other outages or missing credits do not silently switch providers.
+Configured providers also offer an explicit “Use Muse for all lanes” shortcut. It changes the editable choices only; creating the project or saving settings persists them. The backend's explicitly configured Modal rate-limit fallback to Meta is the only provider fallback exception; it is recorded on the invocation and event stream. Other outages or missing credits do not silently switch providers.
 
 The organization menu switches between invited memberships. Its remembered choice is scoped to the signed-in account; revoking that choice requires explicit reselection. In-flight commands remain pinned to their original organization. Accepted release ZIPs can be downloaded from the workspace, including a previous accepted baseline after revisions. The run inspector includes native job inputs, tool versions, limitations, and administrator-only redacted engineering logs.
 
@@ -268,11 +269,13 @@ The simulation server keeps its original in-memory state and resets on restart.
 
 Requirements use a planning conversation with guided choices, saved progress,
 optional custom answers and an editable summary. Sending an answer or message
-automatically resumes the plan. New builds start at capture with an immediate
-rough 3D concept, then update it from Gemini and feasibility research. The preview
+automatically resumes the plan. New builds start at capture with an empty preview
+until a valid model-generated scene arrives. No canned watch or monitor is inserted.
+While capture runs the preview shows generating progress; a failed capture keeps
+it empty, or retains the last genuine concept when one exists. The preview
 supports drag to rotate, pinch/zoom controls, assembled/exploded views and part
 selection. Selecting a part attaches its ID and scene version to the next message.
-The same scene is supplied to the agent as a reference. Chat history is bounded
+Unselected parts remain assembly context when regenerating a selected part. Chat history is bounded
 on screen and follows new replies; earlier messages remain accessible.
 
 The native data-only renderer adapts the pinned, MIT-licensed Anatomy skill
@@ -280,7 +283,86 @@ bundled in the backend. Its license is included in Flutter's license registry.
 Concepts use relative proportions and do not generate CAD or satisfy engineering
 checks. Explicit confirmation still starts design. Technical proposal details
 stay expandable, and all existing simulation sections retain their behavior.
+The versioned feature scene adds real profile holes, pocket floors, revolved
+bores, lofts and swept tubes in the same preview and selection controls. Unknown
+or invalid feature geometry displays an error instead of substituting a box.
+See [capture geometry](../backend/docs/capture-design-geometry.md) for limits.
+When a multi-part scene supplies identical explode offsets, including all zeros,
+the preview computes display spacing from the actual rotated mesh bounds. Parts
+remain individually selectable and the assembled view keeps its existing shape
+and placement. The source scene, stable part IDs and manufacturing coordinates
+are unchanged; distinct supplied explode offsets remain authoritative. A genuine
+single-part concept remains one part.
+See [saved-scene exploded-view verification](../backend/verification/concept-exploded-view-fix.md).
 
 Build cards and workspaces expose **⋯ → Delete build**, followed by an explicit
 **Delete and clear build** confirmation. Real build cleanup continues server-side
 in the background; simulation deletion only clears the selected simulation.
+
+
+### Sketch and photo references
+
+New production builds and planning messages accept up to four PNG, JPEG or WebP
+references (6 MB per original). The composers show removable thumbnails before
+sending. In the browser, drag files directly onto the brief or chat input, or use
+the image button. The input highlights when files are over it; dropping adds the
+same removable attachments without submitting the message. Unsupported files,
+oversized files and more than four images show an inline error. Native clients
+retain the image picker. Image-only requests use an explicit brief. With initial references,
+creation first saves an idle project, uploads its images, then starts capture;
+an upload failure keeps the project and draft for retry without another creation.
+Ordinary text-only creation keeps its existing automatic start behavior.
+
+Reference uploads and history thumbnails use organization-scoped authenticated
+API routes. The server normalizes and validates the image bytes; thumbnails are
+planning references, not engineering or physical acceptance evidence. Selecting
+a concept part labels the message as a redo of only that part; its ID and concept
+version are captured when sending; a changed concept requires selecting again.
+The server generates the selected part from scratch and replaces it atomically,
+keeping unselected parts unchanged. Old target geometry is excluded from model
+context while historical records remain intact. References require the configured
+Meta vision planning path.
+
+File selection uses the official Flutter [file_selector](https://pub.dev/packages/file_selector)
+plugin, pinned to 1.1.0 with its platform packages in `pubspec.lock`. Tests inject
+file bytes rather than opening a native picker. The locked platform packages fit
+the existing CI Flutter 3.47.8 and iOS 15 target; physical-device picker behavior
+is separate from these fixture and web-build checks.
+
+## Local Bambu discovery and reviewed print requests
+
+Local Bambu setup includes **Small test print** for a fixed 10 × 10 × 2 mm tile.
+Choose nozzle, filament and build plate, slice with the installed Orca profile,
+then download the real sliced plate for review in Bambu Connect. This requires
+no accepted build and can exercise review profiles without qualifying them.
+Actual slicer estimates are shown when available; it never starts a printer.
+The test result is a temporary local download, separate from project releases.
+
+Connections → Printers can discover local advertisements and fill the printer IP,
+serial, known model and advertised firmware. Advertisements do not verify identity.
+Select a printer, enter its access code and choose Connect; the local API verifies
+the Bambu CA chain and serial before authenticating. Manual entry stays available.
+Experimental direct-print pairing for A1 mini, A1, P1S and X1 Carbon asks for firmware
+and LAN Developer Mode under Advanced; FTPS identity is verified automatically.
+Stale status remains visibly paired and can be refreshed. Access codes clear after a
+connection request and are never included in project or print-review details.
+
+When the backend enables local printing and supplies a qualified automatic Orca
+profile, accepted STL or triangle-only OBJ geometry in millimetres can enter
+automatic preparation. OBJ is unavailable with non-Orca profiles. Active automatic
+preparations and dispatches refresh in the foreground at five-second intervals,
+bounded to 120 checks per mounted panel. Manual refresh and plate downloads remain
+available. Other configurations retain the local adapter/Bambu Connect flow.
+
+A trusted prepared plate matching a backend-enabled paired model exposes a review of its source,
+profile, material/nozzle, printer serial/firmware and exact plate hash. Upload and
+start requires explicit external-spool and clear-bed confirmation. A lost response
+does not automatically resend a start. Start acknowledgment is not presented as
+confirmed printing. Authorization cancellation does not physically stop a printer;
+outcome reconciliation requires the user to observe an idle printer. No displayed
+print status grants physical acceptance.
+
+`bambu_discovery_test.dart` and `bambu_dispatch_ui_test.dart` cover the offline UI
+contracts, alongside the existing pairing, connection and preparation tests.
+These fixtures do not qualify actual printer firmware, network discovery, slicing
+images or physical printing; those require the scoped backend/device evidence.

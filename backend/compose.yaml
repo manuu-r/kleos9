@@ -1,196 +1,111 @@
-name: kleos9
+# Local replacement only. No cloud rollout, inherited .env, native Docker socket or automatic model worker.
+name: kleos2-local
+
+x-runtime-env: &runtime-env
+  KLEOS2_ENVIRONMENT: development
+  KLEOS2_DATABASE_URL: ${KLEOS2_DATABASE_URL:?Set the fresh local database URL in an explicit private env file}
+  KLEOS2_SESSION_SECRET: ${KLEOS2_SESSION_SECRET:?Set a persistent strong session secret}
+  KLEOS2_SETUP_TOKEN: ${KLEOS2_SETUP_TOKEN:?Set the fresh installation setup token}
+  KLEOS2_ARTIFACT_ROOT: /var/lib/kleos/artifacts
+  KLEOS2_DEVELOPMENT_NO_LOGIN: "false"
+  KLEOS2_PHYSICAL_ACTIONS_ENABLED: "false"
+  KLEOS2_FRONTEND_ORIGIN: ${KLEOS2_FRONTEND_ORIGIN:-http://localhost:5180}
+  KLEOS2_API_ORIGIN: ${KLEOS2_API_ORIGIN:-http://localhost:8000}
+  KLEOS2_PREVIEW_ORIGIN: ${KLEOS2_PREVIEW_ORIGIN:-http://localhost:8004}
+  KLEOS2_COMPANION_PREVIEW_ENABLED: ${KLEOS2_COMPANION_PREVIEW_ENABLED:-false}
+  KLEOS2_META_API_KEY: ${KLEOS2_META_API_KEY:-${KLEOS_META_API_KEY:-}}
+  KLEOS_META_API_KEY: ${KLEOS_META_API_KEY:-}
+  KLEOS2_MODAL_API_KEY: ${KLEOS2_MODAL_API_KEY:-${KLEOS_MODAL_LLM_KEY:-}}
+  KLEOS_MODAL_LLM_KEY: ${KLEOS_MODAL_LLM_KEY:-}
+  KLEOS2_MODAL_BASE_URL: ${KLEOS2_MODAL_BASE_URL:-${KLEOS_MODAL_LLM_URL:-}}
+  KLEOS_MODAL_LLM_URL: ${KLEOS_MODAL_LLM_URL:-}
+  KLEOS2_MODEL_PROVIDER: ${KLEOS2_MODEL_PROVIDER:-meta}
+  # Unset optional selections stay absent, preserving the runtime provider defaults.
+  KLEOS2_MODEL_CATALOG:
+  KLEOS2_TEXT_MODEL_KEY:
+  KLEOS2_VISION_MODEL_KEY:
+  KLEOS2_MODAL_RATE_LIMIT_FALLBACK_KEY:
+  KLEOS2_MAX_MODEL_CALLS: ${KLEOS2_MAX_MODEL_CALLS:-100}
+  KLEOS2_MAX_MODEL_COST_MICRO_USD: ${KLEOS2_MAX_MODEL_COST_MICRO_USD:-5000000}
+
 x-control: &control
-  image: kleos-control:development
-  build:
-    context: .
-    dockerfile: docker/Dockerfile
-  env_file:
-    - ./docker/native-defaults.env
-    - .env
-  environment: &control-environment
-    KLEOS_ENVIRONMENT: development
-    KLEOS_AUTH_MODE: development
-    KLEOS_DEMO_MODE: "true"
-    KLEOS_DEVELOPMENT_UNLIMITED_USAGE: ${KLEOS_DEVELOPMENT_UNLIMITED_USAGE:-true}
-    KLEOS_STORAGE_BACKEND: local
-    KLEOS_COMPANION_PREVIEW_BASE_URL: ${KLEOS_COMPANION_PREVIEW_BASE_URL:-http://localhost:8004}
-    KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
-    KLEOS_DBOS_DATABASE_URL: postgresql://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos_dbos
-    KLEOS_QDRANT_URL: http://qdrant:6333
-    KLEOS_LOCAL_ARTIFACT_DIR: /data/artifacts
-    KLEOS_EXECUTION_BACKEND: docker
-    KLEOS_MAX_NATIVE_JOBS: ${KLEOS_MAX_NATIVE_JOBS:-4}
-    KLEOS_MAX_NATIVE_JOBS_PER_PROJECT: ${KLEOS_MAX_NATIVE_JOBS_PER_PROJECT:-4}
-    KLEOS_NATIVE_JOB_RESERVATION_USD: ${KLEOS_NATIVE_JOB_RESERVATION_USD:-0.10}
-    KLEOS_DOCKER_JOBS_DIR: /native-jobs
-    KLEOS_DOCKER_JOBS_VOLUME: kleos9_native_jobs
-    KLEOS_CONDUCTOR_URL: ""
-    # Enable with --profile observability and an explicit Docker-network endpoint.
-    KLEOS_OTLP_ENDPOINT: ${KLEOS_DOCKER_OTLP_ENDPOINT:-}
-    PYDANTIC_AI_NO_BANNER: "1"
-  volumes:
-    - ./kleos:/opt/kleos/kleos:ro
-    - ./docker/templates:/opt/kleos/templates:ro
-    - ./.data/artifacts:/data/artifacts
-    - native_jobs:/native-jobs
-  logging:
-    driver: json-file
-    options:
-      max-size: "10m"
-      max-file: "3"
+  image: ${KLEOS2_CONTROL_IMAGE:-kleos2-control:local}
+  pull_policy: never
+  init: true
+  user: "10001:10001"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+  cpus: 1.0
+  mem_limit: 1g
+  pids_limit: 128
+  restart: "no"
+  stop_grace_period: 45s
+  environment: *runtime-env
+  volumes: [artifacts:/var/lib/kleos/artifacts]
+  depends_on:
+    postgres:
+      condition: service_healthy
+
 services:
-  initialize:
-    <<: *control
-    profiles: ["backend"]
-    user: "0"
-    command: ["python", "-c", "import os; [os.makedirs(p, exist_ok=True) or os.chown(p, 1000, 1000) for p in ['/data/artifacts', '/native-jobs']]"]
-  migrate:
-    <<: *control
-    profiles: ["backend"]
-    command: ["alembic", "upgrade", "head"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-      initialize:
-        condition: service_completed_successfully
-  api:
-    <<: *control
-    profiles: ["backend"]
-    command: ["uvicorn", "kleos.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--workers", "${KLEOS_API_PROCESSES:-1}"]
-    ports:
-      - "${KLEOS_API_BIND_ADDRESS:-127.0.0.1}:8000:8000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
-      interval: 5s
-      timeout: 4s
-      retries: 20
-    restart: unless-stopped
-  companion-preview:
-    image: kleos-control:development
-    profiles: ["backend"]
-    command: ["uvicorn", "kleos.preview_api:app", "--host", "0.0.0.0", "--port", "8004", "--no-access-log", "--log-level", "warning"]
-    environment:
-      KLEOS_ENVIRONMENT: development
-      KLEOS_STORAGE_BACKEND: local
-      KLEOS_DATABASE_URL: postgresql+psycopg://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/kleos
-      KLEOS_LOCAL_ARTIFACT_DIR: /data/artifacts
-      KLEOS_COMPANION_PREVIEW_SIGNING_KEY: ${KLEOS_COMPANION_PREVIEW_SIGNING_KEY:-}
-      KLEOS_FRONTEND_URL: ${KLEOS_FRONTEND_URL:-http://localhost:5180}
-      KLEOS_CORS_ORIGINS: ${KLEOS_CORS_ORIGINS:-["http://localhost:5180","http://127.0.0.1:5180"]}
-      KLEOS_COMPANION_PREVIEW_BASE_URL: ${KLEOS_COMPANION_PREVIEW_BASE_URL:-http://localhost:8004}
-    ports:
-      - "${KLEOS_API_BIND_ADDRESS:-127.0.0.1}:8004:8004"
-    volumes:
-      - ./kleos:/opt/kleos/kleos:ro
-      - ./docker/templates:/opt/kleos/templates:ro
-      - ./.data/artifacts:/data/artifacts:ro
-    read_only: true
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/health', timeout=3)"]
-      interval: 5s
-      timeout: 4s
-      retries: 20
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-  engineering:
-    <<: *control
-    profiles: ["backend"]
-    # Local trusted dispatchers alone can talk to the Docker daemon. Native
-    # containers never receive this socket or any control-plane environment.
-    user: "1000:1000"
-    group_add: ["${DOCKER_SOCKET_GID:-0}"]
-    command: ["python", "-m", "kleos.worker", "--kind", "engineering"]
-    volumes:
-      - ./kleos:/opt/kleos/kleos:ro
-      - ./docker/templates:/opt/kleos/templates:ro
-      - ./.data/artifacts:/data/artifacts
-      - native_jobs:/native-jobs
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      api:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
-    restart: unless-stopped
-  connectors:
-    <<: *control
-    profiles: ["backend"]
-    user: "1000:1000"
-    group_add: ["${DOCKER_SOCKET_GID:-0}"]
-    command: ["python", "-m", "kleos.worker", "--kind", "connectors"]
-    volumes:
-      - ./kleos:/opt/kleos/kleos:ro
-      - ./docker/templates:/opt/kleos/templates:ro
-      - ./.data/artifacts:/data/artifacts
-      - native_jobs:/native-jobs
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      api:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
-    restart: unless-stopped
   postgres:
-    image: postgres:17.6
+    image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+    pull_policy: never
     environment:
+      POSTGRES_DB: kleos2_local
       POSTGRES_USER: kleos
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
-      POSTGRES_DB: kleos
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres:/var/lib/postgresql/data
-      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+      POSTGRES_PASSWORD: ${KLEOS2_POSTGRES_PASSWORD:?Set the fresh database password}
+    volumes: [postgres:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kleos -d kleos"]
-      interval: 5s
+      test: [CMD-SHELL, "pg_isready -U kleos -d kleos2_local"]
+      interval: 3s
       timeout: 3s
       retries: 20
-  qdrant:
-    image: qdrant/qdrant:v1.15.5
-    ports:
-      - "127.0.0.1:6333:6333"
-    volumes:
-      - qdrant:/qdrant/storage
-  conductor:
-    image: ${DBOS_CONDUCTOR_IMAGE:-dbosdev/conductor:latest}
-    profiles: ["conductor"]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 128
+    restart: "no"
+
+  migrate:
+    <<: *control
+    profiles: [setup]
+    command: [migrate]
     environment:
-      DBOS__CONDUCTOR_DB_URL: postgres://kleos:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/conductor
-      DBOS_CONDUCTOR_LICENSE_KEY: ${DBOS_CONDUCTOR_LICENSE_KEY:-}
-      DBOS_OAUTH_ENABLED: "false"
-    ports:
-      - "127.0.0.1:8090:8090"
-  otel:
-    image: otel/opentelemetry-collector-contrib:0.137.0
-    profiles: ["observability"]
-    command: ["--config=/etc/otel/config.yaml"]
-    volumes:
-      - ./docker/otel-local.yaml:/etc/otel/config.yaml:ro
-    ports:
-      - "127.0.0.1:4318:4318"
-    mem_limit: 128m
-    cpus: 0.25
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      KLEOS2_DATABASE_URL: ${KLEOS2_DATABASE_URL:?Set the fresh local database URL}
+
+  api:
+    <<: *control
+    command: [serve, --host, 0.0.0.0, --port, "8000"]
+    ports: ["127.0.0.1:${KLEOS2_LOCAL_API_PORT:-8000}:8000"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+
+  worker:
+    <<: *control
+    profiles: [worker]
+    command: [worker]
+
+  preview:
+    <<: *control
+    profiles: [preview]
+    command: [preview-serve, --host, 0.0.0.0, --port, "8004"]
+    ports: ["127.0.0.1:${KLEOS2_LOCAL_PREVIEW_PORT:-8004}:8004"]
+    volumes: [artifacts:/var/lib/kleos/artifacts:ro]
+    environment:
+      <<: *runtime-env
+      # The static preview process does not receive provider credentials.
+      KLEOS2_META_API_KEY: ""
+      KLEOS2_MODAL_API_KEY: ""
+      KLEOS2_MODAL_BASE_URL: ""
+      KLEOS2_SETUP_TOKEN: ""
+      KLEOS_META_API_KEY: ""
+      KLEOS_MODAL_LLM_KEY: ""
+      KLEOS_MODAL_LLM_URL: ""
+
 volumes:
   postgres:
-  qdrant:
-  native_jobs:
-    name: kleos9_native_jobs
+  artifacts:

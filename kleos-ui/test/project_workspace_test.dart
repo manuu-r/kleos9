@@ -1,12 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:kleos_ui/main.dart';
+import 'package:kleos_ui/ui/features/project/common.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kleos_ui/data/models/json.dart';
 import 'support.dart';
+import 'navigation_audit.dart';
 import 'package:kleos_ui/data/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kleos_ui/state/kleos_store.dart';
@@ -133,6 +137,58 @@ void _complete(_ApiFixture fixture) {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('stage navigation and overlay dismissal stay scoped at $width',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final fixture = _ApiFixture();
+      _complete(fixture);
+      await fixture.controller.refresh();
+      final router = fixture.controller.container.read(routerProvider);
+      router.go('/projects/p1?s=0');
+      await tester.pumpWidget(fixture.controller.scope(const KleosApp()));
+      await tester.pumpAndSettle();
+      for (var stage = 0; stage < 10; stage++) {
+        final target = find.bySemanticsLabel(
+            RegExp('^${RegExp.escape(stageNames[stage])}(?:\\n|\$)')).first;
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        final node = tester.getSemantics(target);
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        tester.binding.rootPipelineOwner.visitChildren((owner) {
+          owner.semanticsOwner?.performAction(node.id, SemanticsAction.tap);
+        });
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.toString(),
+            '/projects/p1?s=$stage');
+        await tester.tapAt(Offset(width - 2, 500));
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.queryParameters['s'], '$stage');
+      }
+      await tester.ensureVisible(find.widgetWithText(KButton, 'Activity'));
+      await tester.tap(find.widgetWithText(KButton, 'Activity'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.tapAt(const Offset(4, 80));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(router.routeInformationProvider.value.uri.toString(), '/projects/p1?s=9');
+      await tester.tap(find.byTooltip('Build actions'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(4, 80));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete build'), findsNothing);
+      expect(router.routeInformationProvider.value.uri.toString(), '/projects/p1?s=9');
+      expect(fixture.requests, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      fixture.controller.dispose();
+      semantics.dispose();
+    });
+  }
+
   testWidgets(
       'intent submits selected values with the question key and shows the next question',
       (tester) async {
@@ -272,6 +328,7 @@ void main() {
   testWidgets(
       'all ten completed stages render on phone and desktop without layout errors',
       (tester) async {
+    final semantics = tester.ensureSemantics();
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
@@ -288,6 +345,11 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull,
               reason: 'stage $stage at width $width');
+          expectBoundedClickTargets(tester, screen: 'stage $stage at $width');
+          await tester.tapAt(Offset(width - 2, 500));
+          await tester.pumpAndSettle();
+          expect(router.routeInformationProvider.value.uri.toString(),
+              '/projects/p1?s=$stage');
         } finally {
           await tester.pumpWidget(const SizedBox.shrink());
           router.dispose();
@@ -295,5 +357,6 @@ void main() {
         }
       }
     }
+    semantics.dispose();
   });
 }

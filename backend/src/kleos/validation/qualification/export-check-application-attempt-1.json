@@ -1,0 +1,1276 @@
+{
+  "schemaVersion": "kleos-export-check-qualification-v1",
+  "qualified": false,
+  "lane": "application",
+  "qualifiedBy": "export-checker-qualification-runner",
+  "imageId": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+  "protocol": "kleos-export-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "exports.py": "398d319ae96656295530b64a5808f7accf4c6e93f3ea0238e202db5a1d13ddde",
+    "export_check.py": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa",
+    "export_process.py": "7232f1b4646e7f9e58b7e5083c2a2a4421e3e6f029d2cd9f97cd60d4539cd8ab",
+    "Dockerfile.exports": "479c20fd72693c4d38c291b6b94fca43f018c383a41f46167b0f5083d614ab84"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T21:22:35.440138+00:00",
+  "caseStatuses": {
+    "valid_web": "PASS",
+    "missing_bootstrap": "FAIL",
+    "missing_font": "FAIL",
+    "invalid_crc": "FAIL",
+    "path_traversal": "FAIL",
+    "symlink": "FAIL",
+    "duplicate_path": "FAIL",
+    "expansion_limit": "FAIL",
+    "nul_filename": "FAIL",
+    "file_directory_collision": "FAIL",
+    "case_prefix_collision": "FAIL",
+    "alternate_zip_name": "FAIL",
+    "duplicate_html_attribute": "FAIL",
+    "external_entry_resource": "UNKNOWN",
+    "digest_mismatch": "FAIL",
+    "parser_timeout": "ERROR"
+  },
+  "cases": [
+    {
+      "case": "valid_web",
+      "expected": "PASS",
+      "requestHash": "69340741da3634d1be4d9b0b5fc00cfb0dbdbb1e665f9264584e910ce2033ac7",
+      "result": {
+        "status": "PASS",
+        "reason": "Independent digital export integrity only; no device or application behavior acceptance",
+        "measurements": {
+          "files": 40,
+          "expandedBytes": 32605388,
+          "fontAssets": 13,
+          "requiredLocalResourcesPresent": true,
+          "browserExecuted": false,
+          "networkBehaviorVerified": false,
+          "applicationSecurityVerified": false,
+          "physicalAcceptance": false,
+          "sourceBuildReproduced": false
+        },
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-ee7c77edf78c40bf823dbadece149861",
+        "subjectHash": "fd63c999adef0b76588a5c78f7972758f8c830bb16440217e848725ac5adec93",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.5516640420009935,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "missing_bootstrap",
+      "expected": "FAIL",
+      "requestHash": "b6740a660113213cc8b85b5ab29449a6d1f2defb12043b4c4c425c25f27f35e6",
+      "result": {
+        "status": "FAIL",
+        "reason": "Web bundle lacks required local Flutter resources",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-c61cbec756244cf3b0a4a164a802f8f6",
+        "subjectHash": "082c487580116e9818b4e804345639d7432878049b4e9e9efb251de1a47de15d",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.5172127920013736,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "missing_font",
+      "expected": "FAIL",
+      "requestHash": "e4b6b0696a7f24730d8a971a3a1b0dee42ab9ba4c07644cca4a11167733df2fa",
+      "result": {
+        "status": "FAIL",
+        "reason": "Font asset is missing or has an invalid header",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-25aa821c25764dfcaefdc0cdf362a958",
+        "subjectHash": "a13a3bd19fbf3790675639461790ea1b5fffa5ed98545f21f14ece08f4b541f0",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.5068553330002032,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "invalid_crc",
+      "expected": "FAIL",
+      "requestHash": "23482f55f424b7aa70c4d882c0b1487611f83d776e713b237e0c9bce0c03515c",
+      "result": {
+        "status": "FAIL",
+        "reason": "Invalid web archive structure or checksum",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-28261c1529e14fd09e62f2f8b362216d",
+        "subjectHash": "530c6364fddf91934ddbc670051af44ab2e4ac0a9c9006b274e5c79dcb8d2624",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.4093862079989776,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "path_traversal",
+      "expected": "FAIL",
+      "requestHash": "a427d4f89470c7e2adb5c36ebbbdb4900ff94cc99303e73cecdc051ff9702f76",
+      "result": {
+        "status": "FAIL",
+        "reason": "Unsafe export path",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-decd9b573a574fc3aad282e2a0ff6a9d",
+        "subjectHash": "dcfb4d7f64971114bddd8ca3571932db9311d4637d500119fd41d79caf23b11b",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.37583408299906296,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "symlink",
+      "expected": "FAIL",
+      "requestHash": "4d4d84e2b6d9789f361998a2d28211acf4174a11ae34d6837a0cdec766e98d59",
+      "result": {
+        "status": "FAIL",
+        "reason": "Unsupported web archive member",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-75685e9c93554317b36ba3faad56cd3f",
+        "subjectHash": "e2c7ba7ddf3f0e3160097870bd36443fcfab41c9a4bcce614d347dfdb89a2c80",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.49008995899930596,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "duplicate_path",
+      "expected": "FAIL",
+      "requestHash": "ee29076e65676220550dc0b561f6ba75d535c36178fb56cc8072dda2d1a0b36d",
+      "result": {
+        "status": "FAIL",
+        "reason": "Ambiguous or overlapping ZIP members",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-e5f6674a485840adbd4a44410b8b652e",
+        "subjectHash": "e1231a84233bfc01875ab9d977546f5f4cf301d6b15d05e4bc5a3fe3fa27050a",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.3941954580004676,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "expansion_limit",
+      "expected": "FAIL",
+      "requestHash": "d53ed28a0a1277bbf7131e25ac55eb42630fba4258c00423063b776ea88ca5aa",
+      "result": {
+        "status": "FAIL",
+        "reason": "Web archive expansion exceeds limit",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-885220d60cda43d59054f7c94069f7b7",
+        "subjectHash": "aeb31417d5701de9e7c610e877040c5ec4b17eade58426c57c58bbeddf663c78",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.49618924999958836,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "nul_filename",
+      "expected": "FAIL",
+      "requestHash": "6d066315169f5b36432cb51a86692e4dfded2f75a5e3e6473c6778a272d03f85",
+      "result": {
+        "status": "FAIL",
+        "reason": "Unsafe export path",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-136cca0239a449e59db03eda537e27e1",
+        "subjectHash": "3340727f37a604d8a28f7fa88c9d831fa9b29cc3db521739519363e6aa750533",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.38729733299987856,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "file_directory_collision",
+      "expected": "FAIL",
+      "requestHash": "7ad16d9810a447fe66887ce8c65ea29615e535742ee2e1541fa8d0c3f7d18efa",
+      "result": {
+        "status": "FAIL",
+        "reason": "ZIP file and directory collide",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-a878504a29c6431a958ea17988cebf25",
+        "subjectHash": "e497339356bc0fcc0989587e29255e38a363b91e71c1baec9143502c7a633236",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.4157785419993161,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "case_prefix_collision",
+      "expected": "FAIL",
+      "requestHash": "29bbd365ad9518b8b949f100d2b8ac7e2f2584f88685aa70af7132c02ee3f3e6",
+      "result": {
+        "status": "FAIL",
+        "reason": "Case-ambiguous ZIP directory prefix",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-dc7f792281a7461388965f2a67f00b16",
+        "subjectHash": "f769db7b848ed24e40f159ef2168453a401a06315273908a6e918b67c72b4b0d",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.39710558299884724,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "alternate_zip_name",
+      "expected": "FAIL",
+      "requestHash": "12d8b21a5b10fe61943456ca8640b3d3f1befb4069b581da680b3a7f7f0a2ca0",
+      "result": {
+        "status": "FAIL",
+        "reason": "Unsupported alternate ZIP identity",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-54284836852b474595d174e041c89d2f",
+        "subjectHash": "6a97922995da38030f3ca8680500c6a88015a352eb1576d00b778370eb36645b",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.37521791699873575,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "duplicate_html_attribute",
+      "expected": "FAIL",
+      "requestHash": "742915a6e690b86f5abe62c4281d321116594b9426c3bc39f76abde875eca6f6",
+      "result": {
+        "status": "FAIL",
+        "reason": "Duplicate HTML attributes are ambiguous",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-26241b1564574efc8cf612f6bb3b7549",
+        "subjectHash": "15d0516c00d1fde69b3e81a540291e17572029bf62c81c25a0836b86ec1384db",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.4917470830005186,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "external_entry_resource",
+      "expected": "UNKNOWN",
+      "requestHash": "462d49bafc86b3a965454402a8391c5f3936b3e4c1364bd49d548f52ea9593df",
+      "result": {
+        "status": "UNKNOWN",
+        "reason": "Web entry requires an external resource",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-df525c1615384dfe843ba00a2ec306f5",
+        "subjectHash": "a3ee8f2079d4ad6947d66f86460e6f45f091cac1f7f1f8842b2cf31622db17ec",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.5228319170000759,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "digest_mismatch",
+      "expected": "FAIL",
+      "requestHash": "1f75ff60a2ad6cdd5523c71f6ae6da336dc90990d15378faadf4293632f067b8",
+      "result": {
+        "status": "FAIL",
+        "reason": "Export byte binding differs",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-8dee8d10f6d848fda125244f106d37cc",
+        "subjectHash": "3c5c3e71457da625bda5d7d299ed5ad63669e9aaccfe598d9ec4bd3238d94e1b",
+        "lane": "application",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "7b2ab48cfcfa3d865c327fdb01b2b1451637564c7990ae40587f9ed54be1b2aa"
+      },
+      "elapsedSeconds": 0.3860289170006581,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "parser_timeout",
+      "expected": "ERROR",
+      "requestHash": "c657f1672630c25ae2be42a56b0b4775db3f943c84b6f3306c84e865873c43ab",
+      "result": {
+        "status": "ERROR",
+        "failureClass": "DomainError",
+        "reason": "Independent checker process failed"
+      },
+      "elapsedSeconds": 175.29329899999902,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "3d766ae4b189a3dcb118da64cbeb81e7ffbf27b9899a8671861ab5ca4192da31": {
+      "case": "valid_web",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "8231171e478843ece00df4ce54f7252410ef202c3948c17a0e1a295210c6b435": {
+      "case": "missing_bootstrap",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "844e3bee9499f308b565f9f9445124893b65d05bc7694266a66fa745122d50d4": {
+      "case": "missing_font",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "ef621c0c3b63c147eb81c09a6fe785f4ec87ecc73a99799f5508481ed1df246f": {
+      "case": "invalid_crc",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "e15409f671d767a3d5b5cd3c158b3d41b07d7c6a623b878815626192ff679257": {
+      "case": "path_traversal",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "20260e9633b5c00c2c0689ded23980379e3ea5554e77aeee5ef8d004ae2b60d4": {
+      "case": "symlink",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "1c29e169970f062c33604193546aada8f0e37d68d3924914da6152324b5420eb": {
+      "case": "duplicate_path",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "0074ec28b2e46871554a4a9a1b2ff2a5645380008d4545f3c74b15737f1d86d4": {
+      "case": "expansion_limit",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "a7850231f8a2a592a9943329c0fdcdbff5715f0f279529c079b213d35121623c": {
+      "case": "nul_filename",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "791acea814f82be298d4b5161deac5e92383e6ee2efff8aba08bb04b37d323cc": {
+      "case": "file_directory_collision",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "0fc6d5b238c4daadc118d0e4b0b7e385ce3ad0287eaf5baa055d5e5daccf00ec": {
+      "case": "case_prefix_collision",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "8c116676ee0c9858342464045be31fb51355327f7723dd0f72b5257728b870f9": {
+      "case": "alternate_zip_name",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "b82faec4dd2a9290b773eceed9e8b61a6592c629074b7246a2694d54842b3e55": {
+      "case": "duplicate_html_attribute",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "1648a1c224a7c843b82b0f2e47bddecf313b5d8e3a496119d68ce939a7ad9346": {
+      "case": "external_entry_resource",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "d985e1901fb98b8366880545f14109fabeb70419716b82078ae98c26625eaa42": {
+      "case": "digest_mismatch",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "ac46ff6465511ba80b6553b10694d005e53e4108e8ae289882b73e7fdc524834": {
+      "case": "parser_timeout",
+      "image": "sha256:995f1bea80f8f66a48aa12773d60c95fdb3f56706a323d1bcc85b98092948503",
+      "running": false,
+      "exitCode": 137,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "-c",
+        "import time; time.sleep(600)"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/Users/manu/Dev_stuff/kleos9/backend/.data/qualification/export-check-application-attempt-1/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "NRF52840 ELF/BIN or strict Flutter ZIP data integrity only",
+    "No source-build reproduction, firmware/app execution, security, functional or physical acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureFiles": {
+    "outputs/companion-web.zip": {
+      "sha256": "556f0b9a9fb3c12d9a51ffb30909d02709c0db46062558810db2312710072e2f",
+      "size": 11353930
+    }
+  },
+  "fixtureHash": "05c62cec0e49d2f4122936711e5ee4551f30e842228c03237559c441fd081aa8",
+  "containerChecksPassed": true,
+  "qualificationPassed": true,
+  "awaitingIndependentReview": true,
+  "finishedAt": "2026-11-02T21:25:51.483107+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-export-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

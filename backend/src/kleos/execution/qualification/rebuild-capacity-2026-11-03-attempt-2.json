@@ -1,0 +1,252 @@
+{
+  "qualified": true,
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "qualificationKind": "native-only-rebuild",
+  "sourceOverride": false,
+  "modelCalls": 0,
+  "retrievalCalls": 0,
+  "parentActions": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/base.step",
+                "outputs/base.stl",
+                "outputs/lid.step",
+                "outputs/lid.stl",
+                "outputs/parts.json"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "cfd8f564-f2ee-462b-ba77-e58ce319cc59",
+            "path": "model.py",
+            "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+            "revision": 2,
+            "mediaType": "text/x-python",
+            "size": 1312
+          },
+          {
+            "id": "c6e02f8c-25c6-4a2f-bf9a-23f8d743fa5b",
+            "path": "outputs/base.step",
+            "sha256": "a3481a0292875a8d14dd72c8da9dfb96bb5f36f9c54a987636f680739bdb7d56",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 19035
+          },
+          {
+            "id": "573a227c-364b-48d1-bab7-0564d5fc419f",
+            "path": "outputs/base.stl",
+            "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 26084
+          },
+          {
+            "id": "19545b57-0572-474c-8146-753e76597a1a",
+            "path": "outputs/lid.step",
+            "sha256": "85c28ed6488c92b169f8d97d4e4eeb472c2f3968f6c712d5fbcb71a65f861822",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 16946
+          },
+          {
+            "id": "09e92cec-4896-4e5e-974a-dd3efbd463c5",
+            "path": "outputs/lid.stl",
+            "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 684
+          },
+          {
+            "id": "48e2d3e1-45fb-48c7-9d85-7027aa1deb05",
+            "path": "outputs/parts.json",
+            "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+            "revision": 2,
+            "mediaType": "application/json",
+            "size": 120
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "scope": "Exact saved two-part CAD source, same pinned image/resources, new bounded linked grant",
+  "originalJobId": "d8698ead2da040aee9e214cc64c6d54b5cdc519dbf353dba528e14fc6a6e1828",
+  "rebuiltJobId": "1438bcc3372ff210f79e0159328174941bfb4967419ec9945e5c64d6c475a538",
+  "grant": {
+    "id": "8cb8abe0-ef9f-4a88-a83b-87d70a0d510c",
+    "rootJobId": "d8698ead2da040aee9e214cc64c6d54b5cdc519dbf353dba528e14fc6a6e1828",
+    "parentJobId": "d8698ead2da040aee9e214cc64c6d54b5cdc519dbf353dba528e14fc6a6e1828",
+    "parentRunId": "8472b571-1c23-451b-a139-ff9b385a8530",
+    "parentActionCount": 3,
+    "ordinal": 1,
+    "maxActions": 3,
+    "actions": [
+      "build",
+      "render",
+      "finish"
+    ],
+    "maxDurationSeconds": 300,
+    "authorizedBy": "fixture",
+    "admittedAt": "2026-11-02T18:49:50.284031+00:00",
+    "snapshotFingerprint": "969d3330eb8701e2776c2e6dccc1e413570ea0366fd858c0586dc3accfaeef65",
+    "modelCallsAllowed": 0,
+    "retrievalCallsAllowed": 0
+  },
+  "originalRequestHash": "897bbfbea7e105aeb6997ef830422296a5fc351b6a6dc889d6117765b8d0e89a",
+  "rebuiltRequestHash": "e266cdf1f030dde8b8dd388f528c8aaef7e91674d7994b41fa2ca2c070718247",
+  "sourceManifest": {
+    "model.py": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704"
+  },
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 4294967296,
+    "pids": 128,
+    "scratchBytes": 2147483648
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "artifacts": [
+    {
+      "id": "b639c2b0-96e6-4f9b-a88a-c73baa158a11",
+      "path": "model.py",
+      "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+      "revision": 3,
+      "media_type": "text/x-python",
+      "size": 1312
+    },
+    {
+      "id": "5af1a229-4247-4db7-bd0a-3671421e7770",
+      "path": "outputs/base.step",
+      "sha256": "ca17ad70381e2de45dab6fe08add75ce959d247103cb38f2ecc93474913c42ea",
+      "revision": 3,
+      "media_type": "application/octet-stream",
+      "size": 19035
+    },
+    {
+      "id": "9dc93fb5-139e-41c5-a127-710c8a841e25",
+      "path": "outputs/base.stl",
+      "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+      "revision": 3,
+      "media_type": "application/vnd.ms-pki.stl",
+      "size": 26084
+    },
+    {
+      "id": "4f340c12-e84b-4551-8bf9-50d2b929925b",
+      "path": "outputs/lid.step",
+      "sha256": "b5d7c91f697d7f5ffbf68d58d500d935b73ebfb6423b1a07e15ae02d23f852db",
+      "revision": 3,
+      "media_type": "application/octet-stream",
+      "size": 16946
+    },
+    {
+      "id": "98d61318-6928-4943-b344-ca5720d3c8b7",
+      "path": "outputs/lid.stl",
+      "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+      "revision": 3,
+      "media_type": "application/vnd.ms-pki.stl",
+      "size": 684
+    },
+    {
+      "id": "f92d0600-aea5-4f45-b525-4f773f424dac",
+      "path": "outputs/parts.json",
+      "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+      "revision": 3,
+      "media_type": "application/json",
+      "size": 120
+    },
+    {
+      "id": "a84baf30-240c-46b1-94a2-95b95010827e",
+      "path": "outputs/base.svg",
+      "sha256": "303ef85a55004fc67d58b5bf59c70b2386bc51adaa14f08700976f4b0d96c421",
+      "revision": 3,
+      "media_type": "image/svg+xml",
+      "size": 58132
+    },
+    {
+      "id": "bd771ad4-0d2f-43b2-af66-f7f44649523f",
+      "path": "outputs/lid.svg",
+      "sha256": "7cd4c721950d03fadbbc7371e81c4db4a072de4cf450dfa8831104967814b47b",
+      "revision": 3,
+      "media_type": "image/svg+xml",
+      "size": 1393
+    }
+  ],
+  "stoppedContainerProof": true,
+  "exactSourceReplay": true,
+  "changedOperatorSettingsIgnored": true,
+  "sharedCapacity": true,
+  "finalCapacity": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  },
+  "limitations": [
+    "SQLite fixture with in-memory LangGraph checkpoint; PostgreSQL recovery separately tested",
+    "No manufacturing acceptance or physical/device execution"
+  ],
+  "finishedAt": "2026-11-02T18:50:01.583790+00:00"
+}

@@ -166,7 +166,12 @@ class AppShell extends ConsumerWidget {
                           icon: const Icon(Icons.arrow_back, size: 20),
                         )
                       else
-                        InkWell(
+                        // Keep the logo action out of the screen's semantics
+                        // node: on web that would make blank space clickable.
+                        Semantics(
+                          container: true,
+                          button: true,
+                          child: InkWell(
                             onTap: () => context.go('/'),
                             child: Padding(
                                 padding: EdgeInsets.only(
@@ -179,7 +184,7 @@ class AppShell extends ConsumerWidget {
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600))
-                                ]))),
+                                ])))),
                       if (mobile)
                         const Spacer()
                       else

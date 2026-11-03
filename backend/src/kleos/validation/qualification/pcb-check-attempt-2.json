@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "kleos-pcb-check-qualification-v1",
+  "qualified": false,
+  "qualifiedBy": "pcb-checker-qualification-runner",
+  "imageId": "sha256:d372ced4b350937b9fd5a9d21b95a1bce4048898267cb36a9ec493355dcd1ce9",
+  "protocol": "kleos-pcb-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "pcb.py": "155a4d916bc7cebd6c2a5aa8a1d52fb1fd94a01e678a47e040ffe7c47dd47b49",
+    "pcb_check.py": "71203d422c69dd27fba47e19885741f661a1bb35c4cf6d9cad3acba0cdbd1ceb",
+    "pcb_process.py": "c299b3410aa5f8079e5b9bbf935bf63c99fd070a101020103425faa1d396eebe",
+    "Dockerfile.pcb": "b27a5ebf37f75225c321313bd2d68f241cc48bd992573271297c99e4efd639d2"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T20:33:55.115769+00:00",
+  "caseStatuses": {
+    "valid_board": "FAIL"
+  },
+  "cases": [
+    {
+      "case": "valid_board",
+      "expected": "PASS",
+      "requestHash": "62eb67f7f6bf01bb9feb0fb4ff63de9f0fa5c4791829378dec5312bb64ed681a",
+      "result": {
+        "status": "FAIL",
+        "reason": "Independent DRC did not pass",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-066a1eb540674443866031b983778d41",
+        "subjectHash": "89bd959e99997382809c591eb42f67c7d7a21b965eb6781c2e0b70c2b678f263",
+        "checkerSourceSha256": "71203d422c69dd27fba47e19885741f661a1bb35c4cf6d9cad3acba0cdbd1ceb"
+      },
+      "elapsedSeconds": 2.875653125000099,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "331a58e7a7a17372298060779f5e1c92fb0585511a54fa0f8df79bf45797c962": {
+      "case": "valid_board",
+      "image": "sha256:d372ced4b350937b9fd5a9d21b95a1bce4048898267cb36a9ec493355dcd1ce9",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/private/tmp/kleos-pcb-check-qualification-attempt-2/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "Straight outline, two copper layers and simple pads only",
+    "No fabrication, functional, physical, Gerber/drill or arbitrary-device acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureHash": "62865514566dfb2d58068c6b3b6708af87ab0c15ea449916f703e267dcfa8054",
+  "failure": {
+    "type": "AssertionError",
+    "message": "valid_board: {'status': 'FAIL', 'reason': 'Independent DRC did not pass', 'measurements': {}, 'isolation': {'uid': 10001, 'gid': 10001, 'noNewPrivileges': True, 'seccomp': True, 'capabilities': 0, 'internetSocketDenied': True, 'generatorCodeAbsent': True, 'credentialEnvironmentEmpty': True, 'toolVersion': '9.0.8'}, 'protocol': 'kleos-pcb-check-v1', 'executionId': 'pcb-qual-066a1eb540674443866031b983778d41', 'subjectHash': '89bd959e99997382809c591eb42f67c7d7a21b965eb6781c2e0b70c2b678f263', 'checkerSourceSha256': '71203d422c69dd27fba47e19885741f661a1bb35c4cf6d9cad3acba0cdbd1ceb'}"
+  },
+  "finishedAt": "2026-11-02T20:33:57.995758+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-pcb-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

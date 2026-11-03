@@ -1,0 +1,238 @@
+{
+  "qualified": true,
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "qualificationKind": "native-only-rebuild",
+  "sourceOverride": false,
+  "modelCalls": 0,
+  "retrievalCalls": 0,
+  "parentActions": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/base.step",
+                "outputs/base.stl",
+                "outputs/lid.step",
+                "outputs/lid.stl",
+                "outputs/parts.json"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "717ec20b-bf1b-4180-8cdd-fd299a6b3d2e",
+            "path": "model.py",
+            "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+            "revision": 2,
+            "mediaType": "text/x-python",
+            "size": 1312
+          },
+          {
+            "id": "455fd3d8-532b-4157-830f-8e12ae934f98",
+            "path": "outputs/base.step",
+            "sha256": "f1dbbc619804b510c1afb06215d5c9d8b7384c1b2d3dedbd6a1bfa533a78c879",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 19035
+          },
+          {
+            "id": "8025ff82-142d-4e03-a57f-2ebd97428698",
+            "path": "outputs/base.stl",
+            "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 26084
+          },
+          {
+            "id": "1d608002-d9a9-4c3d-92ab-850e7b1979ad",
+            "path": "outputs/lid.step",
+            "sha256": "ea5b99009eedec8219cdca281681a373c1417198c2775553a774641138008c9a",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 16946
+          },
+          {
+            "id": "5fbf90a9-31e0-4890-8e71-12115e6197a4",
+            "path": "outputs/lid.stl",
+            "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 684
+          },
+          {
+            "id": "97708c7f-5d33-408e-bf7c-0c173c4ccf95",
+            "path": "outputs/parts.json",
+            "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+            "revision": 2,
+            "mediaType": "application/json",
+            "size": 120
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "scope": "Exact saved two-part CAD source, same pinned image/resources, new bounded linked grant",
+  "originalJobId": "c254d12016e532e378b4f0ba3161fc080ec12802b22cdcd2ec67d135e375d837",
+  "rebuiltJobId": "e7dac4ab93b57a252b66b347631faab97c5cfd4fd123aa8800f16c8b624f8e2f",
+  "grant": {
+    "id": "c70a0cd5-c9db-4ecf-a304-7a754d31c5e7",
+    "rootJobId": "c254d12016e532e378b4f0ba3161fc080ec12802b22cdcd2ec67d135e375d837",
+    "parentJobId": "c254d12016e532e378b4f0ba3161fc080ec12802b22cdcd2ec67d135e375d837",
+    "parentRunId": "ee6c64d6-e998-4446-bf60-bd101ab8bd84",
+    "parentActionCount": 3,
+    "ordinal": 1,
+    "maxActions": 3,
+    "actions": [
+      "build",
+      "render",
+      "finish"
+    ],
+    "maxDurationSeconds": 300,
+    "authorizedBy": "fixture",
+    "admittedAt": "2026-11-02T17:15:51.061915+00:00",
+    "snapshotFingerprint": "499cd625c11c2f1debf32d8695f9982257cdceebdf3ebda6e8bb425cd0259c3a",
+    "modelCallsAllowed": 0,
+    "retrievalCallsAllowed": 0
+  },
+  "originalRequestHash": "5aef510b13c846903f847a3b20d32b666bf8b7c04468f6d3b310515952afb966",
+  "rebuiltRequestHash": "8038a442da3b31b05f98d641978e449246445d1399018b2ce37ed4ae57690a87",
+  "sourceManifest": {
+    "model.py": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704"
+  },
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 4294967296,
+    "pids": 128,
+    "scratchBytes": 2147483648
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "artifacts": [
+    {
+      "id": "1dd84d9e-c3cc-45a1-a81c-4dd6fb783e10",
+      "path": "model.py",
+      "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+      "revision": 3,
+      "media_type": "text/x-python",
+      "size": 1312
+    },
+    {
+      "id": "b38dbb0c-bf50-4f6d-adbf-0b1a2e14bfd0",
+      "path": "outputs/base.step",
+      "sha256": "91d7c5cef862c09209848f2958b84bcd5bb94409bae4473daa5bca9ab9c0a4bb",
+      "revision": 3,
+      "media_type": "application/octet-stream",
+      "size": 19035
+    },
+    {
+      "id": "5f1fc3c4-cfb0-49a1-b523-046bdc5cfeb3",
+      "path": "outputs/base.stl",
+      "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+      "revision": 3,
+      "media_type": "application/vnd.ms-pki.stl",
+      "size": 26084
+    },
+    {
+      "id": "671d04f5-f06c-477a-96ac-3f5abb5b14f1",
+      "path": "outputs/lid.step",
+      "sha256": "be51ebae688260d3a8c4ba651722a05ff3c6dfcf219f259fb58a6afd61c4b41f",
+      "revision": 3,
+      "media_type": "application/octet-stream",
+      "size": 16946
+    },
+    {
+      "id": "85c2cba9-99fd-4b7b-a669-2da153eda0b5",
+      "path": "outputs/lid.stl",
+      "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+      "revision": 3,
+      "media_type": "application/vnd.ms-pki.stl",
+      "size": 684
+    },
+    {
+      "id": "0aea434c-3ff3-4124-9f54-18d7562acf6f",
+      "path": "outputs/parts.json",
+      "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+      "revision": 3,
+      "media_type": "application/json",
+      "size": 120
+    },
+    {
+      "id": "899868a5-86e8-4dbc-b062-13ed23253156",
+      "path": "outputs/base.svg",
+      "sha256": "303ef85a55004fc67d58b5bf59c70b2386bc51adaa14f08700976f4b0d96c421",
+      "revision": 3,
+      "media_type": "image/svg+xml",
+      "size": 58132
+    },
+    {
+      "id": "c4b662a6-57bf-41f6-ae4d-882909961e09",
+      "path": "outputs/lid.svg",
+      "sha256": "7cd4c721950d03fadbbc7371e81c4db4a072de4cf450dfa8831104967814b47b",
+      "revision": 3,
+      "media_type": "image/svg+xml",
+      "size": 1393
+    }
+  ],
+  "stoppedContainerProof": true,
+  "exactSourceReplay": true,
+  "changedOperatorSettingsIgnored": true,
+  "limitations": [
+    "SQLite fixture with in-memory LangGraph checkpoint; PostgreSQL recovery separately tested",
+    "No manufacturing acceptance or physical/device execution"
+  ],
+  "finishedAt": "2026-11-02T17:16:02.319145+00:00"
+}

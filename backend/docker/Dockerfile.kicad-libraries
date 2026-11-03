@@ -1,9 +1,0 @@
-# Qualify an additive library/source layer without rebuilding the existing toolchain.
-# Build with backend/ as context; supports validator and electronics base images.
-ARG BASE_IMAGE=kleos-validator:development
-FROM ${BASE_IMAGE}
-ARG KICAD_LIBRARIES_VERSION=9.0.8-1~bpo12+1
-RUN apt-get update && apt-get install -y --no-install-recommends -t bookworm-backports \
-    "kicad-symbols=${KICAD_LIBRARIES_VERSION}" "kicad-footprints=${KICAD_LIBRARIES_VERSION}" \
-    && rm -rf /var/lib/apt/lists/*
-COPY kleos /opt/kleos/kleos

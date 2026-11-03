@@ -1,0 +1,24 @@
+{
+  "qualified": false,
+  "imageId": "sha256:2feee19bb1b026dcb4f5bab37dff9aec55b08ad88fe65ecbf9ac35a23acdf800",
+  "finishedAt": "2026-11-02T14:58:30.803346+00:00",
+  "fixtureSha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [],
+  "containers": [
+    {
+      "image": "sha256:2feee19bb1b026dcb4f5bab37dff9aec55b08ad88fe65ecbf9ac35a23acdf800",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

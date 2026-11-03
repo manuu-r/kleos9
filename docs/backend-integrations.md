@@ -1,10 +1,10 @@
 # Backend integrations and custom compute
 
-The production API uses authenticated, organization-scoped adapters. Default tests use injected transports and local SQLite/Qdrant and make no paid calls. The separately opted-in runtime suite verifies real PostgreSQL/Qdrant, public research fetches, local printer simulators, and bounded live Gemini embeddings. No test deploys Modal applications, purchases parts, or controls physical printers. Production account permissions, quotas, tool compatibility and model quality still require operator qualification.
+The production API uses authenticated, organization-scoped adapters. Default tests use injected transports and local SQLite/Qdrant and make no paid calls. The separately opted-in runtime suite verifies real PostgreSQL/Qdrant, public research fetches, local printer simulators, and historically qualified embeddings from a now-retired provider. No test deploys Modal applications, purchases parts, or controls physical printers. Production account permissions, quotas, tool compatibility and model quality still require operator qualification.
 
 ## Runtime services
 
-`kleos.integration_api.register_routes` mounts the integration API inside the production FastAPI application. Ordinary user routes use the same organization membership and cookie-CSRF (or bearer-session) checks as the control API. Connector webhooks use per-connector signatures; the local printer bridge uses an opaque, rotated, connector-scoped token.
+`kleos.kernel.integration_api.register_routes` mounts the integration API inside the production FastAPI application. Ordinary user routes use the same organization membership and cookie-CSRF (or bearer-session) checks as the control API. Connector webhooks use per-connector signatures; the local printer bridge uses an opaque, rotated, connector-scoped token.
 
 | Route | Behavior |
 |---|---|
@@ -13,7 +13,7 @@ The production API uses authenticated, organization-scoped adapters. Default tes
 | `GET /api/v1/catalog/parts?q=...` | DigiKey product search; unavailable until developer credentials are configured |
 | `GET/POST /api/v1/projects/{id}/sources` | List current sources or fetch an explicit public HTTPS research document |
 | `DELETE /api/v1/projects/{id}/sources/{sourceId}` | Immediately revoke authority in PostgreSQL and queue index removal |
-| `POST /api/v1/projects/{id}/memory/query` | Bounded Gemini-embedded retrieval with PostgreSQL authorization/applicability checks |
+| `POST /api/v1/projects/{id}/memory/query` | Retrieval currently unconfigured pending a qualified embedding replacement with PostgreSQL authorization/applicability checks |
 | `POST /api/v1/projects/{id}/memory/rebuild` | Administrator queues reconstruction from current, unrevoked authoritative sources |
 | `POST /api/v1/webhooks/{id}` | Verify, deduplicate, and persist a provider observation for durable processing |
 | `POST /api/v1/bridges/{id}/token` | Administrator creates/rotates the local bridge token; return it once |
@@ -50,9 +50,12 @@ The fetch service permits public HTTPS on port 443 only. It resolves and checks 
 
 Research stores content hashes, collection timestamps, sanitized source URLs, revision and `research` authority. URL query strings and credentials are removed from captured provenance. Research text is untrusted evidence and cannot overwrite accepted requirements or satisfy validation merely by claiming a result.
 
-Gemini embeddings use the configured `KLEOS_EMBEDDING_MODEL` and 768 dimensions. `gemini-embedding-2` uses the documented query/document text prefixes; `gemini-embedding-001` uses the `task_type` parameter. The direct API does not accept the enterprise-only `auto_truncate` parameter. See [Google's embedding formats](https://ai.google.dev/gemini-api/docs/embeddings). Collection names and cached invocation identities include both the embedding model and input-format version, with an alias insulating callers. A format change requires reconstruction through the memory rebuild endpoint; old incompatible vectors are never silently reused. Qdrant stores tenant, project, revision, source ID, content hash, authority and chunk offset. Every retrieval hit is rechecked against PostgreSQL; stale, revoked, deleted and cross-tenant records are dropped even if index cleanup has not completed. Full index reconstruction reuses recorded vectors where applicable instead of charging twice for completed embeddings.
-
-`KLEOS_EMBEDDING_RESERVATION_USD` defaults to $0.01 per bounded embedding invocation, separate from generation reservations. The qualified request policy caps text at 6,000 characters and checks the reservation against the provider's full input-token ceiling multiplied by the published text rate and three transport attempts. The policy version is saved in the intent. For Embedding 2, 8,192 tokens × $0.20 per million × three attempts is below $0.005. This is an admission bound based on [Google's published pricing](https://ai.google.dev/gemini-api/docs/pricing), not measured billing or a credit balance. Changing models or rates requires updating this qualified policy; unknown models and undersized reservations are rejected before dispatch.
+Embeddings are currently unconfigured. The former embedding implementation was
+removed; no replacement provider is selected or implicitly enabled. Historical
+vectors and accounting records remain evidence of their original runs, not
+qualification of a new embedding path. Any replacement must preserve tenant,
+project, revision, source identity and hash checks against PostgreSQL and receive
+its own input-format, budget and retrieval qualification.
 
 Outbox contracts:
 
@@ -75,9 +78,9 @@ Generate the example REST manifest and inspect required fixtures locally:
 
 ```sh
 cd backend
-.venv/bin/python -m kleos.connector_cli init /tmp/kleos-connector.json
-.venv/bin/python -m kleos.connector_cli fixtures /tmp/kleos-connector.json
-.venv/bin/python -m kleos.connector_cli conformance /tmp/kleos-connector.json
+.venv/bin/python -m kleos.plugins.connector_cli init /tmp/kleos-connector.json
+.venv/bin/python -m kleos.plugins.connector_cli fixtures /tmp/kleos-connector.json
+.venv/bin/python -m kleos.plugins.connector_cli conformance /tmp/kleos-connector.json
 ```
 
 The CLI validates the manifest and lists operational fixtures. Passing schema checks never marks a connector operationally qualified. Registration always starts disabled; an operator must review independently exercised fixtures before setting the registered connector to `qualified` and enabled. There is no generator-controlled self-qualification endpoint.
@@ -114,7 +117,7 @@ Register a `bridge` connector with `printer.status` and optionally `printer.prof
 Set `KLEOS_PRINTER_API_KEY` and `KLEOS_BRIDGE_TOKEN` in that machine's protected environment, then run:
 
 ```sh
-.venv/bin/python -m kleos.bridge --config /path/to/private-bridge.json
+.venv/bin/python -m kleos.agents.print_monitor.bridge --config /path/to/private-bridge.json
 ```
 
 OctoPrint reads `/api/printer` and `/api/printerprofiles`; Moonraker reads `/printer/info`. The bridge pins a local validated address and sends no credentials to redirected or rebound destinations. Its only outbound platform operation submits telemetry. It neither polls for commands nor executes response commands, files, scripts, G-code, or action URLs. Telemetry older than the configured freshness threshold is shown as disconnected. Reported printer state is never physical acceptance evidence.
@@ -142,7 +145,7 @@ interchangeable with the existing generic webhook route.
 
 ## Modal model lifecycle
 
-`kleos.modal_app` contains a deployable, bounded inference/training recipe. Importing it starts no GPU work. Deployment and model provisioning are operator setup steps; this implementation has not deployed or run it.
+`kleos.kernel.modal_app` contains a deployable, bounded inference/training recipe. Importing it starts no GPU work. Deployment and model provisioning are operator setup steps; this implementation has not deployed or run it.
 
 The application name defaults to `kleos-models`; functions are `infer` and `train`. The recipe uses an L4, two inference containers maximum, one training container maximum, a 600-second inference timeout and a 3600-second training timeout. It downloads only checksum-verified, short-lived URLs from the configured private artifact bucket, and never receives database credentials or full project access. The secret named `kleos-artifact-access` contains `KLEOS_ARTIFACT_BUCKET` and `AWS_REGION`; it does not need a long-lived AWS access key for presigned reads. A future direct AWS read/write extension should use [Modal OIDC](https://modal.com/docs/guide/oidc-integration).
 
@@ -167,13 +170,13 @@ Opt-out prevents future dataset use and prevents promotion using an invalidated 
 
 ## Alternative engineering connector example
 
-`kleos.ngspice_connector` implements the actual Kleos REST contract for the bounded `electronics.simulate` capability. It runs an installed [ngspice](https://ngspice.sourceforge.io/docs.html) executable against a fixed ideal RC circuit and returns measurements derived from the simulation output. Numeric parameters are the only accepted input: arbitrary netlists, shell commands, filenames, includes and model downloads are rejected. Batch mode disables user startup scripts, strips inherited credentials, caps concurrency at two, limits steps and runtime, and records idempotent receipts in a mounted SQLite file.
+`kleos.agents.pcb.ngspice_connector` implements the actual Kleos REST contract for the bounded `electronics.simulate` capability. It runs an installed [ngspice](https://ngspice.sourceforge.io/docs.html) executable against a fixed ideal RC circuit and returns measurements derived from the simulation output. Numeric parameters are the only accepted input: arbitrary netlists, shell commands, filenames, includes and model downloads are rejected. Batch mode disables user startup scripts, strips inherited credentials, caps concurrency at two, limits steps and runtime, and records idempotent receipts in a mounted SQLite file.
 
 Start the example locally only after installing ngspice:
 
 ```sh
 cd backend
-KLEOS_CONNECTOR_RECEIPTS=/path/to/persistent/receipts.sqlite .venv/bin/uvicorn kleos.ngspice_connector:create_app --factory --host 127.0.0.1 --port 8090
+KLEOS_CONNECTOR_RECEIPTS=/path/to/persistent/receipts.sqlite .venv/bin/uvicorn kleos.agents.pcb.ngspice_connector:create_app --factory --host 127.0.0.1 --port 8090
 ```
 
 The fixture at `backend/fixtures/connectors/ngspice.json` contains the manifest, a numeric RC request and the independent qualification requirements. Missing ngspice, unsupported output or a timeout produces `UNKNOWN`. Successful output is digital simulation evidence requiring independent platform validation; it cannot satisfy physical gates or accept a release. The development fixture tests contract behavior with an injected process runner. No real ngspice execution was performed on this workstation because the executable is not installed. Deploy this example only as an isolated, restricted CPU adapter behind an access-controlled and rate-limited gateway; the fixture is not production qualification.
@@ -194,7 +197,7 @@ Run retention on a scheduled trusted worker:
 
 ```sh
 cd backend
-.venv/bin/python -m kleos.maintenance retention --batch-size 250
+.venv/bin/python -m kleos.kernel.maintenance retention --batch-size 250
 ```
 
 Each pass bounds detailed-record and event batches. AI transcripts, terminal execution logs and custom inference result captures expire after the configured 30 days. Completed DBOS checkpoint families are eligible 30 days after actual completion, including terminal child/fork checkpoints; active or recently completed ancestors/descendants keep the family available for recovery. The scanner uses recorded outbox workflow ownership and a persisted paging cursor. Structured output still needed by an active workflow remains available for durable recovery. Accepted artifact files do not expire automatically. Events older than 90 days move to an immutable archive containing metadata only, with one-year expiry measured from the original event. `event_floor` advances so reconnecting clients receive `410 cursor_expired` and load a new workspace snapshot. Dataset consent scans use a persisted paging cursor and remove derived training copies when consent is withdrawn or changed.
@@ -210,12 +213,14 @@ cd backend
 KLEOS_TEST_RUNTIME_INTEGRATIONS=1 .venv/bin/pytest -q tests/test_runtime_integrations.py
 ```
 
-Add `KLEOS_TEST_LIVE_EMBEDDINGS=1` only when two small paid Gemini embedding invocations are authorized. That test permits at most two inputs under 500 characters, reserves $0.01 per invocation, and uses isolated $0.25 project/daily allowances. SDK transport retries remain bounded to three. Repeated retrieval reuses the recorded query vector. Allowance debits are conservative accounting values, not provider invoices or credit balances.
+The former live embedding probe has been removed. Historical results below are retained for audit only; they are not runnable instructions or current provider support.
 
-On 2026-10-30, the live embedding check passed with `gemini-embedding-2`, real PostgreSQL and server Qdrant: 768-dimensional document/query vectors, retrieval, cross-tenant rejection before inference, immediate revocation enforcement, cached-query reuse, point deletion, and reservation settlement. Public HTML and PDF fetch/parsing passed. OctoPrint and Moonraker checks used actual localhost HTTP simulator sockets and the authenticated telemetry API; all printer requests were GETs. Signed webhook deduplication, synthetic provider observations, blocked live connectors, unavailable DigiKey/Modal behavior, consent exclusion, transcript/event retention and explicit project/orphan cleanup were also exercised. A separate opt-in PostgreSQL/DBOS test executed a synthetic parent/child workflow with a real stored context checkpoint, then verified terminal workflow and step-history erasure through the public DBOS APIs. Default tests cover active ancestors/descendants, forks, cancellation settling, race rechecks and deferred cleanup. Digital release records in lifecycle tests are labeled fixtures; these checks do not establish engineering-tool qualification, physical acceptance, training quality, real printer interoperability, or production restoration readiness.
+On 2026-10-30, the live embedding check passed with `retired-model`, real PostgreSQL and server Qdrant: 768-dimensional document/query vectors, retrieval, cross-tenant rejection before inference, immediate revocation enforcement, cached-query reuse, point deletion, and reservation settlement. Public HTML and PDF fetch/parsing passed. OctoPrint and Moonraker checks used actual localhost HTTP simulator sockets and the authenticated telemetry API; all printer requests were GETs. Signed webhook deduplication, synthetic provider observations, blocked live connectors, unavailable DigiKey/Modal behavior, consent exclusion, transcript/event retention and explicit project/orphan cleanup were also exercised. A separate opt-in PostgreSQL/DBOS test executed a synthetic parent/child workflow with a real stored context checkpoint, then verified terminal workflow and step-history erasure through the public DBOS APIs. Default tests cover active ancestors/descendants, forks, cancellation settling, race rechecks and deferred cleanup. Digital release records in lifecycle tests are labeled fixtures; these checks do not establish engineering-tool qualification, physical acceptance, training quality, real printer interoperability, or production restoration readiness.
 
 `KLEOS_TEST_HTTP_RUNTIME=1 .venv/bin/pytest -q tests/test_http_runtime.py` runs a separate no-paid acceptance check against the actual local Docker API on port 8000. It reads the development token from `.data/local-dev-token` without reporting credentials, creates one labeled fixture project, checks authenticated commands, model-policy versions, consent, artifact transfers/integrity, ordered HTTP SSE/reconnect, unavailable services and live-operation gates, then deletes only that fixture. It verifies immediate authorization denial and eventual application/checkpoint erasure, using a fixture-scoped checkpoint sweep if needed. Replaying the original create command after erasure must return `410 project_deleted` without recreating a project. On 2026-10-30 this test passed all eight check groups in 3.83 seconds, with zero project runs, model invocations or external intents. Evidence is saved in `backend/verification/http-runtime.json`; this is actual Docker HTTP evidence, distinct from the in-process integration suite. Password-auth production sign-in and real external service availability remain outside this local check.
 
 `KLEOS_TEST_BACKUP_RESTORE=1 .venv/bin/pytest -q tests/test_backup_restore_runtime.py` verifies the local application database backup while source services remain online. It shares an exported read-only PostgreSQL snapshot with `pg_dump`, fingerprints selected application tables, copies every referenced Artifact-table file into a private backup directory, and restores into a uniquely named disposable database. The restored database is read-only and receives no workers or dispatchers. The check compares restored records and artifact hashes, verifies that writes are rejected, observes unchanged pending state, and drops only the disposable database. Dumps, manifests and copied files remain under `.data/recovery_checks` with directory mode `0700` and file mode `0600`.
 
 On 2026-10-30, that check passed in 3.22 seconds: all 17 checked tables matched the snapshot, and 43 artifact references covering 42 unique files passed SHA-256 and size validation. One pending model invocation remained frozen. There were no nonterminal external intents or pending outbox records in that snapshot, so their active recovery/reconciliation case was not exercised. Evidence is in `backend/verification/backup-restore-runtime.json`. This verifies local application data and Artifact-table files; it does not establish DBOS database recovery, complete transcript/log object recovery, production external-intent reconciliation, Qdrant restoration, or AWS RDS/S3 disaster recovery. Separate Qdrant indexing, retrieval and cached-query checks are recorded in `backend/verification/integrations-runtime.json`.
+
+Historical provider/model references above were redacted at user request; original outcomes and costs are not attributed to Meta or Modal.

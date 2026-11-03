@@ -1,0 +1,85 @@
+{
+  "qualified": false,
+  "imageId": "sha256:4d43964f2bec3dda7d4eca9c4e4ce93a3f2f25696fd97edda658b9a8bf8c1adb",
+  "protocol": "kleos-native-session-v2",
+  "lane": "pcb",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T15:38:55.895817+00:00",
+  "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
+  "circuitContract": {
+    "references": [
+      {
+        "reference": "J1",
+        "value": "Connector",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      },
+      {
+        "reference": "R1",
+        "value": "1k",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      }
+    ],
+    "conceptReferences": {
+      "power-connector": "J1"
+    },
+    "constraints": {
+      "maxWidthMm": 42,
+      "maxHeightMm": 32,
+      "minTrackWidthMm": 0.25,
+      "minClearanceMm": 0.2,
+      "copperLayers": [
+        "F.Cu",
+        "B.Cu"
+      ]
+    }
+  },
+  "circuitContractHash": "dcc5acce7fe5c62a1828b521cea75b1aceb8b79416b96942597cc7c4c156774c",
+  "checks": [
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 125, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 81, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 62, in board_check\n    'footprint': part.GetFPID().Format(), 'pins': pins}\n                 ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3/dist-packages/pcbnew.py\", line 7761, in Format\n    return _pcbnew.LIB_ID_Format(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: Wrong number or type of arguments for overloaded function 'LIB_ID_Format'.\n  Possible C/C++ prototypes are:\n    LIB_ID::Format() const\n    LIB_ID::Format(UTF8 const &,UTF8 const &)\n\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "ERROR",
+            "details": {
+              "error": "Native command failed (1): Traceback (most recent call last):\n  File \"/opt/kleos-native/pcb_runner.py\", line 125, in <module>\n    prepare()\n  File \"/opt/kleos-native/pcb_runner.py\", line 81, in prepare\n    snapshot = board_check(board, accepted)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/kleos-native/pcb_runner.py\", line 62, in board_check\n    'footprint': part.GetFPID().Format(), 'pins': pins}\n                 ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3/dist-packages/pcbnew.py\", line 7761, in Format\n    return _pcbnew.LIB_ID_Format(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: Wrong number or type of arguments for overloaded function 'LIB_ID_Format'.\n  Possible C/C++ prototypes are:\n    LIB_ID::Format() const\n    LIB_ID::Format(UTF8 const &,UTF8 const &)\n\n",
+              "executionSucceeded": false,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:4d43964f2bec3dda7d4eca9c4e4ce93a3f2f25696fd97edda658b9a8bf8c1adb",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "Two-layer passive circuit fixture only",
+    "No physical fabrication or acceptance"
+  ]
+}

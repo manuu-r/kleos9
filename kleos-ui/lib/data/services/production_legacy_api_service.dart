@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'production_api.dart';
 
 import '../models/json.dart';
 import '../models/production.dart';
@@ -27,6 +29,11 @@ class ProductionLegacyApiService extends ApiService {
   StreamSubscription<ProjectEvent>? _events;
   Timer? _refreshTimer;
   Timer? _reconnectTimer;
+  Timer? _pollTimer;
+  AppLifecycleListener? _lifecycle;
+  bool _foreground = true;
+  bool _stopped = false;
+  int? _refreshEpoch;
   Future<JsonMap>? _loading;
   bool _disposed = false;
   bool _connected = false;
@@ -50,6 +57,8 @@ class ProductionLegacyApiService extends ApiService {
     final epoch = ++_streamEpoch;
     _connected = false;
     _streamError = null;
+    _stopped = false;
+    _pollTimer?.cancel();
     _refreshTimer?.cancel();
     _reconnectTimer?.cancel();
     final previous = _events;
@@ -66,11 +75,12 @@ class ProductionLegacyApiService extends ApiService {
       _cursor = workspace.eventCursor;
       _publish();
       _listen(id, epoch);
+      _startPolling(id, epoch);
     } catch (error) {
       if (_disposed || epoch != _streamEpoch) return;
       _streamError = error.toString();
       _publish();
-      _reconnect(id, epoch);
+      if (!_terminal(error)) _reconnect(id, epoch);
     }
   }
 
@@ -209,8 +219,65 @@ class ProductionLegacyApiService extends ApiService {
     _projects[id] = workspace.project;
   }
 
+  bool _terminal(Object error) {
+    if (error is! ProductionApiException ||
+        !const {401, 403, 404, 410}.contains(error.status)) {
+      return false;
+    }
+    _stopped = true;
+    _connected = false;
+    _streamEpoch++;
+    _events?.cancel();
+    _pollTimer?.cancel();
+    _refreshTimer?.cancel();
+    _reconnectTimer?.cancel();
+    _publish();
+    return true;
+  }
+
+  void _startPolling(String id, int epoch) {
+    _foreground = WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _lifecycle ??= AppLifecycleListener(onStateChange: (value) {
+      _foreground = value == AppLifecycleState.resumed;
+      _pollTimer?.cancel();
+      _refreshTimer?.cancel();
+      _reconnectTimer?.cancel();
+      _events?.cancel();
+      final active = _activeProject;
+      final currentEpoch = ++_streamEpoch;
+      _connected = false;
+      if (_foreground && !_stopped && active != null && !_activeIsSimulation) {
+        _startPolling(active, currentEpoch);
+        _reconnect(active, currentEpoch);
+      }
+    });
+    _pollTimer?.cancel();
+    if (!_foreground || _stopped) {
+      _events?.cancel();
+      return;
+    }
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (_disposed ||
+          !_foreground ||
+          _stopped ||
+          epoch != _streamEpoch ||
+          _refreshEpoch == epoch) {
+        return;
+      }
+      if (await _refreshActive(id, epoch) && epoch == _streamEpoch) {
+        final cursor = _workspaces[id]?.eventCursor ?? _cursor;
+        if (cursor > _cursor) {
+          _cursor = cursor;
+          unawaited(_events?.cancel());
+          _listen(id, epoch);
+        }
+      }
+    });
+  }
+
   void _listen(String id, int epoch) {
-    if (_disposed || epoch != _streamEpoch) return;
+    if (_disposed || !_foreground || _stopped || epoch != _streamEpoch) return;
     _events = repository.events(id, _cursor, onConnected: () {
       if (_disposed || epoch != _streamEpoch) return;
       _connected = true;
@@ -220,6 +287,8 @@ class ProductionLegacyApiService extends ApiService {
       if (_disposed || epoch != _streamEpoch || event.sequence <= _cursor) {
         return;
       }
+      final gap = event.sequence != _cursor + 1;
+      if (gap) unawaited(_events?.cancel());
       _cursor = event.sequence;
       final activity = _activity.putIfAbsent(id, () => []);
       activity.insert(0, {
@@ -230,30 +299,54 @@ class ProductionLegacyApiService extends ApiService {
       });
       if (activity.length > 200) activity.removeLast();
       _refreshTimer?.cancel();
-      _refreshTimer = Timer(
-          const Duration(milliseconds: 120), () => _refreshActive(id, epoch));
+      _refreshTimer = Timer(const Duration(milliseconds: 120), () async {
+        final recovered = await _refreshActive(id, epoch);
+        if (gap && recovered && epoch == _streamEpoch) {
+          _cursor = _workspaces[id]?.eventCursor ?? _cursor;
+          _listen(id, epoch);
+        } else if (gap && !recovered) {
+          _reconnect(id, epoch);
+        }
+      });
     }, onError: (Object error) {
       if (_disposed || epoch != _streamEpoch) return;
       _streamError = error.toString();
-      _reconnect(id, epoch);
+      if (error is ProductionApiException &&
+          const {409, 410}.contains(error.status)) {
+        _reconnect(id, epoch);
+      } else if (!_terminal(error)) {
+        _reconnect(id, epoch);
+      }
     }, onDone: () => _reconnect(id, epoch));
   }
 
-  Future<void> _refreshActive(String id, int epoch) async {
+  Future<bool> _refreshActive(String id, int epoch) async {
+    if (_disposed ||
+        _stopped ||
+        epoch != _streamEpoch ||
+        _refreshEpoch == epoch) {
+      return false;
+    }
+    _refreshEpoch = epoch;
     try {
       final workspace = await repository.workspace(id);
-      if (_disposed || epoch != _streamEpoch) return;
+      if (_disposed || epoch != _streamEpoch) return false;
       _save(workspace);
       _publish();
+      return true;
     } catch (error) {
-      if (_disposed || epoch != _streamEpoch) return;
+      if (_disposed || epoch != _streamEpoch) return false;
       _streamError = error.toString();
+      _terminal(error);
       _publish();
+      return false;
+    } finally {
+      if (_refreshEpoch == epoch) _refreshEpoch = null;
     }
   }
 
   void _reconnect(String id, int epoch) {
-    if (_disposed || epoch != _streamEpoch) return;
+    if (_disposed || !_foreground || _stopped || epoch != _streamEpoch) return;
     _connected = false;
     _publish();
     _reconnectTimer?.cancel();
@@ -262,10 +355,15 @@ class ProductionLegacyApiService extends ApiService {
       _events = null;
       if (previous != null) unawaited(previous.cancel());
       // A fresh consistent snapshot also recovers gaps or an expired cursor.
-      await _refreshActive(id, epoch);
-      if (_disposed || epoch != _streamEpoch) return;
+      final recovered = await _refreshActive(id, epoch);
+      if (_disposed || epoch != _streamEpoch || _stopped) return;
+      if (!recovered) {
+        _reconnect(id, epoch);
+        return;
+      }
       _cursor = _workspaces[id]?.eventCursor ?? _cursor;
       _listen(id, epoch);
+      _startPolling(id, epoch);
     });
   }
 
@@ -461,6 +559,8 @@ class ProductionLegacyApiService extends ApiService {
   void close() {
     _disposed = true;
     ++_streamEpoch;
+    _pollTimer?.cancel();
+    _lifecycle?.dispose();
     _refreshTimer?.cancel();
     _reconnectTimer?.cancel();
     unawaited(_events?.cancel());

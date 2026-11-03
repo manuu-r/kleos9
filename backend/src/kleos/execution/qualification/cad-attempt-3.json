@@ -1,0 +1,46 @@
+{
+  "qualified": false,
+  "imageId": "sha256:c5a08c81bbfb6eed81d2378054dc2603ba27ebf2c98af306a5635836d297eb2a",
+  "finishedAt": "2026-11-02T15:00:15.381700+00:00",
+  "fixtureSha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "runtimeLogs": "\u0002\u0000\u0000\u0000\u0000\u0000\u0000#Traceback (most recent call last):\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000=  File \"/opt/kleos-native/bootstrap.py\", line 7, in <module>\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u000b    main()\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000O  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 465, in main\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000#    result = session.apply(action)\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000#             ^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000P  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 436, in apply\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000_    result = {'status': 'succeeded', 'result': self._apply(item['action'], item['arguments'])}\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000^                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000Q  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 391, in _apply\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0019    return self._build()\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0019           ^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000Q  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 315, in _build\n\u0002\u0000\u0000\u0000\u0000\u0000\u00005    self._command(['python', '-I', '-c', CAD_BUILD])\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000S  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 300, in _command\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000{    return self.execute(arguments, self.work, remaining, self.request['resources'], self.request['lane'] == 'application')\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000{           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000T  File \"/opt/kleos-native/kleos/execution/native_runner.py\", line 218, in run_fixed\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\\    process = subprocess.Popen(command, cwd=work, env=clean_environment(work, application),\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000\\              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000I  File \"/usr/local/lib/python3.12/subprocess.py\", line 1026, in __init__\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000A    self._execute_child(args, executable, preexec_fn, close_fds,\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000O  File \"/usr/local/lib/python3.12/subprocess.py\", line 1958, in _execute_child\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000(    raise child_exception_type(err_msg)\n\u0002\u0000\u0000\u0000\u0000\u0000\u0000>subprocess.SubprocessError: Exception occurred in preexec_fn.\n",
+      "image": "sha256:c5a08c81bbfb6eed81d2378054dc2603ba27ebf2c98af306a5635836d297eb2a",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

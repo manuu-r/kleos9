@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "kleos-pcb-check-qualification-v1",
+  "qualified": false,
+  "qualifiedBy": "pcb-checker-qualification-runner",
+  "imageId": "sha256:230f9959f175fcf3683bf1941d821f6574133cd7fc37a037922a074d6394f0bf",
+  "protocol": "kleos-pcb-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "pcb.py": "155a4d916bc7cebd6c2a5aa8a1d52fb1fd94a01e678a47e040ffe7c47dd47b49",
+    "pcb_check.py": "06581d3cb57c3a3ceb5726c3d8643059e3b3cd0f6f34f56c439af0a434c0c9f4",
+    "pcb_process.py": "f9b51da6326336af214972affcde151728cff64bfe92f42708632593636da642",
+    "Dockerfile.pcb": "b27a5ebf37f75225c321313bd2d68f241cc48bd992573271297c99e4efd639d2"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T20:32:52.513035+00:00",
+  "caseStatuses": {
+    "valid_board": "ERROR"
+  },
+  "cases": [
+    {
+      "case": "valid_board",
+      "expected": "PASS",
+      "requestHash": "0506929407be3f328314f72fccb236c46aab201600b1971eebd9158415942bd7",
+      "result": {
+        "status": "ERROR",
+        "reason": "Independent PCB checker failed",
+        "measurements": {},
+        "diagnostic": "RuntimeError: Unexpected checker environment",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": false,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-f0ae5665a6904379bda9475fa958c923",
+        "subjectHash": "981343533b09f30482ab24cd126e8f352abfe10ed61a620f19736303849b024e",
+        "checkerSourceSha256": "06581d3cb57c3a3ceb5726c3d8643059e3b3cd0f6f34f56c439af0a434c0c9f4"
+      },
+      "elapsedSeconds": 0.8913819999997941,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "195ae5b3af76d2cbf7e67091e86db2c6927f59f58225a24e085b2b1b479b05cd": {
+      "case": "valid_board",
+      "image": "sha256:230f9959f175fcf3683bf1941d821f6574133cd7fc37a037922a074d6394f0bf",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/private/tmp/kleos-pcb-check-qualification-attempt-1/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "Straight outline, two copper layers and simple pads only",
+    "No fabrication, functional, physical, Gerber/drill or arbitrary-device acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureHash": "ca881b0befbd24f2bf996dd30835bacc6f66133d8501ace81cd8124acebba9ab",
+  "failure": {
+    "type": "AssertionError",
+    "message": "valid_board: {'status': 'ERROR', 'reason': 'Independent PCB checker failed', 'measurements': {}, 'diagnostic': 'RuntimeError: Unexpected checker environment', 'isolation': {'uid': 10001, 'gid': 10001, 'noNewPrivileges': True, 'seccomp': True, 'capabilities': 0, 'internetSocketDenied': True, 'generatorCodeAbsent': True, 'credentialEnvironmentEmpty': False, 'toolVersion': '9.0.8'}, 'protocol': 'kleos-pcb-check-v1', 'executionId': 'pcb-qual-f0ae5665a6904379bda9475fa958c923', 'subjectHash': '981343533b09f30482ab24cd126e8f352abfe10ed61a620f19736303849b024e', 'checkerSourceSha256': '06581d3cb57c3a3ceb5726c3d8643059e3b3cd0f6f34f56c439af0a434c0c9f4'}"
+  },
+  "finishedAt": "2026-11-02T20:32:53.408734+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-pcb-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

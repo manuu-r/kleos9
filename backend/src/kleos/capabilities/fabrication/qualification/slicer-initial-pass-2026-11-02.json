@@ -1,0 +1,90 @@
+{
+  "image": "sha256:db5ae2874dcb018b3cb3d97516e20d702b5a196a34082ad753c59275c6e79988",
+  "sourceOverride": false,
+  "sourceSha256": "5ffc737a3e7c661093a0b8cab62cb0f828ecd42847cff0f7eaae57982b9b4dc5",
+  "fixture": "20mm closed cube triangulated OBJ",
+  "physicalAcceptance": false,
+  "profiles": {
+    "a1-mini-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "af07645dc47ad309a84e954063af5eaf3b0da12f96fc6cbf8295f4c02df5d4ac",
+      "packageSha256": "1ce31707bcecfc41a620d7453482ed71949d67b559b3971dce83a7ba180f5b17",
+      "checks": {
+        "gcodeBytes": 427068,
+        "packageBytes": 63367,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false
+      },
+      "elapsedSeconds": 2.48
+    },
+    "a1-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "5db6c833abebf60e5ad49a9877469547730b287c467ace12010c38b792f186d5",
+      "packageSha256": "ea22979d5b8ce9bae4d2bf4ff653aad16a46360553f147b94624d0b7dc8cb714",
+      "checks": {
+        "gcodeBytes": 443790,
+        "packageBytes": 64519,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false
+      },
+      "elapsedSeconds": 2.46
+    },
+    "p1s-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "bf45951010a95f8a2ba3888e3aa3dca90c5e8f08b78e138c804fee88dcc43f94",
+      "packageSha256": "30bb60b873d2f0b1bc135e8e62908d770667916bc866fb2a108e1831908f1867",
+      "checks": {
+        "gcodeBytes": 346460,
+        "packageBytes": 59212,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false
+      },
+      "elapsedSeconds": 2.44
+    }
+  }
+}

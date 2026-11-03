@@ -94,6 +94,6 @@ actual CAD/PCB approved-reference checks. Desktop/phone checks cover the frozen
 circular reference, actual compiled app navigation, restricted preview frames and
 the actual assembled/exploded CAD view. Preview rendering and deterministic
 shape/layout checks use no hosted inference. An earlier failed touching-parts
-integration fixture triggered one Gemini repair before cancellation; its usage
+integration fixture triggered one retired-provider repair before cancellation; its usage
 and the corrected zero-inference rerun are recorded in
 [integration verification](../backend/verification/approved-design-integration-runtime.json).

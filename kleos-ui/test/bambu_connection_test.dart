@@ -14,6 +14,7 @@ import 'package:kleos_ui/state/kleos_store.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/connections_page.dart';
 import 'package:kleos_ui/ui/features/production/bambu_connection.dart';
+import 'package:kleos_ui/ui/features/production/bambu_local_connection.dart';
 
 JsonMap connectionData({bool connected = false, bool stale = false}) => {
       'catalog': {
@@ -127,7 +128,7 @@ void main() {
     expect(find.byType(BambuConnectionDialog), findsOneWidget);
     expect(find.byType(ConnectorDialog), findsNothing);
     expect(find.text('Connect (simulated)'), findsNothing);
-    expect(find.text('Local status bridge: not connected.'), findsOneWidget);
+    expect(find.text('Printer not connected'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -210,6 +211,64 @@ void main() {
     });
   }
 
+  for (final previouslyDetected in [false, true]) {
+    testWidgets('discovery selection survives parent model rebuild (detected: $previouslyDetected)', (tester) async {
+      tester.view.physicalSize = const Size(700, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      JsonMap? sent;
+      await tester.pumpWidget(MaterialApp(theme: kTheme(), home: Scaffold(
+        body: SingleChildScrollView(child: BambuConnectionControls(
+          data: connectionData(connected: previouslyDetected), projects: const [],
+          onGuide: () async {}, preparation: (_, __) => const SizedBox.shrink(),
+          discoveredConnection: (model, selectModel) => BambuLocalConnectionForm(
+            modelId: model, state: const {'enabled': true}, onModelSelected: selectModel,
+            onDiscover: () async => {'devices': [{
+              'name': 'Discovered X1 Carbon', 'address': '192.168.0.51',
+              'serial': 'X1CFIXTURE123', 'modelId': 'BL-P001', 'firmwareVersion': '01.12.00.00'
+            }]},
+            onConnect: (body) async { sent = body; return {'enabled': true}; },
+            onRefresh: () async => {}, onForget: () async => {}))))));
+      await tester.tap(find.text('Find printers'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discovered X1 Carbon'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bambu-setup-model-BL-P001')), findsOneWidget);
+      expect(find.text('Discovered X1 Carbon'), findsOneWidget);
+      expect(find.text('Discovered X1 Carbon · 192.168.0.51'), findsOneWidget);
+      final codeField = find.byWidgetPredicate((w) => w is TextField && w.decoration?.labelText == 'LAN access code');
+      await tester.ensureVisible(codeField);
+      await tester.enterText(codeField, '12345678');
+      await tester.pump();
+      expect(tester.widget<KButton>(find.widgetWithText(KButton, 'Connect')).onPressed, isNotNull);
+      await tester.ensureVisible(find.text('Connect'));
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+      expect(sent?['address'], '192.168.0.51');
+      expect(sent?['serial'], 'X1CFIXTURE123');
+      expect(sent?['modelId'], 'BL-P001');
+      expect(sent?['firmwareVersion'], '01.12.00.00');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('stale local pairing retains selected model and shows refresh status', (tester) async {
+    final data = connectionData();
+    data['local'] = {
+      'modelId': 'BL-P001', 'paired': true, 'credentialsStored': true,
+      'connected': false, 'status': 'stale'
+    };
+    await tester.pumpWidget(MaterialApp(theme: kTheme(), home: Scaffold(
+      body: SingleChildScrollView(child: BambuConnectionControls(
+        data: data, projects: const [], onGuide: () async {},
+        preparation: (_, __) => const SizedBox.shrink())))));
+    await tester.pumpAndSettle();
+    expect(find.text('Printer paired · status needs refresh'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bambu-setup-model-BL-P001')), findsOneWidget);
+    expect(hasBambuStatus(data), isFalse);
+    expect(hasBambuPairing(data), isTrue);
+  });
+
   testWidgets(
       'only a fresh real bridge can report connected status and auto-select a model',
       (tester) async {
@@ -230,8 +289,8 @@ void main() {
           findsOneWidget);
       expect(
           find.text(stale
-              ? 'Local status bridge: not connected.'
-              : 'Local status bridge: connected (read-only).'),
+              ? 'Printer not connected'
+              : 'Printer connected'),
           findsOneWidget);
     }
   });

@@ -122,16 +122,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               (value: entry.key, label: entry.value, icon: null)
           ],
           onSelected: (value) => context.go('/connections?tab=$value')),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-            child: kColumn([
+      LayoutBuilder(builder: (context, constraints) {
+        final heading = kColumn([
           Text(tab == 'printers' ? 'Your printers' : _tabs[tab]!,
               style: Theme.of(context).textTheme.headlineSmall),
           KMuted(description)
-        ], gap: 8)),
-        if (tab != 'human') ...[
-          const SizedBox(width: 16),
-          KButton(
+        ], gap: 8);
+        final action = tab == 'human' ? null : KButton(
               label: tab == 'tools'
                   ? 'Build a tool'
                   : tab == 'printers'
@@ -140,9 +137,15 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               compact: true,
               icon: Icons.north_east,
               onPressed: () => context.go(
-                  '/developer?kind=${tab == 'tools' ? 'tool' : tab == 'printers' ? 'printer' : 'service'}'))
-        ]
-      ]),
+                  '/developer?kind=${tab == 'tools' ? 'tool' : tab == 'printers' ? 'printer' : 'service'}'));
+        if (constraints.maxWidth < 600) {
+          return kColumn([heading, if (action != null) action], gap: 16);
+        }
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: heading),
+          if (action != null) ...[const SizedBox(width: 16), action],
+        ]);
+      }),
       if (tab == 'tools' && widget.controller.state['production'] == true)
         EngineeringTools(controller: widget.controller),
       if (tab == 'human' && widget.controller.state['production'] == true)

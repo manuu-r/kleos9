@@ -1,0 +1,183 @@
+{
+  "qualified": true,
+  "imageId": "sha256:1ea0aa4e85133be3a85fd7399d53c94cb2d1dc6d426b603235fcf44beb93e3bc",
+  "protocol": "kleos-native-session-v2",
+  "lane": "firmware",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "firmwareBoard": "nrf52840dk/nrf52840",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T16:41:34.752624+00:00",
+  "fixtureSourcesSha256": "57ceccfea114674488565591a04504e5e16947fe422fa62610ee594d98e0a971",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "CMakeLists.txt",
+              "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "prj.conf",
+              "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "src/main.c",
+              "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/firmware.bin",
+                "outputs/firmware.elf"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "efedd4af-edd9-4cf6-a8df-cdc1ece7d130",
+            "path": "CMakeLists.txt",
+            "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+            "revision": 2,
+            "mediaType": "text/plain",
+            "size": 155
+          },
+          {
+            "id": "b19c26b2-c7d6-4630-809f-4094c1407098",
+            "path": "prj.conf",
+            "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+            "revision": 2,
+            "mediaType": "text/plain",
+            "size": 42
+          },
+          {
+            "id": "110171be-5eca-4fc9-82bf-96df2f815add",
+            "path": "src/main.c",
+            "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+            "revision": 2,
+            "mediaType": "text/x-c",
+            "size": 171
+          },
+          {
+            "id": "6d7273e3-65cb-47ea-9adb-01b2e6654da4",
+            "path": "outputs/firmware.bin",
+            "sha256": "08c7e4096b9df38b4872f8422212232983a8d2a2cf7a2e9678dcfa231c9742c2",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 19512
+          },
+          {
+            "id": "2495a3a7-84d6-450d-938f-936d5b52f47a",
+            "path": "outputs/firmware.elf",
+            "sha256": "11cc4ecead2619e9587c7cdc0dcbaeb3f25127f6242708f2d260e5e8c61cef71",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 630584
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:1ea0aa4e85133be3a85fd7399d53c94cb2d1dc6d426b603235fcf44beb93e3bc",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "Compile-only nrf52840dk/nrf52840 fixture",
+    "Firmware was not executed",
+    "No flashing, device behavior, emulator or physical acceptance qualification"
+  ]
+}

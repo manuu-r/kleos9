@@ -1,10 +1,209 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: c716130e72cb0c8c40fdd5495e5ea9d37d868ca48fc020c4b8ceeeb4d2f83a2e
+// Schema SHA-256: 331e511f7d3a3e067fb2ee5e8330549eaf5c564f97853af834a357b28077adec
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
     Map<String, dynamic>.from(value as Map);
+
+class ApiAgentPluginView {
+  const ApiAgentPluginView({
+    required this.id,
+    required this.version,
+    required this.name,
+    required this.qualified,
+    required this.qualificationReference,
+    required this.limitations,
+    required this.schemaVersion,
+    required this.agentType,
+    required this.capabilities,
+    required this.supportedInputs,
+    required this.resultSchema,
+    required this.operationModes,
+    required this.mode,
+    required this.qualificationFixtures,
+    required this.supportsIdempotency,
+    required this.supportsCancellation,
+    required this.configured,
+    required this.isDefault,
+  });
+  factory ApiAgentPluginView.fromJson(Map<String, dynamic> json) =>
+      ApiAgentPluginView(
+        id: json['id'] as String,
+        version: json['version'] as String,
+        name: json['name'] as String,
+        qualified: json['qualified'] as bool,
+        qualificationReference: json['qualificationReference'] == null
+            ? null
+            : json['qualificationReference'] as String,
+        limitations: List<String>.unmodifiable(
+            (json['limitations'] as List).map((v) => v as String)),
+        schemaVersion: json['schemaVersion'] as String,
+        agentType: json['agentType'] as String,
+        capabilities: List<String>.unmodifiable(
+            (json['capabilities'] as List).map((v) => v as String)),
+        supportedInputs: List<String>.unmodifiable(
+            (json['supportedInputs'] as List).map((v) => v as String)),
+        resultSchema: json['resultSchema'] as String,
+        operationModes: Map<String, String>.unmodifiable(
+            _object(json['operationModes'])
+                .map((k, v) => MapEntry(k, v as String))),
+        mode: json['mode'] as String,
+        qualificationFixtures: List<String>.unmodifiable(
+            (json['qualificationFixtures'] as List).map((v) => v as String)),
+        supportsIdempotency: json['supportsIdempotency'] as bool,
+        supportsCancellation: json['supportsCancellation'] as bool,
+        configured: json['configured'] as bool,
+        isDefault: json['isDefault'] as bool,
+      );
+  final String id;
+  final String version;
+  final String name;
+  final bool qualified;
+  final String? qualificationReference;
+  final List<String> limitations;
+  final String schemaVersion;
+  final String agentType;
+  final List<String> capabilities;
+  final List<String> supportedInputs;
+  final String resultSchema;
+  final Map<String, String> operationModes;
+  final String mode;
+  final List<String> qualificationFixtures;
+  final bool supportsIdempotency;
+  final bool supportsCancellation;
+  final bool configured;
+  final bool isDefault;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'version': version,
+        'name': name,
+        'qualified': qualified,
+        'qualificationReference': qualificationReference,
+        'limitations': limitations.map((v) => v).toList(growable: false),
+        'schemaVersion': schemaVersion,
+        'agentType': agentType,
+        'capabilities': capabilities.map((v) => v).toList(growable: false),
+        'supportedInputs':
+            supportedInputs.map((v) => v).toList(growable: false),
+        'resultSchema': resultSchema,
+        'operationModes': operationModes.map((k, v) => MapEntry(k, v)),
+        'mode': mode,
+        'qualificationFixtures':
+            qualificationFixtures.map((v) => v).toList(growable: false),
+        'supportsIdempotency': supportsIdempotency,
+        'supportsCancellation': supportsCancellation,
+        'configured': configured,
+        'isDefault': isDefault,
+      };
+}
+
+class ApiAgentSummary {
+  const ApiAgentSummary({
+    required this.id,
+    required this.agentType,
+    required this.lifetime,
+    required this.lifecycle,
+    required this.engineeringRevision,
+    required this.historical,
+    required this.graph,
+    this.pluginId,
+    this.pluginVersion,
+    this.generation,
+    this.currentNode,
+    this.lastUsefulObservation,
+    this.nextWakeAt,
+    this.deadline,
+    this.remainingAllowanceUsd,
+    this.blockerReason,
+  });
+  factory ApiAgentSummary.fromJson(Map<String, dynamic> json) =>
+      ApiAgentSummary(
+        id: json['id'] as String,
+        agentType: json['agentType'] as String,
+        lifetime: json['lifetime'] as String,
+        lifecycle: json['lifecycle'] as String,
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        historical: json['historical'] as bool,
+        graph: json['graph'] as String,
+        pluginId: json['pluginId'] == null ? null : json['pluginId'] as String,
+        pluginVersion: json['pluginVersion'] == null
+            ? null
+            : json['pluginVersion'] as String,
+        generation: json['generation'] == null
+            ? null
+            : (json['generation'] as num).toInt(),
+        currentNode:
+            json['currentNode'] == null ? null : json['currentNode'] as String,
+        lastUsefulObservation: json['lastUsefulObservation'] == null
+            ? null
+            : json['lastUsefulObservation'] as String,
+        nextWakeAt:
+            json['nextWakeAt'] == null ? null : json['nextWakeAt'] as String,
+        deadline: json['deadline'] == null ? null : json['deadline'] as String,
+        remainingAllowanceUsd: json['remainingAllowanceUsd'] == null
+            ? null
+            : (json['remainingAllowanceUsd'] as num).toDouble(),
+        blockerReason: json['blockerReason'] == null
+            ? null
+            : json['blockerReason'] as String,
+      );
+  final String id;
+  final String agentType;
+  final String lifetime;
+  final String lifecycle;
+  final int engineeringRevision;
+  final bool historical;
+  final String graph;
+  final String? pluginId;
+  final String? pluginVersion;
+  final int? generation;
+  final String? currentNode;
+  final String? lastUsefulObservation;
+  final String? nextWakeAt;
+  final String? deadline;
+  final double? remainingAllowanceUsd;
+  final String? blockerReason;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'agentType': agentType,
+        'lifetime': lifetime,
+        'lifecycle': lifecycle,
+        'engineeringRevision': engineeringRevision,
+        'historical': historical,
+        'graph': graph,
+        if (pluginId != null) 'pluginId': pluginId,
+        if (pluginVersion != null) 'pluginVersion': pluginVersion,
+        if (generation != null) 'generation': generation,
+        if (currentNode != null) 'currentNode': currentNode,
+        if (lastUsefulObservation != null)
+          'lastUsefulObservation': lastUsefulObservation,
+        if (nextWakeAt != null) 'nextWakeAt': nextWakeAt,
+        if (deadline != null) 'deadline': deadline,
+        if (remainingAllowanceUsd != null)
+          'remainingAllowanceUsd': remainingAllowanceUsd,
+        if (blockerReason != null) 'blockerReason': blockerReason,
+      };
+}
+
+class ApiAgentsPage {
+  const ApiAgentsPage({
+    required this.agents,
+    this.nextCursor,
+  });
+  factory ApiAgentsPage.fromJson(Map<String, dynamic> json) => ApiAgentsPage(
+        agents: List<ApiAgentSummary>.unmodifiable((json['agents'] as List)
+            .map((v) => ApiAgentSummary.fromJson(_object(v)))),
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
+      );
+  final List<ApiAgentSummary> agents;
+  final String? nextCursor;
+  Map<String, dynamic> toJson() => {
+        'agents': agents.map((v) => v.toJson()).toList(growable: false),
+        if (nextCursor != null) 'nextCursor': nextCursor,
+      };
+}
 
 class ApiArtifactDownloadView {
   const ApiArtifactDownloadView({
@@ -129,14 +328,18 @@ class ApiAttemptView {
 class ApiBambuAddressRequest {
   const ApiBambuAddressRequest({
     required this.address,
+    this.service,
   });
   factory ApiBambuAddressRequest.fromJson(Map<String, dynamic> json) =>
       ApiBambuAddressRequest(
         address: json['address'] as String,
+        service: json['service'] == null ? null : json['service'] as String,
       );
   final String address;
+  final String? service;
   Map<String, dynamic> toJson() => {
         'address': address,
+        if (service != null) 'service': service,
       };
 }
 
@@ -146,6 +349,8 @@ class ApiBambuCatalogView {
     required this.models,
     required this.profiles,
     required this.limitations,
+    this.localPrintingEnabled,
+    this.directPrintModelIds,
   });
   factory ApiBambuCatalogView.fromJson(Map<String, dynamic> json) =>
       ApiBambuCatalogView(
@@ -157,16 +362,30 @@ class ApiBambuCatalogView {
                 .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
         limitations: List<String>.unmodifiable(
             (json['limitations'] as List).map((v) => v as String)),
+        localPrintingEnabled: json['localPrintingEnabled'] == null
+            ? null
+            : json['localPrintingEnabled'] as bool,
+        directPrintModelIds: json['directPrintModelIds'] == null
+            ? null
+            : List<String>.unmodifiable(
+                (json['directPrintModelIds'] as List).map((v) => v as String)),
       );
   final String studioVersion;
   final List<Map<String, dynamic>> models;
   final List<Map<String, dynamic>> profiles;
   final List<String> limitations;
+  final bool? localPrintingEnabled;
+  final List<String>? directPrintModelIds;
   Map<String, dynamic> toJson() => {
         'studioVersion': studioVersion,
         'models': models.map((v) => v).toList(growable: false),
         'profiles': profiles.map((v) => v).toList(growable: false),
         'limitations': limitations.map((v) => v).toList(growable: false),
+        if (localPrintingEnabled != null)
+          'localPrintingEnabled': localPrintingEnabled,
+        if (directPrintModelIds != null)
+          'directPrintModelIds':
+              directPrintModelIds?.map((v) => v).toList(growable: false),
       };
 }
 
@@ -175,60 +394,250 @@ class ApiBambuCertificateView {
     required this.address,
     required this.certificateSha256,
     this.verified,
+    this.service,
   });
   factory ApiBambuCertificateView.fromJson(Map<String, dynamic> json) =>
       ApiBambuCertificateView(
         address: json['address'] as String,
         certificateSha256: json['certificateSha256'] as String,
         verified: json['verified'] == null ? null : json['verified'] as bool,
+        service: json['service'] == null ? null : json['service'] as String,
       );
   final String address;
   final String certificateSha256;
   final bool? verified;
+  final String? service;
   Map<String, dynamic> toJson() => {
         'address': address,
         'certificateSha256': certificateSha256,
         if (verified != null) 'verified': verified,
+        if (service != null) 'service': service,
       };
 }
 
 class ApiBambuConnectionRequest {
   const ApiBambuConnectionRequest({
     required this.address,
+    this.service,
     required this.serial,
     required this.accessCode,
-    required this.certificateSha256,
-    required this.certificateVerified,
+    this.certificateSha256,
+    this.certificateVerified,
     required this.modelId,
+    this.firmwareVersion,
+    this.lanDeveloperMode,
+    this.ftpsCertificateSha256,
+    this.ftpsCertificateVerified,
   });
   factory ApiBambuConnectionRequest.fromJson(Map<String, dynamic> json) =>
       ApiBambuConnectionRequest(
         address: json['address'] as String,
+        service: json['service'] == null ? null : json['service'] as String,
         serial: json['serial'] as String,
         accessCode: json['accessCode'] as String,
-        certificateSha256: json['certificateSha256'] as String,
-        certificateVerified: json['certificateVerified'] as bool,
+        certificateSha256: json['certificateSha256'] == null
+            ? null
+            : json['certificateSha256'] as String,
+        certificateVerified: json['certificateVerified'] == null
+            ? null
+            : json['certificateVerified'] as bool,
         modelId: json['modelId'] as String,
+        firmwareVersion: json['firmwareVersion'] == null
+            ? null
+            : json['firmwareVersion'] as String,
+        lanDeveloperMode: json['lanDeveloperMode'] == null
+            ? null
+            : json['lanDeveloperMode'] as bool,
+        ftpsCertificateSha256: json['ftpsCertificateSha256'] == null
+            ? null
+            : json['ftpsCertificateSha256'] as String,
+        ftpsCertificateVerified: json['ftpsCertificateVerified'] == null
+            ? null
+            : json['ftpsCertificateVerified'] as bool,
+      );
+  final String address;
+  final String? service;
+  final String serial;
+  final String accessCode;
+  final String? certificateSha256;
+  final bool? certificateVerified;
+  final String modelId;
+  final String? firmwareVersion;
+  final bool? lanDeveloperMode;
+  final String? ftpsCertificateSha256;
+  final bool? ftpsCertificateVerified;
+  Map<String, dynamic> toJson() => {
+        'address': address,
+        if (service != null) 'service': service,
+        'serial': serial,
+        'accessCode': accessCode,
+        if (certificateSha256 != null) 'certificateSha256': certificateSha256,
+        if (certificateVerified != null)
+          'certificateVerified': certificateVerified,
+        'modelId': modelId,
+        if (firmwareVersion != null) 'firmwareVersion': firmwareVersion,
+        if (lanDeveloperMode != null) 'lanDeveloperMode': lanDeveloperMode,
+        if (ftpsCertificateSha256 != null)
+          'ftpsCertificateSha256': ftpsCertificateSha256,
+        if (ftpsCertificateVerified != null)
+          'ftpsCertificateVerified': ftpsCertificateVerified,
+      };
+}
+
+class ApiBambuDiscoveredPrinter {
+  const ApiBambuDiscoveredPrinter({
+    required this.address,
+    required this.serial,
+    this.modelId,
+    required this.name,
+    this.firmwareVersion,
+  });
+  factory ApiBambuDiscoveredPrinter.fromJson(Map<String, dynamic> json) =>
+      ApiBambuDiscoveredPrinter(
+        address: json['address'] as String,
+        serial: json['serial'] as String,
+        modelId: json['modelId'] == null ? null : json['modelId'] as String,
+        name: json['name'] as String,
+        firmwareVersion: json['firmwareVersion'] == null
+            ? null
+            : json['firmwareVersion'] as String,
       );
   final String address;
   final String serial;
-  final String accessCode;
-  final String certificateSha256;
-  final bool certificateVerified;
-  final String modelId;
+  final String? modelId;
+  final String name;
+  final String? firmwareVersion;
   Map<String, dynamic> toJson() => {
         'address': address,
         'serial': serial,
-        'accessCode': accessCode,
-        'certificateSha256': certificateSha256,
-        'certificateVerified': certificateVerified,
-        'modelId': modelId,
+        if (modelId != null) 'modelId': modelId,
+        'name': name,
+        if (firmwareVersion != null) 'firmwareVersion': firmwareVersion,
+      };
+}
+
+class ApiBambuDiscoveryView {
+  const ApiBambuDiscoveryView({
+    required this.devices,
+    this.qualification,
+  });
+  factory ApiBambuDiscoveryView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuDiscoveryView(
+        devices: List<ApiBambuDiscoveredPrinter>.unmodifiable(
+            (json['devices'] as List)
+                .map((v) => ApiBambuDiscoveredPrinter.fromJson(_object(v)))),
+        qualification: json['qualification'] == null
+            ? null
+            : json['qualification'] as String,
+      );
+  final List<ApiBambuDiscoveredPrinter> devices;
+  final String? qualification;
+  Map<String, dynamic> toJson() => {
+        'devices': devices.map((v) => v.toJson()).toList(growable: false),
+        if (qualification != null) 'qualification': qualification,
+      };
+}
+
+class ApiBambuDispatchRequest {
+  const ApiBambuDispatchRequest({
+    required this.preparationId,
+    required this.preparedSha256,
+    required this.expectedEngineeringRevision,
+    required this.authorizePrint,
+    required this.externalSpoolConfirmed,
+  });
+  factory ApiBambuDispatchRequest.fromJson(Map<String, dynamic> json) =>
+      ApiBambuDispatchRequest(
+        preparationId: json['preparationId'] as String,
+        preparedSha256: json['preparedSha256'] as String,
+        expectedEngineeringRevision:
+            (json['expectedEngineeringRevision'] as num).toInt(),
+        authorizePrint: json['authorizePrint'] as bool,
+        externalSpoolConfirmed: json['externalSpoolConfirmed'] as bool,
+      );
+  final String preparationId;
+  final String preparedSha256;
+  final int expectedEngineeringRevision;
+  final bool authorizePrint;
+  final bool externalSpoolConfirmed;
+  Map<String, dynamic> toJson() => {
+        'preparationId': preparationId,
+        'preparedSha256': preparedSha256,
+        'expectedEngineeringRevision': expectedEngineeringRevision,
+        'authorizePrint': authorizePrint,
+        'externalSpoolConfirmed': externalSpoolConfirmed,
+      };
+}
+
+class ApiBambuDispatchView {
+  const ApiBambuDispatchView({
+    required this.id,
+    required this.projectId,
+    required this.preparationId,
+    required this.status,
+    required this.preparedSha256,
+    required this.printerSerial,
+    required this.filename,
+    required this.message,
+    this.physicalAcceptance,
+  });
+  factory ApiBambuDispatchView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuDispatchView(
+        id: json['id'] as String,
+        projectId: json['projectId'] as String,
+        preparationId: json['preparationId'] as String,
+        status: json['status'] as String,
+        preparedSha256: json['preparedSha256'] as String,
+        printerSerial: json['printerSerial'] as String,
+        filename: json['filename'] as String,
+        message: json['message'] as String,
+        physicalAcceptance: json['physicalAcceptance'] == null
+            ? null
+            : json['physicalAcceptance'] as bool,
+      );
+  final String id;
+  final String projectId;
+  final String preparationId;
+  final String status;
+  final String preparedSha256;
+  final String printerSerial;
+  final String filename;
+  final String message;
+  final bool? physicalAcceptance;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'projectId': projectId,
+        'preparationId': preparationId,
+        'status': status,
+        'preparedSha256': preparedSha256,
+        'printerSerial': printerSerial,
+        'filename': filename,
+        'message': message,
+        if (physicalAcceptance != null)
+          'physicalAcceptance': physicalAcceptance,
+      };
+}
+
+class ApiBambuDispatchesView {
+  const ApiBambuDispatchesView({
+    required this.dispatches,
+  });
+  factory ApiBambuDispatchesView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuDispatchesView(
+        dispatches: List<ApiBambuDispatchView>.unmodifiable(
+            (json['dispatches'] as List)
+                .map((v) => ApiBambuDispatchView.fromJson(_object(v)))),
+      );
+  final List<ApiBambuDispatchView> dispatches;
+  Map<String, dynamic> toJson() => {
+        'dispatches': dispatches.map((v) => v.toJson()).toList(growable: false),
       };
 }
 
 class ApiBambuLocalState {
   const ApiBambuLocalState({
     required this.enabled,
+    this.paired,
     this.connected,
     this.status,
     this.message,
@@ -238,10 +647,14 @@ class ApiBambuLocalState {
     this.observation,
     this.credentialsStored,
     this.expiresAfterSeconds,
+    this.firmwareVersion,
+    this.directPrinting,
+    this.errorCode,
   });
   factory ApiBambuLocalState.fromJson(Map<String, dynamic> json) =>
       ApiBambuLocalState(
         enabled: json['enabled'] as bool,
+        paired: json['paired'] == null ? null : json['paired'] as bool,
         connected: json['connected'] == null ? null : json['connected'] as bool,
         status: json['status'] == null ? null : json['status'] as String,
         message: json['message'] == null ? null : json['message'] as String,
@@ -257,8 +670,17 @@ class ApiBambuLocalState {
         expiresAfterSeconds: json['expiresAfterSeconds'] == null
             ? null
             : (json['expiresAfterSeconds'] as num).toInt(),
+        firmwareVersion: json['firmwareVersion'] == null
+            ? null
+            : json['firmwareVersion'] as String,
+        directPrinting: json['directPrinting'] == null
+            ? null
+            : json['directPrinting'] as bool,
+        errorCode:
+            json['errorCode'] == null ? null : json['errorCode'] as String,
       );
   final bool enabled;
+  final bool? paired;
   final bool? connected;
   final String? status;
   final String? message;
@@ -268,8 +690,12 @@ class ApiBambuLocalState {
   final Map<String, dynamic>? observation;
   final bool? credentialsStored;
   final int? expiresAfterSeconds;
+  final String? firmwareVersion;
+  final bool? directPrinting;
+  final String? errorCode;
   Map<String, dynamic> toJson() => {
         'enabled': enabled,
+        if (paired != null) 'paired': paired,
         if (connected != null) 'connected': connected,
         if (status != null) 'status': status,
         if (message != null) 'message': message,
@@ -280,6 +706,9 @@ class ApiBambuLocalState {
         if (credentialsStored != null) 'credentialsStored': credentialsStored,
         if (expiresAfterSeconds != null)
           'expiresAfterSeconds': expiresAfterSeconds,
+        if (firmwareVersion != null) 'firmwareVersion': firmwareVersion,
+        if (directPrinting != null) 'directPrinting': directPrinting,
+        if (errorCode != null) 'errorCode': errorCode,
       };
 }
 
@@ -288,7 +717,11 @@ class ApiBambuProfile {
     required this.printerModelId,
     required this.nozzleMm,
     required this.material,
+    this.filamentPreset,
+    this.bedType,
     this.studioVersion,
+    this.slicer,
+    this.slicerVersion,
     required this.bundleSha256,
     required this.image,
     this.qualified,
@@ -298,9 +731,17 @@ class ApiBambuProfile {
         printerModelId: json['printerModelId'] as String,
         nozzleMm: (json['nozzleMm'] as num).toDouble(),
         material: json['material'] as String,
+        filamentPreset: json['filamentPreset'] == null
+            ? null
+            : json['filamentPreset'] as String,
+        bedType: json['bedType'] == null ? null : json['bedType'] as String,
         studioVersion: json['studioVersion'] == null
             ? null
             : json['studioVersion'] as String,
+        slicer: json['slicer'] == null ? null : json['slicer'] as String,
+        slicerVersion: json['slicerVersion'] == null
+            ? null
+            : json['slicerVersion'] as String,
         bundleSha256: json['bundleSha256'] as String,
         image: json['image'] as String,
         qualified: json['qualified'] == null ? null : json['qualified'] as bool,
@@ -308,7 +749,11 @@ class ApiBambuProfile {
   final String printerModelId;
   final double nozzleMm;
   final String material;
+  final String? filamentPreset;
+  final String? bedType;
   final String? studioVersion;
+  final String? slicer;
+  final String? slicerVersion;
   final String bundleSha256;
   final String image;
   final bool? qualified;
@@ -316,10 +761,122 @@ class ApiBambuProfile {
         'printerModelId': printerModelId,
         'nozzleMm': nozzleMm,
         'material': material,
+        if (filamentPreset != null) 'filamentPreset': filamentPreset,
+        if (bedType != null) 'bedType': bedType,
         if (studioVersion != null) 'studioVersion': studioVersion,
+        if (slicer != null) 'slicer': slicer,
+        if (slicerVersion != null) 'slicerVersion': slicerVersion,
         'bundleSha256': bundleSha256,
         'image': image,
         if (qualified != null) 'qualified': qualified,
+      };
+}
+
+class ApiBambuReconcileRequest {
+  const ApiBambuReconcileRequest({
+    required this.confirmPrinterIdle,
+    required this.outcome,
+  });
+  factory ApiBambuReconcileRequest.fromJson(Map<String, dynamic> json) =>
+      ApiBambuReconcileRequest(
+        confirmPrinterIdle: json['confirmPrinterIdle'] as bool,
+        outcome: json['outcome'] as String,
+      );
+  final bool confirmPrinterIdle;
+  final String outcome;
+  Map<String, dynamic> toJson() => {
+        'confirmPrinterIdle': confirmPrinterIdle,
+        'outcome': outcome,
+      };
+}
+
+class ApiBambuTestPrintRequest {
+  const ApiBambuTestPrintRequest({
+    required this.profileId,
+    required this.printerModelId,
+  });
+  factory ApiBambuTestPrintRequest.fromJson(Map<String, dynamic> json) =>
+      ApiBambuTestPrintRequest(
+        profileId: json['profileId'] as String,
+        printerModelId: json['printerModelId'] as String,
+      );
+  final String profileId;
+  final String printerModelId;
+  Map<String, dynamic> toJson() => {
+        'profileId': profileId,
+        'printerModelId': printerModelId,
+      };
+}
+
+class ApiBambuTestPrintView {
+  const ApiBambuTestPrintView({
+    required this.id,
+    required this.status,
+    required this.printerModelId,
+    required this.profileId,
+    required this.profile,
+    required this.dimensionsMm,
+    required this.sourceSha256,
+    this.packageSha256,
+    this.estimatedSeconds,
+    this.filamentGrams,
+    this.filename,
+    required this.message,
+    this.physicalAcceptance,
+  });
+  factory ApiBambuTestPrintView.fromJson(Map<String, dynamic> json) =>
+      ApiBambuTestPrintView(
+        id: json['id'] as String,
+        status: json['status'] as String,
+        printerModelId: json['printerModelId'] as String,
+        profileId: json['profileId'] as String,
+        profile: ApiBambuProfile.fromJson(_object(json['profile'])),
+        dimensionsMm: List<double>.unmodifiable(
+            (json['dimensionsMm'] as List).map((v) => (v as num).toDouble())),
+        sourceSha256: json['sourceSha256'] as String,
+        packageSha256: json['packageSha256'] == null
+            ? null
+            : json['packageSha256'] as String,
+        estimatedSeconds: json['estimatedSeconds'] == null
+            ? null
+            : (json['estimatedSeconds'] as num).toDouble(),
+        filamentGrams: json['filamentGrams'] == null
+            ? null
+            : (json['filamentGrams'] as num).toDouble(),
+        filename: json['filename'] == null ? null : json['filename'] as String,
+        message: json['message'] as String,
+        physicalAcceptance: json['physicalAcceptance'] == null
+            ? null
+            : json['physicalAcceptance'] as bool,
+      );
+  final String id;
+  final String status;
+  final String printerModelId;
+  final String profileId;
+  final ApiBambuProfile profile;
+  final List<double> dimensionsMm;
+  final String sourceSha256;
+  final String? packageSha256;
+  final double? estimatedSeconds;
+  final double? filamentGrams;
+  final String? filename;
+  final String message;
+  final bool? physicalAcceptance;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'status': status,
+        'printerModelId': printerModelId,
+        'profileId': profileId,
+        'profile': profile.toJson(),
+        'dimensionsMm': dimensionsMm.map((v) => v).toList(growable: false),
+        'sourceSha256': sourceSha256,
+        if (packageSha256 != null) 'packageSha256': packageSha256,
+        if (estimatedSeconds != null) 'estimatedSeconds': estimatedSeconds,
+        if (filamentGrams != null) 'filamentGrams': filamentGrams,
+        if (filename != null) 'filename': filename,
+        'message': message,
+        if (physicalAcceptance != null)
+          'physicalAcceptance': physicalAcceptance,
       };
 }
 
@@ -420,6 +977,8 @@ class ApiCommand {
 
 class ApiCommandAccepted {
   const ApiCommandAccepted({
+    this.jobId,
+    this.agentInstanceId,
     required this.commandId,
     required this.projectId,
     this.runId,
@@ -427,16 +986,24 @@ class ApiCommandAccepted {
   });
   factory ApiCommandAccepted.fromJson(Map<String, dynamic> json) =>
       ApiCommandAccepted(
+        jobId: json['jobId'] == null ? null : json['jobId'] as String,
+        agentInstanceId: json['agentInstanceId'] == null
+            ? null
+            : json['agentInstanceId'] as String,
         commandId: json['commandId'] as String,
         projectId: json['projectId'] as String,
         runId: json['runId'] == null ? null : json['runId'] as String,
         revision: (json['revision'] as num).toInt(),
       );
+  final String? jobId;
+  final String? agentInstanceId;
   final String commandId;
   final String projectId;
   final String? runId;
   final int revision;
   Map<String, dynamic> toJson() => {
+        if (jobId != null) 'jobId': jobId,
+        if (agentInstanceId != null) 'agentInstanceId': agentInstanceId,
         'commandId': commandId,
         'projectId': projectId,
         if (runId != null) 'runId': runId,
@@ -493,6 +1060,125 @@ class ApiCompanionPreviewView {
       };
 }
 
+class ApiEngineeringToolCatalogView {
+  const ApiEngineeringToolCatalogView({
+    required this.tools,
+    required this.defaultPolicy,
+    this.agents,
+    this.defaultAgentPolicy,
+  });
+  factory ApiEngineeringToolCatalogView.fromJson(Map<String, dynamic> json) =>
+      ApiEngineeringToolCatalogView(
+        tools: List<ApiEngineeringToolView>.unmodifiable((json['tools'] as List)
+            .map((v) => ApiEngineeringToolView.fromJson(_object(v)))),
+        defaultPolicy: Map<String, ApiEngineeringToolChoice>.unmodifiable(
+            _object(json['defaultPolicy']).map((k, v) =>
+                MapEntry(k, ApiEngineeringToolChoice.fromJson(_object(v))))),
+        agents: json['agents'] == null
+            ? null
+            : List<ApiAgentPluginView>.unmodifiable((json['agents'] as List)
+                .map((v) => ApiAgentPluginView.fromJson(_object(v)))),
+        defaultAgentPolicy: json['defaultAgentPolicy'] == null
+            ? null
+            : Map<String, ApiEngineeringToolChoice>.unmodifiable(
+                _object(json['defaultAgentPolicy']).map((k, v) => MapEntry(
+                    k, ApiEngineeringToolChoice.fromJson(_object(v))))),
+      );
+  final List<ApiEngineeringToolView> tools;
+  final Map<String, ApiEngineeringToolChoice> defaultPolicy;
+  final List<ApiAgentPluginView>? agents;
+  final Map<String, ApiEngineeringToolChoice>? defaultAgentPolicy;
+  Map<String, dynamic> toJson() => {
+        'tools': tools.map((v) => v.toJson()).toList(growable: false),
+        'defaultPolicy': defaultPolicy.map((k, v) => MapEntry(k, v.toJson())),
+        if (agents != null)
+          'agents': agents?.map((v) => v.toJson()).toList(growable: false),
+        if (defaultAgentPolicy != null)
+          'defaultAgentPolicy':
+              defaultAgentPolicy?.map((k, v) => MapEntry(k, v.toJson())),
+      };
+}
+
+class ApiEngineeringToolChoice {
+  const ApiEngineeringToolChoice({
+    required this.id,
+    required this.version,
+  });
+  factory ApiEngineeringToolChoice.fromJson(Map<String, dynamic> json) =>
+      ApiEngineeringToolChoice(
+        id: json['id'] as String,
+        version: json['version'] as String,
+      );
+  final String id;
+  final String version;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'version': version,
+      };
+}
+
+class ApiEngineeringToolView {
+  const ApiEngineeringToolView({
+    required this.id,
+    required this.version,
+    required this.name,
+    required this.lane,
+    required this.runner,
+    required this.sourceContract,
+    required this.outputFiles,
+    required this.qualified,
+    required this.qualificationReference,
+    required this.limitations,
+    required this.configured,
+    required this.isDefault,
+  });
+  factory ApiEngineeringToolView.fromJson(Map<String, dynamic> json) =>
+      ApiEngineeringToolView(
+        id: json['id'] as String,
+        version: json['version'] as String,
+        name: json['name'] as String,
+        lane: json['lane'] as String,
+        runner: json['runner'] as String,
+        sourceContract: json['sourceContract'] as String,
+        outputFiles: List<String>.unmodifiable(
+            (json['outputFiles'] as List).map((v) => v as String)),
+        qualified: json['qualified'] as bool,
+        qualificationReference: json['qualificationReference'] == null
+            ? null
+            : json['qualificationReference'] as String,
+        limitations: List<String>.unmodifiable(
+            (json['limitations'] as List).map((v) => v as String)),
+        configured: json['configured'] as bool,
+        isDefault: json['isDefault'] as bool,
+      );
+  final String id;
+  final String version;
+  final String name;
+  final String lane;
+  final String runner;
+  final String sourceContract;
+  final List<String> outputFiles;
+  final bool qualified;
+  final String? qualificationReference;
+  final List<String> limitations;
+  final bool configured;
+  final bool isDefault;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'version': version,
+        'name': name,
+        'lane': lane,
+        'runner': runner,
+        'sourceContract': sourceContract,
+        'outputFiles': outputFiles.map((v) => v).toList(growable: false),
+        'qualified': qualified,
+        'qualificationReference': qualificationReference,
+        'limitations': limitations.map((v) => v).toList(growable: false),
+        'configured': configured,
+        'isDefault': isDefault,
+      };
+}
+
 class ApiEventView {
   const ApiEventView({
     required this.id,
@@ -523,6 +1209,156 @@ class ApiEventView {
         'data': data,
         'traceId': traceId,
         'createdAt': createdAt,
+      };
+}
+
+class ApiExternalJobEventSummary {
+  const ApiExternalJobEventSummary({
+    required this.id,
+    required this.jobId,
+    required this.disposition,
+    required this.engineeringRevision,
+    required this.observedAt,
+    required this.receivedAt,
+    required this.bodyHash,
+  });
+  factory ApiExternalJobEventSummary.fromJson(Map<String, dynamic> json) =>
+      ApiExternalJobEventSummary(
+        id: json['id'] as String,
+        jobId: json['jobId'] as String,
+        disposition: json['disposition'] as String,
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        observedAt: json['observedAt'] as String,
+        receivedAt: json['receivedAt'] as String,
+        bodyHash: json['bodyHash'] as String,
+      );
+  final String id;
+  final String jobId;
+  final String disposition;
+  final int engineeringRevision;
+  final String observedAt;
+  final String receivedAt;
+  final String bodyHash;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'jobId': jobId,
+        'disposition': disposition,
+        'engineeringRevision': engineeringRevision,
+        'observedAt': observedAt,
+        'receivedAt': receivedAt,
+        'bodyHash': bodyHash,
+      };
+}
+
+class ApiExternalJobEventsPage {
+  const ApiExternalJobEventsPage({
+    required this.events,
+    this.nextCursor,
+  });
+  factory ApiExternalJobEventsPage.fromJson(Map<String, dynamic> json) =>
+      ApiExternalJobEventsPage(
+        events: List<ApiExternalJobEventSummary>.unmodifiable(
+            (json['events'] as List)
+                .map((v) => ApiExternalJobEventSummary.fromJson(_object(v)))),
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
+      );
+  final List<ApiExternalJobEventSummary> events;
+  final String? nextCursor;
+  Map<String, dynamic> toJson() => {
+        'events': events.map((v) => v.toJson()).toList(growable: false),
+        if (nextCursor != null) 'nextCursor': nextCursor,
+      };
+}
+
+class ApiExternalJobSummary {
+  const ApiExternalJobSummary({
+    required this.id,
+    this.agentInstanceId,
+    required this.agentType,
+    required this.engineeringRevision,
+    required this.historical,
+    required this.lifecycle,
+    required this.state,
+    required this.deadline,
+    required this.expired,
+    required this.inputHash,
+    required this.pluginId,
+    required this.pluginVersion,
+    required this.remainingAllowanceUsd,
+    required this.settlementStatus,
+  });
+  factory ApiExternalJobSummary.fromJson(Map<String, dynamic> json) =>
+      ApiExternalJobSummary(
+        id: json['id'] as String,
+        agentInstanceId: json['agentInstanceId'] == null
+            ? null
+            : json['agentInstanceId'] as String,
+        agentType: json['agentType'] as String,
+        engineeringRevision: (json['engineeringRevision'] as num).toInt(),
+        historical: json['historical'] as bool,
+        lifecycle: json['lifecycle'] as String,
+        state: json['state'] as String,
+        deadline: json['deadline'] as String,
+        expired: json['expired'] as bool,
+        inputHash: json['inputHash'] as String,
+        pluginId: json['pluginId'] as String,
+        pluginVersion: json['pluginVersion'] as String,
+        remainingAllowanceUsd:
+            (json['remainingAllowanceUsd'] as num).toDouble(),
+        settlementStatus: json['settlementStatus'] as String,
+      );
+  final String id;
+  final String? agentInstanceId;
+  final String agentType;
+  final int engineeringRevision;
+  final bool historical;
+  final String lifecycle;
+  final String state;
+  final String deadline;
+  final bool expired;
+  final String inputHash;
+  final String pluginId;
+  final String pluginVersion;
+  final double remainingAllowanceUsd;
+  final String settlementStatus;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        if (agentInstanceId != null) 'agentInstanceId': agentInstanceId,
+        'agentType': agentType,
+        'engineeringRevision': engineeringRevision,
+        'historical': historical,
+        'lifecycle': lifecycle,
+        'state': state,
+        'deadline': deadline,
+        'expired': expired,
+        'inputHash': inputHash,
+        'pluginId': pluginId,
+        'pluginVersion': pluginVersion,
+        'remainingAllowanceUsd': remainingAllowanceUsd,
+        'settlementStatus': settlementStatus,
+      };
+}
+
+class ApiExternalJobsPage {
+  const ApiExternalJobsPage({
+    required this.externalJobs,
+    this.nextCursor,
+  });
+  factory ApiExternalJobsPage.fromJson(Map<String, dynamic> json) =>
+      ApiExternalJobsPage(
+        externalJobs: List<ApiExternalJobSummary>.unmodifiable(
+            (json['externalJobs'] as List)
+                .map((v) => ApiExternalJobSummary.fromJson(_object(v)))),
+        nextCursor:
+            json['nextCursor'] == null ? null : json['nextCursor'] as String,
+      );
+  final List<ApiExternalJobSummary> externalJobs;
+  final String? nextCursor;
+  Map<String, dynamic> toJson() => {
+        'externalJobs':
+            externalJobs.map((v) => v.toJson()).toList(growable: false),
+        if (nextCursor != null) 'nextCursor': nextCursor,
       };
 }
 
@@ -954,20 +1790,26 @@ class ApiPreparedPrint {
     required this.artifactId,
     required this.sha256,
     required this.bundleSha256,
+    this.measurements,
   });
   factory ApiPreparedPrint.fromJson(Map<String, dynamic> json) =>
       ApiPreparedPrint(
         artifactId: json['artifactId'] as String,
         sha256: json['sha256'] as String,
         bundleSha256: json['bundleSha256'] as String,
+        measurements: json['measurements'] == null
+            ? null
+            : Map<String, dynamic>.unmodifiable(_object(json['measurements'])),
       );
   final String artifactId;
   final String sha256;
   final String bundleSha256;
+  final Map<String, dynamic>? measurements;
   Map<String, dynamic> toJson() => {
         'artifactId': artifactId,
         'sha256': sha256,
         'bundleSha256': bundleSha256,
+        if (measurements != null) 'measurements': measurements,
       };
 }
 
@@ -985,6 +1827,7 @@ class ApiPrintPreparationView {
     required this.preparedSha256,
     required this.measurements,
     this.physicalAcceptance,
+    this.automaticNativePrepared,
   });
   factory ApiPrintPreparationView.fromJson(Map<String, dynamic> json) =>
       ApiPrintPreparationView(
@@ -1007,6 +1850,9 @@ class ApiPrintPreparationView {
         physicalAcceptance: json['physicalAcceptance'] == null
             ? null
             : json['physicalAcceptance'] as bool,
+        automaticNativePrepared: json['automaticNativePrepared'] == null
+            ? null
+            : json['automaticNativePrepared'] as bool,
       );
   final String id;
   final String projectId;
@@ -1020,6 +1866,7 @@ class ApiPrintPreparationView {
   final String? preparedSha256;
   final Map<String, dynamic> measurements;
   final bool? physicalAcceptance;
+  final bool? automaticNativePrepared;
   Map<String, dynamic> toJson() => {
         'id': id,
         'projectId': projectId,
@@ -1034,6 +1881,8 @@ class ApiPrintPreparationView {
         'measurements': measurements,
         if (physicalAcceptance != null)
           'physicalAcceptance': physicalAcceptance,
+        if (automaticNativePrepared != null)
+          'automaticNativePrepared': automaticNativePrepared,
       };
 }
 
@@ -1150,6 +1999,66 @@ class ApiProjectsView {
   Map<String, dynamic> toJson() => {
         'projects': projects.map((v) => v.toJson()).toList(growable: false),
         'nextCursor': nextCursor,
+      };
+}
+
+class ApiReferenceImageUpload {
+  const ApiReferenceImageUpload({
+    required this.name,
+    required this.mediaType,
+    required this.contentBase64,
+  });
+  factory ApiReferenceImageUpload.fromJson(Map<String, dynamic> json) =>
+      ApiReferenceImageUpload(
+        name: json['name'] as String,
+        mediaType: json['mediaType'] as String,
+        contentBase64: json['contentBase64'] as String,
+      );
+  final String name;
+  final String mediaType;
+  final String contentBase64;
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'mediaType': mediaType,
+        'contentBase64': contentBase64,
+      };
+}
+
+class ApiReferenceImageView {
+  const ApiReferenceImageView({
+    required this.id,
+    required this.name,
+    required this.mediaType,
+    required this.sha256,
+    required this.size,
+    required this.width,
+    required this.height,
+  });
+  factory ApiReferenceImageView.fromJson(Map<String, dynamic> json) =>
+      ApiReferenceImageView(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        mediaType: json['mediaType'] as String,
+        sha256: json['sha256'] as String,
+        size: (json['size'] as num).toInt(),
+        width: (json['width'] as num).toInt(),
+        height: (json['height'] as num).toInt(),
+      );
+  final String id;
+  final String name;
+  final String mediaType;
+  final String sha256;
+  final int size;
+  final int width;
+  final int height;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'mediaType': mediaType,
+        'sha256': sha256,
+        'size': size,
+        'width': width,
+        'height': height,
       };
 }
 
@@ -1352,6 +2261,8 @@ class ApiValidationView {
 
 class ApiWorkspaceView {
   const ApiWorkspaceView({
+    this.agents,
+    this.externalJobs,
     required this.project,
     required this.revision,
     required this.eventCursor,
@@ -1362,6 +2273,15 @@ class ApiWorkspaceView {
   });
   factory ApiWorkspaceView.fromJson(Map<String, dynamic> json) =>
       ApiWorkspaceView(
+        agents: json['agents'] == null
+            ? null
+            : List<ApiAgentSummary>.unmodifiable((json['agents'] as List)
+                .map((v) => ApiAgentSummary.fromJson(_object(v)))),
+        externalJobs: json['externalJobs'] == null
+            ? null
+            : List<ApiExternalJobSummary>.unmodifiable(
+                (json['externalJobs'] as List)
+                    .map((v) => ApiExternalJobSummary.fromJson(_object(v)))),
         project: ApiProjectView.fromJson(_object(json['project'])),
         revision: (json['revision'] as num).toInt(),
         eventCursor: (json['eventCursor'] as num).toInt(),
@@ -1374,6 +2294,8 @@ class ApiWorkspaceView {
             .map((v) => ApiValidationView.fromJson(_object(v)))),
         trainingOptedIn: json['trainingOptedIn'] as bool,
       );
+  final List<ApiAgentSummary>? agents;
+  final List<ApiExternalJobSummary>? externalJobs;
   final ApiProjectView project;
   final int revision;
   final int eventCursor;
@@ -1382,6 +2304,11 @@ class ApiWorkspaceView {
   final List<ApiValidationView> checks;
   final bool trainingOptedIn;
   Map<String, dynamic> toJson() => {
+        if (agents != null)
+          'agents': agents?.map((v) => v.toJson()).toList(growable: false),
+        if (externalJobs != null)
+          'externalJobs':
+              externalJobs?.map((v) => v.toJson()).toList(growable: false),
         'project': project.toJson(),
         'revision': revision,
         'eventCursor': eventCursor,

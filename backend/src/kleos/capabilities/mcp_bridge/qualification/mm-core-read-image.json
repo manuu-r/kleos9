@@ -1,0 +1,133 @@
+{
+  "qualified": true,
+  "testOnly": false,
+  "qualificationKind": "exact-image",
+  "deployment": "local-docker",
+  "sourceOverride": false,
+  "qualificationScope": "Isolated MM-core 1.3.0 read_image decode/normalize of bounded PNG/JPEG artifacts with scoped receipts, protocol bounds and verified local Docker lifecycle; not semantic or engineering validation.",
+  "installation": {
+    "id": "mm-core-image-inspector",
+    "version": "1.0.0",
+    "image": "sha256:c48f10ec68186f6e2425577e19bbd8cf8e352c1bd76926305920bbf82abdae93",
+    "package_sha256": "43e8c01153995ecfb80032a53aa8c3faccdb676f8850359088b1ebd2a000b457",
+    "server_name": "kleos-mm-core-inspector",
+    "server_version": "1.3.0",
+    "tool_name": "inspect_artifacts",
+    "protocol": "2025-11-25",
+    "sdk_version": "1.26.0",
+    "network_policy": "unix-only-no-egress",
+    "timeout_seconds": 30,
+    "max_input_bytes": 8388608,
+    "media_types": [
+      "image/png",
+      "image/jpeg"
+    ]
+  },
+  "sourceSha256": {
+    "transport.py": "182aa780056da23ecc35466a69d6485f7c25900515fba5d26b9d3801b5982ccb",
+    "installation.py": "908468f4a25896587bbd44881f11b7611dfe1c6e6a832851ae1798fa5921eccf",
+    "bridge.py": "058a2e9dac0ec68cdb36ed9ff9665e53610b2207a915164780279bc7aed8d593",
+    "runner.py": "13144c57bf82f1baa95abac365226fd38218a69d0f2963c9967d3a44d746c4bb",
+    "docker.py": "432ca2115dd3af884c2c0d984a4eabf2debd15c26f2fac5caebb3983788eeb8c",
+    "isolated_server.py": "41e3762afbfcb4025e6e0c889045c2ae25e65e1bd1a85b6c1b35da981e1803eb",
+    "Dockerfile": "d9dbfb0ddc0d6ec1491de4c70a4a88d6f0b64e6cc69b3890ea0ab2a582a067ab",
+    "Dockerfile.dockerignore": "215dd9913149faf40a199611ff6055efa78ca9dc7200d0c165d15d6259ca0493",
+    "tool-schema.json": "eec556657318a299de7d9ac275318d97fb5dda6d790927bc1905224af87d0f2f",
+    "image.pyproject.toml": "571b56c659c74c70f70703b5dd195db91c2632492d06190bad08b5430049e91f",
+    "image.uv.lock": "ce8349c0f94458cace871efd5d6e01035f352efec873e12964b3adcdaa2ca5b8",
+    "vendor/source.json": "d8d79f237e12424fa554b99ce56d9dec8cbc1045d4ab3e6d21eea162be52d42a",
+    "vendor/qwen-mm-core-read-image.tar.gz": "43e8c01153995ecfb80032a53aa8c3faccdb676f8850359088b1ebd2a000b457",
+    "vendor/LICENSE.qwen-mm-plugins": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "execution/security.py": "c3ba5ae8e0d4bc83ba2577ddadf3e56bd5f96d973a8fb5d71c733e309b7dbd02",
+    "execution/security/docker-default-seccomp.json": "6416b47770785a41ac59073cdc77d9fe98517df2799dc83ef207e622de3053f6",
+    "infrastructure/mcp.py": "7739b17b8261532d9b20844f5f2f2a423830a51537a86d443cbe76556f922e34",
+    "execution/capacity.py": "25489e8f7f86fde6493c8b93b8b6ef0f421d53c3e2f0dc5ced1ffcff0ecf7088",
+    "capabilities/registry.py": "363fe93d859811f325890cbd5cbb594053a9d0ebc8c9888846f70a169a440186"
+  },
+  "review": {
+    "independent": true,
+    "reviewer": "/root/rewrite_bambu",
+    "reviewedAt": "2026-11-02T22:04:13+00:00",
+    "reference": "REVIEW.md \u2014 independent source/image/ledger review by /root/rewrite_bambu; host-scope delta review",
+    "sourceHash": "b1bde79755c77138648529d594e501ab4e27272f14502c25b949cf92c0df2e36"
+  },
+  "checks": {
+    "artifact_inspection": "PASS",
+    "bounds": "PASS",
+    "isolation": "PASS",
+    "protocol": "PASS",
+    "replay": "PASS",
+    "scope": "PASS"
+  },
+  "seccompSha256": "6c779d9df3ab17b52757cdc9417116529d648cda498ddf8b201c3df3186a69af",
+  "evidence": [
+    {
+      "path": "evidence/mcp-core-attempt-1.json",
+      "sha256": "cb0cbfdbbc92f63e62dc3c6a9b31642b778be94c269aed62f70cd5e841655023",
+      "fixturePassed": false,
+      "originalQualifiedField": false
+    },
+    {
+      "path": "evidence/mcp-core-attempt-2.json",
+      "sha256": "5bf039c9645023a6267da7cdf2ff87731dbe017ac63eb1a2152c5590f47aed16",
+      "fixturePassed": true,
+      "originalQualifiedField": false
+    },
+    {
+      "path": "evidence/mcp-core-jpeg-attempt-1.json",
+      "sha256": "b9fd1c076df32aa0c0091251b2ce97599255b243d6fe5890da10866b7b753edb",
+      "fixturePassed": true,
+      "originalQualifiedField": false
+    },
+    {
+      "path": "evidence/mcp-core-scope-attempt-1.json",
+      "sha256": "e5bd4d50c2c2c6e20103b94cbc64ff7b67b2c7aa7990929d01092c93a6443fc3",
+      "fixturePassed": true,
+      "originalQualifiedField": false
+    },
+    {
+      "path": "evidence/mcp-core-scope-jpeg-attempt-1.json",
+      "sha256": "53ac8030d87d26d30a516bbc4b71f8f3ed326d29e15574fe1eb49ad83765af7f",
+      "fixturePassed": true,
+      "originalQualifiedField": false
+    },
+    {
+      "path": "evidence/mcp-core-attempt-1-cleanup.json",
+      "sha256": "dc32e5b91a67aee50ba0dba953e5b6906033eb9c8d61e2cf0858a504b2876cd8",
+      "role": "Later exact ownership-verified removal and capacity settlement for failed unstarted attempt"
+    }
+  ],
+  "hostOnlyDelta": {
+    "path": "bridge.py",
+    "oldSha256": "18c3dd15e7832ad8d32f1bde2583d4cff3742bd524984d9a1850f3028483e743",
+    "currentSha256": "058a2e9dac0ec68cdb36ed9ff9665e53610b2207a915164780279bc7aed8d593",
+    "change": "The only change among nineteen bound source inputs adds actor, projectId, runId and revision to the existing inner MCP receipt request hash. Immutable task, action, input and installation bindings remain.",
+    "currentHostEvidence": [
+      "evidence/mcp-core-scope-attempt-1.json",
+      "evidence/mcp-core-scope-jpeg-attempt-1.json"
+    ],
+    "watchdogEvidence": "evidence/mcp-core-attempt-2.json",
+    "watchdogApplicability": "The historical host snapshot differs only in receipt scope hashing. The exact image, server, runner, Docker transport, watchdog command, resource/isolation and cleanup code are unchanged. Reuse is limited to those unchanged process-lifecycle properties; current-host PNG/JPEG exchanges and actor-replay tests cover the new receipt binding."
+  },
+  "verification": {
+    "command": ".venv/bin/pytest -q tests/test_mcp_bridge.py tests/test_mcp_runner.py tests/test_mcp_runtime.py",
+    "passed": 62,
+    "reviewerReran": true,
+    "ruff": "Passed for MCP implementation and focused tests",
+    "testSha256": {
+      "test_mcp_bridge.py": "13832c12953e4b02d57313ba13e327f657105217c11967ddebb84b1015a9b8cf",
+      "test_mcp_runner.py": "ce93fcaab208d39f785dea451582cbb3f9ceafbe7b1df5be3532d41dfa4314c9",
+      "test_mcp_runtime.py": "9e203b1c4c1e827d552285618956c404a7ebbf69ed81d95db58a335f9f1cecfb",
+      "qualify_mcp_core.py": "8a80e50a636e493ee0cc3f0e77fd522e8c8d047b6372773abbca11e3bda5ad51"
+    }
+  },
+  "limitations": [
+    "Local Docker exact-image fixture; no ECS/cloud deployment qualification.",
+    "PNG/JPEG file decoding/normalization only; no image semantics, OCR, design, manufacturability or physical acceptance.",
+    "FreeCAD, Blender, other MM-core tools, arbitrary MCP servers and remote HTTP services remain unavailable/unqualified.",
+    "No model inference, provider calls, paid tools, purchases, printer dispatch or host plugin execution.",
+    "Capacity evidence uses persistent fixture SQLite ledgers in a coordinated exclusive native window; not cross-database global capacity.",
+    "Historical failed/unqualified raw evidence is retained unchanged; only this derived report includes independent scoped approval.",
+    "No default installation or user environment was changed. New source, schema, package, image or safety contract requires matching review."
+  ]
+}

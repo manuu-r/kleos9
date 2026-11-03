@@ -1,3 +1,5 @@
+import '../../../data/services/reference_images.dart';
+import '../../core/reference_image_attachments.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -542,6 +544,9 @@ class ProductionNewProjectPage extends ConsumerStatefulWidget {
 class _ProductionNewProjectPageState
     extends ConsumerState<ProductionNewProjectPage> {
   final brief = TextEditingController();
+  List<ReferenceImageDraft> images = [];
+  String? createdProjectId;
+  bool captureNeeded = false;
   Map<String, ModelChoice>? policy;
   bool busy = false;
   String? error;
@@ -552,22 +557,43 @@ class _ProductionNewProjectPageState
   }
 
   Future<void> create(ModelCatalog catalog) async {
-    if (busy || brief.text.trim().isEmpty) return;
+    if (busy || (brief.text.trim().isEmpty && images.isEmpty)) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       busy = true;
       error = null;
     });
     try {
-      final result = await ref
-          .read(productionRepositoryProvider)
-          .command('project.create', {
-        'brief': brief.text.trim(),
-        'modelPolicy':
-            (policy ?? catalog.defaults).map((k, v) => MapEntry(k, v.toJson())),
-      });
+      final repository = ref.read(productionRepositoryProvider);
+      if (createdProjectId == null) {
+        final result = await repository.command('project.create', {
+          'brief': brief.text.trim().isEmpty
+              ? 'Create a device concept from the attached reference images.'
+              : brief.text.trim(),
+          'modelPolicy': (policy ?? catalog.defaults)
+              .map((k, v) => MapEntry(k, v.toJson())),
+          if (images.isNotEmpty) 'autoStart': false,
+        });
+        createdProjectId = result.projectId;
+        captureNeeded = images.isNotEmpty;
+      }
+      if (captureNeeded) {
+        final ids = <String>[];
+        for (final image in images) {
+          ids.add(await image.upload(repository, createdProjectId!));
+        }
+        final workspace = await repository.workspace(createdProjectId!);
+        await repository.command(
+            'project.capture',
+            {
+              'projectId': createdProjectId!,
+              'autoResume': true,
+              'referenceImageIds': ids
+            },
+            revision: workspace.project.revision);
+      }
       ref.invalidate(productionProjectsProvider);
-      if (mounted) context.go('/projects/${result.projectId}');
+      if (mounted) context.go('/projects/$createdProjectId');
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
     } finally {
@@ -581,17 +607,22 @@ class _ProductionNewProjectPageState
             title: 'Describe your device',
             description:
                 'Tell us what it should do, who it is for, and which constraints matter.'),
-        TextField(
-            key: const ValueKey('production-project-brief'),
-            controller: brief,
-            minLines: 5,
-            maxLines: 9,
-            maxLength: 10000,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-                labelText: 'Your brief',
-                hintText:
-                    'A simple smartwatch with a custom case, a small screen, and a companion app…')),
+        ReferenceImageAttachments(
+            images: images,
+            enabled: !busy,
+            onChanged: (value) => setState(() => images = value),
+            input: TextField(
+                key: const ValueKey('production-project-brief'),
+                enabled: !busy && createdProjectId == null,
+                controller: brief,
+                minLines: 5,
+                maxLines: 9,
+                maxLength: 10000,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                    labelText: 'Your brief',
+                    hintText:
+                        'A simple smartwatch with a custom case, a small screen, and a companion app…'))),
         if (error != null) _Notice(error!, error: true),
         ref.watch(modelCatalogProvider).when(
               loading: () => const _Loading(),
@@ -605,9 +636,10 @@ class _ProductionNewProjectPageState
                 KButton(
                     label: busy ? 'Creating…' : 'Create project',
                     primary: true,
-                    onPressed: busy || brief.text.trim().isEmpty
-                        ? null
-                        : () => create(catalog)),
+                    onPressed:
+                        busy || (brief.text.trim().isEmpty && images.isEmpty)
+                            ? null
+                            : () => create(catalog)),
               ], gap: 24),
             ),
       ]);
@@ -632,6 +664,7 @@ class ModelPolicyEditor extends StatelessWidget {
               'Choose a model for each part of the work. Changes apply to new attempts; active work keeps its selected model.'),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final model in catalog.models.where((model) =>
+                const {'meta', 'modal'}.contains(model.choice.provider) &&
                 model.configured &&
                 engineeringLanes.keys.every(model.lanes.contains)))
               KButton(
@@ -649,7 +682,9 @@ class ModelPolicyEditor extends StatelessWidget {
           for (final lane in engineeringLanes.entries)
             Builder(builder: (context) {
               final choices = catalog.models
-                  .where((m) => m.lanes.contains(lane.key))
+                  .where((m) =>
+                      const {'meta', 'modal'}.contains(m.choice.provider) &&
+                      m.lanes.contains(lane.key))
                   .toList();
               final selected = policy[lane.key];
               final current = choices
@@ -1058,7 +1093,7 @@ class _ModelSettingsState extends ConsumerState<_ModelSettings> {
         data: (catalog) => ExpansionTile(
           tilePadding: EdgeInsets.zero,
           title: const Text('AI provider settings'),
-          subtitle: const Text('Muse and Gemini models by engineering lane'),
+          subtitle: const Text('Muse models by engineering lane'),
           children: [
             ModelPolicyEditor(
                 catalog: catalog,

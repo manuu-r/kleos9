@@ -96,6 +96,10 @@ void main() {
     expect(find.text('Desk air sensor'), findsOneWidget);
     expect(find.textContaining('permanently clears'), findsOneWidget);
     expect(service.commands, isEmpty);
+    await tester.tapAt(const Offset(4, 80));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete this build?'), findsOneWidget);
+    expect(service.commands, isEmpty);
     await tester.tap(find.text('Keep build'));
     await tester.pumpAndSettle();
     expect(find.text('Delete this build?'), findsNothing);

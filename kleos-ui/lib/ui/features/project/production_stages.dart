@@ -174,6 +174,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
 
   Widget concept() => LayoutBuilder(builder: (context, constraints) {
         final concept = asMap(state['concept']);
+        final targetPartId = selectedPartId;
         final scene = asMap(concept['scene']);
         final clarification = asMap(state['clarification']);
         final conversation = asMaps(state['conversation']);
@@ -182,6 +183,15 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           ...asMaps(clarification['resolvedQuestions'])
         ];
         final pending = planningPending || planningActive;
+        final planningFailed = !pending &&
+            (const {'failed', 'blocked'}.contains(project['status']) ||
+                const {'failed', 'blocked'}
+                    .contains(runs.firstOrNull?['status']));
+        final emptyConceptMessage = pending
+            ? 'Creating a concept from your brief and reference images…'
+            : planningFailed
+                ? 'Your concept is not available yet. Review the planning error above, then retry the run.'
+                : 'Your concept will appear after capture';
         final chat = PlanningConversation(
           key: ValueKey('planning-chat-${project['id']}'),
           messages: conversation.isEmpty
@@ -202,12 +212,31 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           selectedPartLabel: selectedPartLabel,
           selectedPartId: selectedPartId,
           onClearPart: () => setState(() => selectedPart = null),
+          onUploadImage: (image) => image.upload(
+              ref.read(productionRepositoryProvider), project['id'] as String),
+          loadImage: (id) {
+            final repository = ref.read(productionRepositoryProvider);
+            return repository.api.referenceImageBytes(
+                project['id'] as String, id,
+                organizationId: repository.organizationId);
+          },
+          onSendWithReferences: (text, clientId, imageIds) =>
+              command('project.message', {
+            'text': text,
+            'clientMessageId': clientId,
+            'autoResume': true,
+            'referenceImageIds': imageIds,
+            if (targetPartId != null) ...{
+              'selectedPartId': targetPartId,
+              'conceptVersion': concept['version'],
+            },
+          }),
           onSend: (text, clientId) => command('project.message', {
             'text': text,
             'clientMessageId': clientId,
             'autoResume': true,
-            if (selectedPartId != null) ...{
-              'selectedPartId': selectedPartId,
+            if (targetPartId != null) ...{
+              'selectedPartId': targetPartId,
               'conceptVersion': concept['version'],
             },
           }),
@@ -246,6 +275,8 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           trailing: const KBadge('Concept preview'),
           child: ConceptPreview(
             scene: scene,
+            emptyMessage: emptyConceptMessage,
+            stale: concept['stale'] == true,
             conceptVersion: (concept['version'] as num?)?.toInt(),
             updating: pending,
             height: constraints.maxWidth < 600 ? 270 : 390,
@@ -468,9 +499,11 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             projectId: '${project['id']}',
             revision: number(workspace['revision']).toInt()),
       if (widget.stage == 7)
-        RentAHumanProjectTasks(projectId: '${project['id']}',
-          revision: number(project['engineeringRevision']).toInt(),
-          releaseId: project['acceptedReleaseId'] as String?, canWrite: canWrite),
+        RentAHumanProjectTasks(
+            projectId: '${project['id']}',
+            revision: number(project['engineeringRevision']).toInt(),
+            releaseId: project['acceptedReleaseId'] as String?,
+            canWrite: canWrite),
       pCallout(pColumn([
         const KBadge('Simulated physical workflow', tone: 'sim'),
         pText(
@@ -489,6 +522,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             data: {'step': number(state['assemblyStep'], -1).toInt() + 1}),
       if (widget.stage == 6 && canWrite)
         DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: state['printMode'] as String?,
             decoration: const InputDecoration(labelText: 'Printing preference'),
             items: const [

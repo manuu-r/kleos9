@@ -1,5 +1,7 @@
 # Backend review — 30 October 2026
 
+Historical snapshot: retired-provider coverage below describes the recorded run only. Current inference supports Meta and Modal; embeddings are unconfigured pending a qualified replacement.
+
 Reviewed the application boundary, project/tenant authorization, commands/outbox,
 worker admission, inference and native jobs, retries, validation/release gates,
 storage/retrieval, connectors, consent/training, retention/deletion, telemetry and
@@ -39,7 +41,7 @@ production security certification or a complete engineering qualification.
   artifacts retain hashes and provenance. Accepted baselines survive revisions.
 - AI records, product events and traces share IDs while remaining distinct. Logs
   are redacted and detailed records have retention controls.
-- Gemini and Meta are the only hosted model providers. Daily allowance remains
+- retired-provider and Meta are the only hosted model providers. Daily allowance remains
   disabled locally at the user's request; project budgets and resource ceilings remain.
 
 ## Verification and remaining release work
@@ -74,3 +76,5 @@ Remaining material limits:
 
 See [engineering tool adapters](engineering-tool-plugins.md) for installation,
 selection, artifact requirements and qualification rules.
+
+Historical provider names and model identifiers in this record were redacted at user request. Outcomes and charges remain historical; they do not qualify a currently supported provider.

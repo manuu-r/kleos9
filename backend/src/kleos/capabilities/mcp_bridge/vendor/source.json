@@ -1,0 +1,40 @@
+{
+  "repository": "https://github.com/QwenLM/Qwen-MM-Plugins",
+  "commit": "33a54695774020e5da2d6b1ed13119d4014f848f",
+  "tag": "qwen-mm-plugins-core-v1.3.0",
+  "license": "Apache-2.0",
+  "archiveSha256": "43e8c01153995ecfb80032a53aa8c3faccdb676f8850359088b1ebd2a000b457",
+  "files": {
+    "LICENSE": {
+      "upstreamPath": "LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    "mm_read_image.py": {
+      "upstreamPath": "src/capabilities/core/qwen_mm_plugins_core/readers/image.py",
+      "sha256": "42b620f93f669a0c6a4e1d36f44f8f59f662ec602fbb75085de044220ed2cb3b",
+      "size": 1609
+    },
+    "shared/__init__.py": {
+      "upstreamPath": "src/shared/__init__.py",
+      "sha256": "5f4191e20f833c967b42ab99d25ec360a687bebcc7147a5aa90cc1d2fd181783",
+      "size": 1770
+    },
+    "shared/content.py": {
+      "upstreamPath": "src/shared/content.py",
+      "sha256": "924450a441959213862b5d817644534712d247d56e353347eb7c6db1eac3bed4",
+      "size": 2304
+    },
+    "shared/env.py": {
+      "upstreamPath": "src/shared/env.py",
+      "sha256": "e30647fc4c67dca33ca5d07312d027cbd06333bb3419fdc046917236f4065811",
+      "size": 19047
+    },
+    "shared/image.py": {
+      "upstreamPath": "src/shared/image.py",
+      "sha256": "bc8fb4ad74f2fbc02275ad9d9e0e849193ed8bc2445abec3a481906faa166799",
+      "size": 8948
+    }
+  },
+  "scope": "Unmodified read_image handler and its pure Python shared helpers; no plugin framework, auto-launch, provider, Office, video, browser or paid generators."
+}

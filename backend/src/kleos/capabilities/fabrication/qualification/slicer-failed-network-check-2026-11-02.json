@@ -1,0 +1,24 @@
+{
+  "image": "sha256:d95e3187f40920d15350649ef029bcbce49ae65b9edbf45a9497132e63500823",
+  "sourceOverride": false,
+  "sourceSha256": "5ffc737a3e7c661093a0b8cab62cb0f828ecd42847cff0f7eaae57982b9b4dc5",
+  "fixture": "20mm closed cube triangulated OBJ",
+  "physicalAcceptance": false,
+  "profiles": {
+    "a1-mini-pla-04": {
+      "status": "FAIL",
+      "error": "Slicer result reader failed: exit=137, running=False, partial=False",
+      "elapsedSeconds": 0.27
+    },
+    "a1-pla-04": {
+      "status": "FAIL",
+      "error": "Slicer result reader failed: exit=137, running=False, partial=False",
+      "elapsedSeconds": 0.21
+    },
+    "p1s-pla-04": {
+      "status": "FAIL",
+      "error": "Slicer result reader failed: exit=137, running=False, partial=False",
+      "elapsedSeconds": 0.22
+    }
+  }
+}

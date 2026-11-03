@@ -1,0 +1,135 @@
+{
+  "qualified": true,
+  "imageId": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+  "protocol": "kleos-native-session-v2",
+  "lane": "application",
+  "applicationTarget": "web",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "storagePolicy": "hard-bounded-private-tmpfs",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "pids": 256,
+    "scratchBytes": 4294967296
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T20:24:47.961978+00:00",
+  "fixtureSourcesSha256": "6f99742b69481daf142a12af0d07ac06d8c6a0dafe14fa8e9d59a6e295987c4d",
+  "sharedCapacity": true,
+  "capacityScope": "Persistent qualification SQLite pool; coordinated exclusive native window, not cross-database admission",
+  "heldCapacity": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 1,
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "scratchBytes": 4429185024
+  },
+  "finalCapacity": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  },
+  "containers": [
+    {
+      "image": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 6442450944,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 256,
+      "scratch": "rw,nosuid,nodev,size=4294967296,mode=1777,exec",
+      "writableHostMounts": false
+    }
+  ],
+  "webArchiveEntries": [
+    ".last_build_id",
+    "assets/",
+    "assets/AssetManifest.bin",
+    "assets/AssetManifest.bin.json",
+    "assets/AssetManifest.json",
+    "assets/FontManifest.json",
+    "assets/NOTICES",
+    "assets/fonts/",
+    "assets/fonts/MaterialIcons-Regular.otf",
+    "assets/shaders/",
+    "assets/shaders/ink_sparkle.frag",
+    "canvaskit/",
+    "canvaskit/canvaskit.js",
+    "canvaskit/canvaskit.js.symbols",
+    "canvaskit/canvaskit.wasm",
+    "canvaskit/chromium/",
+    "canvaskit/chromium/canvaskit.js",
+    "canvaskit/chromium/canvaskit.js.symbols",
+    "canvaskit/chromium/canvaskit.wasm",
+    "canvaskit/skwasm.js",
+    "canvaskit/skwasm.js.symbols",
+    "canvaskit/skwasm.wasm",
+    "canvaskit/skwasm_heavy.js",
+    "canvaskit/skwasm_heavy.js.symbols",
+    "canvaskit/skwasm_heavy.wasm",
+    "flutter.js",
+    "flutter_bootstrap.js",
+    "flutter_service_worker.js",
+    "index.html",
+    "main.dart.js",
+    "version.json"
+  ],
+  "limitations": [
+    "Offline Flutter web build fixture only",
+    "No browser/device execution or acceptance",
+    "APK remains unqualified; no silent platform substitution"
+  ],
+  "scope": "Fresh offline compilation of the existing trusted Flutter fixture for subsequent browser qualification",
+  "artifact": {
+    "path": "outputs/companion-web.zip",
+    "sha256": "ac3b5f8d44ee32c60235cbbee2c02a3f6ab404130f2095cc3e909e8789ada6e7",
+    "size": 10221368,
+    "mediaType": "application/zip"
+  },
+  "browserQualified": false,
+  "sourceFiles": {
+    "tests/qualify_companion_web.py": "896489de3c291d5681d931f24d2194bc664b1a7632c20b5791adde0164198242",
+    "tests/companion_native_browser_fixture.py": "92ac4bb87810da336a35f40bad7263143ed21c983f6d642d9c5fc3132b9d8288",
+    "src/kleos/execution/qualification/web-fixture-sources.json": "f7875444aed1f10376d756cddffea2c245344001d83476f2b3217c5c5bbc0cae"
+  },
+  "verification": {
+    "helperTests": 9,
+    "httpFiles": [
+      "wrapper",
+      "index.html",
+      "flutter_bootstrap.js",
+      "main.dart.js",
+      "canvaskit/canvaskit.wasm"
+    ],
+    "httpOnly": true
+  },
+  "browserQualification": {
+    "originalBootstrap": "FAILED: opaque frame rejected navigator.serviceWorker access before rendering",
+    "derivedBootstrap": "Partial browser render after bounded admission: scaffold and floating plus visible; title/sample text absent because default remote Roboto is blocked. Not functionally qualified.",
+    "transformVersion": "flutter-preview-no-service-worker-v1",
+    "sourceBootstrapSha256": "6753b968eeea510f6b19113429d3d4b86bd4c68f20c6701fbe796f239da96d32",
+    "derivedBootstrapSha256": "bd8fbff5e074217eef59413f0201e94b2b9841b84c8a0c2d71655e3d9518418c",
+    "documentViewVersion": "ticket-base-anonymous-scripts-v2"
+  },
+  "previewSources": {
+    "src/kleos/api/companion.py": "11ec69211ac74b5e715f237f5097c124577e1f58c1f75248ce14afd32f42820b",
+    "src/kleos/api/companion_bootstrap.py": "9403bcda83201fde0de127d2fd334ef837cb906488fa5b886dc0ff1a23ea096d"
+  }
+}

@@ -14,14 +14,14 @@ jobs:
         env:
           POSTGRES_USER: kleos
           POSTGRES_PASSWORD: ci-only
-          POSTGRES_DB: kleos
+          POSTGRES_DB: kleos_test_ci
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U kleos -d kleos"
+          --health-cmd "pg_isready -U kleos -d kleos_test_ci"
           --health-interval 5s --health-timeout 3s --health-retries 20
     env:
-      KLEOS_TEST_POSTGRES_URL: postgresql://kleos:ci-only@localhost:5432/kleos
-      KLEOS_DATABASE_URL: postgresql+psycopg://kleos:ci-only@localhost:5432/kleos
+      KLEOS_TEST_POSTGRES_URL: postgresql://kleos:ci-only@localhost:5432/kleos_test_ci
+      KLEOS2_DATABASE_URL: postgresql+psycopg://kleos:ci-only@localhost:5432/kleos_test_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,21 +34,21 @@ jobs:
       - name: Install locked backend dependencies
         working-directory: backend
         run: |
-          python -m pip install --require-hashes -r requirements-dev.lock
-          python -m pip install --no-deps -e .
+          python -m pip install uv==0.8.11
+          uv sync --locked
       - name: Check backend, migrations and durable recovery
         working-directory: backend
         run: |
-          ruff check .
-          alembic upgrade head
-          alembic check
-          pytest -q
-          python -m kleos.cli export-contracts
+          uv run --no-sync ruff check src tests migrations
+          uv run --no-sync python -m kleos.cli migrate
+          uv run --no-sync alembic check
+          uv run --no-sync pytest -q
+          uv run --no-sync python -m kleos.cli export-runtime-contracts --output "$RUNNER_TEMP/kleos-runtime-openapi.json"
           git diff --exit-code -- contracts/openapi.json
       - name: Verify simulated flows
         working-directory: mock-backend
         run: |
-          python -m pytest tests -q
+          ../backend/.venv/bin/python -m pytest tests -q
           bash -n deploy.sh
   flutter:
     runs-on: ubuntu-latest

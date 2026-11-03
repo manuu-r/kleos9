@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../../data/models/concept_scene.dart';
+import 'concept_feature_mesh.dart';
 
 // Native adaptation of Anatomy's camera/solid craft. The pinned upstream skill
 // and MIT attribution live in the backend's Anatomy skill bundle. This bounded
@@ -46,11 +47,128 @@ class ConceptDrawing {
 }
 
 /// Small meshes are built once per accepted scene, not on every animation frame.
+/// Projection uses painter-order depth sorting, not a z-buffer: intersecting
+/// surfaces and cyclic occlusion may remain approximate. These bounded meshes
+/// illustrate a concept; they do not establish CAD or manufacturing validity.
 class ConceptGeometry {
-  ConceptGeometry(this.scene)
-      : meshes = {for (final part in scene.parts) part.id: _partMesh(part)};
+  ConceptGeometry(this.scene) {
+    try {
+      var triangles = 0;
+      for (final part in scene.parts) {
+        final mesh = _partMesh(part);
+        final count = mesh.fold(0, (sum, face) => sum + face.points.length - 2);
+        triangles += count;
+        if (scene.schemaVersion == 'concept-scene-v2' &&
+            (count > 4096 || triangles > 12000)) {
+          throw const FormatException(
+              'Concept geometry exceeds its triangle budget.');
+        }
+        meshes[part.id] = mesh;
+      }
+      _layoutExplode();
+    } on FormatException catch (error) {
+      meshes.clear();
+      validationError = error.message;
+    }
+  }
   final ConceptScene scene;
-  final Map<String, List<ConceptFace>> meshes;
+  final Map<String, List<ConceptFace>> meshes = {};
+  String? validationError;
+  Map<String, ConceptVector> effectiveExplode = const {};
+  bool _automaticExplode = false;
+
+  /// A view layout only: source parts, transforms and provenance stay untouched.
+  /// Stable assembly layers are packed into balanced rows in the default camera
+  /// plane. Camera-depth is preserved; real rotated mesh envelopes set spacing.
+  void _layoutExplode() {
+    effectiveExplode = Map.unmodifiable(
+        {for (final part in scene.parts) part.id: part.explode});
+    if (scene.parts.length < 2 || meshes.isEmpty) return;
+    final first = scene.parts.first.explode;
+    if (scene.parts.any((part) =>
+        part.explode.x != first.x ||
+        part.explode.y != first.y ||
+        part.explode.z != first.z)) {
+      return;
+    }
+    final azimuth = 40 * math.pi / 180, elevation = 28 * math.pi / 180;
+    final right = ConceptVector(math.sin(azimuth), -math.cos(azimuth), 0);
+    final up = ConceptVector(-math.cos(azimuth) * math.sin(elevation),
+        -math.sin(azimuth) * math.sin(elevation), math.cos(elevation));
+    final boxes = <({String id, double layer, Rect rect})>[];
+    for (final part in scene.parts) {
+      final vertices = meshes[part.id]!
+          .expand((face) => face.points)
+          .map((p) => p.rotated(part.rotation) + part.position)
+          .toList(growable: false);
+      if (vertices.isEmpty) return;
+      final rect =
+          _bounds([for (final p in vertices) Offset(p.dot(right), p.dot(up))]);
+      final low = vertices.map((p) => p.z).reduce(math.min),
+          high = vertices.map((p) => p.z).reduce(math.max);
+      boxes.add((id: part.id, layer: (low + high) / 2, rect: rect));
+    }
+    boxes.sort((a, b) {
+      final order = a.layer.compareTo(b.layer);
+      return order == 0 ? a.id.compareTo(b.id) : order;
+    });
+    final original =
+        boxes.map((b) => b.rect).reduce((a, b) => a.expandToInclude(b));
+    final dimensions = boxes
+        .map((b) => math.max(b.rect.width, b.rect.height))
+        .toList()
+      ..sort();
+    final gap = math.max(.12, dimensions[dimensions.length ~/ 2] * .12);
+    // Enumerate at most 24 row widths; choose the layout with the best fit in a
+    // landscape preview, rather than shrinking everything into a tall column.
+    const aspect = 1.6;
+    var bestScore = double.infinity, bestArea = double.infinity;
+    Map<String, Offset> best = const {};
+    for (var columns = 1; columns <= boxes.length; columns++) {
+      final rows = <({int start, int end, double width, double height})>[];
+      for (var start = 0; start < boxes.length; start += columns) {
+        final end = math.min(start + columns, boxes.length);
+        final row = boxes.sublist(start, end);
+        rows.add((
+          start: start,
+          end: end,
+          width: row.fold(0.0, (sum, b) => sum + b.rect.width) +
+              gap * (row.length - 1),
+          height: row.map((b) => b.rect.height).reduce(math.max)
+        ));
+      }
+      final width = rows.map((r) => r.width).reduce(math.max);
+      final height =
+          rows.fold(0.0, (sum, r) => sum + r.height) + gap * (rows.length - 1);
+      final score = math.max(width / aspect, height), area = width * height;
+      if (score > bestScore + 1e-9 ||
+          ((score - bestScore).abs() < 1e-9 && area >= bestArea)) {
+        continue;
+      }
+      final positions = <String, Offset>{};
+      var y = -height / 2;
+      for (final row in rows) {
+        var x = -row.width / 2;
+        for (var i = row.start; i < row.end; i++) {
+          final box = boxes[i];
+          positions[box.id] =
+              Offset(x + box.rect.width / 2, y + row.height / 2) +
+                  original.center -
+                  box.rect.center;
+          x += box.rect.width + gap;
+        }
+        y += row.height + gap;
+      }
+      bestScore = score;
+      bestArea = area;
+      best = positions;
+    }
+    effectiveExplode = Map.unmodifiable({
+      for (final box in boxes)
+        box.id: right * best[box.id]!.dx + up * best[box.id]!.dy
+    });
+    _automaticExplode = true;
+  }
 
   ConceptDrawing project(
     Size viewport, {
@@ -60,7 +178,7 @@ class ConceptGeometry {
     double zoom = 1,
     String? selected,
   }) {
-    if (scene.parts.isEmpty || viewport.isEmpty) {
+    if (scene.parts.isEmpty || meshes.isEmpty || viewport.isEmpty) {
       return const ConceptDrawing([], Rect.zero);
     }
     final a = azimuth * math.pi / 180;
@@ -79,6 +197,12 @@ class ConceptGeometry {
       ConceptVector normal
     })>[];
     for (final part in scene.parts) {
+      final offset = effectiveExplode[part.id] ?? part.explode;
+      // Automatic framing grows with separation so assembled=0 remains exactly
+      // as before. Explicit artist-provided layouts retain fixed endpoint fit.
+      final fitOffset = _automaticExplode
+          ? part.explode + (offset - part.explode) * exploded.clamp(0, 1)
+          : offset;
       for (final face in meshes[part.id]!) {
         final posed = face.points
             .map((p) => p.rotated(part.rotation) + part.position)
@@ -86,7 +210,7 @@ class ConceptGeometry {
         // Fit both endpoints so toggling exploded view doesn't change scale.
         for (final point in posed) {
           fit.add(screen(point));
-          fit.add(screen(point + part.explode));
+          fit.add(screen(point + fitOffset));
         }
         final normal = face.normal.rotated(part.rotation);
         if (normal.dot(toward) <= .00001) continue;
@@ -94,8 +218,7 @@ class ConceptGeometry {
           face: face,
           normal: normal,
           points: [
-            for (final point in posed)
-              point + part.explode * exploded.clamp(0, 1)
+            for (final point in posed) point + offset * exploded.clamp(0, 1)
           ]
         ));
       }
@@ -166,6 +289,23 @@ List<ConceptFace> _partMesh(ConceptPart part) {
   }
 
   final s = part.size;
+  if (part.geometry != null) {
+    return [
+      for (final triangle in compileConceptFeature(part))
+        ConceptFace(
+            partId: part.id,
+            points: [triangle.a, triangle.b, triangle.c],
+            normal: (triangle.b - triangle.a)
+                .cross(triangle.c - triangle.a)
+                .normalized,
+            color: color,
+            outline: false)
+    ];
+  }
+  if (part.explicitGeometry) {
+    solid(s, ConceptVector.zero, color, shape: part.shape);
+    return result;
+  }
   if (part.role == 'shell' &&
       (part.shape == 'box' || part.shape == 'rounded_box') &&
       s.z > .18 &&

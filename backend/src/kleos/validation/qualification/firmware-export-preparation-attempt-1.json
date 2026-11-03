@@ -1,0 +1,116 @@
+{
+  "prepared": false,
+  "imageId": "sha256:1ea0aa4e85133be3a85fd7399d53c94cb2d1dc6d426b603235fcf44beb93e3bc",
+  "sourceOverride": false,
+  "fixtureSourcesSha256": "57ceccfea114674488565591a04504e5e16947fe422fa62610ee594d98e0a971",
+  "scope": "New regeneration of unchanged trusted historical fixture; not historical byte recovery or independent validation",
+  "capacityScope": "Persistent fixture ledger only; serial root-coordinated execution, no cross-database capacity claim",
+  "startedAt": "2026-11-02T21:13:50.822800+00:00",
+  "actions": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "CMakeLists.txt",
+              "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "prj.conf",
+              "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "src/main.c",
+              "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "[Errno 2] No such file or directory: '/tmp/kleos-native-1qza_h64/.home/.cache/ccache/tmp/stderr.tmp.Qegoii.tmp'",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "ERROR",
+            "details": {
+              "error": "[Errno 2] No such file or directory: '/tmp/kleos-native-1qza_h64/.home/.cache/ccache/tmp/stderr.tmp.Qegoii.tmp'",
+              "executionSucceeded": false,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "modelCalls": 0,
+  "failure": {
+    "type": "AssertionError",
+    "message": "{'summary': \"[Errno 2] No such file or directory: '/tmp/kleos-native-1qza_h64/.home/.cache/ccache/tmp/stderr.tmp.Qegoii.tmp'\", 'artifacts': [], 'observations': [{'name': 'native.build', 'status': 'ERROR', 'details': {'error': \"[Errno 2] No such file or directory: '/tmp/kleos-native-1qza_h64/.home/.cache/ccache/tmp/stderr.tmp.Qegoii.tmp'\", 'executionSucceeded': False, 'candidateOnly': True}, 'independent': False}], 'blockers': []}"
+  },
+  "capacityFinal": {
+    "poolId": "isolated-firmware-export-fixture",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  },
+  "finishedAt": "2026-11-02T21:14:28.626175+00:00"
+}

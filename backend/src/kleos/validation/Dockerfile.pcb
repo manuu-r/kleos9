@@ -1,0 +1,14 @@
+ARG TOOLCHAIN_IMAGE
+FROM ${TOOLCHAIN_IMAGE}
+USER root
+WORKDIR /tmp
+RUN set -eu; rm -rf /app /workspace /srv/kleos /opt/kleos /opt/kleos-native /opt/kleos-checker; \
+    for directory in /usr/local/lib /usr/lib /opt/venv; do \
+      if [ -d "$directory" ]; then find "$directory" -type d \( -name kleos -o -name 'kleos*.dist-info' -o -name 'kleos*.egg-info' \) -prune -exec rm -rf '{}' +; fi; \
+    done; \
+    find /usr/local/bin /usr/bin -maxdepth 1 -type f -name 'kleos*' -delete
+COPY pcb_check.py /opt/kleos-pcb-checker/pcb_check.py
+RUN test -x /usr/bin/timeout && chmod 0555 /opt/kleos-pcb-checker /opt/kleos-pcb-checker/pcb_check.py
+LABEL kleos.checker.protocol="kleos-pcb-check-v1"
+USER 10001:10001
+ENTRYPOINT ["/usr/bin/timeout", "--signal=KILL", "175", "/usr/bin/python3", "-I", "/opt/kleos-pcb-checker/pcb_check.py"]

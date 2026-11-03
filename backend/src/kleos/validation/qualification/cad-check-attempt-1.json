@@ -1,0 +1,74 @@
+{
+  "qualified": false,
+  "imageId": "sha256:f150b1e03e5cd934bdb6d41795b4a86fa0f228e925405ac1fda121ae66dad2de",
+  "protocol": "kleos-cad-check-v1",
+  "sourceOverride": false,
+  "deployment": "local",
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "checkerSourceSha256": "2a4c3c0fae4f391250804c703af67d4dd34a6b6ea00e06fef57cba7e0d1cdff0",
+  "scope": "Independent STEP/STL export integrity and explicit extents for one two-part fixture",
+  "passedCases": [],
+  "cases": [
+    {
+      "case": "valid_exports",
+      "expected": "PASS",
+      "result": {
+        "status": "ERROR",
+        "measurements": {},
+        "reason": "Independent export parser failed",
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-9426952b6ed14334907d330d03dffaed",
+        "checkerSourceSha256": "2a4c3c0fae4f391250804c703af67d4dd34a6b6ea00e06fef57cba7e0d1cdff0"
+      }
+    }
+  ],
+  "inputArtifacts": [
+    {
+      "id": "4ad1d369-1793-4f78-8c4c-b5c7c0846117",
+      "path": "outputs/base.step",
+      "sha256": "3cbf802045db7cbd220a490a26db934cd7500411476bee4c1d67905619ee9ba9",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 19035
+    },
+    {
+      "id": "de61d283-3386-4085-a654-43675c46495d",
+      "path": "outputs/base.stl",
+      "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+      "revision": 2,
+      "mediaType": "application/vnd.ms-pki.stl",
+      "size": 26084
+    },
+    {
+      "id": "6c96291b-716a-40a4-8a6c-e824b7df1611",
+      "path": "outputs/lid.step",
+      "sha256": "56eb4e6962a2bb4e0510abc891b1292dadcb31a40bcabc538b63cee8014fdd61",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 16946
+    },
+    {
+      "id": "1052cd6d-9160-4fe6-b323-5c6ae3d04619",
+      "path": "outputs/lid.stl",
+      "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+      "revision": 2,
+      "mediaType": "application/vnd.ms-pki.stl",
+      "size": 684
+    }
+  ],
+  "limits": {
+    "memoryBytes": 2147483648,
+    "cpuCount": 2,
+    "pids": 64,
+    "timeoutSeconds": 120
+  },
+  "limitations": [
+    "Not manufacturing, stress, fit, material, electrical, physical or arbitrary-device acceptance",
+    "Mesh intersection and STEP/STL surface correspondence beyond bounds/volume are not qualified",
+    "Only explicit STEP SI millimetres and paired closed oriented STL meshes",
+    "Local Docker Desktop only; no ECS qualification"
+  ],
+  "finishedAt": "2026-11-02T16:02:00.101910+00:00"
+}

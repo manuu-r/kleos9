@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kleos_ui/data/models/json.dart';
+import 'package:kleos_ui/data/services/production_api.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/production/bambu_local_connection.dart';
 
-const codeLabel = 'LAN access code (kept on this computer)';
-const pinLabel = 'Independently verified certificate SHA-256';
-
+const codeLabel = 'LAN access code';
 Finder field(String label) => find.byWidgetPredicate(
     (w) => w is TextField && w.decoration?.labelText == label);
 Future<void> enter(WidgetTester tester, String label, String text) async {
@@ -23,7 +22,7 @@ Future<void> tap(WidgetTester tester, String label) async {
 
 Future<void> mount(WidgetTester tester,
     {double width = 390,
-    Future<JsonMap> Function(JsonMap)? inspect,
+    JsonMap state = const {'enabled': true},
     Future<JsonMap> Function(JsonMap)? connect,
     Future<JsonMap> Function()? refresh,
     Future<JsonMap> Function()? forget}) async {
@@ -37,10 +36,7 @@ Future<void> mount(WidgetTester tester,
               padding: const EdgeInsets.all(20),
               child: BambuLocalConnectionForm(
                   modelId: 'N1',
-                  state: const {'enabled': true},
-                  onCertificate: inspect ??
-                      (_) async =>
-                          {'certificateSha256': 'a' * 64, 'verified': false},
+                  state: state,
                   onConnect: connect ??
                       (_) async => {
                             'connected': false,
@@ -54,59 +50,36 @@ Future<void> mount(WidgetTester tester,
 Future<void> fill(WidgetTester tester) async {
   await enter(tester, 'Printer IP address', '192.168.0.50');
   await enter(tester, 'Printer serial number', 'A1MINIFIXTURE');
-  await enter(tester, pinLabel, 'a' * 64);
-  tester
-      .widget<CheckboxListTile>(find.byType(CheckboxListTile))
-      .onChanged!(true);
-  await tester.pump();
   await enter(tester, codeLabel, 'fixtureCode123');
 }
 
 void main() {
   for (final width in [320.0, 390.0, 1000.0]) {
     testWidgets(
-        'local read-only form fits $width pixels without assuming a printer is connected',
+        'simple connection fits $width and hides technical certificate fields',
         (tester) async {
       await mount(tester, width: width);
-      expect(find.text('Connect locally · read-only'), findsOneWidget);
+      expect(find.text('Connect your printer'), findsOneWidget);
       expect(tester.widget<TextField>(field(codeLabel)).obscureText, isTrue);
       expect(
           tester
-              .widget<KButton>(
-                  find.widgetWithText(KButton, 'Test read-only connection'))
+              .widget<KButton>(find.widgetWithText(KButton, 'Connect'))
               .onPressed,
           isNull);
+      expect(find.textContaining('certificate SHA-256'), findsNothing);
       expect(find.text('Refresh status'), findsNothing);
+      expect(find.byType(SwitchListTile), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
-
   testWidgets(
-      'inspection sends no access code and never trusts a fingerprint automatically',
-      (tester) async {
-    JsonMap? sent;
-    await mount(tester, inspect: (body) async {
-      sent = body;
-      return {'certificateSha256': 'a' * 64, 'verified': false};
-    });
-    await enter(tester, 'Printer IP address', '192.168.0.50');
-    await enter(tester, codeLabel, 'fixtureCode123');
-    await tap(tester, 'Inspect certificate (no access code sent)');
-    expect(sent, {'address': '192.168.0.50'});
-    expect(tester.widget<TextField>(field(pinLabel)).controller!.text, isEmpty);
-    expect(
-        tester.widget<TextField>(field(codeLabel)).controller!.text, isEmpty);
-    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
-        isFalse);
-  });
-
-  testWidgets(
-      'explicit A1 mini connection clears the code and supports refresh and forget',
+      'connect delegates certificate validation and clears code; refresh and forget work',
       (tester) async {
     JsonMap? sent;
     var refreshed = 0, forgotten = 0;
     JsonMap connected() => {
           'connected': true,
+          'paired': true,
           'credentialsStored': true,
           'address': '192.168.0.50',
           'message': 'Read-only status received',
@@ -127,10 +100,13 @@ void main() {
       };
     });
     await fill(tester);
-    await tap(tester, 'Test read-only connection');
-    expect(sent?['modelId'], 'N1');
-    expect(sent?['certificateVerified'], isTrue);
-    expect(sent?.containsKey('command'), isFalse);
+    await tap(tester, 'Connect');
+    expect(sent, {
+      'address': '192.168.0.50',
+      'serial': 'A1MINIFIXTURE',
+      'accessCode': 'fixtureCode123',
+      'modelId': 'N1'
+    });
     expect(
         tester.widget<TextField>(field(codeLabel)).controller!.text, isEmpty);
     expect(find.text('Printer reports: idle'), findsOneWidget);
@@ -140,28 +116,91 @@ void main() {
     expect(forgotten, 1);
     expect(find.text('Refresh status'), findsNothing);
   });
-
-  testWidgets('changing the endpoint requires certificate verification again',
+  testWidgets(
+      'unsuccessful response remains visible after mounting from saved state',
       (tester) async {
-    await mount(tester);
-    await fill(tester);
-    await enter(tester, 'Printer IP address', '192.168.0.51');
-    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
-        isFalse);
+    await mount(tester, state: const {
+      'enabled': true,
+      'address': '192.168.0.50',
+      'serial': 'A1MINIFIXTURE',
+      'connected': false,
+      'credentialsStored': false,
+      'message':
+          'The printer rejected the access code. Check the code on its screen.'
+    });
+    expect(find.textContaining('rejected the access code'), findsOneWidget);
+    expect(find.text('Refresh status'), findsNothing);
+  });
+  testWidgets('stale status still shows paired and offers refresh without code',
+      (tester) async {
+    await mount(tester, state: const {
+      'enabled': true,
+      'address': '192.168.0.50',
+      'serial': 'A1MINIFIXTURE',
+      'connected': false,
+      'paired': true,
+      'credentialsStored': true,
+      'status': 'stale',
+      'message': 'Status is stale; choose Refresh status'
+    });
+    expect(find.text('Printer paired · refresh to get its latest status'),
+        findsOneWidget);
     expect(
         tester
-            .widget<KButton>(
-                find.widgetWithText(KButton, 'Test read-only connection'))
+            .widget<KButton>(find.widgetWithText(KButton, 'Refresh status'))
             .onPressed,
-        isNull);
+        isNotNull);
+    expect(find.text('Printer reports: unknown'), findsNothing);
+  });
+  testWidgets('server validation errors are shown and code is cleared',
+      (tester) async {
+    await mount(tester,
+        connect: (_) async => throw const ProductionApiException(
+            'Printer identity could not be verified',
+            status: 422));
+    await fill(tester);
+    await tap(tester, 'Connect');
+    expect(find.text('Printer identity could not be verified'), findsOneWidget);
+    expect(
+        tester.widget<TextField>(field(codeLabel)).controller!.text, isEmpty);
+  });
+  testWidgets('expired pairing explains why the code is needed again',
+      (tester) async {
+    await mount(tester, state: const {
+      'enabled': true,
+      'status': 'expired',
+      'message': 'Local connection expired; re-enter the access code'
+    });
+    expect(find.text('Local connection expired; re-enter the access code'),
+        findsOneWidget);
+    expect(find.text('Refresh status'), findsNothing);
   });
 
-  testWidgets(
-      'offline printer stays disconnected and the access code is cleared',
+  testWidgets('editing printer identity does not reuse the old paired status',
       (tester) async {
+    await mount(tester, state: const {
+      'address': '192.168.0.50',
+      'serial': 'A1MINIFIXTURE',
+      'connected': true,
+      'paired': true,
+      'credentialsStored': true,
+      'observation': {'state': 'idle'},
+      'message': 'Connected'
+    });
+    expect(find.text('Printer paired · connected'), findsOneWidget);
+    await enter(tester, codeLabel, '12345678');
+    await enter(tester, 'Printer IP address', '192.168.0.51');
+    expect(
+        tester.widget<TextField>(field(codeLabel)).controller!.text, isEmpty);
+    expect(find.text('Printer paired · connected'), findsNothing);
+    expect(find.text('Printer reports: idle'), findsNothing);
+    expect(find.text('Refresh status'), findsNothing);
+  });
+
+  testWidgets('offline printer never appears connected', (tester) async {
     await mount(tester);
     await fill(tester);
-    await tap(tester, 'Test read-only connection');
+    await tap(tester, 'Connect');
     expect(find.text('Printer unreachable'), findsOneWidget);
     expect(find.text('Refresh status'), findsNothing);
     expect(
