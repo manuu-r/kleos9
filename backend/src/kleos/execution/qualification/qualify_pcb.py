@@ -114,7 +114,7 @@ async def qualify(args):
                 await docker.cleanup(job.id)
         report = {'qualified': success, 'imageId': args.image, 'protocol': 'kleos-native-session-v2', 'lane': 'pcb',
                   'deployment': 'local', 'sourceOverride': False, 'qualificationKind': 'exact-image',
-                  'networkPolicy': 'linux-supervisor-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
+                  'networkPolicy': 'in-process-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
                   'parentImageId': args.parent_image, 'daemonSeccompSha256': fingerprint(daemon_socket_profile()),
                   'finishedAt': datetime.now(UTC).isoformat(), 'fixtureSourcesSha256': fingerprint(sources),
                   'circuitContract': CONTRACT, 'circuitContractHash': fingerprint(CONTRACT),

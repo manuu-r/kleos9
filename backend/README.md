@@ -71,6 +71,16 @@ resume-without-duplicate-effects workflows run through the real runtime in
 `tests/test_dynamic_journeys.py` and `tests/test_external_wait_graph.py`.
 Scenario tests prove orchestration behavior, not engineering quality.
 
+`tests/test_real_native_journeys.py` runs composed journeys through the real runtime and API against the real
+qualified native containers (`KLEOS_TEST_REAL_NATIVE=1`, local Docker, the images named by
+`src/kleos/execution/qualification/*-linux-strict-*.json`): a bracket-only task on an imported project (real
+build123d, geometry measured from the exported STL) and an imported-PCB routing task after explicit identity
+approval (real KiCad ERC/DRC and Freerouting). Only the model is scripted. The same file has live-model tests that
+cost money and therefore need all of `KLEOS_TEST_LIVE_MODEL=1`, `KLEOS2_META_API_KEY` and an explicit
+`KLEOS_LIVE_MAX_COST_USD` (<= 20, optional `KLEOS_LIVE_MAX_CALLS`); they assert only model-independent invariants
+and write a JSON report (calls, committed cost, outcome, measured geometry) to `KLEOS_LIVE_REPORT_DIR`.
+`tests/test_qualification_records.py` checks that the runtime accepts every committed qualification record.
+
 ## Explicit process commands
 
 Run from this directory with the locked environment. Configuration uses the

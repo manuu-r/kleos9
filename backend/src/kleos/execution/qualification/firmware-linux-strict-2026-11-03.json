@@ -7,10 +7,10 @@
   "sourceOverride": false,
   "qualificationKind": "exact-image",
   "firmwareBoard": "nrf52840dk/nrf52840",
-  "networkPolicy": "linux-supervisor-seccomp",
+  "networkPolicy": "in-process-seccomp",
   "parentImageId": "sha256:d149b201aaabc9668b3bdaa86f7170be89033e17630958e1200e3e84bcac53a7",
   "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
-  "finishedAt": "2026-11-03T04:55:40.943898+00:00",
+  "finishedAt": "2026-11-03T07:33:40.530737+00:00",
   "fixtureSourcesSha256": "57ceccfea114674488565591a04504e5e16947fe422fa62610ee594d98e0a971",
   "checks": [
     {
@@ -109,7 +109,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "1a50b02a-117c-459d-b614-6ed618655dbd",
+            "id": "364548f1-9aaa-413e-b7cd-f4a6c171ef9f",
             "path": "CMakeLists.txt",
             "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
             "revision": 2,
@@ -117,7 +117,7 @@
             "size": 155
           },
           {
-            "id": "0baa36a6-e018-4836-94c1-818c489dc15b",
+            "id": "dc3b1249-8f23-40db-bc70-4f9b2060ee6d",
             "path": "prj.conf",
             "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
             "revision": 2,
@@ -125,7 +125,7 @@
             "size": 42
           },
           {
-            "id": "fd53272f-2693-40b9-b9ac-d20e53d95464",
+            "id": "9208f796-a916-4215-ad77-0dd309ecbd53",
             "path": "src/main.c",
             "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
             "revision": 2,
@@ -133,7 +133,7 @@
             "size": 171
           },
           {
-            "id": "6c67d2c3-13fd-49f3-b63c-68aa8a6bc98e",
+            "id": "1401a6d6-c9b8-44aa-a9d1-d11b27149d62",
             "path": "outputs/firmware.bin",
             "sha256": "08c7e4096b9df38b4872f8422212232983a8d2a2cf7a2e9678dcfa231c9742c2",
             "revision": 2,
@@ -141,9 +141,9 @@
             "size": 19512
           },
           {
-            "id": "42364f1e-1d27-4340-8839-4eba11785c33",
+            "id": "e30f9f5e-496e-41e1-91ce-8e91ab8f0990",
             "path": "outputs/firmware.elf",
-            "sha256": "e53ff3e010ab43fc69f0b53d27365be22ae8601d2315f610bf1e83888478d059",
+            "sha256": "aa65e024185e1019761f57fee60475a12c73eb761e6c7881bec4ec537be0c2c1",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 630584

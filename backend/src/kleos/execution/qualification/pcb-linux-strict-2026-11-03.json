@@ -6,10 +6,10 @@
   "deployment": "local",
   "sourceOverride": false,
   "qualificationKind": "exact-image",
-  "networkPolicy": "linux-supervisor-seccomp",
+  "networkPolicy": "in-process-seccomp",
   "parentImageId": "sha256:57d564558ad4940153bc500a2235e5d1fba82b06feafd1a224bb8e097f136270",
   "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
-  "finishedAt": "2026-11-03T04:56:23.266873+00:00",
+  "finishedAt": "2026-11-03T07:32:29.998405+00:00",
   "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
   "circuitContract": {
     "references": [
@@ -280,7 +280,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "952af0c5-e04d-43ae-86a3-6aaeed4d414a",
+            "id": "f5315351-2357-4030-87f7-c316a16c4729",
             "path": "Fixture.pretty/TwoPin.kicad_mod",
             "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273",
             "revision": 2,
@@ -288,7 +288,7 @@
             "size": 1251
           },
           {
-            "id": "7f202ff7-505d-4e03-acd0-dbee58222523",
+            "id": "342988b1-70cf-4a43-9381-fb8a4c952ed7",
             "path": "board.kicad_pcb",
             "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474",
             "revision": 2,
@@ -296,7 +296,7 @@
             "size": 5382
           },
           {
-            "id": "7f9f55fd-f090-4eac-b5ec-c41dcbaacfe6",
+            "id": "860d7acd-6b6a-4454-9270-9f9656ee7333",
             "path": "board.kicad_prl",
             "sha256": "36feff389da83c0f055a78f2dd8638a8ed0c4e8ed99e3cc8b4d6dcb1acad2f62",
             "revision": 2,
@@ -304,7 +304,7 @@
             "size": 2115
           },
           {
-            "id": "e6b36d95-3210-48f8-87e4-3d993b606f77",
+            "id": "c6d3664c-acf6-4148-8ab5-3c38b82e7766",
             "path": "board.kicad_pro",
             "sha256": "9c2a7f0eb9896769c964533e71fd6c358cec467eef3470d0df81b651e51f3616",
             "revision": 2,
@@ -312,7 +312,7 @@
             "size": 8358
           },
           {
-            "id": "15f97585-4194-4b3a-8b3a-3c7f007070cb",
+            "id": "df7bab4d-fc31-4ec2-b4f8-0b537833d730",
             "path": "circuit.kicad_sch",
             "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f",
             "revision": 2,
@@ -320,7 +320,7 @@
             "size": 2887
           },
           {
-            "id": "a4fa09b6-605d-4708-95cb-aa96d3a870f4",
+            "id": "3005c89d-6d80-49f7-9e86-ff16c685ca41",
             "path": "fixture.kicad_sym",
             "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac",
             "revision": 2,
@@ -328,7 +328,7 @@
             "size": 933
           },
           {
-            "id": "68155530-3756-447b-9dae-542074aee649",
+            "id": "a05a2412-62dc-4e37-b97e-373e8ff4ce47",
             "path": "fp-lib-table",
             "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66",
             "revision": 2,
@@ -336,7 +336,7 @@
             "size": 123
           },
           {
-            "id": "348bef63-d098-44d6-ba50-54dc702a06aa",
+            "id": "6acd32aa-1377-4bb3-80d4-e9d9b6d0c16e",
             "path": "sym-lib-table",
             "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437",
             "revision": 2,
@@ -344,7 +344,7 @@
             "size": 127
           },
           {
-            "id": "886124e0-f0b2-4f02-8014-d8de6c416182",
+            "id": "171d3b73-af77-40f6-a033-2244e23173d1",
             "path": "outputs/circuit-contract.json",
             "sha256": "1141050df597abaeabc9ccf4772ee488f60cc6a454554e50fd371d6347fcbb43",
             "revision": 2,
@@ -352,127 +352,127 @@
             "size": 487
           },
           {
-            "id": "3d47b1f1-f762-4675-b320-90419bdc26e7",
+            "id": "cab1f0d3-24b6-4bae-9fa4-f9e10dc46893",
             "path": "outputs/drc.json",
-            "sha256": "d56186d8c64e00a99da8383bf3471fa6faf7f050ffa7c086123ccaa2e5b7c382",
+            "sha256": "4cbfe3c3036fd603a0c5b75a6dd796d2f1fc85060c9b0dc44432398de266b3f2",
             "revision": 2,
             "mediaType": "application/json",
             "size": 342
           },
           {
-            "id": "93028a22-ca08-48f7-b40b-5934f8021e66",
+            "id": "e8abdbcc-99f6-4510-903d-77d8a2e18188",
             "path": "outputs/erc.json",
-            "sha256": "e7a3dd4dbd802249e2a30867d78d42053a5f218db3b4b8b9d2438cb11254c743",
+            "sha256": "17b5c8280b6c764a6d6346d4e0cbd80799261fd225177eb9d6f8553c031fd0f2",
             "revision": 2,
             "mediaType": "application/json",
             "size": 428
           },
           {
-            "id": "f29c1d03-61aa-4826-9fb2-5675144a0545",
+            "id": "a005792e-4b2c-4644-800a-8fb5380296ed",
             "path": "outputs/gerbers/board-B_Cu.gbr",
-            "sha256": "bba6d4c0ac839a6fba4c809c1f5cb00ba85d92ac9011bbdd7755035de1f131b5",
+            "sha256": "c1acd9c0752ea96da495c8f21547075b1971e3e2ddbf08ccad4353831b6c50df",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 929
           },
           {
-            "id": "8fa37260-63ff-43a0-a710-12eab63e74cb",
+            "id": "fa16970b-a3ba-4bfd-9b4e-2693ca50bd01",
             "path": "outputs/gerbers/board-B_Mask.gbr",
-            "sha256": "5dd4fcde931fe5b7bfd5b328a84c95025eef4a73dcf328d4fc3c3aebc688418f",
+            "sha256": "6e6b00b64925ac7459a0583611abba368e4b7f782a3d2f4ab727fde0d79524ec",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "9c532a0c-08fa-42a0-8a86-95cc8159bf88",
+            "id": "ecc9daf3-c9e4-470b-936a-cc0cb1971f23",
             "path": "outputs/gerbers/board-B_Paste.gbr",
-            "sha256": "40ad8736f885b06fcb1b2e41d79e161edf1bcbf29e3a5c68c00c905f209001ad",
+            "sha256": "b543ed40728070da77a7e85665b6a8d7cb84cd2a1e4d15dc179f492610f7e491",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "80ce3359-60e0-47ad-ab00-5b95289c5e21",
+            "id": "3173406f-642b-4c90-a651-9a27f3b756c2",
             "path": "outputs/gerbers/board-B_Silkscreen.gbr",
-            "sha256": "f5f09eeda7bada90fdf0874ddeca0477ce44b48b58c619ea8458158ad7a4ce56",
+            "sha256": "030031dd585f42e25e2874d08f47a83ea75dfac82196fe2ddff7027d5f173c3e",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 453
           },
           {
-            "id": "56685e13-6fb1-4607-a416-d73e58009ab4",
+            "id": "c0d80dd4-ef0d-4435-b3fb-0fbb7ba9ed29",
             "path": "outputs/gerbers/board-Edge_Cuts.gbr",
-            "sha256": "38455e8e960228330e5e5d8d38fdef686ff80ee5c1782a2514f54e3201154050",
+            "sha256": "f93367719cb4cdf571f189ee59ef0e079d6086339c64b76d3af05248643c519b",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 614
           },
           {
-            "id": "c364d1cc-3467-48c0-9887-613800130cbb",
+            "id": "3d41df26-1472-42bc-ba78-823c660cbb6f",
             "path": "outputs/gerbers/board-F_Cu.gbr",
-            "sha256": "24be988843cf0e7db46471bbe9ae6d2d3d38b7f4841077b715a47cd5520a5368",
+            "sha256": "c1123392e76a780514f882443473db5a099f09fe8b7f2323ff20c10f886e75c9",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 738
           },
           {
-            "id": "e839f60b-0900-4674-9bd6-5579a75cd4a4",
+            "id": "71d744c1-3f69-483c-b45b-498d3c4e2fd6",
             "path": "outputs/gerbers/board-F_Mask.gbr",
-            "sha256": "c58f1d9bfbe824c482c6914fbc584f98fd70ed1609bd1089f3fbc5725f5ceabb",
+            "sha256": "9b4d7f2230d470081667823d9d1c9a640080b51cca2aca356476835195ca7901",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 611
           },
           {
-            "id": "1186fc7a-7b9a-4219-ae5f-51f51394ed32",
+            "id": "1d835fc3-c4d1-4fc5-a817-c3121974c940",
             "path": "outputs/gerbers/board-F_Paste.gbr",
-            "sha256": "1dfbbae31507d37d896e3feabb04f26d0350e48caee24be9e72c4a644fce9b5a",
+            "sha256": "7b3ca4d81eae75334abc4f74862acee7ee437bf8ee52fae830f7c5e0f213bd01",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 452
           },
           {
-            "id": "6348559b-334a-4c8c-81f5-c978478757cb",
+            "id": "b2c6d7e2-505c-4aae-8dce-cb6cbadc3bba",
             "path": "outputs/gerbers/board-F_Silkscreen.gbr",
-            "sha256": "034ed59851a9db2272b3cc9fbc4aa0c804ea2555698115c05ba1f470d786964c",
+            "sha256": "1a8e25ff06c5844476028f8fc61e3763f3b89269f7c87994e3394f13bfe07b6a",
             "revision": 2,
             "mediaType": "application/rpki-ghostbusters",
             "size": 1663
           },
           {
-            "id": "e1a9bff0-dd1b-4ee0-a598-04596469fb84",
+            "id": "dd87d6e6-749f-4cd8-9a5d-75339f19563e",
             "path": "outputs/gerbers/board-job.gbrjob",
-            "sha256": "948d29c9680faf39a5f7ca9fdb39579c6273d6af4a46c70af80aec2212d7f27e",
+            "sha256": "d6d21743b535dc5a1b10bfb23dbe792109d5f4ae5c0db4b7fde799cb4016427b",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 2603
           },
           {
-            "id": "84be655f-0803-4b3e-b9a2-ba022c0911dd",
+            "id": "8c369c60-ec86-4701-871a-1434a84c5153",
             "path": "outputs/gerbers/board.drl",
-            "sha256": "4f83b0fa7a5ab5f8c8f6827d30db6eab1120040375b6377c911a3c1591c7d510",
+            "sha256": "e8ca0e36015fc5f9441db7d16af72d2b9a60af5fca03427a249effaa5759fc21",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 381
           },
           {
-            "id": "6235f0c0-ab0b-4916-a1fb-81cd3d711c72",
+            "id": "6123bd29-e45b-42a1-aa23-abcba9b9d317",
             "path": "outputs/netlist.xml",
-            "sha256": "43a06ab43ef1dd4dabc6af34b1c72241c4eeecd763c2e79b9d04d51e8e41db9e",
+            "sha256": "67a6324a44f7d660c5266e1abc1526ea78629add04c7a91085c6345f0b070970",
             "revision": 2,
             "mediaType": "application/xml",
             "size": 2866
           },
           {
-            "id": "b7877c7d-dea0-4fd8-8064-f34145985922",
+            "id": "3b5304aa-7de0-49ae-af8a-380a112f9a68",
             "path": "outputs/pcb-project.zip",
-            "sha256": "6fb6ebd99204466da53025d378360e28d1b5cc44e31d3c18c85bd9d14c2da68a",
+            "sha256": "61f41791305746411ad6be8ba62b2043d284723001b1c6b673fcf05b52465506",
             "revision": 2,
             "mediaType": "application/zip",
-            "size": 8062
+            "size": 8061
           },
           {
-            "id": "e7230809-0233-424f-9b0f-e83cc6e6aa43",
+            "id": "51e847f8-2f8f-4a91-a1fc-68078c8e40e0",
             "path": "outputs/routed.kicad_dru",
             "sha256": "1836c6d1a8b559b428534e9f011acb4df411609d19ff25c02f8b7c8974e0522f",
             "revision": 2,
@@ -480,15 +480,15 @@
             "size": 143
           },
           {
-            "id": "edcbfe5b-cfa1-4c5b-880a-82aa66ca8a8a",
+            "id": "10ed59e9-b48c-4882-8fc9-0b2b795c62ae",
             "path": "outputs/routed.kicad_pcb",
-            "sha256": "c1de515fb280fc0f160a024a0fb91bc5c8479681e3f0262a3d41d4fe29205a4c",
+            "sha256": "91533752b686d37fbfa00421c72b988242cf3dc9b2c0c210459aee1d2a87b3cd",
             "revision": 2,
             "mediaType": "application/octet-stream",
             "size": 5654
           },
           {
-            "id": "01f9daad-dda2-45a7-a95e-8c63c6267647",
+            "id": "41c04785-5259-47aa-a00a-bb7150d64c18",
             "path": "outputs/routed.kicad_pro",
             "sha256": "f012dcd33a0643d419e3a33faf1c0d890d2757870cd3842c11b40f4bb7769fcf",
             "revision": 2,
@@ -496,9 +496,9 @@
             "size": 8359
           },
           {
-            "id": "fd5916a2-924b-418d-bc95-1d6cd61b5d4f",
+            "id": "900e5243-0b5c-4537-9968-6f7a3d3c66c9",
             "path": "outputs/routing.json",
-            "sha256": "e77147a7a970ef319a7ecf2a0c67bdd13dbcf232978568bd9aa0fc3d5ecf63be",
+            "sha256": "97df6d018952fd8b07148ece2586f4d29001a03af7f8b45371da253b392fa6ef",
             "revision": 2,
             "mediaType": "application/json",
             "size": 312

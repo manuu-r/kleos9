@@ -133,7 +133,7 @@ async def qualify(args):
         evidence = {'qualified': success, 'imageId': args.image, 'finishedAt': datetime.now(UTC).isoformat(),
                     'fixtureSha256': digest(FIXTURE.encode()), 'protocol': 'kleos-native-session-v2', 'lane': 'cad',
                     'sourceOverride': False,
-                    'networkPolicy': 'linux-supervisor-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
+                    'networkPolicy': 'in-process-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
                     'parentImageId': args.parent_image, 'scope': 'exact-image CAD two-part fixture only',
                     'checks': observations, 'containers': inspections,
                     'limitations': ['No physical acceptance', 'No PCB/firmware/application qualification',

@@ -26,7 +26,8 @@ sockets, read-only authority paths and the exact CPU, memory and PID cgroup limi
 routing, DRC and Gerber/drill export (28 artifacts including `routed.kicad_pcb`), and rejected wrong and missing
 accepted references.
 
-Findings fixed while running them: Zephyr fell back to a read-only cache path because the supervisor never created
+The runtime's evidence gate (`native_qualification`) accepts these records for their exact images under the
+`in-process-seccomp` policy; `tests/test_qualification_records.py` enforces that. Findings fixed while running them: Zephyr fell back to a read-only cache path because the supervisor never created
 `$HOME/.cache` (it now does, in each job's private home); the supervisor treated a missing `/proc/net/ipv6_route` (a kernel without
 IPv6) as a failure (now only that case is tolerated, regression in `tests/test_execution.py`), and the CAD
 fixture's cgroup assertions only knew the v2 layout (now layout-aware, same limits). Both scripts gained
@@ -44,7 +45,7 @@ button, with no page errors and no requests outside the local server. That check
 `413b789d...`, the one in the earlier record), west 1.5.0 and GNU Arm 12.2.1, producing `firmware.elf` and
 `firmware.bin`. It was compile-only: nothing was flashed or executed.
 
-All three records were re-run after the final supervisor change below, so each image ID corresponds to the
+All four records were re-run after the final supervisor change below, so each image ID corresponds to the
 committed code. Earlier runs on superseded images are not retained.
 
 **Not established:** independent CAD/PCB checker images (those adapters still require Docker Desktop and were not

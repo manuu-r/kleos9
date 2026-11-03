@@ -88,7 +88,7 @@ async def qualify(args):
         report = {'qualified': success, 'imageId': args.image, 'protocol': 'kleos-native-session-v2', 'lane': 'application',
             'applicationTarget': 'web', 'deployment': 'local', 'sourceOverride': False, 'qualificationKind': 'exact-image',
             'storagePolicy': 'hard-bounded-private-tmpfs', 'resources': settings.application_resources.wire(),
-            'networkPolicy': 'linux-supervisor-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
+            'networkPolicy': 'in-process-seccomp' if args.strict_linux else 'docker-desktop-daemon-seccomp',
             'parentImageId': args.parent_image, 'daemonSeccompSha256': fingerprint(daemon_socket_profile()),
             'finishedAt': datetime.now(UTC).isoformat(), 'fixtureSourcesSha256': fingerprint(sources),
             'checks': observations, 'containers': containers, 'webArchiveEntries': zip_entries,

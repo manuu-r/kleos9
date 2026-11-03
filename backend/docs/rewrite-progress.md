@@ -27,6 +27,15 @@ Do not declare completion based on fixtures or code-size reduction alone.
   `KLEOS2_DATABASE_URL` broke).
   With a local PostgreSQL 16 and the opt-in solver/container tests enabled, the full suite passed:
   1,675 passed, 0 failed, 0 skipped.
+- Frontend check (3 November 2026): `kleos-ui` was not edited by the rewrite (the 61-file frontend diff in
+  `b557441` is the repository owner's own feature work committed alongside it). With Flutter 3.47.8 the
+  transport check, `flutter analyze` and `flutter test` (402 passed, 4 skipped) pass, and a temporary test using
+  the app's own `ProductionApi` and generated DTOs passed against a live new backend (session, catalogs,
+  connectors, project create/replay, workspace, circuit-simulation, preview, drafts, event stream). The full
+  browser-driven `test_driver/production_live_test.dart` needs a billed model and has not been run.
+- Composed real-native journeys (`tests/test_real_native_journeys.py`): the missing-bracket and imported-PCB
+  routing journeys passed against the real CAD and PCB containers with a scripted model. A live-model pass is
+  implemented and gated on credentials plus an explicit spend ceiling; it has not been run.
 - Circuit simulation (this branch's ngspice work) was rebuilt as `validation/simulation`: a
   deterministic deck compiler, bounded parser/checks, an isolated one-deck-per-container
   executor and stored, hash-verified evidence behind the unchanged route. It is advisory and

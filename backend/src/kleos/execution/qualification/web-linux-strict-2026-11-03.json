@@ -14,10 +14,10 @@
     "pids": 256,
     "scratchBytes": 4294967296
   },
-  "networkPolicy": "linux-supervisor-seccomp",
+  "networkPolicy": "in-process-seccomp",
   "parentImageId": "sha256:a34070c14bff09f3a31285f77f6bbf73d01857a05aa8942c7da1e2ff9f1fed64",
   "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
-  "finishedAt": "2026-11-03T05:26:55.224732+00:00",
+  "finishedAt": "2026-11-03T07:35:53.679194+00:00",
   "fixtureSourcesSha256": "6f99742b69481daf142a12af0d07ac06d8c6a0dafe14fa8e9d59a6e295987c4d",
   "checks": [
     {
@@ -137,7 +137,7 @@
         "summary": "Native candidate files collected",
         "artifacts": [
           {
-            "id": "edb4d347-e4af-4d80-8bd1-da0f21e28f49",
+            "id": "6d49aa11-0fa8-4ca3-80a9-09919d9a3d2e",
             "path": "pubspec.yaml",
             "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
             "revision": 2,
@@ -145,7 +145,7 @@
             "size": 225
           },
           {
-            "id": "d74c64d8-1c3e-44fb-a94c-474fe52b6d27",
+            "id": "effe458d-bb0b-42bf-bad7-4cd000edd82a",
             "path": "lib/main.dart",
             "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
             "revision": 2,
@@ -153,7 +153,7 @@
             "size": 663
           },
           {
-            "id": "060deaaa-119a-45b5-a665-4c6b9798e097",
+            "id": "9d298f0b-93b9-43e0-a6ea-12ff081479b7",
             "path": "web/index.html",
             "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
             "revision": 2,
@@ -161,7 +161,7 @@
             "size": 266
           },
           {
-            "id": "7bfc8ba0-732b-43fd-a593-02ed8aa52e74",
+            "id": "82559fda-79d9-4048-8c04-7b8754818b6c",
             "path": "pubspec.lock",
             "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
             "revision": 2,
@@ -169,9 +169,9 @@
             "size": 1485
           },
           {
-            "id": "d6b0c8eb-ca1e-4eae-bba0-4cab58af68e0",
+            "id": "a94a0ce6-85fb-4beb-ab81-d11d5ad99516",
             "path": "outputs/companion-web.zip",
-            "sha256": "fdfb6f1deea075cd0f1ec1e271362c4ee69101884ee32ba30147f8dc6e006103",
+            "sha256": "def9cf8c0f55dcd40265a4f825462dc96610930fff0f609fc0c6522d794fe87c",
             "revision": 2,
             "mediaType": "application/zip",
             "size": 11353929
