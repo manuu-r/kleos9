@@ -1,52 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/admin.dart';
-import '../data/models/json.dart';
-import '../data/services/production_api.dart';
+import '../data/repositories/admin_repository.dart';
 import 'production_store.dart';
+
+final adminRepositoryProvider = Provider<AdminRepository>(
+    (ref) => AdminRepository(ref.watch(productionApiProvider)));
 
 /// Reloads when the signed-in organization changes so one organization's roster is never shown for another.
 final adminMembersProvider =
-    FutureProvider.autoDispose<List<MemberRecord>>((ref) async {
+    FutureProvider.autoDispose<List<MemberRecord>>((ref) {
   ref.watch(accountProvider.select((a) => a.asData?.value?.tenantId));
-  final result = await ref.watch(productionApiProvider).get('/auth/members');
-  return asMaps(result['members']).map(MemberRecord.fromJson).toList();
+  return ref.watch(adminRepositoryProvider).members();
 });
 
 final adminInvitesProvider =
-    FutureProvider.autoDispose<List<InviteRecord>>((ref) async {
+    FutureProvider.autoDispose<List<InviteRecord>>((ref) {
   ref.watch(accountProvider.select((a) => a.asData?.value?.tenantId));
-  final result = await ref.watch(productionApiProvider).get('/auth/invites');
-  return asMaps(result['invites']).map(InviteRecord.fromJson).toList();
+  return ref.watch(adminRepositoryProvider).invites();
 });
 
-class AdminActions {
-  const AdminActions(this._api);
-  final ProductionApi _api;
+/// The administration commands the UI may issue.
+typedef AdminActions = AdminRepository;
 
-  Future<CreatedInvite> createInvite(
-          {required String role,
-          String? email,
-          required int expiresHours}) async =>
-      CreatedInvite.fromJson(await _api.post('/auth/invites', {
-        'role': role,
-        if (email != null && email.isNotEmpty) 'email': email,
-        'expiresHours': expiresHours,
-      }));
-
-  Future<void> revokeInvite(String id) =>
-      _api.delete('/auth/invites/${Uri.encodeComponent(id)}');
-
-  Future<void> changeRole(String subject, String role) => _api.post(
-      '/auth/members/${Uri.encodeComponent(subject)}/role', {'role': role});
-
-  Future<void> removeMember(String subject) =>
-      _api.delete('/auth/members/${Uri.encodeComponent(subject)}');
-
-  /// Returns the temporary password, which is shown once.
-  Future<String> resetPassword(String subject) async => (await _api.post(
-      '/auth/members/${Uri.encodeComponent(subject)}/reset-password',
-      {}))['temporaryPassword'] as String;
-}
-
-final adminActionsProvider = Provider<AdminActions>(
-    (ref) => AdminActions(ref.watch(productionApiProvider)));
+final adminActionsProvider =
+    Provider<AdminActions>((ref) => ref.watch(adminRepositoryProvider));

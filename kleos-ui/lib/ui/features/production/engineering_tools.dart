@@ -11,8 +11,7 @@ import '../../core/widgets.dart';
 /// access to the current organization.
 final engineeringToolsProvider = FutureProvider<JsonMap>((ref) {
   final repository = ref.watch(productionRepositoryProvider);
-  return repository.api
-      .get('/engineering-tools', organizationId: repository.organizationId);
+  return repository.engineeringTools();
 });
 
 class EngineeringTools extends ConsumerStatefulWidget {

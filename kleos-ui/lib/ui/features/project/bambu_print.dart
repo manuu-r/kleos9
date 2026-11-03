@@ -54,9 +54,8 @@ final bambuPrintProvider = FutureProvider.autoDispose
   final organization = repository.organizationId;
   final responses = await Future.wait([
     api.bambuCatalog(organizationId: organization),
-    api.get('/projects/${Uri.encodeComponent(request.projectId)}/workspace',
-        organizationId: organization),
-    api.get('/connectors', organizationId: organization),
+    repository.workspaceJson(request.projectId),
+    repository.connectors(),
     api.printPreparations(request.projectId, organizationId: organization),
   ]);
   JsonMap local = {}, dispatches = {};

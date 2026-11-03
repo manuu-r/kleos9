@@ -1,6 +1,7 @@
 import '../models/json.dart';
 import '../models/api.generated.dart';
 import '../models/production.dart';
+import '../services/api_routes.dart';
 import '../services/command_journal.dart';
 import '../services/production_api.dart';
 
@@ -15,7 +16,7 @@ class ProductionRepository {
   Future<({List<ProjectRecord> projects, String? nextCursor})> projects(
       {String? after}) async {
     final page = ApiProjectsView.fromJson(await api.get(
-            '/projects${after == null ? '' : '?after=${Uri.encodeComponent(after)}'}',
+            ApiRoutes.projectsPage(after: after),
             organizationId: organizationId))
         .toJson();
     return (
@@ -28,7 +29,7 @@ class ProductionRepository {
 
   Future<Workspace> workspace(String id) async {
     final incoming = Workspace.fromJson(ApiWorkspaceView.fromJson(await api.get(
-            '/projects/${Uri.encodeComponent(id)}/workspace?includeAgentState=true',
+            ApiRoutes.workspace(id, includeAgentState: true),
             organizationId: organizationId))
         .toJson());
     final current = _workspaces[id];
@@ -45,7 +46,7 @@ class ProductionRepository {
           required String mediaType,
           required String contentBase64}) =>
       api.post(
-          '/projects/${Uri.encodeComponent(projectId)}/reference-images',
+          ApiRoutes.referenceImages(projectId),
           {
             'name': name,
             'mediaType': mediaType,
@@ -55,7 +56,7 @@ class ProductionRepository {
 
   Future<JsonMap> deleteProject(String id, {required int revision}) async {
     final result = await api.delete(
-        '/projects/${Uri.encodeComponent(id)}?expectedRevision=$revision',
+        ApiRoutes.projectDelete(id, expectedRevision: revision),
         organizationId: organizationId);
     _workspaces.remove(id);
     // The server has accepted deletion already. A local journal failure must
@@ -72,13 +73,29 @@ class ProductionRepository {
     return result;
   }
 
+  /// Operator-installed and prototype connector catalogs, scoped to the current organization.
+  Future<JsonMap> connectors() =>
+      api.get(ApiRoutes.connectors, organizationId: organizationId);
+
+  Future<JsonMap> engineeringTools() =>
+      api.get(ApiRoutes.engineeringTools, organizationId: organizationId);
+
+  /// The workspace exactly as the server sent it (the Bambu views read fields the typed [Workspace] omits).
+  Future<JsonMap> workspaceJson(String id) =>
+      api.get(ApiRoutes.workspace(id), organizationId: organizationId);
+
+  Future<JsonMap> nativeJobLogs(String id) =>
+      api.get(ApiRoutes.nativeJobLogs(id), organizationId: organizationId);
+
+  Future<JsonMap> invocationTranscript(String id) => api
+      .get(ApiRoutes.invocationTranscript(id), organizationId: organizationId);
+
   Future<ModelCatalog> catalog() async =>
-      ModelCatalog.fromJson(ApiModelCatalogView.fromJson(
-              await api.get('/model-catalog', organizationId: organizationId))
+      ModelCatalog.fromJson(ApiModelCatalogView.fromJson(await api
+              .get(ApiRoutes.modelCatalog, organizationId: organizationId))
           .toJson());
   Future<RunRecord> run(String id) async => RunRecord(ApiRunView.fromJson(
-          await api.get('/runs/${Uri.encodeComponent(id)}',
-              organizationId: organizationId))
+          await api.get(ApiRoutes.run(id), organizationId: organizationId))
       .toJson());
   Stream<ProjectEvent> events(String id, int cursor,
           {void Function()? onConnected}) =>
@@ -101,7 +118,7 @@ class ProductionRepository {
   Future<AcceptedCommand> _dispatch(PendingCommand pending) async {
     try {
       final result = AcceptedCommand.fromJson(ApiCommandAccepted.fromJson(
-              await api.post('/commands', pending.body,
+              await api.post(ApiRoutes.commands, pending.body,
                   idempotencyKey: pending.key, organizationId: organizationId))
           .toJson());
       await journal.remove(pending.key);

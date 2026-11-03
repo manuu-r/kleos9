@@ -33,6 +33,12 @@ Do not declare completion based on fixtures or code-size reduction alone.
   the app's own `ProductionApi` and generated DTOs passed against a live new backend (session, catalogs,
   connectors, project create/replay, workspace, circuit-simulation, preview, drafts, event stream). The full
   browser-driven `test_driver/production_live_test.dart` needs a billed model and has not been run.
+- Flutter cleanup (3 November 2026, behavior-preserving): one typed route table (`api_routes.dart`) replaces
+  paths scattered across ten files, UI/state reach the backend through repositories, two unencoded ids
+  (`/native-jobs/…`, `/invocations/…`) are now encoded, byte-download errors keep their server `code`, and the
+  1,662-line `production_app.dart` is split by feature. Verified with analyze, the transport check, 407 passing
+  frontend tests (7 skipped), a production web build, a static contract test against both OpenAPI contracts, an
+  opt-in live test of every route against a running new backend, and the built app loading real data in Chromium.
 - Composed real-native journeys (`tests/test_real_native_journeys.py`): the missing-bracket and imported-PCB
   routing journeys passed against the real CAD and PCB containers with a scripted model. A live-model pass is
   implemented and gated on credentials plus an explicit spend ceiling; it has not been run.

@@ -134,8 +134,7 @@ class ProductionLegacyApiService extends ApiService {
       }
     }
     try {
-      final connectors = await repository.api
-          .get('/connectors', organizationId: repository.organizationId);
+      final connectors = await repository.connectors();
       _connectors = asMaps(connectors['connectors']).map(_connector).toList();
       _connectorError = null;
     } catch (error) {

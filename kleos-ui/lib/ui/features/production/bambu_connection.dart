@@ -16,8 +16,7 @@ final bambuConnectionProvider =
   final repository = ref.watch(productionRepositoryProvider);
   final responses = await Future.wait([
     repository.api.bambuCatalog(organizationId: repository.organizationId),
-    repository.api
-        .get('/connectors', organizationId: repository.organizationId),
+    repository.connectors(),
     repository.api.bambuLocalState(organizationId: repository.organizationId),
   ]);
   final connectors = asMaps(asMap(responses[1])['connectors']);

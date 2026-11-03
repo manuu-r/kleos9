@@ -157,11 +157,11 @@ pump a bounded time instead of `pumpAndSettle`.
 ## Source layout
 
 - `lib/data/models`: JSON boundary helpers, immutable snapshots and command results.
-- `lib/data/services`: injected HTTP client with error handling, request timeouts and retry-safe idempotency keys.
-- `lib/data/repositories`: versioned state, polling, stale-response protection and lifecycle cleanup.
+- `lib/data/services`: injected HTTP client with error handling, request timeouts and retry-safe idempotency keys. `api_routes.dart` is the **only** place backend paths are written (`ApiRoutes` for the production backend, `SimulationRoutes` for the separate simulation service); path parameters are always percent-encoded there.
+- `lib/data/repositories`: versioned state, polling, stale-response protection and lifecycle cleanup. UI and state code reach the backend only through repositories (`ProductionRepository`, `AdminRepository`), never by building a URL.
 - `lib/ui/app_controller.dart`: shared application state, request deduplication and user commands.
 - `lib/ui/core`: theme, responsive widgets, navigation, command menu, human-task card and native vector device painter.
-- `lib/ui/features`: all routed screens and the ten-stage project flow.
+- `lib/ui/features`: all routed screens and the ten-stage project flow. The production shell is split by feature under `ui/features/production`: `production_app.dart` (router, access gate, shell) re-exports the sign-in, projects, workspace and run pages and the shared `production_widgets.dart`.
 - `assets`: original device geometry and locally bundled Geist fonts. The device is drawn by Flutter; no browser view or React wrapper is used.
 
 Form drafts, navigation and expansion state remain in widgets. Simulated outcomes, workflow transitions, data and timers live in FastAPI. Browser reloads preserve state while the mock backend process is running; restarting the backend resets it.
@@ -180,6 +180,18 @@ PCB/CAD controls remain separate. The replacement backend serves stored simulati
 flutter analyze
 flutter test
 flutter build web --no-web-resources-cdn
+```
+
+### Backend connections
+
+Every call the client can make is checked three ways:
+
+- `test/api_routes_contract_test.dart` (always runs) proves each `ApiRoutes` entry is an operation with the right method in `backend/contracts/openapi.json`, that every operation the frontend is documented to reference (`backend/tests/contracts/frontend-obligations.json`) has a client route, that the simulation routes exist in `mock-backend/contracts/openapi.json`, that ids are encoded, and that no file outside `api_routes.dart` hardcodes a path.
+- `python3 tool/generate_transport.py --check` proves the generated DTOs match the OpenAPI contract.
+- `test/backend_live_contract_test.dart` (opt-in) drives every route through the real `ProductionApi` against a running backend in development no-login mode on a disposable database, validates responses with the generated DTOs and requires structured JSON for every error. It makes no model call.
+
+```bash
+KLEOS_E2E_API=http://127.0.0.1:8000/api/v1 flutter test test/backend_live_contract_test.dart
 ```
 
 Tests cover immutable state, pending-request deduplication, stale response ordering, uncertain retry keys, project-stage pinning, human evidence validation, phone layouts and the native device geometry.
