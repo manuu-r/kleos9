@@ -174,7 +174,7 @@ selection, replay/pause/reset, time scrubbing, limit lines, a tolerance band and
 per-check status. LED indication follows recorded current. It is explicitly
 simulated, not measured, and advisory; missing/unsupported evidence stays visible.
 Reduced motion preserves manual inspection. The original mock simulation and
-PCB/CAD controls remain separate. The replacement backend currently reports circuit simulation as `UNKNOWN`; see the [remaining-work audit](../backend/docs/rewrite-remaining-audit.md).
+PCB/CAD controls remain separate. The replacement backend serves stored simulation evidence when a local isolated simulator is installed and the accepted interfaces include simulation bindings; otherwise it reports `UNKNOWN` with a reason. See the [simulation module](../backend/src/kleos/validation/simulation/README.md).
 
 ```bash
 flutter analyze

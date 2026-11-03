@@ -50,7 +50,7 @@ from kleos.infrastructure.fabrication import build_fabrication
 from kleos.infrastructure.rebuild import configure_native_rebuild
 from kleos.infrastructure.research import configure_web_research
 from kleos.infrastructure.schema import metadata
-from kleos.infrastructure.validation import configure_validation
+from kleos.infrastructure.validation import configure_simulation, configure_validation
 from kleos.memory.service import Knowledge
 from kleos.orchestration.engine import ObjectiveEngine
 from kleos.orchestration.external_waits import ExternalWaits
@@ -278,7 +278,10 @@ class Runtime:
         validation = configure_validation(settings, self.projects, self.artifacts, self.registry,
             docker=self.docker, capacity=self.capacity)
         self.validation, self.checker_registry, self.docker = validation.service, validation.registry, validation.docker
-        self.verification = VerificationService(self.projects, self.checker_registry)
+        self.simulation, self.docker = configure_simulation(settings, self.projects, self.artifacts,
+            docker=self.docker, capacity=self.capacity)
+        self.previews.simulation = self.simulation
+        self.verification = VerificationService(self.projects, self.checker_registry, simulation=self.simulation)
         self.services.engineering.verification = self.verification
         self.services.releases = ReleaseFacade(self.projects, self.artifacts, self.validation)
         self.services.catalog = CatalogFacade(settings, self.registry, native_pins=self.native_pins)

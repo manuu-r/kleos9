@@ -23,7 +23,7 @@ experience intact unless the task explicitly calls for a UI or simulation change
 | `backend/src/kleos/memory/` | LangMem extraction and project-scoped advisory retrieval |
 | `backend/src/kleos/execution/` | Fresh isolated native supervisor, fixed actions, durable jobs and image qualification |
 | `backend/src/kleos/capabilities/` | Qualified tool registry, sourcing, human work and Bambu connections |
-| `backend/src/kleos/validation/` | Independent checks and immutable accepted release manifests |
+| `backend/src/kleos/validation/` | Independent checks, advisory circuit simulation evidence (`simulation/`) and immutable accepted release manifests |
 | `backend/src/kleos/infrastructure/` | Fresh settings, schema registration and runtime composition |
 | `backend/migrations/` | Fresh replacement schema; archived migrations remain historical records, not a migration path |
 | `backend/contracts/openapi.json` | Exported API contract consumed by Flutter's transport generator |

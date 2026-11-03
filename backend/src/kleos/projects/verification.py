@@ -1,4 +1,5 @@
 """Durable independent checks of a completed objective, without a new generation run."""
+import logging
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -15,6 +16,8 @@ from kleos.validation.policies import POLICY_LANES, include_candidate, published
 from kleos.validation.service import Candidate, CheckerAdmissionDeferred, ValidationService, _ref
 
 verification_owner = ContextVar('kleos_verification_owner', default=None)
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationScope(RunScope):
@@ -93,8 +96,9 @@ class VerificationRepository(GraphRepository):
 
 
 class VerificationService:
-    def __init__(self, projects, registry, *, clock=lambda: datetime.now(UTC)):
+    def __init__(self, projects, registry, *, clock=lambda: datetime.now(UTC), simulation=None):
         self.projects, self.registry, self.clock = projects, registry, clock
+        self.simulation = simulation  # advisory evidence only; never affects verification status
         self.repository = VerificationRepository(projects, clock=clock)
         self.validation = ValidationService(projects, registry, repository=self.repository, clock=clock)
 
@@ -240,6 +244,11 @@ class VerificationService:
                 candidate_row.data = {**candidate_row.data, 'verificationJobId': ident}
             evidence = await self.validation.run(scope, candidate)
             check_statuses = {row['checkerKey']: row['status'] for row in evidence}
+            if self.simulation is not None:
+                try:
+                    await self.simulation.run(scope.actor, scope.project_id)
+                except Exception:
+                    logger.warning('Advisory circuit simulation failed; independent checks are unaffected')
         except CheckerAdmissionDeferred:
             status, blocker = 'queued', 'native_capacity_busy'
         except DomainError as exc:

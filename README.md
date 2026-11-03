@@ -51,7 +51,7 @@ they do not certify arbitrary devices, providers or deployments.
 | Coordination | Shared requirements/interfaces, accepted appearance references, dependencies, bounded attempts, repairs, blockers and revision invalidation |
 | Models | Direct Meta API; configured Modal Shared Endpoints; versioned per-lane choices in Providers, usage and estimated cost records |
 | Mechanics | build123d sources, real STEP/STL, geometry-derived parts/manifests, rendered CAD views and display-only exploded views |
-| Electronics | Deterministic `interfaces.circuit` → KiCad schematic/placed board → pinned Freerouting → ERC/DRC → manufacturing exports and independent correspondence checks |
+| Electronics | Deterministic `interfaces.circuit` → KiCad schematic/placed board → pinned Freerouting → ERC/DRC → manufacturing exports and independent correspondence checks; optional advisory ideal-circuit simulation (explicit bindings, local Docker only) |
 | Firmware | Isolated Zephyr compilation for explicitly qualified boards; device behavior remains unverified |
 | Companion apps | Isolated Flutter web build and separate-origin preview; APK and device/BLE behavior remain unqualified |
 | Validation/releases | Independent checks, exact artifact closures, source hashes, evidence applicability and downloadable release packages |

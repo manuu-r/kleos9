@@ -20,8 +20,10 @@ Do not declare completion based on fixtures or code-size reduction alone.
   no composed coverage. Full backend suite after the change: 1,577 passed, 11 skipped;
   Ruff, mock-backend (15 passed), OpenAPI export and `git diff --check` passed. The
   Dart transport check and Flutter suites were not run (no Dart/Flutter SDK).
-- Known unrestored behavior: circuit simulation (the ngspice work this branch started
-  from) reports `UNKNOWN`; the rewrite has no ngspice runner or checker.
+- Circuit simulation (this branch's ngspice work) was rebuilt as `validation/simulation`: a
+  deterministic deck compiler, bounded parser/checks, an isolated one-deck-per-container
+  executor and stored, hash-verified evidence behind the unchanged route. It is advisory and
+  local-Docker only; see its README for the qualification record and limits.
 
 ## Latest integrated phase — 3 November 2026
 

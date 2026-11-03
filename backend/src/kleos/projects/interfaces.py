@@ -14,6 +14,8 @@ from kleos.contracts.models import ArtifactRef, DomainError, WireModel
 from kleos.execution.pcb_contract import circuit_contract
 from kleos.projects.graph_repository import GraphRepository, execution_owner
 from kleos.projects.store import Objective, fingerprint
+from kleos.validation.simulation.contract import SimulationContract
+from kleos.validation.simulation.plan import plan_simulation
 
 
 class CircuitReference(WireModel):
@@ -45,6 +47,8 @@ class FirmwareProposal(WireModel):
 class InterfaceContracts(WireModel):
     circuit: CircuitProposal | None = None
     firmware: FirmwareProposal | None = None
+    # Explicit ideal-circuit simulation bindings; advisory evidence only, never acceptance.
+    simulation: SimulationContract | None = None
 
 
 class CircuitIdentityProposal(WireModel):
@@ -77,7 +81,7 @@ class InterfaceProposal(WireModel):
             raise ValueError('Questions and limitations must be bounded nonempty text')
         if any(not value or len(value) > 128 for value in self.source_ids):
             raise ValueError('Source identities must be bounded')
-        if not any((self.interfaces.circuit, self.interfaces.firmware, self.questions)):
+        if not any((self.interfaces.circuit, self.interfaces.firmware, self.interfaces.simulation, self.questions)):
             raise ValueError('Propose a scoped interface or ask for missing context')
         if self.circuit_identity.mode == 'imported_no_concept' and self.interfaces.circuit is None:
             raise ValueError('An imported identity declaration requires a complete proposed circuit')
@@ -290,6 +294,15 @@ class InterfaceService:
                     project.data.get('state', {}).get('approvedDesignStatus', 'current') != 'current'):
                 raise DomainError('Confirm the current concept before proposing its circuit', 'design_not_current')
             identity['circuitHash'] = fingerprint(contracts['circuit'])
+        if 'simulation' in contracts:
+            circuit = contracts.get('circuit') or project.data.get('interfaces', {}).get('circuit')
+            if circuit is None:
+                raise DomainError('Simulation bindings require an accepted or simultaneously proposed circuit',
+                                  'interface_mapping_invalid', 422)
+            plan = plan_simulation(circuit, contracts['simulation'])
+            if not plan.ready:
+                raise DomainError('Simulation bindings cannot be compiled: ' + ' '.join(plan.reasons),
+                                  'interface_mapping_invalid', 422)
         sources = {'brief', *project.data.get('sourceManifest', {}).values(), *project.data.get('referenceImageIds', [])}
         if project.data.get('approvedDesign'):
             sources.add('approvedDesign')

@@ -106,3 +106,26 @@ def configure_validation(settings, projects, artifacts, capabilities, *, docker=
     for process in processes:
         process.docker = docker
     return ValidationWiring(service, registry, (key,), docker)
+
+
+class SimulationInstallation(WireModel):
+    image_digest: str = Field(pattern=r'^sha256:[a-f0-9]{64}$')
+    qualification_reference: str = Field(min_length=1, max_length=1000)
+
+
+def configure_simulation(settings, projects, artifacts, *, docker=None, capacity=None):
+    """Advisory circuit simulation. No installation means evidence reads stay UNKNOWN; none is faked.
+
+    Returns (service, docker); the caller owns the returned Docker client lifetime.
+    """
+    from kleos.validation.simulation.process import IsolatedNgspice
+    from kleos.validation.simulation.service import SimulationService
+    if not settings.simulation_installation:
+        return SimulationService(projects, artifacts, None), docker
+    if settings.environment not in {'development', 'test'}:
+        raise DomainError('Circuit simulation is qualified only for local deployment', 'checker_unqualified')
+    configured = SimulationInstallation.model_validate(settings.simulation_installation)
+    docker = docker or DockerClient(socket=settings.docker_socket)
+    executor = IsolatedNgspice(docker, configured.image_digest, Path(settings.simulation_control_root),
+                               capacity=capacity)
+    return SimulationService(projects, artifacts, executor), docker

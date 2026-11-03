@@ -294,3 +294,30 @@ async def test_final_job_publication_rechecks_authority_after_validation_returns
     result = service.get(scope.actor, scope.project_id, job['verificationId'])
     assert result['status'] == 'blocked' and result['blocker'] == 'forbidden'
     assert result['checkStatuses'] == {'geometry': 'PASS'}  # Measured observation is retained.
+
+
+@pytest.mark.parametrize('fails', [False, True], ids=['advisory-simulation-runs', 'crashing-simulation-is-isolated'])
+async def test_advisory_simulation_runs_after_independent_checks_and_never_changes_the_outcome(setup, fails, caplog):
+    store, scope, _, _ = complete(setup)
+    order = []
+
+    async def check(check_scope, subject):
+        order.append('check')
+        return CheckReport(subject_hash=subject.subject_hash, status='PASS', execution_id='independent', summary='Fixture measured')
+
+    class Simulation:
+        async def run(self, actor, project_id):
+            order.append(('simulation', actor.user_id, project_id))
+            if fails:
+                raise RuntimeError('PRIVATE_SOLVER_DETAILS')
+            return 'available'
+
+    service = VerificationService(store, registry(check), simulation=Simulation())
+    queued = submit(service, scope)
+    assert await service.process_next()
+    response = service.get(scope.actor, scope.project_id, queued['verificationId'])
+    assert response['status'] == 'completed' and response.get('blocker') is None
+    assert order == ['check', ('simulation', scope.actor.user_id, scope.project_id)]
+    with store.transaction() as session:
+        assert session.get(Candidate, response['candidateId']).status == 'qualified'
+    assert 'PRIVATE_' not in caplog.text

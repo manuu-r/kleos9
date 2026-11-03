@@ -30,6 +30,11 @@ insufficient for an exact circuit contract, ask for the missing explicit circuit
 Imported board qualification, routing and independent checks happen separately.
 For firmware propose an explicit board only when supported by the project context; otherwise
 ask. A board choice alone does not prove pin mappings, protocol behavior or tool availability.
+Propose the optional simulation bindings only when the user asks for power-on/electrical
+simulation. They must name the supply connector pins, every simulated two-pin R/C/LED/DIODE
+component (or OPEN for an unused part), and each load's probe terminals against the same
+proposed circuit references. Never infer a binding from a net name or reference prefix. A
+simulation is advisory digital evidence, never proof of device behavior.
 All listed pins/nets/reference/footprint choices must be explained by the requested design or
 imported project; mark assumptions and unknown engineering checks in limitations. Critical
 missing inputs belong in questions. Do not produce partial circuit contracts for approval.

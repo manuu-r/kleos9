@@ -21,6 +21,7 @@ class EngineeringPreviews:
     def __init__(self, projects, artifacts):
         self.projects, self.artifacts = projects, artifacts
         self.companion = None
+        self.simulation = None  # SimulationService: reads stored evidence, never starts compute
 
     def _selection(self, session, project):
         accepted = session.get(Release, project.data.get('acceptedReleaseId', ''))
@@ -73,6 +74,8 @@ class EngineeringPreviews:
             project = self.projects.authorized(session, actor, params['projectId'])
             header = {'revision': project.revision, 'engineeringRevision': project.context_revision}
             if operation == 'circuit_simulation':
+                if self.simulation is not None:
+                    return self.simulation.current(session, project)
                 return {**header, 'status': 'UNKNOWN', 'artifactId': None, 'artifactSha256': None,
                         'result': None, 'reason': 'No independent circuit simulation is qualified for these artifacts.'}
             if operation != 'engineering_preview':

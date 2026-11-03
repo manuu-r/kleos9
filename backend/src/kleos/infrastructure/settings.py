@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     firmware_checker_installation: dict | None = None
     application_checker_installation: dict | None = None
     checker_control_root: Path = Path(".data/rewrite/checkers")
+    simulation_installation: dict | None = None
+    simulation_control_root: Path = Path(".data/rewrite/simulation")
     external_installations: list[dict] = Field(default_factory=list)
     web_search_installation: dict | None = None
     mcp_installations: list[dict] = Field(default_factory=list, max_length=8)
