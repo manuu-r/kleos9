@@ -23,6 +23,7 @@ PROFILES = {
     'a1-mini-pla-04': ('N1', 'Bambu Lab A1 mini', 'A1M', 180),
     'a1-pla-04': ('N2S', 'Bambu Lab A1', 'A1', 256),
     'p1s-pla-04': ('C12', 'Bambu Lab P1S', 'X1C', 256),
+    'x1c-pla-04': ('BL-P001', 'Bambu Lab X1 Carbon', 'X1C', 256),
 }
 
 

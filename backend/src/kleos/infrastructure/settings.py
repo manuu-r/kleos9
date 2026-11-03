@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     modal_rate_limit_fallback_key: str | None = None
     printer_encryption_key: SecretStr | None = None
     bambu_local_enabled: bool = False
+    bambu_printing_enabled: bool = False  # upload and start on a paired X1 Carbon; needs bambu_local_enabled
     model_provider: Literal["meta", "modal"] = "meta"
     meta_api_key: SecretStr | None = Field(default=None, repr=False,
         validation_alias=AliasChoices('KLEOS_META_API_KEY'))
@@ -112,6 +113,8 @@ class Settings(BaseSettings):
                 raise ValueError('Production companion previews require an HTTPS API origin')
         if self.frontend_origin.rstrip("/") == self.preview_origin.rstrip("/"):
             raise ValueError("Generated previews require a separate origin")
+        if self.bambu_printing_enabled and not self.bambu_local_enabled:
+            raise ValueError("Printing needs the local printer connection (KLEOS_BAMBU_LOCAL_ENABLED)")
         if self.physical_actions_enabled:
             raise ValueError(
                 "Live physical actions require qualified integration policy; not yet implemented"

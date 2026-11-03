@@ -26,8 +26,8 @@ class DispatchRequest(WireModel):
 
 
 class FabricationFacade:
-    def __init__(self, preparations, *, bambu=None):
-        self.preparations, self.bambu = preparations, bambu
+    def __init__(self, preparations, *, bambu=None, dispatcher=None):
+        self.preparations, self.bambu, self.dispatcher = preparations, bambu, dispatcher
 
     def query(self, actor, operation, params):
         project = params['projectId']
@@ -54,21 +54,35 @@ class FabricationFacade:
                               'untrusted_preparation', 409)
         if operation == 'create_print_dispatch':
             request = DispatchRequest.model_validate(body).model_dump(mode='json', by_alias=True)
-            # Even authorizePrint=true cannot override server physical policy.
-            serial = 'unpaired'
+            # authorizePrint alone never overrides server policy: the dispatcher also needs printing enabled, a
+            # current qualified preparation and a paired, matching printer. Otherwise the record is blocked.
+            serial, decision = 'unpaired', None
             if self.bambu is not None:
                 access = self.bambu._local(actor, params)
                 state = self.bambu.connections.state(access)
                 if state.serial is not None:
                     serial = state.serial
-            return self.preparations.dispatch(actor, project, request, key, printer_serial=serial)['dispatch']
+                if self.dispatcher is not None:
+                    prepared = self.preparations.get(actor, project, request['preparationId'])
+                    decision = self.dispatcher.authorization(access, prepared, request)
+            return self.preparations.dispatch(actor, project, request, key, printer_serial=serial,
+                                              decision=decision)['dispatch']
         if operation in {'print_send', 'print_cancel', 'print_reconcile'}:
-            WireModel.model_validate(body)
             current = self.preparations.get(actor, project, params['ident'], dispatch=True)
             with self.preparations.projects.transaction() as session:
                 self.preparations.projects.authorized(session, actor, project, write=True)
+            if self.dispatcher is None or not self.dispatcher.enabled:
+                WireModel.model_validate(body)
+                if operation == 'print_send':
+                    raise DomainError('Printer upload and start are blocked by server policy', 'physical_policy', 403)
+                # Nothing was sent; report the durable blocked dispatch without claiming cancellation on hardware.
+                return current
+            access = self.bambu._local(actor, params)
             if operation == 'print_send':
-                raise DomainError('Printer upload and start are blocked by server policy', 'physical_policy', 403)
-            # Nothing was sent; report the durable blocked dispatch without claiming cancellation on hardware.
-            return current
+                WireModel.model_validate(body)
+                return await self.dispatcher.send(access, actor, project, params['ident'])
+            if operation == 'print_cancel':
+                WireModel.model_validate(body)
+                return self.dispatcher.cancel(actor, project, params['ident'])
+            return self.dispatcher.reconcile(access, actor, project, params['ident'], body)
         raise DomainError('Unknown fabrication action', 'not_found', 404)

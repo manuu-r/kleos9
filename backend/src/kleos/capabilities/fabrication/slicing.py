@@ -26,6 +26,9 @@ BUNDLES = {
     'a1-mini-pla-04': ('N1', 'A1M', 'a43d98b86e6913c00fd56970f590b566783dcfe01d807fdaac320fcfd4394de4'),
     'a1-pla-04': ('N2S', 'A1', '18b43fe7f4e75d9ac00da4bf03853041b598eb00ad86ea02362160884aa5dd56'),
     'p1s-pla-04': ('C12', 'X1C', 'dc3c0fc0c438162dfdd569f9717878554c27ba47a785ac2ad521b4e31f55a00c'),
+    # Bundle hash computed from the OrcaSlicer v2.4.2 profile files with the same flattening as `presets()`; the three
+    # profiles above reproduce their pinned hashes from those files. Unqualified until the image is requalified.
+    'x1c-pla-04': ('BL-P001', 'X1C', '0d4bf171031b85b96a57c4f6fb195fd48f5b043dea5c0e2204f38c6ed31af1ec'),
 }
 
 
@@ -545,7 +548,7 @@ class PrintPreparations:
                 self._fail(ident, generation, 'Slicer output could not be verified')
         return completed
 
-    def dispatch(self, actor, project_id, body, key, *, printer_serial='unpaired'):
+    def dispatch(self, actor, project_id, body, key, *, printer_serial='unpaired', decision=None):
         def operation(session):
             project, preparation = self._row(session, actor, project_id, body['preparationId'], write=True)
             if (preparation.status != 'ready' or preparation.prepared_sha256 != body['preparedSha256']
@@ -555,9 +558,11 @@ class PrintPreparations:
                 raise DomainError('Print preparation is not current', 'revision_conflict')
             row = PrintDispatch(id=str(uuid4()), tenant_id=actor.tenant_id, project_id=project_id,
                 preparation_id=preparation.id, prepared_sha256=preparation.prepared_sha256, printer_serial=printer_serial,
-                status='blocked', message='Printer upload and start are blocked by server policy.', created_at=self.clock())
+                status=decision[0] if decision else 'blocked',
+                message=decision[1] if decision else 'Printer upload and start are blocked by server policy.',
+                created_at=self.clock())
             session.add(row)
-            self.projects._emit(session, project, 'print.dispatch.blocked', dispatch_view(row))
+            self.projects._emit(session, project, 'print.dispatch.' + row.status, dispatch_view(row))
             return {'projectId': project_id, 'dispatch': dispatch_view(row)}
         return self.projects._command(actor, key, {'operation': 'print.dispatch', 'projectId': project_id, **body}, operation)
 

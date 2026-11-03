@@ -67,8 +67,8 @@ explicit forget, while closing the memory adapter erases its entries.
 Discovery has a 3-second deadline, 256-packet and 32-result limits; MQTT observation
 has a 20-second deadline and bounded frames/packet count. All raw device/socket
 errors are mapped to fixed public messages. Slicing, uploads, printing and
-physical actions are outside this connection service and remain unavailable
-until independently authorized execution adapters exist.
+physical actions are outside this connection service; upload and start live in the
+separate, default-off print service described below.
 
 ## Public certificate provenance
 
@@ -88,7 +88,7 @@ The fresh `slicing.py` service converts triangulated OBJ or STL into a sanitized
 binary STL, removes duplicate and degenerate triangles, repairs face winding,
 and rejects open, nonmanifold, disconnected, oversized or invalid-coordinate
 meshes. It runs OrcaSlicer 2.4.2 with fixed 0.4 mm / 0.20 mm / Bambu PLA Basic /
-Textured PEI presets for A1 mini, A1 and P1S. Input 3MF settings, custom G-code,
+Textured PEI presets for A1 mini, A1, P1S and X1 Carbon. Input 3MF settings, custom G-code,
 STEP conversion, hole filling and automatic supports are not qualified. Export
 STEP to STL in the isolated CAD lane first. Self-intersection and actual fit,
 strength, printability and physical behavior remain `UNKNOWN`.
@@ -114,8 +114,43 @@ Python and receives no credentials, database connection or Docker socket.
 Preparation accepts a current project mesh for focused work without requiring a
 fixed release workflow. If a release ID is supplied, it must be the project's
 accepted release. Client completion measurements cannot substitute for native
-provenance. Dispatch requests create durable `blocked` records; upload, start,
-physical acceptance and claims about printer cancellation are unavailable.
+provenance. Without `KLEOS_BAMBU_PRINTING_ENABLED`, dispatch requests create durable `blocked` records and
+nothing reaches a printer. Physical acceptance is always a person's decision.
+
+## Printing on a Bambu X1 Carbon
+
+`printing.PrintDispatcher` is the only code that sends a file or command to a printer. It is off by default and is
+enabled by `KLEOS_BAMBU_PRINTING_ENABLED=true` (which requires `KLEOS_BAMBU_LOCAL_ENABLED`). Only the X1 Carbon
+(`BL-P001`) is enabled, and only a plate sliced for that model (`x1c-pla-04`) can be sent to it.
+
+Flow, with the dispatch status the UI shows:
+
+1. Slice the part (`prepare_print`): the isolated OrcaSlicer arranges it on the plate (`--arrange`, `--ensure-on-bed`)
+   with the pinned 0.4 mm / 0.20 mm / Bambu PLA Basic / Textured PEI preset.
+2. `create_print_dispatch` with `authorizePrint` and `externalSpoolConfirmed` (the UI asks the user to confirm the plate,
+   a clear bed and the external spool) becomes **`authorized`**. Nothing has been sent. Otherwise it is `blocked` with the
+   reason: printing disabled, unconfirmed, profile unqualified, printer not paired/connected, or model mismatch.
+3. `send` re-checks that the preparation is current and unchanged (hash), that the paired printer is the model the plate
+   was sliced for and is **idle or finished**, then claims the dispatch (compare-and-set, so concurrent sends cannot both
+   proceed): **`uploading`** (pinned implicit FTPS, port 990) -> **`uploaded`** -> **`start_requested`** (one MQTT
+   `project_file` request) -> **`printing`** only if the printer's own report shows it preparing or running.
+4. A failure before the start request is **`failed`** and nothing started. A failure after it is **`uncertain`**: the
+   request is never resent. `cancel` withdraws an `authorized` print; after sending it only records
+   **`cancelled_uncertain`** because this service has no stop command. `reconcile` records an outcome (`not_started`,
+   `finished`, `stopped`) that a person observed at the printer and refuses to call a busy printer idle.
+
+Each channel (FTPS control, FTPS data, MQTT) must present the exact leaf certificate pinned at pairing before any
+credential or file byte is sent. The request uses `use_ams: false` (external spool), bed leveling and calibration on.
+
+**Not verified on hardware.** All of this is tested with fake streams and a loopback implicit-FTPS server, not a real
+X1 Carbon. The `project_file` payload and `file:///sdcard/` URL follow community documentation of the LAN protocol and
+may need adjustment for a given firmware; newer firmware may require LAN Developer Mode for the printer to accept
+commands (without it, a start request stays `start_requested` and is reported as unconfirmed). The `x1c-pla-04` slicer
+profile's bundle hash was computed from the OrcaSlicer v2.4.2 profile files (the same method reproduces the three
+recorded hashes) but the profile is unqualified until the slicer image is rebuilt and `qualification/qualify.py` is
+rerun on Docker Desktop, which also records the new `native_slicer.py` hash. Until then the committed evidence no longer
+matches the runner and the existing slicer installation is rejected as unqualified. Run a first print with the bed
+clear and attend it.
 
 `qualify_slicing(installation, control_root)` validates an operator-supplied exact
 image/report pairing before exposing profiles. The installation keys are `image`,

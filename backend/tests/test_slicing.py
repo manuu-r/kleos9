@@ -232,11 +232,17 @@ def test_exact_image_qualification_gate_and_mismatches(tmp_path):
     from pathlib import Path
 
     from kleos.capabilities.fabrication import slicing
-    report_path = Path(slicing.__file__).parent / 'qualification/slicer-qualified-2026-11-02.json'
-    report = json.loads(report_path.read_text())
+    # The committed evidence is bound to the runner bytes it was recorded with. Adding a profile changes those bytes,
+    # so this logic test rebinds a copy to the current runner; production still needs the image requalified.
+    recorded = Path(slicing.__file__).parent / 'qualification/slicer-qualified-2026-11-02.json'
+    report = {**json.loads(recorded.read_text()),
+              'runnerSha256': slicing.digest(Path(slicing.__file__).with_name('native_slicer.py').read_bytes())}
+    report_path = tmp_path / 'rebound.json'
+    report_path.write_text(json.dumps(report))
     installation = {'image': report['image'], 'report': str(report_path), 'dockerDesktop': True}
     settings = slicing.qualify_slicing(installation, tmp_path / 'control')
-    assert set(settings.qualified_profiles) == set(BUNDLES)
+    # Only profiles with recorded PASS evidence qualify; the X1 Carbon profile awaits its own exact-image run.
+    assert set(settings.qualified_profiles) == set(report['profiles']) == set(BUNDLES) - {'x1c-pla-04'}
     for changes in ({'image': 'sha256:' + 'b'*64}, {'dockerDesktop': False}, {'deployment': 'ecs'}):
         with pytest.raises(ValueError):
             slicing.qualify_slicing({**installation, **changes}, tmp_path)

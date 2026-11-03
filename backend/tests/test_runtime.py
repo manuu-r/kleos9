@@ -245,6 +245,12 @@ async def test_runtime_installs_only_explicit_independent_checker_and_scoped_sli
     report = root / 'validation/qualification/cad-check-exact-image.json'
     slicing = root / 'capabilities/fabrication/qualification/slicer-qualified-2026-11-02.json'
     evidence, slicer_evidence = json.loads(report.read_text()), json.loads(slicing.read_text())
+    # The recorded slicer evidence is bound to the runner bytes of its time; rebind a copy for this wiring test.
+    from kleos.capabilities.fabrication import slicing as slicer_module
+    slicer_evidence['runnerSha256'] = slicer_module.digest(
+        Path(slicer_module.__file__).with_name('native_slicer.py').read_bytes())
+    slicing = tmp_path / 'rebound-slicer-report.json'
+    slicing.write_text(json.dumps(slicer_evidence))
     configured = settings(tmp_path, cad_checker_installation={
         'imageDigest': evidence['imageId'], 'qualificationReference': str(report)},
         slicer_installation={'image': slicer_evidence['image'], 'report': str(slicing), 'dockerDesktop': True})

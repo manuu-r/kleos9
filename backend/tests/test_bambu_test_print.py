@@ -76,7 +76,7 @@ def test_fixed_fixture_exact_geometry_and_frozen_enqueue_contract(test_api):
     assert client.get(endpoint+'/plate').status_code == 409
     assert not driver.started and not calls
     profiles = client.get(BASE+'/catalog').json()['profiles']
-    assert len(profiles) == 3 and all(p['testPreparation'] for p in profiles)
+    assert len(profiles) == len(BUNDLES) and all(p['testPreparation'] for p in profiles)
     assert client.get('/api/v1/projects').json()['projects'] == []
 
 

@@ -83,3 +83,12 @@ def test_every_validator_of_the_run_compute_budget_accepts_the_configured_maximu
     monkeypatch.setenv("KLEOS_MAX_RUN_SECONDS", str(MAX_COMPUTE_BUDGET_SECONDS + 1))
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_printing_needs_the_local_printer_connection_and_leaves_physical_actions_blocked():
+    with pytest.raises(ValidationError, match="local printer connection"):
+        Settings(_env_file=None, bambu_printing_enabled=True)
+    enabled = Settings(_env_file=None, bambu_local_enabled=True, bambu_printing_enabled=True)
+    assert enabled.bambu_printing_enabled and not enabled.physical_actions_enabled
+    with pytest.raises(ValidationError):  # the broader switch stays unimplemented
+        Settings(_env_file=None, physical_actions_enabled=True)

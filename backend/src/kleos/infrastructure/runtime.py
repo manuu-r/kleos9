@@ -241,7 +241,9 @@ class Runtime:
             except (AttributeError, ValueError):
                 raise DomainError('Configure the persistent printer encryption key', 'configuration_required', 503) from None
             credential_store = EncryptedCredentialStore(self.projects.sessions, key)
-        self.connections = BambuConnections(enabled=settings.bambu_local_enabled, secrets=credential_store)
+        printing_models = frozenset({'BL-P001'}) if settings.bambu_printing_enabled else frozenset()  # X1 Carbon only
+        self.connections = BambuConnections(enabled=settings.bambu_local_enabled, secrets=credential_store,
+                                            printing_models=printing_models)
         self.bambu = BambuFacade(self.access, self.connections, settings)
         self.fabrication_runtime = build_fabrication(settings, self.projects, self.artifacts,
             self.access, self.connections, bambu=self.bambu, capacity=self.capacity)

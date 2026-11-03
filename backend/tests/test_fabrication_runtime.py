@@ -54,7 +54,13 @@ def build(composition):
 
 
 def enable(composition):
-    composition[0].slicer_installation = {'image': IMAGE, 'report': str(REPORT), 'dockerDesktop': True}
+    # The recorded evidence is bound to the runner bytes of its time; rebind a copy so this wiring test stays independent
+    # of profile additions. Production qualification still requires a fresh exact-image run.
+    runner = Path(slicing.__file__).with_name('native_slicer.py').read_bytes()
+    rebound = composition[0].slicer_control_root.parent / 'rebound-report.json'
+    rebound.parent.mkdir(parents=True, exist_ok=True)
+    rebound.write_text(json.dumps({**json.loads(REPORT.read_text()), 'runnerSha256': slicing.digest(runner)}))
+    composition[0].slicer_installation = {'image': IMAGE, 'report': str(rebound), 'dockerDesktop': True}
 
 
 @pytest.mark.asyncio

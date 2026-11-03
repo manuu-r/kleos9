@@ -76,6 +76,7 @@ class BambuFacade:
         if operation == "bambu_catalog":
             with self.access.store.transaction() as session:
                 self.access._member(session, actor)
+            printing = bool(self.settings.bambu_local_enabled and self.connections.enabled and self.connections.printing_models)
             slicing = self.preparations.settings if self.preparations else None
             profiles = [{"id": ident, **slicing.profile(ident), "automaticPreparation": True}
                         for ident in slicing.qualified_profiles] if slicing else []
@@ -84,9 +85,12 @@ class BambuFacade:
                 for model_id, name in MODELS.items()], "profiles": profiles,
                 "limitations": [
                     "Local discovery, pairing and status observation are implemented; physical acceptance is not.",
-                    "Offline slicing profiles are qualified only for the recorded fixtures; upload/start and physical acceptance remain blocked."
+                    ("Offline slicing profiles are qualified only for the recorded fixtures. "
+                     + ("Upload and start are enabled for the listed printer models after explicit authorization; "
+                        "physical acceptance remains a person's decision."
+                        if printing else "Upload and start are blocked by server policy."))
                     if profiles else "No slicing installation or print dispatch is qualified in the replacement backend."],
-                "localPrintingEnabled": False, "directPrintModelIds": []}
+                "localPrintingEnabled": printing, "directPrintModelIds": sorted(self.connections.printing_models) if printing else []}
         access = self._local(actor, params, enabled=False)
         if operation == "bambu_local":
             if not self.settings.bambu_local_enabled:

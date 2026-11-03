@@ -1,4 +1,4 @@
-"""Read-only Bambu TLS/MQTT transport; no command publication or file upload."""
+"""Read-only Bambu TLS/MQTT status transport; commands and uploads live in print_transport.py."""
 import hashlib
 import hmac
 import json
@@ -23,6 +23,7 @@ ERRORS = {
     'bambu_tls_failed': 'The printer secure connection failed.',
     'bambu_unreachable': 'Cannot reach the printer on the local network.',
     'bambu_protocol_error': 'The printer returned an unreadable status response.',
+    'bambu_start_rejected': 'The printer rejected the print start request.',
 }
 
 

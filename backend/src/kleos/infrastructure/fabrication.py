@@ -1,10 +1,11 @@
-"""Composition and separate offline fabrication worker; no printer dispatch authority."""
+"""Composition and separate offline fabrication worker; printer dispatch only through the explicit print service."""
 import asyncio
 import logging
 from dataclasses import dataclass
 
 from kleos.api.bambu import BambuFacade
 from kleos.api.fabrication import FabricationFacade
+from kleos.capabilities.fabrication.printing import PrintDispatcher
 from kleos.capabilities.fabrication.slicing import DockerSlicingDriver, PrintPreparations, qualify_slicing
 from kleos.contracts.models import DomainError
 from kleos.execution.docker import DockerClient
@@ -69,7 +70,8 @@ class FabricationRuntime:
             await self.docker.close()
 
 
-def build_fabrication(settings, projects, artifacts, access, connections, *, bambu=None, docker_factory=DockerClient, capacity=None):
+def build_fabrication(settings, projects, artifacts, access, connections, *, bambu=None, docker_factory=DockerClient, capacity=None,
+                      print_transport=None):
     """Validate operator evidence before constructing any network-capable client.
 
     Required settings: environment, docker_socket, slicer_installation (dict|None),
@@ -92,5 +94,6 @@ def build_fabrication(settings, projects, artifacts, access, connections, *, bam
     preparations = PrintPreparations(projects, artifacts.blobs, configured, driver, capacity=capacity)
     printer = bambu if bambu is not None else BambuFacade(access, connections, settings)
     printer.preparations = preparations
-    facade = FabricationFacade(preparations, bambu=printer)
+    dispatcher = PrintDispatcher(preparations, connections, print_transport, models=connections.printing_models)
+    facade = FabricationFacade(preparations, bambu=printer, dispatcher=dispatcher)
     return FabricationRuntime(preparations, facade, printer, docker)

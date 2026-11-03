@@ -120,11 +120,14 @@ class BambuConnections:
     """The API supplies LocalAccess after checking environment/origin/admin policy.
 
     All IO is injected; fixed default transports discover, verify and subscribe
-    only. This service cannot start a print, heat a printer or upload a package.
+    only. This service cannot start a print, heat a printer or upload a package;
+    those live in `printing.PrintDispatcher`, which reads the pairing from here.
     """
     def __init__(self, *, enabled=False, transport=None, discovery=discover_printers,
-                 verifier=verify_certificate, inspector=inspect_certificate, secrets=None, clock=time.monotonic):
+                 verifier=verify_certificate, inspector=inspect_certificate, secrets=None, clock=time.monotonic,
+                 printing_models=frozenset()):
         self.enabled, self.clock = enabled, clock
+        self.printing_models = frozenset(printing_models)  # models the operator enabled for direct printing
         self.transport = transport or MQTTStatusTransport()
         self.discovery, self.verifier, self.inspector = discovery, verifier, inspector
         self.secrets = secrets if secrets is not None else MemoryCredentialStore(clock=clock)
@@ -161,6 +164,14 @@ class BambuConnections:
             result.connected, result.status, result.observation = False, 'stale', {}
             result.message = 'Printer is paired. Refresh for current status.'
         return result
+
+    def pairing(self, access):
+        """The unexpired stored pairing for the print service; the secret never leaves the trusted process."""
+        key = self._guard(access)
+        entry = self.secrets.get(key)
+        if entry is None or entry.expires <= self.clock():
+            raise DomainError('Pair the printer first', 'bambu_pairing_required', 409)
+        return entry
 
     def forget(self, access):
         key = self._guard(access)
@@ -265,6 +276,6 @@ class BambuConnections:
             status='connected' if connected else 'not_connected', error_code=code,
             message=ERRORS[code] if code else 'Printer paired; status is observational only.',
             address=request.address, serial=request.serial, model_id=request.model_id,
-            firmware_version=request.firmware_version, direct_printing=False,
+            firmware_version=request.firmware_version, direct_printing=request.model_id in self.printing_models,
             credentials_stored=connected, expires_after_seconds=1800 if connected else 0,
             observation=observation if connected else {})

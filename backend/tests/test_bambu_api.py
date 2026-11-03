@@ -187,3 +187,17 @@ def test_trusted_transport_object_is_required_even_for_direct_facade_calls(api):
         facade.query(actor, "bambu_local", {"_transport": {"client_host": "127.0.0.1", "host": "localhost"}})
     with pytest.raises(DomainError):
         facade.query(actor, "bambu_local", {"_transport": TransportContext("127.0.0.1", "localhost", None, True, "http")})
+
+
+def test_enabled_printing_is_advertised_for_the_x1_carbon_and_marks_only_that_model_printable(api):
+    client, _, facade, _, _ = api
+    facade.connections.printing_models = frozenset({"BL-P001"})
+    catalog = client.get(BASE + "/catalog").json()
+    contract_keys("BambuCatalogView", catalog)
+    assert catalog["localPrintingEnabled"] is True and catalog["directPrintModelIds"] == ["BL-P001"]
+    paired = client.post(BASE + "/local/connect", json={"address": "192.168.1.33", "serial": "SERIAL123",
+        "accessCode": "ABCD1234", "modelId": "BL-P001", "certificateSha256": PIN, "certificateVerified": True})
+    assert paired.status_code == 200 and paired.json()["directPrinting"] is True
+    other = client.post(BASE + "/local/connect", json={"address": "192.168.1.34", "serial": "SERIAL999",
+        "accessCode": "ABCD1234", "modelId": "C12", "certificateSha256": PIN, "certificateVerified": True})
+    assert other.json()["directPrinting"] is False
