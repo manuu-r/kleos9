@@ -1,7 +1,7 @@
 # Native worker capacity and resource profiles
 
-`backend/kleos/native-resources.json` is the shared, version-controlled default
-configuration loaded by backend Settings and Terraform. It describes resource
+`infra/native-resources.json` is the version-controlled default
+configuration loaded by Terraform; the replacement backend sizes local Docker jobs from its own Settings. It describes resource
 ceilings, not tool qualification or measured AWS prices.
 
 | Profile | CPU units | Memory MiB | Docker temporary storage MiB | Process limit | Fargate ephemeral GiB |

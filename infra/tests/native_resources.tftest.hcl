@@ -50,7 +50,7 @@ run "shared_profiles_and_capacity_defaults" {
   }
   assert {
     condition = (
-      jsondecode(local.runtime_env.KLEOS_NATIVE_RESOURCE_PROFILES) == jsondecode(file("${path.module}/../backend/kleos/native-resources.json")) &&
+      jsondecode(local.runtime_env.KLEOS_NATIVE_RESOURCE_PROFILES) == jsondecode(file("${path.module}/native-resources.json")) &&
       local.runtime_env.KLEOS_MAX_NATIVE_JOBS == "8" && local.runtime_env.KLEOS_MAX_NATIVE_JOBS_PER_PROJECT == "4" &&
       tonumber(local.runtime_env.KLEOS_NATIVE_JOB_RESERVATION_USD) == 0.10 &&
       local.native_resource_profiles.application.tmpMiB == 6144 &&

@@ -19,7 +19,7 @@ state with locking.
 
 ## Deployment sequence
 
-1. Build the control and native images using backend/docker. Push them to ECR and
+1. Build the control and native images from `backend/Dockerfile` and the native image Dockerfiles under `backend/src/kleos`. Push them to ECR and
    record immutable digests. For first provisioning, create the ECR repositories
    first or use an existing private ECR repository in the same account.
 2. Copy terraform.tfvars.example to terraform.tfvars, replace every placeholder,

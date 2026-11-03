@@ -79,7 +79,7 @@ resource "aws_iam_role_policy" "control" {
 }
 locals {
   # One version-controlled source is loaded by Terraform and backend Settings.
-  native_resource_defaults = jsondecode(file("${path.module}/../backend/kleos/native-resources.json"))
+  native_resource_defaults = jsondecode(file("${path.module}/native-resources.json"))
   native_resource_profiles = merge(local.native_resource_defaults, var.native_resource_overrides)
   native_task_resources = {
     for key in keys(var.native_images) : key => lookup(local.native_resource_profiles, key, local.native_resource_profiles._default)

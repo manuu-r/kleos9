@@ -46,6 +46,20 @@ The integrator owns shared contracts, dependency locks, migrations and compositi
 Specialists exchange exact artifact references and observations through the
 orchestrator. They do not directly mutate another specialist's state.
 
+## Documentation index (`docs/`)
+
+| Document | Topic |
+|---|---|
+| [rewrite-progress](docs/rewrite-progress.md), [rewrite-remaining-audit](docs/rewrite-remaining-audit.md) | Current scope, verification and open gaps |
+| [local-runtime](docs/local-runtime.md), [provider-wiring](docs/provider-wiring.md) | Container packaging and model/provider configuration |
+| [repository-import](docs/repository-import.md), [project-deletion](docs/project-deletion.md) | Existing-project intake and erasure |
+| [research](docs/research.md), [external-readonly-review](docs/external-readonly-review.md) | Research and read-only sourcing/human-work adapters |
+| [independent-export-checkers](docs/independent-export-checkers.md), [independent-pcb-checker](docs/independent-pcb-checker.md) | Independent validation scope |
+| [companion-preview](docs/companion-preview.md), [companion-preview-derivation](docs/companion-preview-derivation.md) | Separate-origin companion hosting |
+| [bambu-test-preparation](docs/bambu-test-preparation.md) | Offline slicing and test-print preparation |
+| [workbench-progress](docs/workbench-progress.md), [workbench-requirement-edits](docs/workbench-requirement-edits.md) | Workbench preference and requirement-edit commands |
+| [prerequisite-continuation-plan](docs/prerequisite-continuation-plan.md) | Interface-prerequisite approval design |
+
 ## Test layout
 
 `tests/` holds module-focused suites plus these named groups: `tests/contracts/`
