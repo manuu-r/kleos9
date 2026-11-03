@@ -56,7 +56,10 @@ def project_budgets(session, projects):
     return budgets
 
 
-def run_view(run, *, tasks=False, native_jobs=None):
+ACTIVE_RUN_STATUSES = {"pending", "running", "waiting"}
+
+
+def run_view(run, *, tasks=False, native_jobs=None, activity=False):
     result = {
         "id": run.id,
         "projectId": run.project_id,
@@ -67,6 +70,9 @@ def run_view(run, *, tasks=False, native_jobs=None):
         "blocker": run.data.get("blocker"),
         "createdAt": run.data["createdAt"],
     }
+    if activity:
+        # Public progress steps only (see orchestration.activity); never raw payloads or reasoning.
+        result["activity"] = list(run.data.get("activity", []))
     if tasks:
         result["tasks"] = [
             {
@@ -174,7 +180,9 @@ class ProjectViews:
                 "project": project_view(p, budget=project_budgets(s, [p])[p.id]),
                 "revision": p.revision,
                 "eventCursor": p.event_sequence,
-                "runs": [run_view(run) for run in runs],
+                # Steps ride along for the latest runs and anything still active; older history is in run views.
+                "runs": [run_view(run, activity=index < 2 or run.status in ACTIVE_RUN_STATUSES)
+                         for index, run in enumerate(runs)],
                 "artifacts": self.artifacts.list(s, project_id) if self.artifacts else [],
                 "checks": validation_views(s, p),
                 "trainingOptedIn": p.data.get('trainingConsent', {}).get('optedIn') is True,
@@ -208,7 +216,7 @@ class ProjectViews:
             for job in s.scalars(select(NativeJob).where(NativeJob.run_id == run.id,
                                                         NativeJob.project_id == run.project_id)):
                 jobs.setdefault(job.task_id, []).append(native_job_view(job))
-            return run_view(run, tasks=True, native_jobs=jobs)
+            return run_view(run, tasks=True, native_jobs=jobs, activity=True)
 
     def native_logs(self, actor, job_id, access):
         with self.store.transaction() as session:

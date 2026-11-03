@@ -1,0 +1,44 @@
+# Base for Dockerfile.slicer: OrcaSlicer 2.4.2 and its runtime libraries only.
+# No application code, credentials or network access at run time. Build for linux/amd64:
+#   docker build --platform linux/amd64 -f Dockerfile.slicer-base -t kleos-local-slicer-base:build .
+# then pin the resulting image ID in Dockerfile.slicer's FROM line and requalify.
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 curl ca-certificates squashfs-tools xvfb xauth libgtk-3-0t64 libwebkit2gtk-4.1-0 \
+    libgl1 libegl1 libgl1-mesa-dri libglu1-mesa libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 libsecret-1-0 \
+    && rm -rf /var/lib/apt/lists/*
+ARG ORCA_SLICER_SHA256=d12fb8c8eac1aecd2dfb6377acd48f994f8fa439ed5292fa532dd82880f029fd
+RUN curl --fail --location --proto '=https' --tlsv1.2 \
+       https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.4.2/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.2.AppImage \
+       -o /tmp/orca.AppImage \
+    && echo "${ORCA_SLICER_SHA256}  /tmp/orca.AppImage" | sha256sum --check --strict
+# Unpack the verified Type-2 AppImage as data instead of executing its FUSE runtime,
+# which does not run under some Docker Desktop emulation configurations.
+RUN python3 - <<'PY'
+import struct
+import subprocess
+from pathlib import Path
+path = Path('/tmp/orca.AppImage')
+assert 0 < path.stat().st_size < 200 * 1024 * 1024
+raw = path.read_bytes()
+assert raw[:6] == b'\x7fELF\x02\x01' and struct.unpack_from('<H', raw, 18)[0] == 62, 'Expected x86-64 ELF'
+assert raw[8:11] == b'AI\x02', 'Expected Type-2 AppImage'
+section_offset = struct.unpack_from('<Q', raw, 40)[0]
+section_size, count = struct.unpack_from('<HH', raw, 58)
+assert section_size == 64 and 0 < count <= 4096
+elf_end = section_offset + section_size * count
+assert elf_end <= len(raw)
+for index in range(count):
+    section = section_offset + index * section_size
+    kind = struct.unpack_from('<I', raw, section + 4)[0]
+    offset, size = struct.unpack_from('<QQ', raw, section + 24)
+    if kind != 8:  # SHT_NOBITS has no bytes in the file.
+        assert offset + size <= len(raw)
+        elf_end = max(elf_end, offset + size)
+offset = raw.find(b'hsqs', elf_end, elf_end + 65536)
+assert offset >= elf_end and struct.unpack_from('<H', raw, offset + 28)[0] == 4
+assert struct.unpack_from('<Q', raw, offset + 40)[0] <= len(raw) - offset
+subprocess.run(['unsquashfs', '-no-progress', '-offset', str(offset), '-d', '/opt/orca', str(path)], check=True)
+path.unlink()
+PY
+RUN useradd --uid 10001 --create-home builder

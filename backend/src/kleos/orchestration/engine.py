@@ -19,6 +19,7 @@ from kleos.contracts.models import (
     TaskStatus,
     WireModel,
 )
+from kleos.orchestration.activity import report, step
 from kleos.orchestration.observability import model_task
 
 
@@ -154,10 +155,19 @@ class ObjectiveEngine:
                 results = packet['results']
                 if packet['artifact_context'] is not None:
                     options['artifact_context'] = packet['artifact_context']
+            reports = getattr(self.planner, 'reports_activity', False)
+            if reports:
+                await report(self.repository, scope, step('plan', 'started', turn=turn,
+                    summary='Replanning from the latest results' if results else 'Planning how to reach the objective'))
             result = await self.planner.plan(scope, state['objective'], context,
                 [TaskSpec.model_validate(t) for t in state.get('tasks', {}).values()],
                 results, state.get('answer'),
                 superseded=dict(state.get('superseded', {})), **options)
+            if reports:
+                await report(self.repository, scope, step('plan', 'finished', turn=turn, summary=result.summary,
+                    tasks=[{'id': task.id, 'lane': task.capability.value, 'objective': task.objective[:200]}
+                           for task in result.tasks][:16],
+                    question=result.question, done=result.done or None))
             return result.model_dump(mode='json')
         decision = PlanDecision.model_validate(await self.repository.run_once(scope, f'plan:{turn}', call))
         await self._guard(scope)

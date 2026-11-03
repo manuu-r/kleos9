@@ -202,6 +202,27 @@ async def test_missing_tools_block_engine_without_provider_requests(tmp_path):
             runtime.engine_factory(scope)
 
 
+async def test_engineering_run_without_native_tools_is_refused_before_pinning(tmp_path):
+    runtime = Runtime(settings(tmp_path, model_catalog=[model('text')], text_model_key='text',
+        meta_api_key=SecretStr('key')), persistence_factory=test_persistence, worker_locks=object())
+    migrate(runtime)
+    actor = runtime_actor(runtime)
+    project = runtime.projects.create(actor, 'Bracket', 'create')['projectId']
+    run = runtime.projects.submit(actor, project, 'Bracket', 1, 'run')
+    scope = RunScope(actor=actor, project_id=project, run_id=run['runId'], revision=run['revision'],
+                    deadline_at=datetime.now(UTC) + timedelta(minutes=5))
+    with runtime.projects.transaction() as session:
+        row = session.get(Objective, scope.run_id)
+        row.data = {**row.data, 'kind': 'project.generate'}
+    async with runtime.start():
+        with pytest.raises(DomainError) as refused:
+            runtime.engine_factory(scope)
+        assert refused.value.code == 'native_tools_not_loaded' and refused.value.status == 503
+        with runtime.projects.transaction() as session:
+            # Nothing is frozen into the run, so a retry after a restart with the tools pins them.
+            assert 'runtimePins' not in session.get(Objective, scope.run_id).data
+
+
 def test_native_registration_requires_exact_image_policy_and_success_evidence(tmp_path):
     report = tmp_path / 'qualification.json'
     entry = NativeToolConfiguration(capability='cad', image_digest='sha256:' + 'a' * 64,

@@ -4,7 +4,7 @@ from pydantic import Field
 from kleos.contracts.models import DomainError, WireModel
 
 COMMANDS = {'project.create', 'project.capture', 'project.requestReview',
-            'project.message', 'project.answer', 'project.confirm'}
+            'project.message', 'project.answer', 'project.confirm', 'project.acceptAssumptions'}
 
 
 class CreateRequest(WireModel):
@@ -35,6 +35,11 @@ class AnswerRequest(WireModel):
 
 class ConfirmRequest(WireModel):
     project_id: str
+
+
+class AcceptAssumptionsRequest(WireModel):
+    project_id: str
+    constraint_ids: list[str] = Field(min_length=1, max_length=50)
 
 
 class DesignFacade:
@@ -68,6 +73,10 @@ class DesignFacade:
         if kind == 'project.confirm':
             request = ConfirmRequest.model_validate(payload)
             return self.service.confirm(actor, request.project_id, revision, idempotency_key)
+        if kind == 'project.acceptAssumptions':
+            request = AcceptAssumptionsRequest.model_validate(payload)
+            return self.service.accept_assumptions(actor, request.project_id, request.constraint_ids, revision,
+                                                   idempotency_key)
         if kind == 'project.answer':
             request = AnswerRequest.model_validate(payload)
             return self.service.answer(actor, request.project_id,

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from kleos.contracts.models import DomainError, Observation, TaskResult, TaskSpec
 from kleos.execution.pcb_contract import circuit_contract
+from kleos.orchestration.activity import report, step
 from kleos.orchestration.engine import PlanDecision
 from kleos.projects.graph_repository import GraphRepository
 from kleos.projects.interfaces import InterfaceProposal
@@ -103,12 +104,24 @@ class InterfaceRunner:
                 raise DomainError('Interface planning deadline exceeded', 'deadline_exceeded')
             messages = [{'role': 'system', 'content': INSTRUCTIONS}, {'role': 'user', 'content': content}]
             for attempt in range(2):
+                await report(self.repository, scope, step('model', 'started', task=task.id, turn=attempt, lane='interfaces',
+                    summary='Correcting the rejected circuit mapping' if attempt else
+                    'Proposing shared mechanical, circuit and firmware interfaces'))
                 try:
                     async with asyncio.timeout(min(180, remaining)):
                         candidate = InterfaceProposal.model_validate(await self.model.ainvoke(messages))
                 except ValidationError:
+                    await report(self.repository, scope, step('model', 'failed', task=task.id, turn=attempt,
+                        lane='interfaces', summary='The model returned an invalid proposal', error='invalid_interfaces'))
                     raise DomainError('Model returned invalid interface proposal data', 'invalid_interfaces', 502) from None
+                except DomainError as exc:
+                    await report(self.repository, scope, step('model', 'failed', task=task.id, turn=attempt,
+                        lane='interfaces', summary=exc.message, error=exc.code))
+                    raise
                 problem = self._circuit_problem(candidate, context)
+                await report(self.repository, scope, step('model', 'finished', task=task.id, turn=attempt,
+                    lane='interfaces', summary=candidate.summary, questions=len(candidate.questions) or None,
+                    rejected=problem if problem and not attempt else None))
                 if problem is None or attempt:
                     break
                 # One corrective re-ask, metered like any call; a second failure is left to publication's own check.

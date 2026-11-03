@@ -11,6 +11,8 @@ from typing import Awaitable, Callable, Literal
 from pydantic import Field, ValidationError, model_validator
 
 from kleos.contracts.models import ArtifactRef, DomainError, Observation, TaskResult, TaskStatus, WireModel
+from kleos.orchestration.activity import observations as observations_summary
+from kleos.orchestration.activity import report, step, summarize_arguments
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +219,10 @@ class ModelSpecialist:
                              task.id, len(encoded), self.max_context_chars, len(json.dumps(packet['observations'])),
                              len(json.dumps(packet['project'])))
                 raise DomainError('Specialist context exceeds its bound', 'context_too_large')
-            async def propose():
+            async def propose(turn=turn):
+                lane = task.capability.value
+                await report(self.repository, scope, step('model', 'started', task=task.id, turn=turn, lane=lane,
+                    summary='Deciding the next step' if turn else 'Reading the task and project context'))
                 # A reply that violates the typed Action schema earns one more attempt on the same model;
                 # every attempt is a separately reserved and settled ledger entry.
                 for _ in range(2):
@@ -230,7 +235,10 @@ class ModelSpecialist:
                             if value is None:
                                 logger.warning('specialist reply for %s made no function call', task.id)
                                 continue
-                        return Action.model_validate(value).model_dump(mode='json')
+                        decided = Action.model_validate(value)
+                        await report(self.repository, scope, step('model', 'finished', task=task.id, turn=turn,
+                            lane=lane, summary=decided.summary, decision=decided.action, next=decided.tool))
+                        return decided.model_dump(mode='json')
                     except ValidationError as exc:
                         # Field paths and error types only; the rejected values are never logged.
                         problems = exc.errors()[:6]
@@ -295,13 +303,24 @@ class ModelSpecialist:
                     {'field': '.'.join(str(part) for part in problem['loc']), 'problem': problem['msg']}
                     for problem in exc.errors()[:10]]})
                 continue
-            async def invoke():
+            async def invoke(turn=turn, tool=tool, action=action):
                 await self.repository.assert_active(scope)
                 time_left = (scope.deadline_at - datetime.now(UTC)).total_seconds()
                 if time_left <= 0:
                     raise DomainError('Objective deadline exceeded', 'deadline_exceeded')
-                async with asyncio.timeout(time_left):
-                    result = ToolResult.model_validate(await tool.invoke(scope, task, action.arguments))
+                lane = task.capability.value
+                await report(self.repository, scope, step('tool', 'started', task=task.id, turn=turn, lane=lane,
+                    tool=tool.name, arguments=summarize_arguments(action.arguments)))
+                try:
+                    async with asyncio.timeout(time_left):
+                        result = ToolResult.model_validate(await tool.invoke(scope, task, action.arguments))
+                except DomainError as exc:
+                    await report(self.repository, scope, step('tool', 'failed', task=task.id, turn=turn, lane=lane,
+                        tool=tool.name, summary=exc.message, error=exc.code))
+                    raise
+                await report(self.repository, scope, step('tool', 'finished', task=task.id, turn=turn, lane=lane,
+                    tool=tool.name, summary=result.summary, checks=observations_summary(result.observations),
+                    artifacts=len(result.artifacts) or None, blockers=result.blockers[:5]))
                 return result.model_dump(mode='json')
             try:
                 result = ToolResult.model_validate(await self.repository.run_once(scope, f'{task.id}:tool:{turn}', invoke))

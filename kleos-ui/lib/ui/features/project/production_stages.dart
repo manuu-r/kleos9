@@ -12,6 +12,7 @@ import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
 import '../../core/concept_preview.dart';
 import 'common.dart';
+import 'activity_timeline.dart';
 import 'engineering_views.dart';
 import 'stage_kit.dart';
 import 'approved_design_reference.dart';
@@ -290,6 +291,8 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                   onReview: () =>
                       command('project.requestReview', {'autoResume': true}),
                   onConfirm: () => command('project.confirm'),
+                  onAcceptAssumptions: (ids) => command(
+                      'project.acceptAssumptions', {'constraintIds': ids}),
                 ),
         );
         final preview = KCard(
@@ -815,6 +818,13 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             if (active)
               SegmentBar(tones: List.filled(16, 'accent'), sweeping: true),
           ])),
+      // Steps of the latest run, live while it works: planning, model decisions and tool calls.
+      if (asMaps(latest?['activity']).isNotEmpty)
+        ActivityTimeline(
+            key: ValueKey('activity-${latest!['id']}'),
+            steps: asMaps(latest['activity']),
+            running: const {'pending', 'running', 'waiting'}
+                .contains(latest['status'])),
       if (widget.stage == 3)
         interfaceRecords()
       else if (widget.stage == 4)

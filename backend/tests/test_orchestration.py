@@ -908,3 +908,58 @@ async def test_a_file_already_read_several_times_without_an_edit_is_not_read_aga
     await ModelSpecialist(model, [tool], repo).execute(
         s, task().model_copy(update={'max_actions': len(steps) + 1}), await repo.context(s))
     assert len(reads) == MAX_READS_PER_FILE
+
+
+async def test_specialist_reports_public_progress_once_and_redacts_arguments():
+    import json
+
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    repo, steps = Repo(), []
+    async def record(scope, step):
+        steps.append(step)
+    repo.record_activity = record
+    async def permit(scope, task, args):
+        return None
+    async def invoke(scope, task, args):
+        return ToolResult(summary='Measured fixture', observations=[Observation(name='geometry', status='PASS')])
+    arguments = {'view': 'top', 'content': 'x' * 5000, 'apiKey': 'sk-do-not-show'}
+    model = scripted_model([{'action': 'tool', 'tool': 'inspect', 'arguments': arguments, 'summary': 'Check the top view'},
+                            {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    harness = ModelSpecialist(model, [RegisteredTool('inspect', 'Inspect geometry', frozenset({'cad'}), invoke, permit)], repo)
+    s = scope()
+    context = await repo.context(s)
+    result = await harness.execute(s, task(), context)
+    assert result.status == 'succeeded'
+    assert [(step['kind'], step['phase'], step.get('tool')) for step in steps] == [
+        ('model', 'started', None), ('model', 'finished', None),
+        ('tool', 'started', 'inspect'), ('tool', 'finished', 'inspect'),
+        ('model', 'started', None), ('model', 'finished', None)]
+    assert steps[1]['summary'] == 'Check the top view' and steps[1]['next'] == 'inspect'
+    assert steps[2]['arguments'] == {'view': 'top', 'content': '5000 characters', 'apiKey': '[redacted]'}
+    assert steps[3]['checks'] == [{'name': 'geometry', 'status': 'PASS'}]
+    assert all(step['taskId'] == 'bracket' and step['lane'] == 'cad' for step in steps)
+    assert 'sk-do-not-show' not in json.dumps(steps)
+    # Replaying completed receipts reruns nothing, so it reports nothing new.
+    recorded = len(steps)
+    assert await harness.execute(s, task(), context) == result
+    assert len(steps) == recorded
+
+
+async def test_a_failing_progress_write_never_changes_the_task_result():
+    from kleos.contracts.models import Observation
+    from kleos.orchestration.specialist import ModelSpecialist, RegisteredTool, ToolResult
+    repo = Repo()
+    async def broken(scope, step):
+        raise RuntimeError('display store unavailable')
+    repo.record_activity = broken
+    async def permit(scope, task, args):
+        return None
+    async def invoke(scope, task, args):
+        return ToolResult(summary='Measured fixture', observations=[Observation(name='geometry', status='PASS')])
+    model = scripted_model([{'action': 'tool', 'tool': 'inspect', 'arguments': {'view': 'top'}},
+                            {'action': 'finish', 'summary': 'Observed geometry; candidate only'}])
+    harness = ModelSpecialist(model, [RegisteredTool('inspect', 'Inspect geometry', frozenset({'cad'}), invoke, permit)], repo)
+    s = scope()
+    result = await harness.execute(s, task(), await repo.context(s))
+    assert result.status == 'succeeded'

@@ -387,6 +387,16 @@ class GraphRepository:
             run.data = {**run.data, "results": saved}
             self.store._emit(session, project, "task.observed", {"runId": run.id, "result": data})
 
+    async def record_activity(self, scope, step):
+        """Keep the run's latest public progress steps; a step with a known id replaces itself."""
+        from kleos.orchestration.activity import STEP_LIMIT
+
+        with self.store.transaction() as session:
+            project, run = self._check(session, scope)
+            steps = [item for item in run.data.get("activity", []) if item.get("id") != step["id"]]
+            run.data = {**run.data, "activity": [*steps, step][-STEP_LIMIT:]}
+            self.store._emit(session, project, "objective.activity", {"runId": run.id, "step": step})
+
     async def publish_plan(self, scope, *, tasks, superseded, turn, summary, question):
         data = {
             "tasks": [task.model_dump(mode="json", by_alias=True) for task in tasks],

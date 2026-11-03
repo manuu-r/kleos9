@@ -8347,6 +8347,15 @@
           "createdAt": {
             "type": "string",
             "title": "Createdat"
+          },
+          "activity": {
+            "type": "array",
+            "title": "Activity",
+            "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "additionalProperties": false,
@@ -8410,6 +8419,15 @@
             },
             "type": "array",
             "title": "Tasks"
+          },
+          "activity": {
+            "type": "array",
+            "title": "Activity",
+            "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "additionalProperties": false,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "kleos-rewrite-frontend-contract-v1",
-  "sourceOpenApiSha256": "22efb32b7f855b87a71048fea6330838f665f40123e9cedcb340646c3fcb73b4",
+  "sourceOpenApiSha256": "bde6dae2e227fcb6d0b717e2a2eb165dfa9564e2aca3fd951a02a086b4464669",
   "counts": {
     "paths": 97,
     "operations": 108,
@@ -4940,6 +4940,16 @@
         {
           "file": "kleos-ui/lib/ui/features/developer_page.dart",
           "line": 206
+        }
+      ]
+    },
+    {
+      "type": "project.acceptAssumptions",
+      "transport": "POST /api/v1/commands",
+      "sources": [
+        {
+          "file": "kleos-ui/lib/ui/features/project/production_stages.dart",
+          "line": 294
         }
       ]
     },
@@ -12942,6 +12952,15 @@
         "createdAt": {
           "type": "string",
           "title": "Createdat"
+        },
+        "activity": {
+          "type": "array",
+          "title": "Activity",
+          "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
       "additionalProperties": false,
@@ -13060,6 +13079,15 @@
           },
           "type": "array",
           "title": "Tasks"
+        },
+        "activity": {
+          "type": "array",
+          "title": "Activity",
+          "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
       "additionalProperties": false,

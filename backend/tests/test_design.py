@@ -369,3 +369,72 @@ async def test_critical_unknown_dimensions_and_untrusted_evidence_block_confirma
     constraint.update(certainty='known', value=5, sourceIds=['invented-source'])
     with pytest.raises(DomainError, match='unknown parts or evidence'):
         await generate(service, actor, update, result(constraints=[constraint]))
+
+
+async def test_user_accepts_critical_placeholders_before_confirming(design):
+    service, actor = design
+    initial = service.create(actor, 'A watch with a delegated USB-C and battery choice', 'create')
+    project_id = initial['projectId']
+    constraints = [
+        {'id': 'usbc', 'partIds': ['body'], 'kind': 'keepout', 'description': 'USB-C opening is not measured',
+         'unit': 'mm', 'certainty': 'unknown', 'critical': True},
+        {'id': 'cell', 'partIds': ['body'], 'kind': 'dimension', 'description': 'LiPo size is not measured',
+         'unit': 'mm', 'certainty': 'unknown', 'critical': True}]
+    await generate(service, actor, initial, result(constraints=constraints))
+    views, facade = ProjectViews(service.projects), DesignFacade(service)
+
+    def state():
+        return views.workspace(actor, project_id)['project']['state']
+
+    def accept(ids, revision, key):
+        return facade.command(actor, {'type': 'project.acceptAssumptions', 'expectedRevision': revision,
+                                      'payload': {'projectId': project_id, 'constraintIds': ids}}, key)
+
+    assert not state()['clarification']['readyToConfirm']
+    revision = views.workspace(actor, project_id)['revision']
+    with pytest.raises(DomainError, match='Resolve or review'):
+        service.confirm(actor, project_id, revision, 'confirm-early')
+
+    first = accept(['usbc'], revision, 'accept-usbc')
+    assert accept(['usbc'], revision, 'accept-usbc') == first  # idempotent replay
+    current = state()
+    assert not current['clarification']['readyToConfirm']  # the battery is still an open placeholder
+    by_id = {c['id']: c for c in current['proposal']['constraints']}
+    assert by_id['usbc']['certainty'] == 'assumed' and by_id['cell']['certainty'] == 'unknown'
+    assert current['clarification']['acceptedAssumptions'][0] | {'acceptedAt': None} == {
+        'constraintId': 'usbc', 'acceptedBy': 'owner', 'acceptedAt': None}
+    assert any('Accepted placeholder' in item for item in current['proposal']['limitations'])
+    with pytest.raises(DomainError, match='Only open critical placeholders'):
+        accept(['usbc'], first['revision'], 'accept-again')
+
+    second = accept(['cell'], first['revision'], 'accept-cell')
+    assert state()['clarification']['readyToConfirm']
+    service.confirm(actor, project_id, second['revision'], 'confirm')
+    project = views.workspace(actor, project_id)['project']
+    assert project['state']['confirmed']
+    # Engineering still sees unmeasured placeholders, never measured values.
+    assert {c['id']: c['certainty'] for c in project['requirements']['constraints']} == {
+        'usbc': 'assumed', 'cell': 'assumed'}
+
+
+def test_accepting_placeholders_is_a_user_only_command(design):
+    service, actor = design
+    initial = service.create(actor, 'A bracket', 'create')
+    token = execution_owner.set(('run', 'worker'))
+    try:
+        with pytest.raises(DomainError, match='Only a user command'):
+            service.accept_assumptions(actor, initial['projectId'], ['mount'], initial['revision'], 'worker-accept')
+    finally:
+        execution_owner.reset(token)
+
+
+async def test_capture_progress_is_shown_on_the_workspace_run(design):
+    service, actor = design
+    initial = service.create(actor, 'A case with removable lid', 'create')
+    await generate(service, actor, initial, result())
+    run = ProjectViews(service.projects).workspace(actor, initial['projectId'])['runs'][0]
+    phases = [(step['kind'], step['phase']) for step in run['activity']]
+    assert phases == [('model', 'started'), ('model', 'finished')]
+    assert run['activity'][0]['summary'] == 'Designing a concept from your brief'
+    assert run['activity'][1]['summary'] == 'A two-part enclosure candidate with separate lid.'
+    assert run['activity'][1]['parts'] == 2

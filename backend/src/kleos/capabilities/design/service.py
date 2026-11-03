@@ -161,6 +161,62 @@ class DesignService:
         return self.projects._command(actor, key, {'operation': 'design.answer', 'projectId': project_id,
             'payload': payload, 'expectedRevision': expected_revision}, operation)
 
+    def accept_assumptions(self, actor, project_id, constraint_ids, expected_revision, key):
+        """The user accepts named critical unknowns as placeholders to resolve before PCB or case lock.
+
+        This does not confirm the concept; it only lets the user review and confirm it. Each accepted
+        constraint becomes certainty=assumed with a recorded limitation, so later engineering stages
+        still see it as unmeasured rather than known.
+        """
+        if execution_owner.get() is not None:
+            raise DomainError('Only a user command can accept design assumptions', 'approval_required')
+        ids = list(dict.fromkeys(constraint_ids or []))
+        if not 1 <= len(ids) <= 50:
+            raise DomainError('Name the placeholders to accept', 'invalid_request', 422)
+
+        def operation(session):
+            project = self.projects.authorized(session, actor, project_id, write=True)
+            if project.revision != expected_revision:
+                raise DomainError('Concept changed before accepting placeholders', 'revision_conflict')
+            state = self._state(project)
+            if state.get('confirmed'):
+                raise DomainError('This concept is already confirmed', 'concept_confirmed')
+            if state.get('planning', {}).get('pending'):
+                raise DomainError('Wait for the concept update to finish', 'concept_not_ready')
+            proposal = state.get('proposal', {})
+            constraints = [dict(item) for item in proposal.get('constraints', [])]
+            blocking = {c['id']: c for c in constraints if c.get('critical') and c.get('certainty') == 'unknown'}
+            if not set(ids).issubset(blocking):
+                raise DomainError('Only open critical placeholders can be accepted', 'constraint_conflict')
+            accepted_at = datetime.now(UTC).isoformat()
+            limitations = list(proposal.get('limitations', []))
+            for item in constraints:
+                if item['id'] in ids:
+                    item['certainty'] = 'assumed'
+                    limitations.append('Accepted placeholder, not a measurement: ' + item['description'][:900])
+            clarification = dict(state.get('clarification', {}))
+            clarification['acceptedAssumptions'] = [
+                *clarification.get('acceptedAssumptions', []),
+                *({'constraintId': ident, 'acceptedBy': actor.user_id, 'acceptedAt': accepted_at} for ident in ids)]
+            outstanding = [q for q in clarification.get('questions', []) if q.get('required')]
+            remaining = [c for c in constraints if c.get('critical') and c.get('certainty') == 'unknown']
+            # Readiness here is the user's decision: they reviewed the scene and the named placeholders.
+            clarification['readyToConfirm'] = (bool(state.get('concept', {}).get('scene'))
+                                               and not outstanding and not remaining)
+            clarification['needsReview'] = False
+            state['proposal'] = {**proposal, 'constraints': constraints, 'limitations': limitations[-40:]}
+            state['clarification'] = clarification
+            state['conversation'].append({'id': str(uuid4()), 'role': 'user', 'createdAt': accepted_at,
+                'text': 'Accepted as placeholders to measure before PCB or case lock: '
+                        + '; '.join(blocking[ident]['description'][:200] for ident in ids)})
+            project.advance_revision()
+            project.data = {**project.data, 'state': state}
+            self.projects._emit(session, project, 'capture.assumptions.accepted',
+                {'constraintIds': ids, 'readyToConfirm': clarification['readyToConfirm']})
+            return {'projectId': project.id, 'revision': project.revision}
+        return self.projects._command(actor, key, {'operation': 'design.acceptAssumptions', 'projectId': project_id,
+            'constraintIds': ids, 'expectedRevision': expected_revision}, operation)
+
     def request(self, scope):
         with self.projects.transaction() as session:
             _, run = GraphRepository(self.projects)._check(session, scope)

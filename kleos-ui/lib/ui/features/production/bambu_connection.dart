@@ -193,7 +193,7 @@ class BambuConnectionDialog extends ConsumerWidget {
                           onGuide: () async {
                             if (!await launchUrl(
                                 Uri.parse(
-                                    'https://github.com/manuu-r/kleos9/blob/feature/ngspice-simulation/backend/docs/bambu-printers.md'),
+                                    'https://github.com/manuu-r/kleos9/blob/feature/ngspice-simulation/backend/src/kleos/capabilities/fabrication/README.md'),
                                 mode: LaunchMode.externalApplication)) {
                               throw StateError(
                                   'Setup guide could not be opened');

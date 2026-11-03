@@ -87,6 +87,9 @@ def _structural_problem(decision, known, finished=None):
 
 
 class ModelPlanner:
+    # The engine records public planning steps around this planner's model call.
+    reports_activity = True
+
     def __init__(
         self,
         model,

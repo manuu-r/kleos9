@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT EDIT.
 // Source: backend/contracts/openapi.json
-// Schema SHA-256: 331e511f7d3a3e067fb2ee5e8330549eaf5c564f97853af834a357b28077adec
+// Schema SHA-256: 046f5eab03ba5306e4e8907105e8b75f3d1a68624b87cb7a80c7e6b49b651241
 // Regenerate: python3 tool/generate_transport.py
 
 Map<String, dynamic> _object(Object? value) =>
@@ -2111,6 +2111,7 @@ class ApiRunSummary {
     required this.traceId,
     required this.blocker,
     required this.createdAt,
+    this.activity,
   });
   factory ApiRunSummary.fromJson(Map<String, dynamic> json) => ApiRunSummary(
         id: json['id'] as String,
@@ -2121,6 +2122,10 @@ class ApiRunSummary {
         traceId: json['traceId'] as String,
         blocker: json['blocker'] == null ? null : json['blocker'] as String,
         createdAt: json['createdAt'] as String,
+        activity: json['activity'] == null
+            ? null
+            : List<Map<String, dynamic>>.unmodifiable((json['activity'] as List)
+                .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
       );
   final String id;
   final String projectId;
@@ -2130,6 +2135,7 @@ class ApiRunSummary {
   final String traceId;
   final String? blocker;
   final String createdAt;
+  final List<Map<String, dynamic>>? activity;
   Map<String, dynamic> toJson() => {
         'id': id,
         'projectId': projectId,
@@ -2139,6 +2145,8 @@ class ApiRunSummary {
         'traceId': traceId,
         'blocker': blocker,
         'createdAt': createdAt,
+        if (activity != null)
+          'activity': activity?.map((v) => v).toList(growable: false),
       };
 }
 
@@ -2153,6 +2161,7 @@ class ApiRunView {
     required this.blocker,
     required this.createdAt,
     required this.tasks,
+    this.activity,
   });
   factory ApiRunView.fromJson(Map<String, dynamic> json) => ApiRunView(
         id: json['id'] as String,
@@ -2165,6 +2174,10 @@ class ApiRunView {
         createdAt: json['createdAt'] as String,
         tasks: List<ApiTaskView>.unmodifiable((json['tasks'] as List)
             .map((v) => ApiTaskView.fromJson(_object(v)))),
+        activity: json['activity'] == null
+            ? null
+            : List<Map<String, dynamic>>.unmodifiable((json['activity'] as List)
+                .map((v) => Map<String, dynamic>.unmodifiable(_object(v)))),
       );
   final String id;
   final String projectId;
@@ -2175,6 +2188,7 @@ class ApiRunView {
   final String? blocker;
   final String createdAt;
   final List<ApiTaskView> tasks;
+  final List<Map<String, dynamic>>? activity;
   Map<String, dynamic> toJson() => {
         'id': id,
         'projectId': projectId,
@@ -2185,6 +2199,8 @@ class ApiRunView {
         'blocker': blocker,
         'createdAt': createdAt,
         'tasks': tasks.map((v) => v.toJson()).toList(growable: false),
+        if (activity != null)
+          'activity': activity?.map((v) => v).toList(growable: false),
       };
 }
 

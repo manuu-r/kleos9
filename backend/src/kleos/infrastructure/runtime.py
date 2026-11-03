@@ -372,6 +372,12 @@ class Runtime:
                 return run.data['runtimePins']
             if not self.settings.text_model_key:
                 raise DomainError('Configure an explicit text model', 'model_unavailable', 503)
+            if run.data.get('kind') in {'project.generate', 'project.repair'} and not self.native_pins:
+                # Settings come from the process environment, never from backend/.env. A server started without
+                # KLEOS_NATIVE_TOOLS can only plan research, and pins are frozen into the run on first start, so
+                # refuse before pinning: a retry after the server is restarted with the tools then pins them.
+                raise DomainError('This server has no native CAD, PCB or application tools loaded; restart it with '
+                                  'KLEOS_NATIVE_TOOLS in its environment', 'native_tools_not_loaded', 503)
             configurations = [ModelConfiguration.model_validate(item) for item in self.settings.model_catalog]
             _, lane_keys = self.policies.resolve(run.data.get('modelPolicySnapshot', {}))
             policy = ModelPolicy(text_model_key=self.settings.text_model_key, vision_model_key=self.settings.vision_model_key,
