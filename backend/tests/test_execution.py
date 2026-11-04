@@ -1,1024 +1,1122 @@
+"""Boundary tests use fixed fixture writers; generated sources are never executed on the host."""
 import base64
-import hashlib
-import importlib.util
 import json
-import shutil
-import subprocess
+import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
 
-from kleos.config import Settings
-from kleos.contracts import DomainError
-from kleos.db import Artifact, Attempt, Base, Database, NativeJob, Organization, Project, Run, Task
-from kleos.domain import contract_hash
-from kleos.execution import ECSExecution
-from kleos.native_runner import (
-    RENODE_PROFILE,
-    RENODE_SCRIPT,
-    RENODE_VERSION,
-    UnsupportedTool,
-    clean_environment,
-    prepare_companion,
-    run_command,
-    run_job,
-    safe_relative,
-    stage_inputs,
-    validate_interfaces,
-    validate_protocol,
-    validate_renode,
-)
-from kleos.storage import ArtifactStore, digest
+from kleos.artifacts.service import ArtifactService
+from kleos.artifacts.storage import BlobStore
+from kleos.contracts.models import Actor, DomainError, TaskSpec
+from kleos.execution.docker import NativeSettings, Resources, container_spec
+from kleos.execution.gateway import NativeAction, NativeGateway, NativeJob, export_path
+from kleos.execution.native_runner import NativeSession, atomic_json, clean_environment, has_errors, run_fixed
+from kleos.execution.protocol import PROTOCOL, digest, fingerprint, source_path
+from kleos.projects.graph_repository import GraphRepository
+from kleos.projects.store import ProjectStore
 
 
-class FakeECS:
+def request():
+    return {'protocol': PROTOCOL, 'jobId': 'fixture', 'lane': 'cad', 'resources': Resources().wire(),
+            'deadline': time.time() + 60, 'allowedPaths': ['model.py'], 'maxActions': 12,
+            'sources': [{'path': 'model.py', 'sha256': digest(b'fixture'),
+                         'contentBase64': base64.b64encode(b'fixture').decode()}]}
+
+
+def fixture_writer(command, work, timeout, limits, application):
+    # These are test bytes, not geometric evidence. Never run the passed command.
+    (work / 'outputs/parts.json').write_text('{"parts":[{"id":"fixture"}]}')
+    (work / 'outputs/fixture.step').write_bytes(b'trusted test STEP bytes')
+    (work / 'outputs/fixture.stl').write_bytes(b'trusted test STL bytes')
+    return 'fixture observation'
+
+
+class FakeDocker:
     def __init__(self):
-        self.calls = []
-        self.stops = []
-        self.describes = []
-        self.lists = []
-        self.fail_stop = False
+        self.sessions, self.stopped, self.dispatches = {}, [], 0
+        self.cleaned = []
+        self.tamper = None
+        self.on_dispatch = None
 
-    def run_task(self, **kwargs):
-        self.calls.append(kwargs)
-        return {"tasks": [{"taskArn": f"arn:task/{kwargs['clientToken']}"}]}
+    async def ensure(self, job_id, data, image, control_directory, *, allow_create=True, on_observed=None):
+        self.dispatches += 1
+        root = Path(control_directory)
+        if job_id not in self.sessions:
+            if not allow_create:
+                raise RuntimeError('Native container missing after dispatch')
+            self.sessions[job_id] = NativeSession(data, root / 'journal', root / 'work', fixture_writer)
+        if on_observed is not None:
+            await on_observed(digest(job_id.encode()))
+        for action_file in sorted((root / 'actions').glob('*.json')):
+            output = root / 'results' / action_file.name
+            if output.exists():
+                continue
+            action = json.loads(action_file.read_bytes())
+            response = self.sessions[job_id].apply(action)
+            envelope = {'protocol': PROTOCOL, 'jobId': job_id, 'requestHash': fingerprint(data),
+                        'actionId': action['actionId'], 'actionHash': fingerprint(action), 'response': response}
+            if self.tamper:
+                self.tamper(envelope)
+            atomic_json(output, envelope)
+        if self.on_dispatch:
+            self.on_dispatch()
+        return job_id
 
-    def stop_task(self, **kwargs):
-        self.stops.append(kwargs)
-        if self.fail_stop:
-            raise ConnectionError("temporary failure")
-        return {"task": {"lastStatus": "STOPPED"}}
+    async def running(self, job_id):
+        return job_id not in self.stopped
 
-    def list_tasks(self, **kwargs):
-        self.lists.append(kwargs)
-        return {"taskArns": [f"arn:task/{kwargs['startedBy']}"]}
+    async def stop(self, job_id):
+        self.stopped.append(job_id)
 
-    def describe_tasks(self, **kwargs):
-        self.describes.append(kwargs)
-        return {"tasks": [{"taskArn": kwargs["tasks"][0], "lastStatus": "STOPPED"}]}
+    async def confirm_terminated(self, job_id, image, *, observed_id=None):
+        observed = job_id in self.sessions
+        await self.stop(job_id)
+        assert not await self.running(job_id)
+        return digest(job_id.encode()) if observed else observed_id
+
+    async def cleanup(self, job_id, *, observed_id=None):
+        self.sessions.pop(job_id, None)
+        self.cleaned.append(job_id)
 
 
 @pytest.fixture
-def execution(tmp_path):
-    settings = Settings(
-        environment="test", database_url=f"sqlite:///{tmp_path}/jobs.db",
-        local_artifact_dir=tmp_path / "artifacts", session_key="test-job-signing-key",
-        execution_backend="ecs", ecs_cluster="cluster", ecs_subnets=["native-subnet"],
-        ecs_security_groups=["native-sg"], ecs_task_definitions={"mechanics": "task:mechanics:17"},
-        internal_base_url="https://jobs.example.test",
-        daily_budget_usd=100, project_budget_usd=10, native_job_reservation_usd=1,
-    )
-    db = Database(settings.database_url)
-    Base.metadata.create_all(db.engine)
-    with db.transaction() as session:
-        session.add(Organization(id="org", name="test"))
-        session.add(Project(id="project", tenant_id="org", owner_id="owner", name="watch", brief="watch", budget_usd=10))
-        session.add(Run(id="run", tenant_id="org", project_id="project", command_id="command", kind="build", revision=1))
-        session.add(Task(id="task", tenant_id="org", project_id="project", run_id="run",
-                         lane="mechanics", kind="build", revision=1, fence=1))
-        session.add(Attempt(id="attempt", tenant_id="org", task_id="task", number=1, fence=1,
-                            policy_revision=1, provider="muse", model="qualified-model", context={}))
-    store = ArtifactStore(settings)
-    body = b"from build123d import Box\nassembly = Box(40, 30, 10)\n"
-    store.put("input/enclosure.py", body)
-    with db.transaction() as session:
-        session.add(Artifact(id="artifact", tenant_id="org", project_id="project", task_id="task",
-                             attempt_id="attempt", revision=1, lane="mechanics", name="enclosure.py",
-                             key="input/enclosure.py", sha256=digest(body), size=len(body)))
-    backend = ECSExecution(db, settings, store, FakeECS())
-    yield backend
-    db.close()
+def gateway(tmp_path):
+    store = ProjectStore(f'sqlite:///{tmp_path}/native.db')
+    store.initialize_for_tests()
+    actor = Actor(tenant_id='tenant', user_id='owner')
+    project = store.create(actor, 'Bracket', 'create')
+    run = store.submit(actor, project['projectId'], 'Make bracket', 1, 'submit')
+    scope = SimpleNamespace(actor=actor, project_id=project['projectId'], run_id=run['runId'], revision=2, compute_budget_seconds=None,
+                            deadline_at=datetime.now(UTC) + timedelta(minutes=5))
+    task = TaskSpec(id='cad-one', objective='Design part', capability='cad', allowed_paths=['model.py'])
+    artifacts = ArtifactService(store, BlobStore(tmp_path / 'blobs'))
+    docker = FakeDocker()
+    settings = NativeSettings(tmp_path / 'control', {'cad': 'sha256:' + 'a' * 64}, poll_seconds=.01)
+    value = NativeGateway(store, artifacts, settings, docker, GraphRepository(store))
+    return value, scope, task
 
 
-def test_native_submission_is_durable_and_does_not_dispatch(execution):
-    job_id = execution.submit("attempt", "build")
-    assert execution.submit("attempt", "build") == job_id
-    assert execution.ecs.calls == []
-    with execution.db.transaction() as session:
-        assert len(session.scalars(select(NativeJob)).all()) == 1
-        job = session.get(NativeJob, job_id)
-        assert job.status == "pending"
-        assert job.request["toolVersion"] == "task:mechanics:17"
-        assert "token" not in str(job.request).lower()
-    execution.dispatch_pending()
-    call = execution.ecs.calls[0]
-    assert call["clientToken"] == job_id
-    assert call["networkConfiguration"]["awsvpcConfiguration"]["assignPublicIp"] == "DISABLED"
-    assert call["enableExecuteCommand"] is False
-    execution.dispatch_pending()
-    assert len(execution.ecs.calls) == 1
+async def patch(gateway):
+    native, scope, task = gateway
+    return await native.invoke(scope, task, 'patch', {'actionId': 'patch-1', 'path': 'model.py',
+                                                    'expectedSha256': None, 'content': 'fixture'})
 
 
-def test_native_dispatch_and_reconciliation_do_not_cross_execution_backends(execution):
-    ident = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, ident)
-        job.request = {**job.request, "dispatch": {**job.request["dispatch"], "backend": "docker"}}
-    execution.dispatch_pending()
-    assert not execution.ecs.calls
-    assert execution.reconcile() == [] and not execution.ecs.describes
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, ident)
-        job.status, job.external_id = "running", "docker-container-id"
-        job.request = {**job.request, "reservation": {**job.request["reservation"], "dispatchAttempted": True}}
-    execution.cancel_run("run")
-    assert not execution.ecs.stops
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, ident)
-        assert job.status == "cancelled" and not job.result.get("terminationObservedAt")
+async def test_patch_build_finish_publishes_candidates_with_pinned_provenance(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+    assert built['observations'][0]['status'] == 'UNKNOWN'
+    assert built['observations'][0]['details']['executionSucceeded'] is True
+    assert built['observations'][0]['details']['candidateOnly'] is True
+    result = await native.invoke(scope, task, 'finish', {'actionId': 'finish-1'})
+    assert len(result['artifacts']) == 4
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.status == 'finished'
+        assert job.request['sources'] == []
+        assert job.request['imageDigest'] == 'sha256:' + 'a' * 64
+        assert native.artifacts.list(session, scope.project_id)[0]['status'] == 'candidate'
+    count = native.docker.dispatches
+    assert await native.invoke(scope, task, 'finish', {'actionId': 'finish-1'}) == result
+    assert native.docker.dispatches == count
 
 
-def test_legacy_jobs_without_backend_discriminator_still_dispatch_on_ecs(execution):
-    ident = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, ident)
-        dispatch = {k: v for k, v in job.request["dispatch"].items() if k != "backend"}
-        job.request = {**job.request, "dispatch": dispatch}
-    execution.dispatch_pending()
-    assert len(execution.ecs.calls) == 1
+async def test_action_id_conflict_and_restart_replays_recorded_result(gateway):
+    native, scope, task = gateway
+    result = await patch(gateway)
+    reopened = NativeGateway(native.projects, native.artifacts, native.settings, native.docker, native.repository)
+    replay = await reopened.invoke(scope, task, 'patch', {'actionId': 'patch-1', 'path': 'model.py',
+                                                        'expectedSha256': None, 'content': 'fixture'})
+    assert replay == result
+    assert native.docker.dispatches == 1
+    with pytest.raises(DomainError, match='different arguments'):
+        await native.invoke(scope, task, 'patch', {'actionId': 'patch-1', 'path': 'model.py',
+                                                 'expectedSha256': None, 'content': 'changed'})
 
 
-def prepare_native_retry(execution):
-    original = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, original)
-        job.status = "succeeded"
-        project = session.get(Project, "project")
-        session.add(Task(id="retry-task", tenant_id="org", project_id="project", run_id="run",
-                         lane="mechanics", kind="project.retryNative", revision=1, fence=1))
-        session.add(Attempt(id="retry-attempt", tenant_id="org", task_id="retry-task", number=1, fence=1,
-                            policy_revision=1, provider="muse", model="qualified-model", context={
-                                "nativeRetry": {"sourceJobId": original, "sourceAttemptId": "attempt",
-                                                "sourceTaskId": "task", "rootSourceAttemptId": "attempt",
-                                                "inputArtifacts": job.request["inputArtifacts"],
-                                                "contractHash": contract_hash(project.requirements, project.interfaces)}}))
-    return original
+async def test_wrong_result_identity_stops_job_without_publication(gateway):
+    native, scope, task = gateway
+    native.docker.tamper = lambda envelope: envelope.update(requestHash='wrong')
+    with pytest.raises(ValueError, match='identity'):
+        await patch(gateway)
+    assert len(native.docker.stopped) == 1
+    with native.projects.transaction() as session:
+        assert session.scalar(select(NativeJob)).status == 'failed'
+        assert native.artifacts.list(session, scope.project_id) == []
 
 
-def test_native_retry_reuses_exact_source_and_pins_new_tool_without_cloning(execution):
-    original = prepare_native_retry(execution)
-    execution.settings.ecs_task_definitions["mechanics"] = "task:mechanics:18"
-    retried = execution.submit("retry-attempt", "build")
-    with execution.db.transaction() as session:
-        previous, current = session.get(NativeJob, original), session.get(NativeJob, retried)
-        assert previous.request["toolVersion"] == "task:mechanics:17"
-        assert current.request["toolVersion"] == "task:mechanics:18"
-        assert previous.request["inputArtifacts"] == current.request["inputArtifacts"]
-        assert current.request["nativeRetry"]["sourceJobId"] == original
-        assert len(session.scalars(select(Artifact)).all()) == 1
-    payload = execution.payload(retried, execution._token(retried))
-    assert digest(base64.b64decode(payload["inputArtifacts"][0]["contentBase64"])) == payload["inputArtifacts"][0]["sha256"]
-    assert execution.ecs.calls == []
+async def test_cancel_fences_observation_and_cleanup_even_after_compute(gateway):
+    native, scope, task = gateway
+    native.docker.on_dispatch = lambda: native.repository.cancel(scope.actor, scope.project_id, scope.run_id)
+    with pytest.raises(DomainError, match='no longer active'):
+        await patch(gateway)
+    assert native.docker.stopped
+    with native.projects.transaction() as session:
+        assert native.artifacts.list(session, scope.project_id) == []
+        assert session.scalar(select(NativeAction)).status == 'pending'
 
 
-@pytest.mark.parametrize("mutation", ["artifact", "contract", "cancelled", "tenant", "native_output", "forged_refs"])
-def test_native_retry_rejects_mutated_or_unauthorized_source_before_reserving(execution, mutation):
-    original = prepare_native_retry(execution)
-    with execution.db.transaction() as session:
-        artifact = session.get(Artifact, "artifact")
-        if mutation == "artifact":
-            artifact.sha256 = "0" * 64
-        elif mutation == "contract":
-            session.get(Project, "project").requirements = {"changed": True}
-        elif mutation == "cancelled":
-            session.get(NativeJob, original).status = "cancelled"
-        elif mutation == "tenant":
-            artifact.tenant_id = "other-tenant"
-        elif mutation == "native_output":
-            artifact.provenance = {"nativeJobId": original}
-        else:
-            attempt = session.get(Attempt, "retry-attempt")
-            attempt.context = {"nativeRetry": {**attempt.context["nativeRetry"], "inputArtifacts": []}}
-        reserved = session.get(Project, "project").reserved_usd
-    with pytest.raises(DomainError, match="Native retry"):
-        execution.submit("retry-attempt", "build")
-    with execution.db.transaction() as session:
-        assert len(session.scalars(select(NativeJob)).all()) == 1
-        assert session.get(Project, "project").reserved_usd == reserved
-    assert execution.ecs.calls == []
+async def test_patch_scope_and_shell_args_are_rejected_before_dispatch(gateway):
+    native, scope, task = gateway
+    with pytest.raises(DomainError, match='authority'):
+        await native.invoke(scope, task, 'patch', {'actionId': 'bad', 'path': 'other.py',
+                                                 'expectedSha256': None, 'content': 'bad'})
+    with pytest.raises(ValueError, match='unsupported arguments'):
+        await native.invoke(scope, task, 'build', {'actionId': 'bad', 'command': 'echo injected'})
+    assert native.docker.dispatches == 0
 
 
-def test_job_scope_and_input_integrity(execution):
-    job_id = execution.submit("attempt", "build")
-    with pytest.raises(DomainError, match="credential"):
-        execution.payload(job_id, "wrong-token")
-    payload = execution.payload(job_id, execution._token(job_id))
-    assert base64.b64decode(payload["inputArtifacts"][0]["contentBase64"]).startswith(b"from build123d")
-    execution.store._path("input/enclosure.py").write_bytes(b"tampered")
-    with pytest.raises(DomainError, match="integrity"):
-        execution.payload(job_id, execution._token(job_id))
+async def test_read_reports_hash_and_bounded_content(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    result = await native.invoke(scope, task, 'read', {'actionId': 'read', 'path': 'model.py',
+                                                     'offset': 1, 'maxBytes': 3})
+    assert result['observations'][0]['details']['content'] == 'ixt'
+    assert result['observations'][0]['details']['sha256'] == digest(b'fixture')
 
 
-def test_stale_worker_cannot_read_pinned_artifacts(execution):
-    job_id = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        session.get(Task, "task").fence += 1
-    with pytest.raises(DomainError, match="superseded"):
-        execution.payload(job_id, execution._token(job_id))
+async def test_failed_build_is_not_a_pass_and_can_be_repaired(gateway):
+    native, scope, task = gateway
+    result = await native.invoke(scope, task, 'build', {'actionId': 'empty'})
+    assert result['observations'][0]['status'] == 'ERROR'
+    assert result['artifacts'] == []
+    await patch(gateway)
+    assert (await native.invoke(scope, task, 'build', {'actionId': 'repaired'}))['observations'][0]['status'] == 'UNKNOWN'
 
 
-def test_native_capacity_keeps_work_queued(execution):
-    execution.settings.max_native_jobs = 0
-    job_id = execution.submit("attempt", "build")
-    execution.dispatch_pending()
-    assert execution.ecs.calls == []
-    with execution.db.transaction() as session:
-        assert session.get(NativeJob, job_id).status == "pending"
+def test_supervisor_idempotency_hash_and_untracked_mutation(tmp_path):
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', fixture_writer)
+    action = {'actionId': 'build', 'action': 'build', 'arguments': {}}
+    result = session.apply(action)
+    assert session.apply(action) == result
+    (tmp_path / 'work/model.py').write_text('unauthorized change')
+    finished = session.apply({'actionId': 'finish', 'action': 'finish', 'arguments': {}})
+    assert finished['status'] == 'failed'
+    assert 'outside an authorized patch' in finished['error']
 
 
-def test_cancellation_retries_uncertain_termination(execution):
-    job_id = execution.submit("attempt", "build")
-    execution.dispatch_pending()
-    execution.ecs.fail_stop = True
-    with pytest.raises(ConnectionError):
-        execution.cancel_run("run")
-    with pytest.raises(DomainError, match="cancelled"):
-        execution.payload(job_id, execution._token(job_id))
-    execution.ecs.fail_stop = False
-    execution.cancel_run("run")
-    execution.cancel_run("run")
-    assert len(execution.ecs.stops) == 2
-    with execution.db.transaction() as session:
-        assert session.get(NativeJob, job_id).result["terminationRequested"]
+def test_supervisor_symlink_export_and_stale_patch_rejected(tmp_path):
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', fixture_writer)
+    patch_result = session.apply({'actionId': 'patch', 'action': 'patch', 'arguments': {
+        'path': 'model.py', 'content': 'changed', 'expectedSha256': None}})
+    assert patch_result['status'] == 'failed'
+    session.apply({'actionId': 'build', 'action': 'build', 'arguments': {}})
+    exported = tmp_path / 'work/outputs/fixture.step'
+    exported.unlink()
+    exported.symlink_to(tmp_path / 'work/model.py')
+    result = session.apply({'actionId': 'finish', 'action': 'finish', 'arguments': {}})
+    assert result['status'] == 'failed' and 'Symlink' in result['error']
 
 
-@pytest.mark.parametrize("name", ["../escape", "/root/secret", "a/../../escape", "a\\b", "\x00bad"])
-def test_reject_unsafe_native_paths(name):
+def test_interrupted_action_never_reexecutes(tmp_path):
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', fixture_writer)
+    action = {'actionId': 'lost', 'action': 'build', 'arguments': {}}
+    session.state['actions']['lost'] = {'requestHash': fingerprint(action)}
+    assert session.apply(action)['status'] == 'failed'
+    assert not (tmp_path / 'work/outputs/parts.json').exists()
+
+
+def test_no_host_execution_and_environment_never_inherits_credentials(tmp_path, monkeypatch):
+    monkeypatch.setenv('OPENAI_API_KEY', 'private')
+    monkeypatch.setenv('DATABASE_URL', 'private')
+    env = clean_environment(tmp_path)
+    assert 'OPENAI_API_KEY' not in env and 'DATABASE_URL' not in env
+    monkeypatch.delenv('KLEOS_NATIVE_SANDBOX', raising=False)
+    with pytest.raises(RuntimeError, match='isolated Linux'):
+        run_fixed(['python', '-c', 'raise Exception("must not execute")'], tmp_path, 2, Resources().wire())
+
+
+@pytest.mark.parametrize('path', ['../x', '/etc/passwd', 'a//b', '.env', 'a/../b', 'a\\b', 'outputs/fake.py'])
+def test_source_paths_reject_escape_and_reserved_output(path):
     with pytest.raises(ValueError):
-        safe_relative(name)
+        source_path(path)
 
 
-def test_stage_inputs_rejects_hash_and_duplicate_names(tmp_path):
-    item = {"id": "1", "lane": "mechanics", "name": "enclosure.py",
-            "sha256": hashlib.sha256(b"body").hexdigest(), "contentBase64": base64.b64encode(b"body").decode()}
-    with pytest.raises(ValueError, match="duplicate"):
-        stage_inputs({"inputArtifacts": [item, item]}, tmp_path)
-    item["sha256"] = "0" * 64
-    with pytest.raises(ValueError, match="hash"):
-        stage_inputs({"inputArtifacts": [item]}, tmp_path)
+def test_docker_enforces_isolation_and_pins_resource_contract():
+    data = request()
+    spec = container_spec('job', data, 'sha256:' + 'a' * 64, '/private/control/job')
+    host = spec['HostConfig']
+    assert host['ReadonlyRootfs'] and host['NetworkMode'] == 'none'
+    assert host['CapDrop'] == ['ALL'] and host['PidsLimit'] == 128
+    assert host['MemorySwap'] == host['Memory']
+    assert host['SecurityOpt'] == ['no-new-privileges:true']
+    assert spec['Env'] == ['KLEOS_NATIVE_SANDBOX=1']
+    assert len(host['Mounts']) == 1 and host['Mounts'][0]['Target'] == '/control'
+    assert 'docker.sock' not in json.dumps(spec)
+    data['lane'] = 'application'
+    app = container_spec('job', data, 'sha256:' + 'a' * 64, '/private/control/job')
+    assert len(app['HostConfig']['Mounts']) == 1
+    assert '/tmp' in app['HostConfig']['Tmpfs']
+    assert 'size=' in app['HostConfig']['Tmpfs']['/tmp']
+    assert app['HostConfig']['Tmpfs']['/tmp'].endswith(',exec')
 
 
-def test_generated_environment_never_inherits_credentials(tmp_path, monkeypatch):
-    monkeypatch.setenv("KLEOS_JOB_TOKEN", "callback-secret")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "aws-secret")
-    monkeypatch.setenv("GEMINI_API_KEY", "provider-secret")
-    environment = clean_environment(tmp_path)
-    assert not any("SECRET" in key or "TOKEN" in key or "KEY" in key for key in environment)
-    assert environment["HOME"].startswith(str(tmp_path))
+def test_output_contract_rejects_arbitrary_files():
+    assert export_path('cad', 'outputs/bracket.step')
+    assert export_path('pcb', 'outputs/gerbers/board-F_Cu.gbr')
+    for lane, name in [('cad', 'outputs/secrets.txt'), ('firmware', 'outputs/run.sh'),
+                       ('application', 'outputs/companion.exe')]:
+        with pytest.raises(ValueError):
+            export_path(lane, name)
 
 
-def test_unknown_tool_support_does_not_become_success(tmp_path):
-    result = run_job({"schemaVersion": 1, "purpose": "validate", "inputArtifacts": []}, tmp_path)
-    assert result.status == "unsupported"
-    assert all(check.status == "UNKNOWN" for check in result.checks)
+def test_image_pins_are_mandatory(tmp_path):
+    with pytest.raises(ValueError, match='immutable'):
+        NativeSettings(tmp_path, {'cad': 'latest'})
 
 
-def test_voltage_failure_is_independent_of_generated_success_claims():
-    interfaces = {
-        "mechanical": {"internalMm": dict(x=38, y=28, z=8), "externalMm": dict(x=40, y=30, z=10),
-                       "minimumWallMm": 1, "components": [
-                           {"id": "battery", "sizeMm": dict(x=20, y=15, z=5), "positionMm": dict(x=1, y=1, z=1)}]},
-        "power": {"supplyVoltageV": 5, "maxCurrentMa": 500,
-                  "loads": [{"id": "mcu", "minVoltageV": 3, "maxVoltageV": 3.6, "currentMa": 50}]},
-        "generatedReport": {"allChecks": "PASS"},
-    }
-    check = validate_interfaces(interfaces)
-    assert check.status == "FAIL"
-    assert "incompatible supply voltage" in str(check.details)
+async def test_reconciliation_terminates_cancelled_idle_session(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    native.repository.cancel(scope.actor, scope.project_id, scope.run_id)
+    assert await native.reconcile() == {'reconciled': 1, 'pending': []}
+    with native.projects.transaction() as session:
+        assert session.scalar(select(NativeJob)).status == 'cancelled'
 
 
-def test_mechanical_build_requires_tool_outputs(tmp_path):
-    source = b"assembly = 'not a shape'"
-    request = {"schemaVersion": 1, "purpose": "build", "lane": "mechanics",
-               "inputArtifacts": [{"id": "1", "lane": "mechanics", "name": "enclosure.py",
-                                   "sha256": digest(source), "contentBase64": base64.b64encode(source).decode()}]}
-    result = run_job(request, tmp_path, execute=lambda *_: (0, "Generated report: PASS"))
-    assert result.status == "failed"
-    assert "no supported outputs" in result.limitations[0]
+async def test_finish_rejects_omitted_source_even_with_valid_output_hashes(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    await native.invoke(scope, task, 'build', {'actionId': 'build'})
+
+    def omit_source(envelope):
+        files = envelope['response']['result']['files']
+        envelope['response']['result']['files'] = [file for file in files if file['role'] == 'output']
+
+    native.docker.tamper = omit_source
+    with pytest.raises(ValueError, match='omitted source'):
+        await native.invoke(scope, task, 'finish', {'actionId': 'finish'})
+    with native.projects.transaction() as session:
+        assert native.artifacts.list(session, scope.project_id) == []
 
 
-@pytest.mark.parametrize("lane,tool", [("firmware", "cc"), ("application", "dart")])
-def test_actual_independent_protocol_harness_on_starter_fixture(tmp_path, lane, tool):
-    if not shutil.which(tool):
-        pytest.skip(f"{tool} is not installed on this test machine")
-    source = Path(__file__).parents[1] / "docker/templates/watch-telemetry-v1" / lane
-    shutil.copytree(source, tmp_path, dirs_exist_ok=True)
-    # Trusted, checked-in fixture only. Production always uses the isolated UID runner.
-    def execute(args, directory, timeout):
-        if args[0] == "dart":
-            sdk_binary = Path(shutil.which("dart")).resolve().parent / "cache/dart-sdk/bin/dart"
-            if sdk_binary.is_file():
-                args = [str(sdk_binary), *args[1:]]
-        result = subprocess.run(args, cwd=directory, capture_output=True, text=True, timeout=timeout)
-        return result.returncode, result.stdout + result.stderr
-    details = validate_protocol(lane, tmp_path, execute)
-    assert details["fixtureCount"] == 30
-
-
-def test_compile_failure_carries_bounded_repair_evidence(tmp_path):
-    source = b"broken source"
-    result = run_job({
-        "schemaVersion": 1, "purpose": "build", "lane": "mechanics",
-        "inputArtifacts": [{"id": "a", "lane": "mechanics", "name": "enclosure.py",
-                            "sha256": digest(source), "contentBase64": base64.b64encode(source).decode()}],
-    }, tmp_path, execute=lambda *_: (1, "SyntaxError: invalid syntax"))
-    assert result.measurements["failureKind"] == "engineering"
-    assert "SyntaxError" in result.logs
-
-
-def test_completion_event_is_durable_hint_never_accepted_result(execution):
-    job_id = execution.submit("attempt", "build")
-    execution.dispatch_pending()
-    class Queue:
-        def __init__(self):
-            self.deleted = []
-        def receive_message(self, **_):
-            return {"Messages": [{"ReceiptHandle": "receipt", "Body": json.dumps({
-                "id": "event", "source": "aws.ecs", "detail-type": "ECS Task State Change",
-                "detail": {"clusterArn": "cluster", "taskArn": f"arn:task/{job_id}", "lastStatus": "STOPPED"},
-            })}]}
-        def delete_message(self, **kwargs):
-            self.deleted.append(kwargs)
-    execution.settings.sqs_completion_queue = "https://sqs.test/queue"
-    execution.sqs = Queue()
-    execution.receive_completion_hints()
-    execution.receive_completion_hints()
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        assert job.status == "submitted"
-        assert job.result["infrastructureHint"]["eventId"] == "event"
-    assert len(execution.sqs.deleted) == 2
-
-
-def test_untrusted_upload_is_excluded_from_native_closure(execution):
-    with execution.db.transaction() as session:
-        session.get(Artifact, "artifact").status = "input"
-    with pytest.raises(DomainError, match="No input artifacts"):
-        execution.submit("attempt", "build")
-
-
-def test_declared_component_envelopes_cannot_overlap():
-    check = validate_interfaces({
-        "mechanical": {"internalMm": dict(x=38, y=28, z=8), "externalMm": dict(x=40, y=30, z=10),
-                       "minimumWallMm": 1, "components": [
-                           {"id": name, "sizeMm": dict(x=10, y=10, z=4), "positionMm": dict(x=1, y=1, z=1)}
-                           for name in ["battery", "board"]]},
-        "power": {"supplyVoltageV": 3.3, "maxCurrentMa": 500,
-                  "loads": [{"id": "mcu", "minVoltageV": 3, "maxVoltageV": 3.6, "currentMa": 50}]},
-    })
-    assert check.status == "FAIL"
-    assert "component envelopes overlap" in str(check.details)
-
-
-def test_native_allowance_is_reserved_once_and_never_overspent(execution):
-    with execution.db.transaction() as session:
-        session.get(Project, "project").budget_usd = 0.25
-    with pytest.raises(DomainError, match="exhausted"):
-        execution.submit("attempt", "build")
-    assert execution.ecs.calls == []
-    with execution.db.transaction() as session:
-        assert session.scalars(select(NativeJob)).first() is None
-        session.get(Project, "project").budget_usd = 10
-    first = execution.submit("attempt", "build")
-    assert execution.submit("attempt", "build") == first
-    with execution.db.transaction() as session:
-        assert session.get(Project, "project").reserved_usd == 1
-
-
-def test_cancelled_queued_job_refunds_reservation_once(execution):
-    job_id = execution.submit("attempt", "build")
-    execution.cancel_run("run")
-    execution.cancel_run("run")
-    with execution.db.transaction() as session:
-        project = session.get(Project, "project")
-        assert project.spent_usd == 0
-        assert project.reserved_usd == 0
-        assert session.get(NativeJob, job_id).request["reservation"]["settled"]
-
-
-def test_cancelled_dispatched_job_debits_allowance_once(execution):
-    execution.submit("attempt", "build")
-    execution.dispatch_pending()
-    execution.cancel_run("run")
-    execution.cancel_run("run")
-    with execution.db.transaction() as session:
-        project = session.get(Project, "project")
-        assert project.spent_usd == 1
-        assert project.reserved_usd == 0
-
-
-@pytest.mark.parametrize("dispatched", [False, True])
-def test_cancelled_session_settles_allowance_once(execution, dispatched):
-    execution.settings.native_sessions_enabled = True
-    job_id = execution.submit("attempt", "session")
-    if dispatched:
-        execution.dispatch_pending()
-    execution.cancel_session(job_id)
-    execution.cancel_session(job_id)
-    execution.reconcile()
-    with execution.db.transaction() as session:
-        project = session.get(Project, "project")
-        assert project.reserved_usd == 0
-        assert project.spent_usd == int(dispatched)
-        job = session.get(NativeJob, job_id)
-        assert job.status == "cancelled"
-        assert job.request["reservation"]["settled"]
-    assert len(execution.ecs.stops) == int(dispatched)
-
-
-def test_cancellation_reconciles_uncertain_submission_by_stable_identity(execution):
-    job_id = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.status = "dispatching"
-        job.request = {**job.request, "reservation": {**job.request["reservation"], "dispatchAttempted": True}}
-    execution.cancel_run("run")
-    assert execution.ecs.stops == []
-    execution.reconcile()
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        assert job.external_id == f"arn:task/{job_id}"
-        assert job.result["terminationObservedAt"]
-        assert session.get(Project, "project").spent_usd == 1
-    assert len(execution.ecs.stops) == 1
-
-
-@pytest.mark.parametrize("scope,excluded", [
-    ({}, False),
-    ({"requiredPeripheralCoverage": []}, False),
-    ({"requiredPeripheralCoverage": [], "excludedCoverage": "all"}, False),
-    ({"requiredPeripheralCoverage": ["ble"],
-      "excludedCoverage": ["ble", "sensor", "display", "radio", "thermal", "physicalOperation"]}, False),
-    ({"requiredPeripheralCoverage": [],
-      "excludedCoverage": ["ble", "sensor", "display", "radio", "thermal", "physicalOperation"]}, True),
-])
-def test_omitted_or_conflicting_peripheral_scope_never_waives_checks(tmp_path, scope, excluded):
-    result = run_job({"schemaVersion": 1, "purpose": "validate", "inputArtifacts": [],
-                      "requirements": {"validationProfile": "watch-telemetry-v1", **scope}}, tmp_path)
-    check = next(check for check in result.checks if check.name == "peripheralSimulation")
-    assert check.status == "UNKNOWN"
-    assert check.details["scopeExcluded"] is excluded
-    assert check.details["required"] is not excluded
-
-
-def test_cluster_migration_preserves_submission_recovery_and_cancellation(execution):
-    job_id = execution.submit("attempt", "build")
-    execution.settings.ecs_cluster = "new-cluster"
-    execution.settings.ecs_subnets = ["new-subnet"]
-    execution.dispatch_pending()
-    assert execution.ecs.calls[-1]["cluster"] == "cluster"
-    assert execution.ecs.calls[-1]["networkConfiguration"]["awsvpcConfiguration"]["subnets"] == ["native-subnet"]
-    execution.reconcile()
-    assert execution.ecs.describes[-1]["cluster"] == "cluster"
-    execution.cancel_run("run")
-    assert execution.ecs.stops[-1]["cluster"] == "cluster"
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.external_id = None
-        job.result = {}
-    execution.reconcile()
-    assert execution.ecs.lists[-1]["cluster"] == "cluster"
-    assert execution.ecs.stops[-1]["cluster"] == "cluster"
-
-
-def test_completion_hint_from_pinned_old_cluster_survives_migration(execution):
-    job_id = execution.submit("attempt", "build")
-    execution.dispatch_pending()
-    execution.settings.ecs_cluster = "new-cluster"
-    class Queue:
-        def __init__(self):
-            self.deleted = []
-        def receive_message(self, **_):
-            return {"Messages": [
-                {"ReceiptHandle": cluster, "Body": json.dumps({
-                    "id": cluster, "source": "aws.ecs", "detail-type": "ECS Task State Change",
-                    "detail": {"clusterArn": cluster, "taskArn": f"arn:task/{job_id}", "lastStatus": "STOPPED"},
-                })} for cluster in ["cluster", "wrong-cluster"]
-            ]}
-        def delete_message(self, **kwargs):
-            self.deleted.append(kwargs["ReceiptHandle"])
-    execution.settings.sqs_completion_queue = "https://sqs.test/queue"
-    execution.sqs = Queue()
-    execution.receive_completion_hints()
-    assert execution.sqs.deleted == ["cluster"]
-    with execution.db.transaction() as session:
-        assert session.get(NativeJob, job_id).result["infrastructureHint"]["eventId"] == "cluster"
-
-
-@pytest.fixture
-def deploy_module():
-    path = Path(__file__).parents[1] / "docker/deploy.py"
-    spec = importlib.util.spec_from_file_location("kleos_deploy_tests", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def test_release_definition_pins_version_without_changing_identity_or_secrets(deploy_module):
-    original = {
-        "taskDefinitionArn": "old", "revision": 7, "status": "ACTIVE", "family": "kleos-engineering",
-        "taskRoleArn": "trusted-role", "executionRoleArn": "execution-role", "networkMode": "awsvpc",
-        "containerDefinitions": [
-            {"name": "control", "image": "old-image", "environment": [{"name": "KLEOS_DEMO_MODE", "value": "true"}],
-             "secrets": [{"name": "KLEOS_DATABASE_URL", "valueFrom": "secret-reference"}]},
-            {"name": "telemetry", "image": "collector"},
-        ],
-    }
-    updated = deploy_module.release_definition(original, "new@sha256:digest", "commit")
-    assert "revision" not in updated and "taskDefinitionArn" not in updated
-    assert updated["taskRoleArn"] == original["taskRoleArn"]
-    assert updated["containerDefinitions"][0]["secrets"] == original["containerDefinitions"][0]["secrets"]
-    assert updated["containerDefinitions"][1] == original["containerDefinitions"][1]
-    assert original["containerDefinitions"][0]["image"] == "old-image"
-    assert deploy_module.application_version(updated) == "commit"
-
-
-def test_migration_requires_observed_success_exit(deploy_module):
-    assert not deploy_module.completed_task({"lastStatus": "RUNNING"})
-    with pytest.raises(RuntimeError):
-        deploy_module.completed_task({"taskArn": "migration", "lastStatus": "STOPPED",
-                                      "containers": [{"name": "control", "exitCode": 1}]})
-    assert deploy_module.completed_task({"taskArn": "migration", "lastStatus": "STOPPED",
-                                         "containers": [{"name": "control", "exitCode": 0}]})
-
-
-@pytest.mark.parametrize("fail_drain", [False, True])
-def test_release_never_removes_compatibility_workers_before_post_rollout_drain(
-        deploy_module, tmp_path, monkeypatch, fail_drain):
-    from types import SimpleNamespace
-
-    import httpx
-    events = []
-    class ECS:
-        def register_task_definition(self, **kwargs):
-            return {"taskDefinition": {"taskDefinitionArn": f"new-{kwargs['family']}"}}
-        def run_task(self, **kwargs):
-            marker = kwargs["tags"][1]["value"]
-            events.append(marker)
-            return {"tasks": [{"taskArn": marker}]}
-        def update_service(self, **kwargs):
-            events.append(f"update-{kwargs['service']}")
-        def stop_task(self, **kwargs):
-            events.append(f"stop-{kwargs['task']}")
-    args = SimpleNamespace(region="us-east-1", version="new", cluster="cluster", release_id="test",
-                           manifest=str(tmp_path / "release.json"), drain_timeout=30, api_url="https://api.test")
-    release = deploy_module.Release(args, ecs=ECS(), ecr=object())
-    definitions = {name: {
-        "family": name, "containerDefinitions": [{"name": "control", "image": "old",
-            "environment": [{"name": "KLEOS_DBOS_APPLICATION_VERSION", "value": "old"}]}]
-    } for name in ["api", "engineering", "connectors"]}
-    def discover():
-        release.services = {name: {"desiredCount": 1, "networkConfiguration": {"awsvpcConfiguration": {}}}
-                            for name in definitions}
-        release.manifest["previousDefinitions"] = {name: f"old-{name}" for name in definitions}
-        return definitions
-    def drain(versions, phase):
-        assert versions == ["old"]
-        events.append(f"drain-{phase}")
-        if fail_drain and phase == "after":
-            raise TimeoutError("Old workflow still active")
-    monkeypatch.setattr(release, "discover", discover)
-    monkeypatch.setattr(release, "image", lambda: release.manifest.setdefault("image", "new@sha256:digest"))
-    monkeypatch.setattr(release, "wait_task", lambda *_, **__: None)
-    monkeypatch.setattr(release, "wait_service", lambda *_, **__: None)
-    monkeypatch.setattr(release, "drain", drain)
-    monkeypatch.setattr(httpx, "get", lambda *_, **__: SimpleNamespace(
-        raise_for_status=lambda: None, json=lambda: {"status": "ok"}))
-    if fail_drain:
-        with pytest.raises(TimeoutError):
-            release.run()
-        assert not any(event.startswith("stop-") for event in events)
-    else:
-        release.run()
-        assert events.index("drain-after") < events.index("stop-compat-engineering")
-    assert events.index("migration") < events.index("update-engineering")
-    assert events.index("drain-before") < events.index("update-engineering")
-
-
-@pytest.fixture
-def renode_contract(tmp_path):
-    content = b"test-contract-elf"
-    request = {
-        "requirements": {"renodeProfile": RENODE_PROFILE},
-        "interfaces": {"firmware": {"board": "stm32f4_disco"}},
-        "inputArtifacts": [{
-            "name": "native/build/zephyr/zephyr.elf", "lane": "firmware",
-            "sha256": hashlib.sha256(content).hexdigest(),
-            "contentBase64": base64.b64encode(content).decode(),
-            "provenance": {"nativeJobId": "build-job"},
-        }],
-    }
-    qualification = tmp_path / "qualification.json"
-    qualification.write_text(json.dumps({
-        "qualified": True, "profile": RENODE_PROFILE, "renodeVersion": RENODE_VERSION,
-        "scenarioSha256": hashlib.sha256(RENODE_SCRIPT.encode()).hexdigest(),
-    }))
-    return request, qualification, content
-
-
-def test_checked_in_renode_scenario_matches_runner_and_remains_unqualified():
-    root = Path(__file__).parents[1] / "docker/renode"
-    assert (root / "stm32f4-uart-v1.resc").read_text() == RENODE_SCRIPT
-    qualification = json.loads((root / "qualification.json").read_text())
-    assert qualification["qualified"] is False
-    assert qualification["scenarioSha256"] == hashlib.sha256(RENODE_SCRIPT.encode()).hexdigest()
-
-
-@pytest.mark.parametrize("case", ["absent", "unqualified", "changed_script", "unsupported_board", "malformed"])
-def test_unqualified_renode_never_executes_or_produces_success(tmp_path, renode_contract, case):
-    request, qualification, _ = renode_contract
-    if case == "absent":
-        qualification.unlink()
-    elif case == "unsupported_board":
-        request["interfaces"]["firmware"]["board"] = "native_sim"
-    elif case == "malformed":
-        qualification.write_text("[]")
-    else:
-        data = json.loads(qualification.read_text())
-        data["qualified" if case == "unqualified" else "scenarioSha256"] = False
-        qualification.write_text(json.dumps(data))
-    def never_execute(*_):
-        pytest.fail("An unqualified Renode scenario must not execute")
-    result = validate_renode(request, tmp_path, never_execute, qualification)
-    assert result.status == "UNKNOWN"
-    assert result.details["required"] and not result.details["scopeExcluded"]
-
-
-@pytest.mark.parametrize("outcome", ["marker", "no_marker", "wrong_version", "missing_tool", "failed"])
-def test_renode_process_contract_has_bounded_capture_and_truthful_status(tmp_path, renode_contract, outcome):
-    # Fake process results verify the adapter contract only; they do not qualify Renode.
-    request, qualification, content = renode_contract
-    calls = []
-    def execute(args, work, timeout):
-        calls.append(args)
-        assert timeout <= 60
-        assert (work / "firmware.elf").read_bytes() == content
-        if outcome == "missing_tool":
-            raise UnsupportedTool("Renode is not installed")
-        if args == ["renode", "-v"]:
-            return 0, "Renode " + ("1.15.2" if outcome == "wrong_version" else RENODE_VERSION)
-        assert args[:4] == ["renode", "--console", "--disable-xwt", "--plain"]
-        assert "emulation RunFor \"2\"" in (work / "scenario.resc").read_text()
-        (work / "uart.log").write_text("KLEOS_UART_SMOKE_V1\n" if outcome == "marker" else "boot failed\n")
-        return (1 if outcome == "failed" else 0), "emulator process log"
-    result = validate_renode(request, tmp_path, execute, qualification)
-    expected = {"marker": "PASS", "no_marker": "FAIL", "wrong_version": "UNKNOWN",
-                "missing_tool": "UNKNOWN", "failed": "FAIL"}
-    assert result.status == expected[outcome]
-    assert result.details["executionMode"] == "digital_simulation"
-    assert result.details["required"] is True
-    if outcome == "marker":
-        assert result.details["elfSha256"] == hashlib.sha256(content).hexdigest()
-        assert result.details["simulatedSeconds"] == 2
-        assert "USART2 only" in result.details["coverage"]
-    assert calls
-
-
-def test_renode_rejects_generator_supplied_or_mutated_elf(tmp_path, renode_contract):
-    request, qualification, _ = renode_contract
-    def never_execute(*_):
-        pytest.fail("An untrusted ELF must not execute")
-    ref = request["inputArtifacts"][0]
-    ref["provenance"] = {}
-    assert validate_renode(request, tmp_path, never_execute, qualification).status == "UNKNOWN"
-    ref["provenance"] = {"nativeJobId": "build-job"}
-    ref["contentBase64"] = base64.b64encode(b"mutated").decode()
-    assert validate_renode(request, tmp_path, never_execute, qualification).status == "FAIL"
-
-
-@pytest.mark.parametrize(('lane', 'policy', 'disk_scratch'), [
-    ('mechanics', 3, False), ('application', 3, True), ('application', 2, False), ('application', 1, False),
-])
-def test_local_docker_dispatch_has_scoped_mount_no_network_and_no_credentials(execution, tmp_path, lane, policy, disk_scratch):
+async def test_docker_api_does_not_inherit_parent_credentials(tmp_path):
     import httpx
 
-    from kleos.execution import DockerExecution
-    db, settings, store = execution.db, execution.settings, execution.store
-    attempt_id = "attempt"
-    settings = settings.model_copy(update={
-        "execution_backend": "docker", "docker_jobs_dir": tmp_path / "jobs",
-        "docker_native_images": {lane: "local-fixture"},
-    })
-    with db.transaction() as session:
-        session.get(Task, 'task').lane = lane
-        session.get(Artifact, 'artifact').lane = lane
-    requests, containers = [], {}
-    identity = "a" * 64
-    def handle(request):
-        requests.append(request)
-        if "/images/" in request.url.path:
-            return httpx.Response(200, json={"Id": "sha256:" + "b" * 64})
-        if request.url.path.endswith("/json"):
-            name = request.url.path.split("/")[-2]
-            item = containers.get(name)
-            return httpx.Response(200 if item else 404, json=item or {})
-        if request.url.path.endswith("/containers/create"):
-            body = json.loads(request.content)
-            containers[request.url.params["name"]] = {
-                "Id": identity, "Config": body, "State": {"Status": "created", "Running": False},
-            }
-            return httpx.Response(201, json={"Id": identity})
-        if request.url.path.endswith("/start"):
-            return httpx.Response(204)
-        pytest.fail(str(request.url))
-    client = httpx.Client(transport=httpx.MockTransport(handle), base_url="http://docker/v1.45")
-    native = DockerExecution(db, settings, store, client)
-    job_id = native.submit(attempt_id, "build")
-    with db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        assert job.request['sandboxPolicyVersion'] == 3
-        job.request = {**job.request, 'sandboxPolicyVersion': policy}
-    native.dispatch_pending()
-    with db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        assert job.external_id == identity
-        assert job.request["toolVersion"] == "sha256:" + "b" * 64
-    specification = next(json.loads(r.content) for r in requests if r.url.path.endswith("/containers/create"))
-    assert specification["Env"] == ["KLEOS_NATIVE_SANDBOX=1", "KLEOS_NATIVE_DOCKER_NETWORK_NONE=1"]
-    limits = specification["HostConfig"]
-    assert limits["NetworkMode"] == "none"
-    assert limits["ReadonlyRootfs"] is (policy >= 2 or lane != 'application')
-    if disk_scratch:
-        assert limits['Tmpfs'] == {}
-    else:
-        assert "exec" in limits["Tmpfs"]["/tmp"].split(",")
-    assert limits["PidsLimit"] == 256 and limits["Memory"] == (8 if lane == 'application' else 2) * 1024**3
-    mounts = [{
-        "Type": "volume", "Source": settings.docker_jobs_volume,
-        "Target": "/control", "VolumeOptions": {"Subpath": job_id},
-    }]
-    if disk_scratch:
-        mounts.append({'Type': 'volume', 'Target': '/tmp',
-                       'VolumeOptions': {'NoCopy': True, 'Labels': {'kleos.job': job_id, 'kleos.role': 'native-scratch'}}})
-    assert limits['Mounts'] == mounts
-    assert "docker.sock" not in json.dumps(specification)
-    folder = native.control_directory(job_id)
-    assert folder.stat().st_mode & 0o777 == 0o700
-    payload = json.loads((folder / "request.json").read_bytes())
-    assert "token" not in payload and "contentBase64" in payload["inputArtifacts"][0]
+    from kleos.execution.docker import DockerClient
 
+    created = []
+    image = 'sha256:' + 'a' * 64
 
-def test_local_docker_rejects_cloud_environment_and_symlink_workspaces(execution, tmp_path):
-    from kleos.execution import DockerExecution
-    db, settings, store = execution.db, execution.settings, execution.store
-    with pytest.raises(ValueError, match="cloud"):
-        DockerExecution(db, settings.model_copy(update={"environment": "production"}), store)
-    native = DockerExecution(db, settings.model_copy(update={"docker_jobs_dir": tmp_path / "jobs"}), store)
-    (tmp_path / "jobs").symlink_to(tmp_path, target_is_directory=True)
-    with pytest.raises(DomainError, match="Unsafe"):
-        native.control_directory("12345678-1234-1234-1234-123456789012")
-
-
-def test_local_cleanup_removes_anonymous_scratch_without_deleting_shared_volume(execution, tmp_path):
-    import httpx
-
-    from kleos.execution import DockerExecution
-    job_id = execution.submit('attempt', 'build')
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.external_id, job.status = 'owned-container', 'succeeded'
-    requests = []
-    def remove(request):
-        requests.append(request)
-        assert request.method == 'DELETE' and request.url.path == '/v1.45/containers/owned-container'
-        assert dict(request.url.params) == {'force': 'false', 'v': 'true'}
+    def respond(req):
+        path = req.url.path
+        if path.endswith('/images/' + image + '/json'):
+            return httpx.Response(200, json={'Id': image, 'Config': {
+                'Labels': {'kleos.native.protocol': PROTOCOL},
+                'Env': ['OPENAI_API_KEY=must-never-be-inherited', 'PATH=/trusted/toolchain']}})
+        if path.endswith('/containers/create'):
+            created.append(json.loads(req.content))
+            return httpx.Response(201, json={'Id': 'c' * 64})
+        if path.endswith('/json'):
+            if not created:
+                return httpx.Response(404)
+            return httpx.Response(200, json={'Id': 'c' * 64, 'Image': image, 'Config': created[0],
+                'HostConfig': created[0]['HostConfig'], 'State': {'Status': 'created', 'Running': False}})
         return httpx.Response(204)
-    client = httpx.Client(transport=httpx.MockTransport(remove), base_url='http://docker/v1.45')
-    settings = execution.settings.model_copy(update={'docker_jobs_dir': tmp_path / 'jobs'})
-    native = DockerExecution(execution.db, settings, execution.store, client)
-    native.control_directory(job_id).mkdir(parents=True)
-    native._cleanup(job)
-    with execution.db.transaction() as session:
-        current = session.get(NativeJob, job_id)
-        assert current.result['localCleaned']
-    native._cleanup(current)
-    assert len(requests) == 1  # No volumes API call can remove the shared named control volume.
+
+    client = DockerClient(client=httpx.AsyncClient(transport=httpx.MockTransport(respond), base_url='http://docker/v1.45'))
+    assert await client.ensure('fixture', request(), image, str(tmp_path)) == 'c' * 64
+    assert 'OPENAI_API_KEY=' in created[0]['Env']
+    assert 'must-never-be-inherited' not in json.dumps(created[0])
+    await client.close()
 
 
-def test_local_docker_expired_job_holds_capacity_until_observed_stopped(execution, tmp_path):
-    from datetime import timedelta
+def test_network_namespace_check_ignores_linux_bonding_control_file(tmp_path):
+    from kleos.execution.native_runner import verify_no_network
 
-    from kleos.db import now
-    from kleos.execution import DockerExecution
-    job_id = execution.submit("attempt", "build")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.status, job.external_id = "running", "native-container"
-        job.expires_at = now() - timedelta(seconds=1)
-        job.request = {**job.request, "dispatch": {"backend": "docker"}}
-    native = DockerExecution(execution.db, execution.settings, execution.store)
-    class StillRunning:
-        def stop_task(self, *, task):
-            assert task == "native-container"
-            return {"task": {"lastStatus": "RUNNING"}}
-    native.ecs = StillRunning()
-    assert native.reconcile() == []
-    with execution.db.transaction() as session:
-        assert session.get(NativeJob, job_id).status == "running"
+    network = tmp_path / 'net'
+    network.mkdir()
+    (network / 'lo').mkdir()
+    (network / 'bonding_masters').write_text('')
+    routes, ipv6 = tmp_path / 'route', tmp_path / 'ipv6_route'
+    routes.write_text('Iface Destination Gateway\n')
+    ipv6.write_text('00000000 lo\n')
+    verify_no_network(network, routes, ipv6)
+    (network / 'eth0').mkdir()
+    (network / 'eth0/operstate').write_text('up')
+    with pytest.raises(RuntimeError, match='active external'):
+        verify_no_network(network, routes, ipv6)
 
 
-def test_local_docker_cleanup_conflict_preserves_job_files(execution, tmp_path):
-    from types import SimpleNamespace
+def test_network_namespace_check_accepts_kernels_without_ipv6_but_not_other_failures(tmp_path):
+    from kleos.execution.native_runner import verify_no_network
 
-    from kleos.execution import DockerExecution
-    job_id = execution.submit("attempt", "build")
-    native = DockerExecution(execution.db, execution.settings.model_copy(
-        update={"docker_jobs_dir": tmp_path / "jobs"}), execution.store)
-    folder = native.control_directory(job_id)
-    folder.mkdir(parents=True)
-    (folder / "request.json").write_text("{}")
-    native.ecs = SimpleNamespace(request=lambda *_, **__: SimpleNamespace(status_code=409))
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.status, job.external_id = "failed", "native-container"
-    native._cleanup(job)
-    assert (folder / "request.json").exists()
-    with execution.db.transaction() as session:
-        assert not session.get(NativeJob, job_id).result.get("localCleaned")
-
-
-@pytest.mark.parametrize(('code', 'logs'), [
-    (137, 'Killed'), (1, 'java.io.FileNotFoundException: daemon.log (Too many open files)'),
-    (1, 'java.lang.OutOfMemoryError: Java heap space'),
-])
-def test_native_resource_limit_is_not_classified_as_an_engineering_error(tmp_path, code, logs):
-    content = b"assembly = None"
-    result = run_job({
-        "schemaVersion": 1, "purpose": "build", "lane": "mechanics",
-        "inputArtifacts": [{"id": "source", "lane": "mechanics", "name": "enclosure.py",
-                            "sha256": digest(content), "contentBase64": base64.b64encode(content).decode()}],
-    }, tmp_path, execute=lambda *_: (code, logs))
-    assert result.status == "failed"
-    assert result.measurements["failureKind"] == "resource"
+    network = tmp_path / 'net'
+    network.mkdir()
+    (network / 'lo').mkdir()
+    routes = tmp_path / 'route'
+    routes.write_text('Iface Destination Gateway\n')
+    verify_no_network(network, routes, tmp_path / 'absent_ipv6_route')  # no IPv6 in this kernel: no IPv6 routes
+    with pytest.raises(RuntimeError, match='external route'):
+        routes.write_text('Iface Destination Gateway\neth0 00000000 0102A8C0\n')
+        verify_no_network(network, routes, tmp_path / 'absent_ipv6_route')
+    routes.write_text('Iface Destination Gateway\n')
+    ipv6 = tmp_path / 'ipv6_route'
+    ipv6.mkdir()  # an unreadable (non-missing) file must still fail closed
+    with pytest.raises(OSError):
+        verify_no_network(network, routes, ipv6)
 
 
-def test_local_cleanup_does_not_claim_deleted_files_on_filesystem_error(execution, tmp_path, monkeypatch):
-    from kleos.execution import DockerExecution
-    job_id = execution.submit("attempt", "build")
-    execution.settings.docker_jobs_dir = tmp_path / "jobs"
-    native = DockerExecution(execution.db, execution.settings, execution.store)
-    folder = native.control_directory(job_id)
-    folder.mkdir(parents=True)
-    (folder / "request.json").write_text("private input")
-    with execution.db.transaction() as session:
-        job = session.get(NativeJob, job_id)
-        job.status = "failed"
-    def unavailable(_):
-        raise PermissionError("temporary cleanup failure")
-    monkeypatch.setattr("kleos.execution.shutil.rmtree", unavailable)
-    native._cleanup(job)
-    assert (folder / "request.json").is_file()
-    with execution.db.transaction() as session:
-        assert not session.get(NativeJob, job_id).result.get("localCleaned")
+def test_desktop_mode_is_explicit_local_only_and_preserves_docker_baseline(tmp_path):
+    from kleos.execution.security import daemon_socket_profile
+
+    with pytest.raises(ValueError, match='local-only'):
+        NativeSettings(tmp_path, {}, docker_desktop_compatibility=True, deployment='ecs')
+    profile = daemon_socket_profile()
+    assert profile['defaultAction'] == 'SCMP_ACT_ERRNO'
+    socket_rules = [rule for rule in profile['syscalls'] if any(
+        name in {'socket', 'socketpair', 'socketcall'} for name in rule['names'])]
+    assert socket_rules == [{'names': ['socket', 'socketpair'], 'action': 'SCMP_ACT_ALLOW',
+                             'args': [{'index': 0, 'value': 1, 'op': 'SCMP_CMP_EQ'}]}]
+    data = {**request(), 'networkPolicy': 'docker-desktop-daemon-seccomp'}
+    spec = container_spec('fixture', data, 'sha256:' + 'a' * 64, '/control')
+    assert spec['HostConfig']['Mounts'][0]['ReadOnly']
+    assert spec['HostConfig']['SecurityOpt'][0] == 'no-new-privileges:true'
+    assert json.loads(spec['HostConfig']['SecurityOpt'][1].removeprefix('seccomp=')) == profile
 
 
-def test_flutter_inner_thread_failure_does_not_trigger_source_repairs(tmp_path, monkeypatch):
-    monkeypatch.setattr("kleos.native_runner.prepare_companion", lambda _: {"preparation": "fixture"})
-    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
-                     tmp_path, execute=lambda *_: (
-                         1, "../../runtime/vm/os_thread.cc:348: Could not start thread DartWorker:11: "
-                         "Resource temporarily unavailable\nanalysis server exited with -6"))
-    assert result.status == "failed"
-    assert result.measurements["failureKind"] == "resource"
+async def test_desktop_mode_rejects_non_desktop_daemon():
+    import httpx
+
+    from kleos.execution.docker import DockerClient
+
+    def respond(req):
+        assert req.url.path.endswith('/info')
+        return httpx.Response(200, json={'OperatingSystem': 'Amazon Linux'})
+
+    client = DockerClient(client=httpx.AsyncClient(transport=httpx.MockTransport(respond), base_url='http://docker/v1.45'))
+    with pytest.raises(RuntimeError, match='verified local Docker Desktop'):
+        await client.ensure('fixture', {**request(), 'networkPolicy': 'docker-desktop-daemon-seccomp'},
+                            'sha256:' + 'a' * 64, '/control')
+    await client.close()
 
 
-def test_native_timeout_preserves_bounded_logs_without_source_repair(tmp_path, monkeypatch):
-    class FakeProcess:
-        pid = 12345
-        def __init__(self, args, **kwargs):
-            kwargs["stdout"].write(b"compiler reached linking before deadline\n")
-        def wait(self, timeout=None):
-            if timeout is not None:
-                raise subprocess.TimeoutExpired("fixture", timeout)
-            return -9
-    killed = []
-    monkeypatch.setattr("kleos.native_runner.shutil.which", lambda *_, **__: "/fixture")
-    monkeypatch.setattr("kleos.native_runner.os.chown", lambda *_: None)
-    monkeypatch.setattr("kleos.native_runner.os.killpg", lambda *args: killed.append(args))
-    monkeypatch.setattr("kleos.native_runner.reap_generated_processes", lambda: None)
-    monkeypatch.setattr("kleos.native_runner.subprocess.Popen", FakeProcess)
-    content = b"assembly = None"
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "mechanics", "inputArtifacts": [
-        {"id": "source", "lane": "mechanics", "name": "enclosure.py", "sha256": digest(content),
-         "contentBase64": base64.b64encode(content).decode()}]}, tmp_path, execute=run_command)
-    assert result.status == "failed"
-    assert result.measurements["failureKind"] == "deadline"
-    assert result.logs == "compiler reached linking before deadline\n"
-    assert len(killed) == 1
+async def test_result_transfer_uses_fixed_trusted_reader_and_demultiplexes_frames():
+    import httpx
+
+    from kleos.execution.docker import DockerClient
+
+    expected = {'protocol': PROTOCOL, 'response': {'status': 'succeeded'}}
+    raw = json.dumps(expected).encode()
+    framed = b'\x01\x00\x00\x00' + len(raw).to_bytes(4, 'big') + raw
+    filename = 'a' * 64 + '.json'
+
+    def respond(req):
+        if req.url.path.endswith('/exec'):
+            body = json.loads(req.content)
+            assert body['Cmd'] == ['python', '-I', '/opt/kleos-native/result_reader.py', filename]
+            assert body['User'] == '0:0' and not body['Tty']
+            return httpx.Response(201, json={'Id': 'fixed-reader'})
+        if req.url.path.endswith('/start'):
+            return httpx.Response(200, content=framed)
+        return httpx.Response(200, json={'Running': False, 'ExitCode': 0})
+
+    client = DockerClient(client=httpx.AsyncClient(transport=httpx.MockTransport(respond), base_url='http://docker/v1.45'))
+    assert await client.result('fixture', filename) == expected
+    with pytest.raises(ValueError, match='filename'):
+        await client.result('fixture', '../secret')
+    await client.close()
 
 
-@pytest.mark.parametrize("empty", [False, True])
-def test_passing_kicad_checks_cannot_accept_irrelevant_or_empty_circuit(tmp_path, empty, monkeypatch):
-    monkeypatch.setattr("kleos.circuit_validation.prepare_kicad_libraries", lambda _, **kwargs: {"source": "test_fixture"})
-    artifacts = []
-    for suffix in ["kicad_sch", "kicad_pcb"]:
-        content = b"native-export-test-fixture"
-        artifacts.append({
-            "id": suffix, "lane": "electronics", "name": "native/circuit." + suffix,
-            "sha256": digest(content), "contentBase64": base64.b64encode(content).decode(),
-            "provenance": {"nativeJobId": "real-build-contract"},
-        })
-    def fake_kicad(args, work, timeout):
-        assert args[0] == "kicad-cli"
-        if args[1:4] == ["sch", "export", "netlist"]:
-            contents = "<export><components/><nets/></export>" if empty else (
-                '<export><components><comp ref="R1"/></components><nets><net code="1"/></nets></export>')
-            Path(args[args.index("--output") + 1]).write_text(contents)
-        return 0, "ERC/DRC process contract passed"
-    result = run_job({"schemaVersion": 1, "purpose": "validate", "inputArtifacts": artifacts},
-                     tmp_path, fake_kicad)
-    checks = {check.name: check for check in result.checks}
-    assert checks["electronics"].status == ("FAIL" if empty else "UNKNOWN")
-    assert checks["electronics_correspondence"].status == "UNKNOWN"
-    assert checks["electronics_correspondence"].details["required"] is True
-    assert result.status != "succeeded"
+def test_native_preexec_failure_returns_error_envelope(tmp_path):
+    import subprocess
+
+    def fail_start(*args):
+        raise subprocess.SubprocessError('Isolation setup failed')
+
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', fail_start)
+    result = session.apply({'actionId': 'build', 'action': 'build', 'arguments': {}})
+    assert result == {'status': 'failed', 'error': 'Isolation setup failed'}
+    assert session.apply({'actionId': 'build', 'action': 'build', 'arguments': {}}) == result
 
 
-@pytest.mark.parametrize("escape", [False, True])
-def test_companion_bundle_is_complete_and_rejects_symlink_output(tmp_path, escape, monkeypatch):
-    import io
-    import zipfile
-    monkeypatch.setattr("kleos.native_runner.prepare_companion", lambda _: {"preparation": "fixture"})
-    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
-    outside = tmp_path / "outside.txt"
-    outside.write_text("must not escape")
-    def compile_fixture(args, work, timeout):
-        if args[1:3] == ["build", "web"]:
-            assert "--no-wasm-dry-run" in args
-            web = work / "build/web"
-            web.mkdir(parents=True)
-            (web / "index.html").write_text("entrypoint")
-            (web / "main.dart.js").write_text("compiled fixture")
-            if escape:
-                (web / "leak.txt").symlink_to(outside)
-            else:
-                (web / "asset.txt").write_text("bundled asset")
-        return 0, "fixture process"
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
-                     tmp_path, compile_fixture)
-    assert result.status == ("failed" if escape else "succeeded")
-    if not escape:
-        artifact = next(item for item in result.files if item.path.endswith("companion-web.zip"))
-        with zipfile.ZipFile(io.BytesIO(base64.b64decode(artifact.content))) as bundle:
-            assert set(bundle.namelist()) == {"index.html", "main.dart.js", "asset.txt"}
+def accepted_circuit():
+    return {'references': [{'reference': 'J1', 'value': 'Connector', 'footprint': 'Fixture:TwoPin',
+                            'pins': {'1': 'NET_A', '2': 'NET_B'}}],
+            'conceptReferences': {'port': 'J1'}, 'constraints': {'maxWidthMm': 40, 'maxHeightMm': 30,
+            'minTrackWidthMm': .25, 'minClearanceMm': .2, 'copperLayers': ['F.Cu', 'B.Cu']}}
 
 
-def test_companion_preparation_embeds_verified_font_and_preserves_existing_fonts(tmp_path):
-    import yaml
-    fonts = tmp_path / "fonts"
-    fonts.mkdir()
-    hashes = {}
-    for name, content in {"Roboto-Regular.ttf": b"font-fixture", "Roboto_LICENSE.txt": b"license-fixture"}.items():
-        (fonts / name).write_bytes(content)
-        hashes[name] = digest(content)
-    work = tmp_path / "application"
-    work.mkdir()
-    specification = {"name": "companion", "flutter": {"uses-material-design": True, "fonts": [
-        {"family": "Existing", "fonts": [{"asset": "existing.ttf"}]}]}}
-    (work / "pubspec.yaml").write_text(yaml.safe_dump(specification))
-    details = prepare_companion(work, fonts, hashes)
-    prepared = yaml.safe_load((work / "pubspec.yaml").read_text())
-    assert prepared["flutter"]["fonts"][0] == specification["flutter"]["fonts"][0]
-    assert prepared["flutter"]["fonts"][1]["family"] == "Roboto"
-    assert (work / "assets/kleos_fonts/Roboto_LICENSE.txt").read_bytes() == b"license-fixture"
-    assert details["sourceHashes"]["pubspec.yaml"] == digest((work / "pubspec.yaml").read_bytes())
-    assert json.loads((work / "kleos-build.json").read_text())["fontHashes"] == hashes
+def test_accepted_circuit_requires_exact_injective_peripheral_reference_coverage():
+    from kleos.execution.pcb_contract import circuit_contract
+
+    value = accepted_circuit()
+    assert circuit_contract(value, ['port']) == value
+    for ids in [None, ['port', 'port'], ['port', 'extra'], []]:
+        with pytest.raises(ValueError):
+            circuit_contract(value, ids)
+    value['conceptReferences']['other'] = 'J1'
+    with pytest.raises(ValueError, match='uniquely'):
+        circuit_contract(value, ['port', 'other'])
+    value['conceptReferences'] = {'port': 'MISSING1'}
+    with pytest.raises(ValueError, match='uniquely'):
+        circuit_contract(value, ['port'])
 
 
-def test_companion_preparation_rejects_tampered_image_font(tmp_path):
-    (tmp_path / "pubspec.yaml").write_text("name: companion\n")
-    with pytest.raises(UnsupportedTool, match="pinned offline Roboto"):
-        prepare_companion(tmp_path, tmp_path / "missing", {"Roboto-Regular.ttf": "0" * 64})
+@pytest.mark.parametrize('number', [float('nan'), float('inf'), -.1, 0, True, 10000])
+def test_accepted_pcb_constraints_are_finite_positive_and_bounded(number):
+    from kleos.execution.pcb_contract import circuit_contract
+
+    value = accepted_circuit()
+    value['constraints']['minClearanceMm'] = number
+    with pytest.raises(ValueError, match='finite and bounded'):
+        circuit_contract(value, ['port'])
 
 
-@pytest.mark.parametrize("modify_source", [False, True])
-def test_companion_source_archive_matches_generated_build(tmp_path, monkeypatch, modify_source):
-    import io
-    import zipfile
-    def prepare(work):
-        (work / "pubspec.yaml").write_text("original prepared source")
-        return {"preparation": "fixture", "sourceHashes": {"pubspec.yaml": digest(b"original prepared source")}}
-    monkeypatch.setattr("kleos.native_runner.prepare_companion", prepare)
-    monkeypatch.setattr("kleos.native_runner.prepare_application_runtime", lambda _: {"preparation": "fixture-runtime"})
-    def generated_tool(args, work, timeout):
-        if modify_source:
-            (work / "pubspec.yaml").write_text("modified by generated tool")
-        if args[1:3] == ["build", "web"]:
-            web = work / "build/web"
-            web.mkdir(parents=True)
-            (web / "index.html").write_text("entrypoint")
-            (web / "main.dart.js").write_text("compiled fixture")
-        return 0, "fixture"
-    result = run_job({"schemaVersion": 1, "purpose": "build", "lane": "application", "interfaces": {"application": {"targets": ["web"]}}, "inputArtifacts": []},
-                     tmp_path, generated_tool)
-    assert result.status == ("failed" if modify_source else "succeeded")
-    if modify_source:
-        assert "modified the captured" in result.limitations[0]
-        return
-    archive = next(item for item in result.files if item.path.endswith("companion-source.zip"))
-    content = base64.b64decode(archive.content)
-    assert result.measurements["preparedSourceSha256"] == digest(content)
-    with zipfile.ZipFile(io.BytesIO(content)) as bundle:
-        assert bundle.read("pubspec.yaml") == b"original prepared source"
+async def test_pcb_missing_accepted_authority_blocks_before_docker(gateway):
+    from kleos.contracts.models import Capability
+
+    native, scope, task = gateway
+    native.settings.images['pcb'] = native.settings.images['cad']
+    pcb_task = task.model_copy(update={'capability': Capability.PCB})
+    with pytest.raises(DomainError, match='explicit no-concept'):
+        await native.invoke(scope, pcb_task, 'patch', {'actionId': 'bad', 'path': 'model.py',
+                                                     'content': 'fixture', 'expectedSha256': None})
+    assert native.docker.dispatches == 0
+
+
+async def test_native_pcb_job_pins_accepted_circuit_and_peripheral_identity(gateway):
+    from kleos.contracts.models import Capability
+
+    native, scope, task = gateway
+    native.settings.images['pcb'] = native.settings.images['cad']
+    with native.projects.transaction() as session:
+        project = native.projects.authorized(session, scope.actor, scope.project_id, write=True)
+        project.data = {**project.data, 'interfaces': {'circuit': accepted_circuit()},
+                        'approvedDesign': {'peripheralConceptIds': ['port']}}
+    pcb_task = task.model_copy(update={'capability': Capability.PCB})
+    job = native._job(scope, pcb_task)
+    assert job.request['circuitContract'] == accepted_circuit()
+    assert job.request['circuitContractHash'] == fingerprint(accepted_circuit())
+    assert job.request['peripheralConceptIds'] == ['port']
+    # The connection table in the contract is turned into a starter project, so a model need not write KiCad.
+    seeded = {item['path']: item for item in job.request['sources']}
+    assert job.request['scaffold'] == 'pcb-contract-scaffold-v1'
+    assert {'circuit.kicad_sch', 'board.kicad_pcb', 'sym-lib-table', 'fp-lib-table'} <= set(seeded)
+    assert all('artifactId' not in item for item in seeded.values())
+    assert job.source_manifest == {path: item['sha256'] for path, item in seeded.items()}
+
+
+async def test_composition_accepts_a_starter_source_only_when_it_can_be_reproduced_from_the_contract(gateway):
+    from kleos.contracts.models import Capability
+    from kleos.execution.gateway import artifact_inputs
+
+    native, scope, task = gateway
+    native.settings.images['pcb'] = native.settings.images['cad']
+    with native.projects.transaction() as session:
+        project = native.projects.authorized(session, scope.actor, scope.project_id, write=True)
+        project.data = {**project.data, 'interfaces': {'circuit': accepted_circuit()},
+                        'approvedDesign': {'peripheralConceptIds': ['port']}}
+    job = native._job(scope, task.model_copy(update={'capability': Capability.PCB}))
+    with native.projects.transaction() as session:
+        stored = session.get(NativeJob, job.id)
+        assert artifact_inputs(session, stored) == []  # every source is a reproducible starter file
+        tampered = dict(stored.request)
+        tampered['sources'] = [{**item, 'sha256': digest(b'edited')} if item['path'] == 'sym-lib-table' else item
+                               for item in stored.request['sources']]
+        stored.request = tampered
+        with pytest.raises(DomainError, match='provenance'):
+            artifact_inputs(session, stored)
+        unexplained = dict(stored.request, scaffold=None)
+        stored.request = unexplained
+        with pytest.raises(DomainError, match='provenance'):
+            artifact_inputs(session, stored)
+
+
+async def test_firmware_requires_explicit_report_qualified_target_before_dispatch(gateway):
+    from dataclasses import replace
+
+    from kleos.contracts.models import Capability
+
+    native, scope, task = gateway
+    native.settings = replace(native.settings, images={**native.settings.images, 'firmware': 'sha256:' + 'b' * 64},
+                              firmware_boards=('nrf52840dk/nrf52840',))
+    task = task.model_copy(update={'capability': Capability.FIRMWARE})
+    with pytest.raises(DomainError, match='explicit firmware board'):
+        await native.invoke(scope, task, 'build', {'actionId': 'missing'})
+    with native.projects.transaction() as session:
+        project = native.projects.authorized(session, scope.actor, scope.project_id, write=True)
+        project.data = {**project.data, 'interfaces': {'firmware': {'board': 'native_sim'}}}
+    with pytest.raises(DomainError, match='qualified installation'):
+        await native.invoke(scope, task, 'build', {'actionId': 'unqualified'})
+    assert native.docker.dispatches == 0
+    with native.projects.transaction() as session:
+        project = native.projects.authorized(session, scope.actor, scope.project_id, write=True)
+        project.data = {**project.data, 'interfaces': {'firmware': {'board': 'nrf52840dk/nrf52840'}}}
+    job = native._job(scope, task)
+    assert job.request['board'] == 'nrf52840dk/nrf52840'
+    assert job.request['firmwareTargetHash'] == fingerprint({'board': 'nrf52840dk/nrf52840'})
+
+
+def test_firmware_supervisor_has_no_implicit_board(tmp_path):
+    data = request()
+    data['lane'] = 'firmware'
+    session = NativeSession(data, tmp_path / 'control', tmp_path / 'work', fixture_writer)
+    result = session.apply({'actionId': 'build', 'action': 'build', 'arguments': {}})
+    assert result['status'] == 'failed' and 'explicit supported firmware board' in result['error']
+    assert not (tmp_path / 'work/outputs/parts.json').exists()
+
+
+async def test_gateway_rechecks_exact_current_input_authority(gateway):
+    from kleos.artifacts.service import Artifact
+
+    native, scope, task = gateway
+    checksum = native.artifacts.blobs.put(b'old unrelated candidate')
+    with native.projects.transaction() as session:
+        session.add(Artifact(id='unselected-old-candidate', project_id=scope.project_id, revision=scope.revision,
+            name='model.py', sha256=checksum, size=len(b'old unrelated candidate'), media_type='text/plain',
+            status='candidate', lane='cad', details={'origin': 'native_candidate', 'runId': 'another-run'}))
+    task = task.model_copy(update={'input_artifact_ids': ['unselected-old-candidate']})
+    with pytest.raises(DomainError, match='authorized task input'):
+        await native.invoke(scope, task, 'build', {'actionId': 'blocked'})
+    assert native.docker.dispatches == 0
+
+
+async def finished_job(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    await native.invoke(scope, task, 'build', {'actionId': 'build'})
+    await native.invoke(scope, task, 'finish', {'actionId': 'finish'})
+    with native.projects.transaction() as session:
+        return session.scalar(select(NativeJob))
+
+
+async def test_exact_rebuild_keeps_original_files_image_resources_and_replay(gateway):
+    from dataclasses import replace
+
+    from kleos.orchestration.engine import RunScope
+    from kleos.projects.rebuild import NativeRebuildService
+    from kleos.projects.store import Objective
+
+    native, scope, task = gateway
+    original = await finished_job(gateway)
+    with native.projects.transaction() as session:
+        session.get(Objective, scope.run_id).status = 'succeeded'
+    receipt = NativeRebuildService(native.projects, native).submit(scope.actor, scope.project_id, original.id, 2, 'rebuild')
+    with native.projects.transaction() as session:
+        run = session.get(Objective, receipt['runId'])
+        rebuilt_scope = RunScope.model_validate(run.data['scope'])
+        snapshot = run.data['nativeRebuild']['snapshot']
+        assert run.data['nativeRebuild']['grant']['parentActionCount'] == 3
+    assert snapshot['sources'][0]['contentBase64'] == base64.b64encode(b'fixture').decode()
+    assert native.artifacts.blobs.get(digest(b'fixture')) == b'fixture'
+    native.settings = replace(native.settings, images={}, resources=Resources(cpus=1), session_seconds=1)
+    rebuilt_task = task.model_copy(update={'id': 'native-rebuild', 'max_actions': 3})
+    for action in ('build', 'render', 'finish'):
+        result = await native.invoke_rebuild(rebuilt_scope, rebuilt_task, snapshot, action,
+                                             {'actionId': 'rebuild:' + action})
+        assert result['observations'][0]['details']['executionSucceeded']
+    dispatches = native.docker.dispatches
+    assert await native.invoke_rebuild(rebuilt_scope, rebuilt_task, snapshot, 'finish',
+                                      {'actionId': 'rebuild:finish'}) == result
+    assert native.docker.dispatches == dispatches
+    with native.projects.transaction() as session:
+        rebuilt = session.scalar(select(NativeJob).where(NativeJob.run_id == rebuilt_scope.run_id))
+        assert rebuilt.id != original.id and rebuilt.request['rebuildOf'] == original.id
+        for key in ('imageDigest', 'resources', 'networkPolicy', 'baselines', 'allowedPaths'):
+            assert rebuilt.request[key] == original.request[key]
+        assert rebuilt.request['maxActions'] == 3 and rebuilt.request['sessionSeconds'] == 300
+        assert rebuilt.source_manifest == original.source_manifest
+        artifacts = native.artifacts.list(session, scope.project_id)
+        assert all(artifact['status'] == 'candidate' for artifact in artifacts)
+    with pytest.raises(DomainError, match='cannot edit'):
+        await native.invoke_rebuild(rebuilt_scope, rebuilt_task, snapshot, 'patch', {'actionId': 'forbidden'})
+    with pytest.raises(DomainError, match='snapshot changed'):
+        await native.invoke_rebuild(rebuilt_scope, rebuilt_task, {**snapshot, 'sources': []}, 'build', {'actionId': 'bad'})
+
+
+@pytest.mark.parametrize('damage', ['proof', 'pending', 'duration', 'source', 'request'])
+async def test_rebuild_admission_fails_closed_on_missing_or_uncertain_history(gateway, damage):
+    native, scope, _ = gateway
+    original = await finished_job(gateway)
+    with native.projects.transaction() as session:
+        job = session.get(NativeJob, original.id)
+        if damage == 'proof':
+            session.delete(session.get(NativeAction, (job.id, '_termination')))
+        elif damage == 'pending':
+            session.add(NativeAction(job_id=job.id, action_id='lost', request_hash='x', status='pending', result={}))
+        elif damage == 'duration':
+            job.request = {k: v for k, v in job.request.items() if k != 'sessionSeconds'}
+            job.request_hash = fingerprint(job.request)
+            session.get(NativeAction, (job.id, '_termination')).request_hash = job.request_hash
+        elif damage == 'request':
+            job.request = {**job.request, 'imageDigest': 'sha256:' + 'b' * 64}
+        else:
+            job.source_manifest = {'model.py': 'e' * 64}
+    with native.projects.transaction() as session, pytest.raises(DomainError):
+        native.rebuild_snapshot(session, scope.actor, session.get(NativeJob, original.id))
+
+
+async def test_missing_dispatched_container_never_reexecutes(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    assert native.artifacts.blobs.get(digest(b'fixture')) == b'fixture'
+    native.docker.sessions.clear()
+    with pytest.raises(RuntimeError, match='missing after dispatch'):
+        await native.invoke(scope, task, 'build', {'actionId': 'uncertain'})
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.active_action == 'uncertain'
+        with pytest.raises(DomainError, match='reconciliation'):
+            native.rebuild_snapshot(session, scope.actor, job)
+
+
+async def test_termination_failure_does_not_invent_rebuild_proof(gateway):
+    native, scope, _ = gateway
+
+    async def uncertain(job_id, image, **kwargs):
+        raise RuntimeError('Daemon unavailable')
+
+    native.docker.confirm_terminated = uncertain
+    original = await finished_job(gateway)
+    with native.projects.transaction() as session:
+        assert session.get(NativeAction, (original.id, '_termination')) is None
+        with pytest.raises(DomainError, match='termination is not confirmed'):
+            native.rebuild_snapshot(session, scope.actor, session.get(NativeJob, original.id))
+    assert (await native.reconcile())['pending'] == [original.id]
+
+
+async def test_docker_termination_checks_identity_and_uses_immutable_id():
+    import httpx
+
+    from kleos.execution.docker import DockerClient
+
+    seen = []
+    image = 'sha256:' + 'a' * 64
+    metadata = {'Id': 'c' * 64, 'Image': image, 'State': {'Running': True},
+                'Config': {'Labels': {'kleos.native.job': 'job', 'kleos.native.protocol': PROTOCOL}}}
+
+    def handle(request):
+        seen.append(request.url.path)
+        if request.url.path.endswith('/kill'):
+            metadata['State']['Running'] = False
+            return httpx.Response(204)
+        return httpx.Response(200, json=metadata)
+
+    docker = DockerClient(socket='/unused')
+    await docker.client.aclose()
+    docker.client = httpx.AsyncClient(transport=httpx.MockTransport(handle), base_url='http://docker')
+    await docker.confirm_terminated('job', image)
+    assert '/containers/' + 'c' * 64 + '/kill' in seen
+    seen.clear()
+    metadata['Image'] = 'wrong'
+    with pytest.raises(RuntimeError, match='ownership or image'):
+        await docker.confirm_terminated('job', image)
+    assert not any(path.endswith('/kill') for path in seen)
+    await docker.close()
+
+
+async def test_maintenance_cleans_once_and_retains_unknown_action_fences(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    native.docker.sessions.clear()
+    with pytest.raises(RuntimeError, match='missing after dispatch'):
+        await native.invoke(scope, task, 'build', {'actionId': 'uncertain'})
+    assert await native.reconcile() == {'reconciled': 1, 'pending': []}
+    stops, cleanups = len(native.docker.stopped), len(native.docker.cleaned)
+    assert await native.reconcile() == {'reconciled': 0, 'pending': []}
+    assert (len(native.docker.stopped), len(native.docker.cleaned)) == (stops, cleanups)
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.active_action == 'uncertain'
+        assert session.get(NativeAction, (job.id, 'uncertain')).status == 'pending'
+        assert session.get(NativeAction, (job.id, '_cleanup')).result['containerRemoved']
+        with pytest.raises(DomainError, match='reconciliation'):
+            native.rebuild_snapshot(session, scope.actor, job)
+
+
+async def test_finish_and_maintenance_share_one_termination_receipt(gateway):
+    import asyncio
+
+    native, scope, task = gateway
+    await patch(gateway)
+    await native.invoke(scope, task, 'build', {'actionId': 'build'})
+    first, both = asyncio.Event(), asyncio.Event()
+    original, arrivals = native.docker.confirm_terminated, []
+
+    async def overlapping(job_id, image, **kwargs):
+        arrivals.append(job_id)
+        first.set()
+        if len(arrivals) == 2:
+            both.set()
+        await asyncio.wait_for(both.wait(), timeout=2)
+        return await original(job_id, image, **kwargs)
+
+    native.docker.confirm_terminated = overlapping
+    finishing = asyncio.create_task(native.invoke(scope, task, 'finish', {'actionId': 'finish'}))
+    await asyncio.wait_for(first.wait(), timeout=2)
+    maintenance = asyncio.create_task(native.reconcile())
+    result, reconciled = await asyncio.gather(finishing, maintenance)
+    assert result['artifacts'] and reconciled == {'reconciled': 1, 'pending': []}
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        controls = list(session.scalars(select(NativeAction).where(NativeAction.action_id.in_(['_termination', '_cleanup']))))
+        assert len(controls) == 2 and all(row.status == 'completed' for row in controls)
+        assert native.rebuild_snapshot(session, scope.actor, job)['sourceManifest'] == job.source_manifest
+    assert await native.reconcile() == {'reconciled': 0, 'pending': []}
+    assert await native.invoke(scope, task, 'finish', {'actionId': 'finish'}) == result
+
+
+async def test_failed_cleanup_retries_without_false_completed_receipt(gateway):
+    native, _, _ = gateway
+    job = await finished_job(gateway)
+    original = native.docker.cleanup
+
+    async def unavailable(job_id):
+        raise RuntimeError('Daemon unavailable')
+
+    native.docker.cleanup = unavailable
+    assert await native.reconcile() == {'reconciled': 0, 'pending': [job.id]}
+    with native.projects.transaction() as session:
+        assert session.get(NativeAction, (job.id, '_cleanup')) is None
+    native.docker.cleanup = original
+    assert await native.reconcile() == {'reconciled': 1, 'pending': []}
+    assert await native.reconcile() == {'reconciled': 0, 'pending': []}
+
+
+def enable_capacity(native):
+    from kleos.execution.capacity import CapacityService
+    from kleos.infrastructure.schema import metadata
+
+    metadata().create_all(native.projects.engine)
+    native.capacity = CapacityService(native.projects)
+
+
+async def test_native_waits_for_shared_capacity_before_action_claim_and_container(gateway):
+    import asyncio
+
+    native, scope, task = gateway
+    enable_capacity(native)
+    await patch(gateway)
+    assert native.capacity.usage()['jobs'] == 1
+    other = task.model_copy(update={'id': 'second-cad'})
+    waiting = asyncio.create_task(native.invoke(scope, other, 'patch', {'actionId': 'second', 'path': 'model.py',
+        'content': 'other fixture', 'expectedSha256': None}))
+    try:
+        await asyncio.sleep(.05)
+        assert not waiting.done() and native.docker.dispatches == 1
+        with native.projects.transaction() as session:
+            second = session.scalar(select(NativeJob).where(NativeJob.task_id == other.id))
+            assert second.status == 'pending' and second.active_action is None
+            assert session.get(NativeAction, (second.id, 'second')) is None
+        await native.invoke(scope, task, 'build', {'actionId': 'build'})
+        await native.invoke(scope, task, 'finish', {'actionId': 'finish'})
+        assert native.capacity.usage()['jobs'] == 1  # Stopped is not removed scratch.
+        await native.reconcile()
+        result = await asyncio.wait_for(waiting, timeout=2)
+        assert result['observations'][0]['details']['executionSucceeded']
+        assert native.capacity.usage()['jobs'] == 1
+    finally:
+        waiting.cancel()
+        await asyncio.gather(waiting, return_exceptions=True)
+
+
+async def test_native_capacity_wait_rechecks_cancellation_without_dispatch(gateway):
+    import asyncio
+
+    native, scope, task = gateway
+    enable_capacity(native)
+    native.capacity.reserve('slicer:busy', scope.project_id, 'b'*64, Resources().wire())
+    waiting = asyncio.create_task(patch(gateway))
+    await asyncio.sleep(.05)
+    native.repository.cancel(scope.actor, scope.project_id, scope.run_id)
+    with pytest.raises(DomainError, match='no longer active'):
+        await asyncio.wait_for(waiting, timeout=2)
+    assert native.docker.dispatches == 0
+    with native.projects.transaction() as session:
+        assert list(session.scalars(select(NativeAction))) == []
+    assert native.capacity.usage()['jobs'] == 1  # Unrelated running slicer retains its slot.
+
+
+async def test_uncertain_native_termination_retains_capacity_until_cleanup(gateway):
+    native, scope, task = gateway
+    enable_capacity(native)
+    await patch(gateway)
+    native.docker.sessions.clear()
+    original = native.docker.confirm_terminated
+
+    async def unavailable(job_id, image, **kwargs):
+        raise RuntimeError('Unknown container state')
+
+    native.docker.confirm_terminated = unavailable
+    with pytest.raises(RuntimeError, match='missing after dispatch'):
+        await native.invoke(scope, task, 'build', {'actionId': 'lost'})
+    assert native.capacity.usage()['jobs'] == 1
+    assert (await native.reconcile())['pending']
+    assert native.capacity.usage()['jobs'] == 1
+    native.docker.confirm_terminated = original
+    assert await native.reconcile() == {'reconciled': 1, 'pending': []}
+    assert native.capacity.usage()['jobs'] == 0
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.active_action == 'lost'
+        with pytest.raises(DomainError, match='reconciliation'):
+            native.rebuild_snapshot(session, scope.actor, job)
+
+
+async def test_lost_native_create_response_with_absent_lookup_keeps_reservation(gateway):
+    native, scope, _ = gateway
+    enable_capacity(native)
+
+    async def late_create(*args, **kwargs):
+        raise TimeoutError('Create response was lost')
+
+    native.docker.ensure = late_create
+    with pytest.raises(TimeoutError, match='response was lost'):
+        await patch(gateway)
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert session.get(NativeAction, (job.id, '_dispatch')).status == 'pending'
+        assert session.get(NativeAction, (job.id, '_termination')) is None
+    assert native.capacity.usage()['jobs'] == 1
+    assert await native.reconcile() == {'reconciled': 0, 'pending': [job.id]}
+    assert native.capacity.usage()['jobs'] == 1
+    # The late owned container is eventually observed, terminated and removed.
+    native.docker.sessions[job.id] = object()
+    assert await native.reconcile() == {'reconciled': 1, 'pending': []}
+    assert native.capacity.usage()['jobs'] == 0
+    with native.projects.transaction() as session:
+        assert session.get(NativeAction, (job.id, '_dispatch')).status == 'completed'
+        assert session.get(NativeAction, (job.id, 'patch-1')).status == 'pending'
+        assert session.get(NativeJob, job.id).active_action == 'patch-1'
+
+
+async def test_native_cleanup_follows_durable_id_after_container_rename():
+    import httpx
+
+    from kleos.execution.docker import DockerClient
+
+    ident, image, seen = 'd' * 64, 'sha256:' + 'a' * 64, []
+    metadata = {'Id': ident, 'Image': image, 'State': {'Running': True},
+                'Config': {'Labels': {'kleos.native.job': 'job', 'kleos.native.protocol': PROTOCOL}}}
+    present = True
+
+    def handle(request):
+        nonlocal present
+        path = request.url.path
+        seen.append((request.method, path))
+        if path == '/containers/' + ident + '/json':
+            return httpx.Response(200, json=metadata) if present else httpx.Response(404)
+        if path == '/containers/' + ident + '/kill':
+            metadata['State']['Running'] = False
+            return httpx.Response(204)
+        if request.method == 'DELETE' and path == '/containers/' + ident:
+            present = False
+            return httpx.Response(204)
+        return httpx.Response(404)  # Original name disappeared after operator rename.
+
+    docker = DockerClient(client=httpx.AsyncClient(transport=httpx.MockTransport(handle), base_url='http://docker'))
+    assert await docker.confirm_terminated('job', image, observed_id=ident) == ident
+    await docker.cleanup('job', observed_id=ident)
+    assert ('POST', '/containers/' + ident + '/kill') in seen
+    assert ('DELETE', '/containers/' + ident) in seen
+    assert not present
+    await docker.close()
+
+
+async def test_legacy_completed_dispatch_without_id_cannot_release_on_name_absence(gateway):
+    native, scope, task = gateway
+    enable_capacity(native)
+    await patch(gateway)
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        dispatch = session.get(NativeAction, (job.id, '_dispatch'))
+        assert dispatch.result['containerId'] == digest(job.id.encode())
+        dispatch.result = {'kind': 'dispatch-record', 'jobId': job.id}
+    native.docker.sessions.clear()
+    with pytest.raises(RuntimeError, match='missing after dispatch'):
+        await native.invoke(scope, task, 'build', {'actionId': 'missing'})
+    assert await native.reconcile() == {'reconciled': 0, 'pending': [job.id]}
+    assert native.capacity.usage()['jobs'] == 1
+    with native.projects.transaction() as session:
+        assert session.get(NativeAction, (job.id, '_cleanup')) is None
+
+
+@pytest.mark.parametrize('missing', [False, True])
+async def test_imported_pcb_admission_pins_complete_sources_and_disallows_patch(gateway, monkeypatch, missing):
+    from kleos.artifacts.service import Artifact
+    from kleos.contracts.models import ArtifactRef, Capability
+    from kleos.projects.store import Project
+
+    native, scope, task = gateway
+    native.settings.images['pcb'] = native.settings.images['cad']
+    refs = []
+    with native.projects.transaction() as session:
+        for name in ('board.kicad_pcb', 'circuit.kicad_sch'):
+            content = b'fixture imported data '+name.encode()
+            sha = native.artifacts.blobs.put(content)
+            row = Artifact(id=name, project_id=scope.project_id, revision=scope.revision, name=name,
+                sha256=sha, size=len(content), media_type='text/plain', status='input', lane='pcb',
+                details={'origin': 'user_upload'})
+            session.add(row)
+            refs.append(ArtifactRef(id=row.id, path=row.name, sha256=row.sha256, revision=row.revision,
+                                    size=row.size, media_type=row.media_type))
+        project = session.get(Project, scope.project_id)
+        circuit = accepted_circuit()
+        circuit['conceptReferences'] = {}
+        project.data = {**project.data, 'interfaces': {'circuit': circuit},
+                        'sourceManifest': {ref.path: ref.id for ref in refs}}
+    identity = {'mode': 'imported_no_concept', 'peripheralConceptIds': [], 'importedSourceIds': [refs[0].id],
+                'sourceArtifacts': [ref.model_dump(mode='json', by_alias=True) for ref in refs], 'bindingHash': 'f'*64}
+    # InterfaceService's separate tests cover user approval. Here test only gateway consumption.
+    monkeypatch.setattr('kleos.projects.interfaces.accepted_circuit_identity', lambda *args: identity)
+    pcb_task = task.model_copy(update={'capability': Capability.PCB, 'allowed_paths': ['board.kicad_pcb'],
+                                      'input_artifact_ids': [ref.id for ref in refs[:1 if missing else 2]]})
+    if missing:
+        with pytest.raises(DomainError, match='complete approved source closure'):
+            native._job(scope, pcb_task, refs[:1])
+    else:
+        job = native._job(scope, pcb_task, refs)
+        assert job.request['acceptedCircuitIdentity'] == identity
+        assert [entry['sha256'] for entry in job.request['sources']] == [ref.sha256 for ref in refs]
+        with pytest.raises(DomainError, match='preserves approved source bytes'):
+            await native._invoke_job(scope, pcb_task, {'action': 'patch', 'actionId': 'overwrite',
+                'arguments': {'path': 'board.kicad_pcb', 'content': 'replacement', 'expectedSha256': refs[0].sha256}}, job)
+    assert native.docker.dispatches == 0
+
+
+async def test_closed_job_is_continued_from_its_saved_sources_instead_of_redoing_the_work(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    with native.projects.transaction() as session:
+        first = session.scalar(select(NativeJob))
+        first.status, first_id = 'failed', first.id
+    # Without proof that its container stopped, the closed job is never silently replaced.
+    with pytest.raises(DomainError, match='closed'):
+        await native.invoke(scope, task, 'build', {'actionId': 'build-early'})
+    await native._confirm_termination(first_id)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-2'})
+    assert built['observations'][0]['status'] == 'UNKNOWN'  # model.py was already there: no new patch was needed
+    result = await native.invoke(scope, task, 'finish', {'actionId': 'finish-2'})
+    assert len(result['artifacts']) == 4
+    with native.projects.transaction() as session:
+        jobs = {job.id: job for job in session.scalars(select(NativeJob))}
+        assert len(jobs) == 2 and jobs[first_id].status == 'failed'
+        resumed = next(job for job in jobs.values() if job.id != first_id)
+        assert resumed.status == 'finished' and resumed.request['resumeOf'] == first_id
+        assert resumed.request['resumedSourcePaths'] == ['model.py']
+        assert resumed.source_manifest == {'model.py': digest(b'fixture')}
+        from kleos.artifacts.service import Artifact
+        details = session.scalars(select(Artifact)).first().details
+        assert details['resumeOf'] == first_id and details['resumeAttempt'] == 2 and details['inputs'] == {}
+
+
+async def test_a_task_that_ends_unfinished_releases_its_job_and_can_continue_from_its_saved_sources(gateway):
+    native, scope, task = gateway
+    await patch(gateway)
+    await native.close_task(scope, task.id)
+    with native.projects.transaction() as session:
+        job = session.scalar(select(NativeJob))
+        assert job.status == 'cancelled' and job.active_action is None
+        proof = session.get(NativeAction, (job.id, '_termination'))
+        assert proof is not None and proof.status == 'completed'
+    assert native.docker.stopped  # the container is gone, so its shared capacity is free again
+    result = await native.invoke(scope, task, 'build', {'actionId': 'after-close'})
+    assert result['observations'][0]['status'] == 'UNKNOWN'  # model.py was carried over; nothing was redone
+    with native.projects.transaction() as session:
+        assert {job.request.get('resumeAttempt', 1) for job in session.scalars(select(NativeJob))} == {1, 2}
+
+
+async def test_rule_violations_fail_the_observation_but_the_candidate_is_still_published(gateway):
+    native, scope, task = gateway
+    finding = {'source': 'drc', 'severity': 'error', 'kind': 'clearance', 'message': 'too close', 'items': []}
+
+    def add_findings(envelope):
+        if envelope['actionId'] in {'build-1', 'finish-1'} and envelope['response']['status'] == 'succeeded':
+            envelope['response']['result']['findings'] = [finding]
+
+    native.docker.tamper = add_findings
+    await patch(gateway)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+    assert built['observations'][0]['status'] == 'FAIL'
+    assert built['observations'][0]['details']['findings'] == [finding] and built['observations'][0]['details']['candidateOnly']
+    finished = await native.invoke(scope, task, 'finish', {'actionId': 'finish-1'})
+    assert finished['observations'][0]['status'] == 'FAIL' and finished['observations'][0]['details']['findings'] == [finding]
+    assert finished['artifacts']  # the board is delivered with its errors so the user can ask for a fix of just those
+
+
+async def test_warnings_alone_leave_the_candidate_observation_unknown(gateway):
+    native, scope, task = gateway
+    warning = {'source': 'drc', 'severity': 'warning', 'kind': 'silk_overlap', 'message': 'text', 'items': []}
+    native.docker.tamper = lambda envelope: envelope['response'].get('result', {}).update(findings=[warning]) if (
+        envelope['actionId'] == 'build-1') else None
+    await patch(gateway)
+    built = await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+    assert built['observations'][0]['status'] == 'UNKNOWN' and built['observations'][0]['details']['findings'] == [warning]
+
+
+async def test_a_build_cannot_claim_a_generated_source_outside_the_scaffold_authority(gateway):
+    native, scope, task = gateway
+
+    def claim(envelope):
+        if envelope['actionId'] == 'build-1':
+            envelope['response']['result']['generatedSources'] = [{'path': 'model.py', 'sha256': 'b' * 64}]
+
+    native.docker.tamper = claim
+    await patch(gateway)
+    with pytest.raises(ValueError, match='generated a source outside its authority'):
+        await native.invoke(scope, task, 'build', {'actionId': 'build-1'})
+
+
+def routing_session(tmp_path, violations_by_run):
+    """A session whose DRC reports the scripted violation types per run and whose router output is numbered."""
+    commands = []
+
+    def execute(command, work, timeout, limits, application):
+        commands.append(command)
+        if 'drc' in command:
+            run = sum('drc' in value for value in commands)
+            kinds = violations_by_run[min(run, len(violations_by_run)) - 1]
+            (work / 'outputs').mkdir(exist_ok=True)
+            (work / 'outputs/drc.json').write_text(json.dumps({'violations': [
+                {'type': kind, 'severity': 'warning' if kind == 'track_dangling' else 'error', 'description': kind,
+                 'items': [{'description': 'Track', 'pos': {'x': 1, 'y': 2}}]} for kind in kinds], 'unconnected_items': []}))
+        if command[-1:] == ['finish']:
+            (work / 'build/pcb/board.kicad_pcb').write_bytes(b'routed %d' % sum(c[-1:] == ['finish'] for c in commands))
+            (work / 'outputs').mkdir(exist_ok=True)
+            (work / 'outputs/routing.json').write_text('{}')
+        return 'ok'
+
+    session = NativeSession(request(), tmp_path / 'control', tmp_path / 'work', execute)
+    session.state['deadline'] = time.time() + 3600
+    stage = tmp_path / 'work/build/pcb'
+    stage.mkdir(parents=True)
+    return session, stage, commands
+
+
+def test_pcb_routing_restarts_from_the_authored_board_until_a_clean_result(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['unconnected_items'], []])
+    findings = session._route(stage, b'authored board')
+    assert findings == []
+    assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 2
+    assert sum(command[-1:] == ['prepare'] for command in commands) == 1
+    assert (stage / 'board.kicad_pcb').read_bytes() == b'routed 2'
+
+
+def test_pcb_routing_keeps_the_cleanest_attempt_and_reports_what_remains(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['clearance'] * 3, ['clearance'] * 2, ['clearance'] * 5])
+    findings = session._route(stage, b'authored board')
+    assert sum('/opt/freerouting/freerouting.jar' in command for command in commands) == 3
+    assert [item['kind'] for item in findings] == ['clearance', 'clearance'] and has_errors(findings)
+    assert findings[0] | {'items': None} == {'source': 'drc', 'severity': 'error', 'kind': 'clearance', 'message': 'clearance',
+                                              'items': None, 'positionMm': [1, 2]}
+    assert (stage / 'board.kicad_pcb').read_bytes() == b'routed 2'  # the board of the second attempt is the one delivered
+    assert json.loads((tmp_path / 'work/outputs/drc.json').read_bytes())['violations'].__len__() == 2
+
+
+def test_pcb_dangling_router_stubs_are_pruned_not_reported(tmp_path):
+    session, stage, commands = routing_session(tmp_path, [['track_dangling'], []])
+    assert session._route(stage, b'authored board') == []
+    assert sum(command[-1:] == ['prune'] for command in commands) == 1
+    assert sum('drc' in command for command in commands) == 2 and sum('/opt/freerouting/freerouting.jar' in c for c in commands) == 1
+
+
+def test_pcb_warnings_are_findings_but_do_not_fail_the_board(tmp_path):
+    session, stage, _ = routing_session(tmp_path, [['track_dangling'] * 3])  # still dangling after three prune rounds
+    findings = session._route(stage, b'authored board')
+    assert len(findings) == 3 and not has_errors(findings)

@@ -1,0 +1,16 @@
+{
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "backendLocations": [
+    "/opt/kleos-native/kleos"
+  ],
+  "legacyBackendAbsent": true,
+  "build123dVersion": "0.10.0",
+  "runtimeFiles": {
+    "result_reader.py": "5c375e4e3e87122479d536ce97bcf996f343331b420beb611ad2204731fc6898",
+    "bootstrap.py": "e1d432ce82530d626cd25beda9929a05aff0e6aec44de7d1e7c4c2dd3a17c609",
+    "kleos/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kleos/execution/native_runner.py": "3a0211a493adbb938e7208b9824b1c303487db9ad95fed59cfb1a2553a1f8494",
+    "kleos/execution/protocol.py": "6323ef668fe00cef9eacd2540b93d2c66e2e04d80f30165a96fb3241e4ec8fac"
+  }
+}

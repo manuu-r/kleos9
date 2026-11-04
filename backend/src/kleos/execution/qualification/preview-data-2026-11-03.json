@@ -1,0 +1,54 @@
+{
+  "verificationKind": "data-only-preview-parser",
+  "nativeBuildPerformed": false,
+  "generatedSourceExecuted": false,
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "sourceEvidence": "rebuild-capacity-2026-11-03-attempt-2.json",
+  "sourceEvidenceSha256": "d3b9aba5a713493c11ea65ea47bee2d83b5fc032a8ede2864276a97c59624552",
+  "parserSha256": "94e152f87fcc5ccd1d29f8858cd1c7ac4a7d5f853dbd52f67e12e46f5a01ef7f",
+  "parts": [
+    {
+      "path": "outputs/base.stl",
+      "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+      "size": 26084,
+      "triangleCount": 520,
+      "previewTriangleCount": 520,
+      "bounds": {
+        "min": [
+          -12.0,
+          -8.0,
+          -2.0
+        ],
+        "max": [
+          12.0,
+          8.0,
+          2.0
+        ]
+      },
+      "sampled": false
+    },
+    {
+      "path": "outputs/lid.stl",
+      "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+      "size": 684,
+      "triangleCount": 12,
+      "previewTriangleCount": 12,
+      "bounds": {
+        "min": [
+          -12.0,
+          -8.0,
+          6.0
+        ],
+        "max": [
+          12.0,
+          8.0,
+          8.0
+        ]
+      },
+      "sampled": false
+    }
+  ],
+  "limitations": [
+    "Verifies parsing existing qualified CAD fixture STL only; no arbitrary geometry, PCB or physical validation claim."
+  ]
+}

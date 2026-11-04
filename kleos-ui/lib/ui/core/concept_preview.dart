@@ -19,6 +19,9 @@ class ConceptPreview extends StatefulWidget {
     required this.scene,
     this.conceptVersion,
     this.updating = false,
+    this.emptyMessage =
+        'Your device preview will appear here as we shape the idea.',
+    this.stale = false,
     this.onPartSelected,
     this.height,
     this.caption =
@@ -28,6 +31,8 @@ class ConceptPreview extends StatefulWidget {
   final JsonMap scene;
   final int? conceptVersion;
   final bool updating;
+  final String emptyMessage;
+  final bool stale;
   final ValueChanged<String?>? onPartSelected;
   final double? height;
   final String caption;
@@ -127,6 +132,8 @@ class _ConceptPreviewState extends State<ConceptPreview>
 
   @override
   Widget build(BuildContext context) {
+    final geometryError = _scene.validationError ?? _geometry.validationError;
+    final hasGeometry = _scene.parts.isNotEmpty && geometryError == null;
     final selected =
         _scene.parts.where((part) => part.id == _selected).firstOrNull;
     return Column(
@@ -136,15 +143,21 @@ class _ConceptPreviewState extends State<ConceptPreview>
           const Expanded(
               child: Text('Device concept',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-          if (widget.updating) ...[
+          if (widget.updating && hasGeometry) ...[
             const KSpinner(size: 13),
             const SizedBox(width: 7),
             const Text('Updating',
                 style: TextStyle(color: KColors.muted, fontSize: 12)),
-          ] else if (widget.conceptVersion != null)
+          ] else if (widget.conceptVersion != null && hasGeometry)
             Text('Version ${widget.conceptVersion}',
                 style: const TextStyle(color: KColors.muted, fontSize: 12)),
         ]),
+        if (widget.stale && hasGeometry) ...[
+          const SizedBox(height: 9),
+          const Text(
+              'Showing your previous concept. The latest update is not available.',
+              style: TextStyle(color: KColors.muted, fontSize: 12)),
+        ],
         if (_scene.title.isNotEmpty) ...[
           const SizedBox(height: 9),
           Text(_scene.title, style: Theme.of(context).textTheme.headlineSmall),
@@ -166,14 +179,16 @@ class _ConceptPreviewState extends State<ConceptPreview>
                   color: KColors.surface,
                   borderRadius: BorderRadius.circular(KRadius.control),
                   border: Border.all(color: KColors.border)),
-              child: _scene.parts.isEmpty
-                  ? const Center(
+              child: !hasGeometry
+                  ? Center(
                       child: Padding(
-                          padding: EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(24),
                           child: Text(
-                              'Your device preview will appear here as we shape the idea.',
+                              geometryError == null
+                                  ? widget.emptyMessage
+                                  : 'This concept geometry could not be displayed: $geometryError Update the concept and try again.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: KColors.muted))))
+                              style: const TextStyle(color: KColors.muted))))
                   : AnimatedBuilder(
                       animation: _explode,
                       builder: (context, _) {
@@ -290,7 +305,7 @@ class _ConceptPreviewState extends State<ConceptPreview>
             ),
           );
         }),
-        if (_scene.parts.isNotEmpty) ...[
+        if (hasGeometry) ...[
           const SizedBox(height: 12),
           AnimatedBuilder(
               animation: _explode,
@@ -387,6 +402,9 @@ class _ConceptPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
     for (final face in drawing.faces) {
       fill.color = face.color;
+      // Feature triangles share exact edges. Independent antialias coverage
+      // otherwise exposes hairline seams; legacy polygon surfaces keep AA.
+      fill.isAntiAlias = face.points.length != 3 || face.outline;
       canvas.drawPath(face.path, fill);
       if (face.outline) {
         edge.color = face.partId == selected

@@ -21,3 +21,7 @@ node_modules/
 *.tfplan
 **/crash.log
 **/terraform.tfvars
+
+# Local pre-rewrite source snapshot; never ship or commit.
+/.rewrite-archive/
+/backend/.env.rewrite

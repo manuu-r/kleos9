@@ -12,12 +12,15 @@ import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
 import '../../core/concept_preview.dart';
 import 'common.dart';
+import 'activity_timeline.dart';
 import 'engineering_views.dart';
 import 'stage_kit.dart';
 import 'approved_design_reference.dart';
 import 'requirements_interview.dart';
 import 'planning_conversation.dart';
 import 'engineering_preview.dart';
+import 'bambu_print.dart';
+import '../production/rentahuman.dart';
 
 /// Real engineering records presented inside the original stage workspace.
 class ProductionStage extends ConsumerStatefulWidget {
@@ -46,8 +49,21 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
   JsonMap get state => asMap(project['state']);
   JsonMap get proposal => asMap(state['proposal']);
   List<JsonMap> get runs => asMaps(workspace['runs']);
+  // A project reads `queued` while its latest objective is blocked or failed; that run awaits the user and has no
+  // worker, so it is retryable rather than in progress.
   bool get active =>
-      const {'queued', 'running', 'waiting'}.contains(project['status']);
+      const {'queued', 'running', 'waiting'}.contains(project['status']) &&
+      !const {'blocked', 'failed'}.contains(runs.firstOrNull?['status']);
+  JsonMap get pendingInterfaces {
+    final candidate = asMap(state['interfaceProposal']);
+    return !active &&
+            candidate['status'] == 'pending' &&
+            candidate['id'] != null &&
+            candidate['hash'] != null
+        ? candidate
+        : const {};
+  }
+
   bool get planningActive =>
       active &&
       (runs.any((run) =>
@@ -129,6 +145,15 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           : [];
     }
     if (state['confirmed'] != true) return [];
+    if (pendingInterfaces.isNotEmpty) {
+      return [
+        action('project.approveInterfaces', 'Approve interfaces', data: {
+          'proposalId': pendingInterfaces['id'],
+          'proposalHash': pendingInterfaces['hash']
+        }),
+        action('project.solveInterfaces', 'Revise proposal', primary: false),
+      ];
+    }
     if (asMap(project['interfaces']).isEmpty) {
       return [action('project.solveInterfaces', 'Establish interfaces')];
     }
@@ -172,6 +197,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
 
   Widget concept() => LayoutBuilder(builder: (context, constraints) {
         final concept = asMap(state['concept']);
+        final targetPartId = selectedPartId;
         final scene = asMap(concept['scene']);
         final clarification = asMap(state['clarification']);
         final conversation = asMaps(state['conversation']);
@@ -180,6 +206,15 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           ...asMaps(clarification['resolvedQuestions'])
         ];
         final pending = planningPending || planningActive;
+        final planningFailed = !pending &&
+            (const {'failed', 'blocked'}.contains(project['status']) ||
+                const {'failed', 'blocked'}
+                    .contains(runs.firstOrNull?['status']));
+        final emptyConceptMessage = pending
+            ? 'Creating a concept from your brief and reference images…'
+            : planningFailed
+                ? 'Your concept is not available yet. Review the planning error above, then retry the run.'
+                : 'Your concept will appear after capture';
         final chat = PlanningConversation(
           key: ValueKey('planning-chat-${project['id']}'),
           messages: conversation.isEmpty
@@ -200,12 +235,31 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           selectedPartLabel: selectedPartLabel,
           selectedPartId: selectedPartId,
           onClearPart: () => setState(() => selectedPart = null),
+          onUploadImage: (image) => image.upload(
+              ref.read(productionRepositoryProvider), project['id'] as String),
+          loadImage: (id) {
+            final repository = ref.read(productionRepositoryProvider);
+            return repository.api.referenceImageBytes(
+                project['id'] as String, id,
+                organizationId: repository.organizationId);
+          },
+          onSendWithReferences: (text, clientId, imageIds) =>
+              command('project.message', {
+            'text': text,
+            'clientMessageId': clientId,
+            'autoResume': true,
+            'referenceImageIds': imageIds,
+            if (targetPartId != null) ...{
+              'selectedPartId': targetPartId,
+              'conceptVersion': concept['version'],
+            },
+          }),
           onSend: (text, clientId) => command('project.message', {
             'text': text,
             'clientMessageId': clientId,
             'autoResume': true,
-            if (selectedPartId != null) ...{
-              'selectedPartId': selectedPartId,
+            if (targetPartId != null) ...{
+              'selectedPartId': targetPartId,
               'conceptVersion': concept['version'],
             },
           }),
@@ -237,6 +291,8 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
                   onReview: () =>
                       command('project.requestReview', {'autoResume': true}),
                   onConfirm: () => command('project.confirm'),
+                  onAcceptAssumptions: (ids) => command(
+                      'project.acceptAssumptions', {'constraintIds': ids}),
                 ),
         );
         final preview = KCard(
@@ -244,6 +300,8 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
           trailing: const KBadge('Concept preview'),
           child: ConceptPreview(
             scene: scene,
+            emptyMessage: emptyConceptMessage,
+            stale: concept['stale'] == true,
             conceptVersion: (concept['version'] as num?)?.toInt(),
             updating: pending,
             height: constraints.maxWidth < 600 ? 270 : 390,
@@ -461,10 +519,20 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
       _ => ['shipment', 'activation'],
     };
     return pColumn([
+      if (widget.stage == 6 && state['printMode'] == 'home')
+        BambuPrintPanel(
+            projectId: '${project['id']}',
+            revision: number(workspace['revision']).toInt()),
+      if (widget.stage == 7)
+        RentAHumanProjectTasks(
+            projectId: '${project['id']}',
+            revision: number(project['engineeringRevision']).toInt(),
+            releaseId: project['acceptedReleaseId'] as String?,
+            canWrite: canWrite),
       pCallout(pColumn([
         const KBadge('Simulated physical workflow', tone: 'sim'),
         pText(
-            'No live purchases, printing, shipping, or physical acceptance occur. Synthetic receipts cannot satisfy a live physical gate.',
+            'Supplier orders, shipping and physical acceptance below remain simulated. Home Bambu preparation uses the separate real adapter; synthetic receipts do not approve a physical part.',
             small: true),
       ])),
       if (keys.every((key) => state[key] == null))
@@ -479,6 +547,7 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             data: {'step': number(state['assemblyStep'], -1).toInt() + 1}),
       if (widget.stage == 6 && canWrite)
         DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: state['printMode'] as String?,
             decoration: const InputDecoration(labelText: 'Printing preference'),
             items: const [
@@ -749,6 +818,13 @@ class _ProductionStageState extends ConsumerState<ProductionStage> {
             if (active)
               SegmentBar(tones: List.filled(16, 'accent'), sweeping: true),
           ])),
+      // Steps of the latest run, live while it works: planning, model decisions and tool calls.
+      if (asMaps(latest?['activity']).isNotEmpty)
+        ActivityTimeline(
+            key: ValueKey('activity-${latest!['id']}'),
+            steps: asMaps(latest['activity']),
+            running: const {'pending', 'running', 'waiting'}
+                .contains(latest['status'])),
       if (widget.stage == 3)
         interfaceRecords()
       else if (widget.stage == 4)

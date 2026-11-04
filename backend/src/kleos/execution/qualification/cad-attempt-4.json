@@ -1,0 +1,64 @@
+{
+  "qualified": false,
+  "imageId": "sha256:809fabccbe43293bceefe8c198a523fbd49c92dc13c118eccc786c8305494cc6",
+  "finishedAt": "2026-11-02T15:05:27.020971+00:00",
+  "fixtureSha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "7e2f596b3305aebda2610bc4a2dcb3b6fea494f86ec039232ba2a04faabc7167"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native command failed (1): Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"model.py\", line 15, in <module>\n    else: raise AssertionError('Native authority boundary was writable/readable')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Native authority boundary was writable/readable\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "ERROR",
+            "details": {
+              "error": "Native command failed (1): Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"model.py\", line 15, in <module>\n    else: raise AssertionError('Native authority boundary was writable/readable')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Native authority boundary was writable/readable\n"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "runtimeLogs": "",
+      "image": "sha256:809fabccbe43293bceefe8c198a523fbd49c92dc13c118eccc786c8305494cc6",
+      "status": "running",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

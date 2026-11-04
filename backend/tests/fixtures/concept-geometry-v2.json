@@ -1,0 +1,398 @@
+{
+  "schemaVersion": "concept-scene-v2",
+  "title": "Complex illustrative assembly",
+  "summary": "Bounded geometry fixture",
+  "deviceKind": "fixture",
+  "units": "relative",
+  "parts": [
+    {
+      "size": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "mount",
+      "label": "Mount",
+      "role": "other",
+      "shape": "feature",
+      "geometry": {
+        "kind": "extrusion",
+        "outer": [
+          [
+            -0.45,
+            -0.45
+          ],
+          [
+            0.45,
+            -0.45
+          ],
+          [
+            0.45,
+            0.1
+          ],
+          [
+            0.1,
+            0.1
+          ],
+          [
+            0.1,
+            0.45
+          ],
+          [
+            -0.45,
+            0.45
+          ]
+        ],
+        "holes": [
+          [
+            [
+              -0.3,
+              -0.2
+            ],
+            [
+              -0.1,
+              -0.2
+            ],
+            [
+              -0.1,
+              0
+            ],
+            [
+              -0.3,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "size": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "housing",
+      "label": "Housing",
+      "role": "shell",
+      "shape": "feature",
+      "geometry": {
+        "kind": "revolution",
+        "profile": [
+          [
+            0.3,
+            -0.45
+          ],
+          [
+            0.45,
+            -0.45
+          ],
+          [
+            0.45,
+            0.25
+          ],
+          [
+            0.35,
+            0.45
+          ],
+          [
+            0.25,
+            0.35
+          ],
+          [
+            0.3,
+            0.2
+          ]
+        ]
+      }
+    },
+    {
+      "size": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "taper",
+      "label": "Taper",
+      "role": "other",
+      "shape": "feature",
+      "geometry": {
+        "kind": "loft",
+        "sections": [
+          {
+            "z": -0.5,
+            "outer": [
+              [
+                -0.45,
+                -0.4
+              ],
+              [
+                0.45,
+                -0.4
+              ],
+              [
+                0.45,
+                0.4
+              ],
+              [
+                -0.45,
+                0.4
+              ]
+            ]
+          },
+          {
+            "z": 0,
+            "outer": [
+              [
+                -0.35,
+                -0.3
+              ],
+              [
+                0.35,
+                -0.3
+              ],
+              [
+                0.35,
+                0.3
+              ],
+              [
+                -0.35,
+                0.3
+              ]
+            ]
+          },
+          {
+            "z": 0.5,
+            "outer": [
+              [
+                -0.2,
+                -0.2
+              ],
+              [
+                0.2,
+                -0.2
+              ],
+              [
+                0.2,
+                0.2
+              ],
+              [
+                -0.2,
+                0.2
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "size": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "tube",
+      "label": "Tube",
+      "role": "other",
+      "shape": "feature",
+      "geometry": {
+        "kind": "sweep",
+        "path": [
+          [
+            -0.3,
+            -0.3,
+            -0.3
+          ],
+          [
+            -0.3,
+            -0.3,
+            0.2
+          ],
+          [
+            0.25,
+            -0.3,
+            0.2
+          ],
+          [
+            0.25,
+            0.25,
+            0.2
+          ]
+        ],
+        "radius": 0.08,
+        "innerRadius": 0.04
+      }
+    },
+    {
+      "size": {
+        "x": 1,
+        "y": 1,
+        "z": 0.1
+      },
+      "position": {
+        "x": 0,
+        "y": 2.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "board",
+      "label": "Board",
+      "role": "board",
+      "shape": "box"
+    },
+    {
+      "size": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "position": {
+        "x": 0,
+        "y": -2.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "explode": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "color": "#68AACC",
+      "detail": "Illustrative geometry, not fabrication evidence",
+      "sourceChoices": [],
+      "id": "pocket",
+      "label": "Open enclosure pocket",
+      "role": "other",
+      "shape": "feature",
+      "geometry": {
+        "kind": "extrusion",
+        "floor": 0.15,
+        "outer": [
+          [
+            -0.45,
+            -0.45
+          ],
+          [
+            0.45,
+            -0.45
+          ],
+          [
+            0.45,
+            0.45
+          ],
+          [
+            -0.45,
+            0.45
+          ]
+        ],
+        "holes": [
+          [
+            [
+              -0.35,
+              -0.35
+            ],
+            [
+              0.35,
+              -0.35
+            ],
+            [
+              0.35,
+              0.35
+            ],
+            [
+              -0.35,
+              0.35
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

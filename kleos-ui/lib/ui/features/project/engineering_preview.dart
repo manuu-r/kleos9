@@ -11,6 +11,8 @@ import '../../core/widgets.dart';
 import 'common.dart';
 import 'companion_app_preview.dart';
 import 'cad_assembly_preview.dart';
+import 'bambu_print.dart';
+import 'circuit_waveform.dart';
 import 'pcb_preview.dart';
 import 'engineering_views.dart';
 
@@ -567,6 +569,19 @@ class _EngineeringPreviewPanelState extends State<EngineeringPreviewPanel> {
             ? Row(children: [Expanded(child: heading), switcher])
             : pColumn([heading, switcher], gap: 12),
         framed,
+        if (!overview &&
+            lane == 'mechanics' &&
+            widget.projectId != null &&
+            !widget.stale)
+          BambuPrintPanel(
+              projectId: widget.projectId!,
+              revision: number(widget.data['revision']).toInt()),
+        if (!overview && lane == 'electronics' && widget.projectId != null)
+          widget.stale
+              ? pText('Waiting for the current circuit evidence.', muted: true)
+              : CircuitSimulationPanel(
+                  projectId: widget.projectId!,
+                  revision: number(widget.data['revision']).toInt()),
         if (lane == 'electronics' &&
             asMap(widget.data['circuitContractCheck']).isNotEmpty)
           CircuitContractNotice(

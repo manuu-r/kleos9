@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "RemoteInput": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Artifactid",
+          "type": "string"
+        },
+        "mediaType": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^inputs/[0-9]{3}$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 8388608,
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifactId",
+        "path",
+        "sha256",
+        "size",
+        "mediaType"
+      ],
+      "title": "RemoteInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/RemoteInput"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Inputs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "inputs"
+  ],
+  "title": "RemoteArguments",
+  "type": "object"
+}

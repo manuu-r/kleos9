@@ -1,0 +1,450 @@
+{
+  "qualified": true,
+  "imageId": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+  "protocol": "kleos-cad-check-v1",
+  "sourceOverride": false,
+  "deployment": "local",
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261",
+  "scope": "Independent STEP/STL export integrity and explicit extents for one two-part fixture",
+  "passedCases": [
+    "valid_exports",
+    "dimension_mismatch",
+    "digest_mismatch",
+    "unsupported_requirement",
+    "wrong_units",
+    "mesh_mismatch"
+  ],
+  "cases": [
+    {
+      "case": "valid_exports",
+      "expected": "PASS",
+      "result": {
+        "status": "PASS",
+        "measurements": {
+          "outputs/base": {
+            "step": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                -2.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                2.0
+              ],
+              "volumeMm3": 1485.7345175425614,
+              "solidCount": 1,
+              "solidValid": true,
+              "units": "mm"
+            },
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                -2.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                2.0
+              ],
+              "volumeMm3": 1485.7553475379873,
+              "triangleCount": 520,
+              "closedOrientedMesh": true
+            }
+          },
+          "outputs/lid": {
+            "step": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "solidCount": 1,
+              "solidValid": true,
+              "units": "mm"
+            },
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "triangleCount": 12,
+              "closedOrientedMesh": true
+            }
+          }
+        },
+        "unsupportedRequirements": [],
+        "isolation": {
+          "uid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true
+        },
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-b687a6eed26e40ac8a13b1b7cf7b3fba",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    },
+    {
+      "case": "dimension_mismatch",
+      "expected": "FAIL",
+      "result": {
+        "status": "FAIL",
+        "measurements": {},
+        "reason": "Explicit numeric constraint failed: outputs/base/extent_x_mm",
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-519948b87f2641019899dc80be4165ee",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    },
+    {
+      "case": "digest_mismatch",
+      "expected": "FAIL",
+      "result": {
+        "status": "FAIL",
+        "measurements": {},
+        "reason": "Export digest or byte size mismatch",
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-3d214fac34be4720b85bc74f4a36bd97",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    },
+    {
+      "case": "unsupported_requirement",
+      "expected": "UNKNOWN",
+      "result": {
+        "status": "UNKNOWN",
+        "measurements": {
+          "outputs/base": {
+            "step": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                -2.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                2.0
+              ],
+              "volumeMm3": 1485.7345175425614,
+              "solidCount": 1,
+              "solidValid": true,
+              "units": "mm"
+            },
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                -2.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                2.0
+              ],
+              "volumeMm3": 1485.7553475379873,
+              "triangleCount": 520,
+              "closedOrientedMesh": true
+            }
+          },
+          "outputs/lid": {
+            "step": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "solidCount": 1,
+              "solidValid": true,
+              "units": "mm"
+            },
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "triangleCount": 12,
+              "closedOrientedMesh": true
+            }
+          }
+        },
+        "unsupportedRequirements": [
+          "Fatigue strength under repeated load"
+        ],
+        "isolation": {
+          "uid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true
+        },
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-74d909df4f8949ddb767c8b93faeb668",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    },
+    {
+      "case": "wrong_units",
+      "expected": "UNKNOWN",
+      "result": {
+        "status": "UNKNOWN",
+        "measurements": {
+          "outputs/base": {
+            "step": null,
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                -2.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                2.0
+              ],
+              "volumeMm3": 1485.7553475379873,
+              "triangleCount": 520,
+              "closedOrientedMesh": true
+            }
+          },
+          "outputs/lid": {
+            "step": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "solidCount": 1,
+              "solidValid": true,
+              "units": "mm"
+            },
+            "stl": {
+              "boundsMinMm": [
+                -12.0,
+                -8.0,
+                6.0
+              ],
+              "boundsMaxMm": [
+                12.0,
+                8.0,
+                8.0
+              ],
+              "volumeMm3": 768.0,
+              "triangleCount": 12,
+              "closedOrientedMesh": true
+            }
+          }
+        },
+        "unsupportedRequirements": [
+          "Unsupported or absent explicit STEP millimetre units: outputs/base",
+          "Constraint target has no supported STEP solid: outputs/base",
+          "Constraint target has no supported STEP solid: outputs/base"
+        ],
+        "isolation": {
+          "uid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true
+        },
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-40e3683755054991ae924a3638493184",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    },
+    {
+      "case": "mesh_mismatch",
+      "expected": "FAIL",
+      "result": {
+        "status": "FAIL",
+        "measurements": {},
+        "reason": "STEP/STL coordinate bounds mismatch",
+        "protocol": "kleos-cad-check-v1",
+        "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executionId": "qualification-8dad2f1e48ae472c873e7b10c76954ae",
+        "checkerSourceSha256": "3bd24d3c2ed6506b82e52034bd9dd666c0f625736e2113eddce189dfa9f49261"
+      }
+    }
+  ],
+  "inputArtifacts": [
+    {
+      "id": "4ad1d369-1793-4f78-8c4c-b5c7c0846117",
+      "path": "outputs/base.step",
+      "sha256": "3cbf802045db7cbd220a490a26db934cd7500411476bee4c1d67905619ee9ba9",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 19035
+    },
+    {
+      "id": "de61d283-3386-4085-a654-43675c46495d",
+      "path": "outputs/base.stl",
+      "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+      "revision": 2,
+      "mediaType": "application/vnd.ms-pki.stl",
+      "size": 26084
+    },
+    {
+      "id": "6c96291b-716a-40a4-8a6c-e824b7df1611",
+      "path": "outputs/lid.step",
+      "sha256": "56eb4e6962a2bb4e0510abc891b1292dadcb31a40bcabc538b63cee8014fdd61",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 16946
+    },
+    {
+      "id": "1052cd6d-9160-4fe6-b323-5c6ae3d04619",
+      "path": "outputs/lid.stl",
+      "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+      "revision": 2,
+      "mediaType": "application/vnd.ms-pki.stl",
+      "size": 684
+    }
+  ],
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "limits": {
+    "memoryBytes": 2147483648,
+    "cpuCount": 2,
+    "pids": 64,
+    "timeoutSeconds": 120
+  },
+  "limitations": [
+    "Not manufacturing, stress, fit, material, electrical, physical or arbitrary-device acceptance",
+    "Mesh intersection and STEP/STL surface correspondence beyond bounds/volume are not qualified",
+    "Only explicit STEP SI millimetres and paired closed oriented STL meshes",
+    "Local Docker Desktop only; no ECS qualification"
+  ],
+  "containerChecksPassed": true,
+  "containers": [
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    },
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    },
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    },
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    },
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    },
+    {
+      "image": "sha256:e3c5823091b7dde83d1043bd455ef96567939424ab447a3efed1149dc1030e69",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "readonlyInput": true,
+      "seccompMatches": true
+    }
+  ],
+  "finishedAt": "2026-11-02T16:40:22.466309+00:00"
+}

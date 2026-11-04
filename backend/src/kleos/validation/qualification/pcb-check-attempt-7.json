@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "kleos-pcb-check-qualification-v1",
+  "qualified": false,
+  "qualifiedBy": "pcb-checker-qualification-runner",
+  "imageId": "sha256:cb1cfd18a6b0ca4fb9246f2b9e77801556e4272ed14384304a30c536764a3b5a",
+  "protocol": "kleos-pcb-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "pcb.py": "155a4d916bc7cebd6c2a5aa8a1d52fb1fd94a01e678a47e040ffe7c47dd47b49",
+    "pcb_check.py": "556a4bce98715bafa056b5c7470ca2c087cf6a1f1e58304ecb9544447e3948ea",
+    "pcb_process.py": "c299b3410aa5f8079e5b9bbf935bf63c99fd070a101020103425faa1d396eebe",
+    "Dockerfile.pcb": "b27a5ebf37f75225c321313bd2d68f241cc48bd992573271297c99e4efd639d2"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T20:39:45.087769+00:00",
+  "caseStatuses": {
+    "clearance_violation": "FAIL"
+  },
+  "cases": [
+    {
+      "case": "clearance_violation",
+      "expected": "FAIL",
+      "requestHash": "45d59b4ccca5c696174c6fdb0175046990d52af64ebf6aedf499abd510a98c34",
+      "result": {
+        "status": "FAIL",
+        "reason": "Independent DRC did not pass: [[\"clearance\", \"Clearance violation (rule 'Accepted clearance' clearance 0.2000 mm; actual 0.0500 mm)\"], [\"track_dangling\", \"Track has unconnected end\"]]",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-8d6dfc787ca64bf89206086f02f47742",
+        "subjectHash": "1b4b86bade40d34156fa278d349227138d6d4aadb8b349edb7e840d0bd6419c7",
+        "checkerSourceSha256": "556a4bce98715bafa056b5c7470ca2c087cf6a1f1e58304ecb9544447e3948ea"
+      },
+      "elapsedSeconds": 2.409039166999719,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "579dc96b541b27e8535f4803cf30a54e85760c9e98e74c86c4c5cbf17be9ff8a": {
+      "case": "clearance_violation",
+      "image": "sha256:cb1cfd18a6b0ca4fb9246f2b9e77801556e4272ed14384304a30c536764a3b5a",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/private/tmp/kleos-pcb-check-qualification-attempt-7/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "Straight outline, two copper layers and simple pads only",
+    "No fabrication, functional, physical, Gerber/drill or arbitrary-device acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureHash": "52fd23bc253041de7b71762fa7c95266a8d557ca5c02675bdffc08e878496833",
+  "containerChecksPassed": true,
+  "qualificationPassed": false,
+  "awaitingIndependentReview": true,
+  "finishedAt": "2026-11-02T20:39:47.502179+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-pcb-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

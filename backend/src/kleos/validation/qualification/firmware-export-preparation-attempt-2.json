@@ -1,0 +1,220 @@
+{
+  "prepared": true,
+  "imageId": "sha256:1ea0aa4e85133be3a85fd7399d53c94cb2d1dc6d426b603235fcf44beb93e3bc",
+  "sourceOverride": false,
+  "fixtureSourcesSha256": "57ceccfea114674488565591a04504e5e16947fe422fa62610ee594d98e0a971",
+  "scope": "New regeneration of unchanged trusted historical fixture; not historical byte recovery or independent validation",
+  "capacityScope": "Persistent fixture ledger only; serial root-coordinated execution, no cross-database capacity claim",
+  "startedAt": "2026-11-02T21:15:12.321148+00:00",
+  "actions": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "CMakeLists.txt",
+              "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "prj.conf",
+              "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "src/main.c",
+              "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/firmware.bin",
+                "outputs/firmware.elf"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "4f0d7dbd-e41b-4c8c-9cce-c076b9414ced",
+            "path": "CMakeLists.txt",
+            "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+            "revision": 2,
+            "mediaType": "text/plain",
+            "size": 155
+          },
+          {
+            "id": "710f3b80-622f-44e4-9edb-1d6ecfcb0c0c",
+            "path": "prj.conf",
+            "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+            "revision": 2,
+            "mediaType": "text/plain",
+            "size": 42
+          },
+          {
+            "id": "20920e58-d470-4090-befe-20b3aaaa6523",
+            "path": "src/main.c",
+            "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+            "revision": 2,
+            "mediaType": "text/x-c",
+            "size": 171
+          },
+          {
+            "id": "edfd4723-d28a-4f00-93a0-d2f1827372a6",
+            "path": "outputs/firmware.bin",
+            "sha256": "08c7e4096b9df38b4872f8422212232983a8d2a2cf7a2e9678dcfa231c9742c2",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 19512
+          },
+          {
+            "id": "1d5f3930-ead2-4961-877b-cef4076e9934",
+            "path": "outputs/firmware.elf",
+            "sha256": "40b947f43c17cca0f02493a137942dec331a8dd46dca5e7d70851436747a8d82",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 630584
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "modelCalls": 0,
+  "artifacts": [
+    {
+      "id": "4f0d7dbd-e41b-4c8c-9cce-c076b9414ced",
+      "path": "CMakeLists.txt",
+      "sha256": "1f5b7cdc24753d219f9f2d4a59cb9f0217ce3e2c6af73551cf0a4704287d73af",
+      "revision": 2,
+      "mediaType": "text/plain",
+      "size": 155
+    },
+    {
+      "id": "710f3b80-622f-44e4-9edb-1d6ecfcb0c0c",
+      "path": "prj.conf",
+      "sha256": "c95f3d7e2a07ce52db5ab2807ef57749d0cbaf7f6172fa80bd6ac2259486b0db",
+      "revision": 2,
+      "mediaType": "text/plain",
+      "size": 42
+    },
+    {
+      "id": "20920e58-d470-4090-befe-20b3aaaa6523",
+      "path": "src/main.c",
+      "sha256": "be62c4f99d4858def9217a2c5d938e1cc6d7034134b87271e3dd09161532b719",
+      "revision": 2,
+      "mediaType": "text/x-c",
+      "size": 171
+    },
+    {
+      "id": "edfd4723-d28a-4f00-93a0-d2f1827372a6",
+      "path": "outputs/firmware.bin",
+      "sha256": "08c7e4096b9df38b4872f8422212232983a8d2a2cf7a2e9678dcfa231c9742c2",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 19512
+    },
+    {
+      "id": "1d5f3930-ead2-4961-877b-cef4076e9934",
+      "path": "outputs/firmware.elf",
+      "sha256": "40b947f43c17cca0f02493a137942dec331a8dd46dca5e7d70851436747a8d82",
+      "revision": 2,
+      "mediaType": "application/octet-stream",
+      "size": 630584
+    }
+  ],
+  "capacityFinal": {
+    "poolId": "isolated-firmware-export-fixture",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  },
+  "finishedAt": "2026-11-02T21:16:26.348412+00:00"
+}

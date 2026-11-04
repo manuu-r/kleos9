@@ -1,0 +1,198 @@
+{
+  "qualified": true,
+  "imageId": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+  "finishedAt": "2026-11-02T15:12:12.380561+00:00",
+  "fixtureSha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+  "protocol": "kleos-native-session-v2",
+  "lane": "cad",
+  "sourceOverride": false,
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "parentImageId": "sha256:50fe4f6f1c6f90bcd7a0886e09f313136edd7a72ecdfbe2b2bc4ea67603c8173",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/base.step",
+                "outputs/base.stl",
+                "outputs/lid.step",
+                "outputs/lid.stl",
+                "outputs/parts.json"
+              ],
+              "summary": "Native build completed; outputs are candidates"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "analyze",
+      "response": {
+        "summary": "{\"parts\": [{\"id\": \"base\", \"volumeMm3\": 1485.7345175425614, \"sizeMm\": [24.0, 16.0, 4.0], \"valid\": true}, {\"id\": \"lid\", \"volumeMm3\": 768.0, \"sizeMm\": [24.0, 16.0, 2.0], \"valid\": true}]}\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.analyze",
+            "status": "UNKNOWN",
+            "details": {
+              "independent": false,
+              "summary": "{\"parts\": [{\"id\": \"base\", \"volumeMm3\": 1485.7345175425614, \"sizeMm\": [24.0, 16.0, 4.0], \"valid\": true}, {\"id\": \"lid\", \"volumeMm3\": 768.0, \"sizeMm\": [24.0, 16.0, 2.0], \"valid\": true}]}\n"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "render",
+      "response": {
+        "summary": "{\"renderedParts\": [\"base\", \"lid\"], \"projection\": \"isometric\", \"illustrative\": true}\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.render",
+            "status": "UNKNOWN",
+            "details": {
+              "independent": false,
+              "summary": "{\"renderedParts\": [\"base\", \"lid\"], \"projection\": \"isometric\", \"illustrative\": true}\n"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "9f87f360-7431-4d86-8bf9-0435f67241fc",
+            "path": "model.py",
+            "sha256": "5d722885efbfa4103d54cf2cbdcf0efdb1a4fabd44baae47d3f8dee762a3a704",
+            "revision": 2,
+            "mediaType": "text/x-python",
+            "size": 1312
+          },
+          {
+            "id": "4ad1d369-1793-4f78-8c4c-b5c7c0846117",
+            "path": "outputs/base.step",
+            "sha256": "3cbf802045db7cbd220a490a26db934cd7500411476bee4c1d67905619ee9ba9",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 19035
+          },
+          {
+            "id": "de61d283-3386-4085-a654-43675c46495d",
+            "path": "outputs/base.stl",
+            "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 26084
+          },
+          {
+            "id": "6c96291b-716a-40a4-8a6c-e824b7df1611",
+            "path": "outputs/lid.step",
+            "sha256": "56eb4e6962a2bb4e0510abc891b1292dadcb31a40bcabc538b63cee8014fdd61",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 16946
+          },
+          {
+            "id": "1052cd6d-9160-4fe6-b323-5c6ae3d04619",
+            "path": "outputs/lid.stl",
+            "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+            "revision": 2,
+            "mediaType": "application/vnd.ms-pki.stl",
+            "size": 684
+          },
+          {
+            "id": "dded9511-616d-453b-b5ee-d7c2dc4287af",
+            "path": "outputs/parts.json",
+            "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+            "revision": 2,
+            "mediaType": "application/json",
+            "size": 120
+          },
+          {
+            "id": "9c050a96-2a38-48e0-a442-c8ceff7b1856",
+            "path": "outputs/base.svg",
+            "sha256": "303ef85a55004fc67d58b5bf59c70b2386bc51adaa14f08700976f4b0d96c421",
+            "revision": 2,
+            "mediaType": "image/svg+xml",
+            "size": 58132
+          },
+          {
+            "id": "73af0a73-e7c8-4bc1-8ece-aa34f2c812c4",
+            "path": "outputs/lid.svg",
+            "sha256": "7cd4c721950d03fadbbc7371e81c4db4a072de4cf450dfa8831104967814b47b",
+            "revision": 2,
+            "mediaType": "image/svg+xml",
+            "size": 1393
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected"
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "runtimeLogs": "",
+      "image": "sha256:62280256393a1f822fa1a256eb2991220bb2ec225f7e17894dbb52ec7a02d918",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

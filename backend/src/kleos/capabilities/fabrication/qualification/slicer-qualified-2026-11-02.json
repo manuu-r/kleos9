@@ -1,0 +1,118 @@
+{
+  "image": "sha256:e283c0bede34777412d02443889d075b5f0a60f6c9cc50e2524fd89340bde40e",
+  "sourceOverride": false,
+  "sourceSha256": "5ffc737a3e7c661093a0b8cab62cb0f828ecd42847cff0f7eaae57982b9b4dc5",
+  "runnerSha256": "9a2ab01f764c37f094d8ebb63071f9ffa8e90051336fcc501cc8cf3c73217702",
+  "securityBaselineSha256": "6416b47770785a41ac59073cdc77d9fe98517df2799dc83ef207e622de3053f6",
+  "environment": "local-docker-desktop-amd64",
+  "fixture": "20mm closed cube triangulated OBJ",
+  "physicalAcceptance": false,
+  "profiles": {
+    "a1-mini-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "a43d98b86e6913c00fd56970f590b566783dcfe01d807fdaac320fcfd4394de4",
+      "packageSha256": "660ba4e8a39326ce2e11978860001c31484d5f54e29f78eef9524fa92c2de2ac",
+      "checks": {
+        "gcodeBytes": 427136,
+        "packageBytes": 63416,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.5
+    },
+    "a1-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "18b43fe7f4e75d9ac00da4bf03853041b598eb00ad86ea02362160884aa5dd56",
+      "packageSha256": "1baaffdfc906e3ebeda50582f0e2da57fad6bb9a6f839a90bcc0ca3fe8b1e3ae",
+      "checks": {
+        "gcodeBytes": 443858,
+        "packageBytes": 64581,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.45
+    },
+    "p1s-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "dc3c0fc0c438162dfdd569f9717878554c27ba47a785ac2ad521b4e31f55a00c",
+      "packageSha256": "8104e3b749790c5f104d17f5110fab8cdaefa1ca6dcd950bf5d091029748d448",
+      "checks": {
+        "gcodeBytes": 346572,
+        "packageBytes": 59286,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.44
+    }
+  },
+  "rejections": {
+    "open-mesh": "PASS",
+    "modified-preset": "PASS"
+  }
+}

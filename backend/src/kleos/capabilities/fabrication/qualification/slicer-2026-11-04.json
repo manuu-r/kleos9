@@ -1,0 +1,152 @@
+{
+  "image": "sha256:61e35dbbc6b8aa989fbd2680549de8b5e5809413312dd5c169d9bd0c64818654",
+  "sourceOverride": false,
+  "sourceSha256": "5ffc737a3e7c661093a0b8cab62cb0f828ecd42847cff0f7eaae57982b9b4dc5",
+  "runnerSha256": "c8f5c51955e93b070b38690f032ca142e097c15671ed4838cee9f1f33f3d9088",
+  "securityBaselineSha256": "6416b47770785a41ac59073cdc77d9fe98517df2799dc83ef207e622de3053f6",
+  "environment": "local-docker-desktop-amd64",
+  "fixture": "20mm closed cube triangulated OBJ",
+  "physicalAcceptance": false,
+  "profiles": {
+    "a1-mini-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "a43d98b86e6913c00fd56970f590b566783dcfe01d807fdaac320fcfd4394de4",
+      "packageSha256": "87abe3d54810704e0bbd83919948de8f8c4c42efa640d9650ffa04e5e45eea48",
+      "checks": {
+        "gcodeBytes": 427136,
+        "packageBytes": 63415,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 10.43
+    },
+    "a1-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "18b43fe7f4e75d9ac00da4bf03853041b598eb00ad86ea02362160884aa5dd56",
+      "packageSha256": "666bab762489833a453a1d8fd622c5384a0503ed244a754aed36363eb47434e0",
+      "checks": {
+        "gcodeBytes": 443858,
+        "packageBytes": 64581,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.49
+    },
+    "p1s-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "dc3c0fc0c438162dfdd569f9717878554c27ba47a785ac2ad521b4e31f55a00c",
+      "packageSha256": "0f07c160194015502b4b3b3a1bc3d76efa9ebac65984ae8c7e924f6da1bee543",
+      "checks": {
+        "gcodeBytes": 346572,
+        "packageBytes": 59286,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.47
+    },
+    "x1c-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "0d4bf171031b85b96a57c4f6fb195fd48f5b043dea5c0e2204f38c6ed31af1ec",
+      "packageSha256": "0f52b8f4da5de28aa774c814cae904258fdc59e9b1c09e0faa96252c1dbeeaf7",
+      "checks": {
+        "gcodeBytes": 371879,
+        "packageBytes": 64516,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.46
+    }
+  },
+  "rejections": {
+    "open-mesh": "PASS",
+    "modified-preset": "PASS"
+  }
+}

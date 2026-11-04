@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/json.dart';
 import '../models/production.dart';
 import 'production_api.dart';
+import 'api_routes.dart';
 import 'platform/journal_storage.dart' as local;
 
 class OrganizationSelectionRequired implements Exception {
@@ -34,7 +35,8 @@ class ProductionAuth {
   String get _storageKey =>
       'kleos.auth.${sha256.convert(utf8.encode(api.baseUrl))}';
 
-  Future<JsonMap> config() async => _config ??= await api.get('/auth/config');
+  Future<JsonMap> config() async =>
+      _config ??= await api.get(ApiRoutes.authConfig);
 
   Future<AccountSession?> restore() async {
     if (!kIsWeb) {
@@ -51,7 +53,7 @@ class ProductionAuth {
   }
 
   Future<AccountSession> session() async {
-    final available = await api.get('/auth/organizations');
+    final available = await api.get(ApiRoutes.authOrganizations);
     final organizations = asMaps(available['organizations'])
         .map(OrganizationRecord.fromJson)
         .toList();
@@ -79,7 +81,7 @@ class ProductionAuth {
     api.tenantId = selected;
     await _writePreference(key, jsonEncode(selected));
     final account = AccountSession.fromJson({
-      ...await api.get('/auth/session'),
+      ...await api.get(ApiRoutes.authSession),
       'organizations': organizations.map((org) => org.toJson()).toList()
     });
     api.tenantId = account.tenantId;
@@ -113,7 +115,7 @@ class ProductionAuth {
       throw const ProductionApiException('Enter your email and password.');
     }
     return _authenticate(
-        '/auth/login', {'email': email.trim(), 'password': password});
+        ApiRoutes.authLogin, {'email': email.trim(), 'password': password});
   }
 
   /// Redeems a single-use invite code and creates the account.
@@ -122,7 +124,7 @@ class ProductionAuth {
       required String email,
       required String password,
       String name = ''}) {
-    return _authenticate('/auth/signup', {
+    return _authenticate(ApiRoutes.authSignup, {
       'inviteCode': inviteCode.trim(),
       'email': email.trim(),
       'password': password,
@@ -137,7 +139,7 @@ class ProductionAuth {
       required String email,
       required String password,
       String name = ''}) {
-    return _authenticate('/auth/setup', {
+    return _authenticate(ApiRoutes.authSetup, {
       'setupToken': setupToken.trim(),
       'organization': organization.trim(),
       'email': email.trim(),
@@ -168,7 +170,7 @@ class ProductionAuth {
 
   Future<void> signOut() async {
     try {
-      await api.post('/auth/logout', {});
+      await api.post(ApiRoutes.authLogout, {});
     } finally {
       _credentials = null;
       api.csrfToken = null;

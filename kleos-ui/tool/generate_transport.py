@@ -12,9 +12,15 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-ROOTS = ["ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
+ROOTS = ["ReferenceImageView", "ReferenceImageUpload", "AgentsPage", "ExternalJobsPage", "ExternalJobEventsPage", "EngineeringToolCatalogView", "ProjectsView", "WorkspaceView", "RunView", "ModelCatalogView",
          "EventView", "ArtifactDownloadView", "Command", "CommandAccepted",
-         "CompanionPreviewRequest", "CompanionPreviewView"]
+         "CompanionPreviewRequest", "CompanionPreviewView", "CircuitSimulationView",
+         "BambuCatalogView", "PrintPreparationView", "PrintPreparationsView", "PreparePrint", "PreparedPrint",
+         "BambuTestPrintRequest", "BambuTestPrintView",
+         "RentAHumanStatusView", "HumanSearchView", "HumanBountiesView", "HumanTaskDraftsView",
+         "HumanTaskDraftView", "HumanTaskDraftRequest", "HumanTaskDraftAction", "HumanTaskLinkRequest",
+         "BambuLocalState", "BambuCertificateView", "BambuAddressRequest", "BambuConnectionRequest", "BambuDiscoveryView",
+         "BambuDispatchRequest", "BambuDispatchView", "BambuDispatchesView", "BambuReconcileRequest"]
 
 
 def name(value):
@@ -75,7 +81,9 @@ def write_value(schema, expression, optional=False):
     base, nullable = normalized(schema)
     if optional or nullable:
         plain = write_value(base, expression + "!")
-        return expression if plain == expression + "!" else f"{expression} == null ? null : {plain}"
+        if plain == expression + "!":
+            return expression
+        return plain.replace(expression + "!.", expression + "?.", 1)
     if "$ref" in base:
         return expression + ".toJson()"
     if base.get("type") == "array":

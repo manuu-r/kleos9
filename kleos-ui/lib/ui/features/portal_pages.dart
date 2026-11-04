@@ -5,6 +5,7 @@ import '../../state/kleos_store.dart';
 import '../core/human_task_card.dart';
 import '../core/widgets.dart';
 import 'production/provider_models.dart';
+import 'production/rentahuman.dart';
 
 class HumanTasksPage extends StatefulWidget {
   const HumanTasksPage({super.key, required this.controller});
@@ -38,6 +39,8 @@ class _HumanTasksPageState extends State<HumanTasksPage> {
           title: 'Human tasks',
           description:
               'Work the AI can’t do itself: physical checks, measurements, assembly trials and expert reviews.'),
+      if (widget.controller.state['production'] == true) const RentAHumanDirectory(),
+      if (widget.controller.state['production'] == true) const KBadge('Simulated tasks below', tone: 'sim'),
       KStats(items: [
         (
           label: 'Open',

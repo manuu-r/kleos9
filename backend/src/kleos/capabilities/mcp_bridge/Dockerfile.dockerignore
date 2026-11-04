@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!Dockerfile.dockerignore
+!image.pyproject.toml
+!image.uv.lock
+!isolated_server.py
+!tool-schema.json
+!vendor/
+!vendor/source.json
+!vendor/qwen-mm-core-read-image.tar.gz

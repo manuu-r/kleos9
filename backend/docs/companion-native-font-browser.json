@@ -1,0 +1,432 @@
+{
+  "qualified": true,
+  "imageId": "sha256:572fd5f8d64fd6d7a1bed7c955ee33c8223529a43fc0dedd8e53dcc81328e315",
+  "protocol": "kleos-native-session-v2",
+  "lane": "application",
+  "applicationTarget": "web",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "storagePolicy": "hard-bounded-private-tmpfs",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "pids": 256,
+    "scratchBytes": 4294967296
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T20:49:16.166937+00:00",
+  "fixtureSourcesSha256": "6f99742b69481daf142a12af0d07ac06d8c6a0dafe14fa8e9d59a6e295987c4d",
+  "sharedCapacity": true,
+  "capacityScope": "Persistent qualification SQLite pool; coordinated exclusive native window, not cross-database admission",
+  "heldCapacity": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 1,
+    "cpus": 2,
+    "memoryBytes": 6442450944,
+    "scratchBytes": 4429185024
+  },
+  "finalCapacity": {
+    "poolId": "local-docker",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  },
+  "containers": [
+    {
+      "image": "sha256:572fd5f8d64fd6d7a1bed7c955ee33c8223529a43fc0dedd8e53dcc81328e315",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 6442450944,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 256,
+      "scratch": "rw,nosuid,nodev,size=4294967296,mode=1777,exec",
+      "writableHostMounts": false
+    }
+  ],
+  "sourceClosureUnchanged": true,
+  "fontPackaging": {
+    "version": "flutter-sdk-roboto-v1",
+    "mode": "pinned-sdk-default",
+    "family": "Roboto",
+    "fonts": [
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Thin.ttf",
+        "sha256": "3d91f7aa69cb7f7064035895c566ac5cb9b2084582d351af7267bb4e0fba60f5",
+        "size": 171904
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-ThinItalic.ttf",
+        "sha256": "f5e89a344894a60f0f98f1c0182ba51f5046e29dde3118820d39025445aeaae8",
+        "size": 176300
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Light.ttf",
+        "sha256": "a6d343d425bc38db90152fa06058b1c7391eca9264f334ef65c1ce175085c6f6",
+        "size": 170420
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-LightItalic.ttf",
+        "sha256": "364a23e13c64937c3fcea3db778628b89379c893849bbade6e5bf83c5f605c6a",
+        "size": 176616
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Regular.ttf",
+        "sha256": "79e851404657dac2106b3d22ad256d47824a9a5765458edb72c9102a45816d95",
+        "size": 171676
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Italic.ttf",
+        "sha256": "5fce8b6f8ba9f4d19f0d535e241d56a2b8e72bb07e7df711d968d092ef7f9fca",
+        "size": 173932
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Medium.ttf",
+        "sha256": "f205cc511821ea56078a105557fcea6253129404d411c997e1866fbd006abb68",
+        "size": 172064
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-MediumItalic.ttf",
+        "sha256": "f177eed10d2470d13ec68d04907a582829d0ee8281f8a02a906f6954c7816e58",
+        "size": 176864
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Bold.ttf",
+        "sha256": "7d0b991ee3e0be7af01ad7ea8cd2beea6c00a25e679a0226b6737f079aafff86",
+        "size": 170760
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-BoldItalic.ttf",
+        "sha256": "a4bcac14f419a97de0917198a4bc51c3ed4fc4a3db9f68a5102f23664ee01354",
+        "size": 174952
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-Black.ttf",
+        "sha256": "3872e9b39760a1b59ac1e192633dbb3b58e595b4d423930ac7ded525e9ae25e0",
+        "size": 171480
+      },
+      {
+        "path": "assets/fonts/kleos-default-roboto/Roboto-BlackItalic.ttf",
+        "sha256": "013d22a4fb2638adba28555ee19366f4585f6dc533b7c332f4931a231497cb22",
+        "size": 177552
+      }
+    ],
+    "license": {
+      "path": "assets/fonts/kleos-default-roboto/LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "identifier": "Apache-2.0"
+    },
+    "sourceResource": "/opt/flutter/bin/cache/artifacts/material_fonts",
+    "originalManifestSha256": "28b1eb2b3d2e1ad60b8c8b0f9100b1ccbf492f7fa97f5bebb51ea97e73926e7d",
+    "manifestSha256": "c8b0c3965ed8f8446ca0eacb96225639d5e11582e2c157157f2072eaf9a73dee",
+    "sourceMutation": false,
+    "notice": "Roboto font binaries copied unchanged from the pinned Flutter SDK; embedded notices retained."
+  },
+  "scope": "One trusted Flutter hardware-companion fixture: offline native build plus isolated IAB rendering and counter interaction",
+  "parentImageId": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+  "artifact": {
+    "path": "outputs/companion-web.zip",
+    "sha256": "556f0b9a9fb3c12d9a51ffb30909d02709c0db46062558810db2312710072e2f",
+    "size": 11353930,
+    "mediaType": "application/zip"
+  },
+  "previewView": {
+    "X-Kleos-Preview-Transform": "flutter-preview-no-service-worker-v1",
+    "X-Kleos-Source-Sha256": "1043e5e3ea24c1eff327f047600462d5f3b2523a3f919a3d38b5ccb24a67bfab",
+    "X-Kleos-View-Sha256": "bd8fbff5e074217eef59413f0201e94b2b9841b84c8a0c2d71655e3d9518418c",
+    "documentPolicy": "ticket-base-anonymous-scripts-v2",
+    "immutableArchiveUnchanged": true
+  },
+  "browser": {
+    "observer": "root integrator using Codex in-app browser",
+    "date": "2026-11-03",
+    "surface": "Existing opaque iframe contract, sandbox allow-scripts, credentialless, no-referrer",
+    "visible": [
+      "Hardware companion",
+      "Local samples: 0",
+      "floating plus button"
+    ],
+    "interaction": "Keyboard Tab/Return sequence changed visible Local samples from 0 to 1",
+    "errorAndWarningLogEntriesAfterInteraction": 0,
+    "result": "Observed for this exact fixture only",
+    "physicalAcceptance": false
+  },
+  "browserAssetObservations": {
+    "scope": "trusted-local-diagnostic-only",
+    "requests": [
+      {
+        "asset": "wrapper",
+        "origin": "other-or-absent",
+        "mode": "navigate",
+        "destination": "iframe",
+        "status": 200,
+        "mime": "text/html; charset=utf-8",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "index.html",
+        "origin": "other-or-absent",
+        "mode": "navigate",
+        "destination": "iframe",
+        "status": 200,
+        "mime": "text/html; charset=utf-8",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "flutter_bootstrap.js",
+        "origin": "null",
+        "mode": "cors",
+        "destination": "script",
+        "status": 200,
+        "mime": "text/javascript; charset=utf-8",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "canvaskit/chromium/canvaskit.js",
+        "origin": "null",
+        "mode": "cors",
+        "destination": "script",
+        "status": 200,
+        "mime": "text/javascript; charset=utf-8",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "main.dart.js",
+        "origin": "other-or-absent",
+        "mode": "no-cors",
+        "destination": "script",
+        "status": 200,
+        "mime": "text/javascript; charset=utf-8",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "canvaskit/chromium/canvaskit.wasm",
+        "origin": "null",
+        "mode": "cors",
+        "destination": "empty",
+        "status": 200,
+        "mime": "application/wasm",
+        "allowOrigin": "null"
+      },
+      {
+        "asset": "assets/FontManifest.json",
+        "origin": "null",
+        "mode": "cors",
+        "destination": "empty",
+        "status": 200,
+        "mime": "application/json",
+        "allowOrigin": "null"
+      }
+    ]
+  },
+  "runtimeSources": {
+    "src/kleos/execution/bootstrap.py": "e1d432ce82530d626cd25beda9929a05aff0e6aec44de7d1e7c4c2dd3a17c609",
+    "src/kleos/execution/result_reader.py": "5c375e4e3e87122479d536ce97bcf996f343331b420beb611ad2204731fc6898",
+    "src/kleos/execution/native_runner.py": "ed0aab5481982fd5c92357d616436013f70b3943675942ee140830b505573d4b",
+    "src/kleos/execution/Dockerfile": "614ef93bcfabe9e1c0efac3c3ec610af6bef186852cb77de65e69897229b7668",
+    "src/kleos/execution/protocol.py": "6323ef668fe00cef9eacd2540b93d2c66e2e04d80f30165a96fb3241e4ec8fac",
+    "src/kleos/execution/pcb_runner.py": "01874371bf98b93b950717575e11d5206a2a42619edaf3c326a5e93ea99966d9",
+    "src/kleos/execution/web_bundle.py": "4ac60e43907c641fb9381b82de4b391e36f00c14b56e9601cd8efc3d77224388",
+    "src/kleos/execution/pcb_contract.py": "15e2300145ef0df851fdab5bd0cb09edf34b51bbf169f1f9e651c17d4a07dfd6"
+  },
+  "previewSources": {
+    "src/kleos/api/companion.py": "11ec69211ac74b5e715f237f5097c124577e1f58c1f75248ce14afd32f42820b",
+    "src/kleos/api/companion_bootstrap.py": "9403bcda83201fde0de127d2fd334ef837cb906488fa5b886dc0ff1a23ea096d"
+  },
+  "limitations": [
+    "Exact default Roboto and trusted fixture only; arbitrary languages, custom fonts, apps and browser engines are not qualified.",
+    "No engineering release, hardware/device behavior, BLE, physical work or APK acceptance.",
+    "Local Docker Desktop compatibility only; no ECS/strict-runtime qualification.",
+    "Browser serves explicit versioned derived HTML/bootstrap; stored downloadable ZIP remains unchanged.",
+    "Read-only request diagnostics record no tickets, credentials, cookies or full URLs."
+  ],
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.yaml",
+              "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "lib/main.dart",
+              "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "web/index.html",
+              "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "pubspec.lock",
+              "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/companion-web.zip"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "528c6dea-2b56-4200-bf6d-b1fac2dd19f1",
+            "path": "pubspec.yaml",
+            "sha256": "1a98b7544bce841a8b9ec57be3a34a1962a796fb5fd444e18a457b7e3558ea80",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 225
+          },
+          {
+            "id": "02cb41d5-1a0b-4e30-8c8b-1ed4b7fdbcfa",
+            "path": "lib/main.dart",
+            "sha256": "b21990aeb4cf2bbb103aeb46870500d54cd910ed938bf6cad26f3ab274c5f0f8",
+            "revision": 2,
+            "mediaType": "application/vnd.dart",
+            "size": 663
+          },
+          {
+            "id": "bea7c525-3654-49a4-a524-d369bd85f762",
+            "path": "web/index.html",
+            "sha256": "eec5dec6d1f3bfdbf42253cb5c213a797745831880528b0c1f279ce47a8f08b6",
+            "revision": 2,
+            "mediaType": "text/html",
+            "size": 266
+          },
+          {
+            "id": "a80ca61f-ca88-4663-b5bb-d1265b8812ba",
+            "path": "pubspec.lock",
+            "sha256": "5e4653d4981c14e814fc7c0e617f2fcca5c6f51f342de2a2c708eecd32a961f7",
+            "revision": 2,
+            "mediaType": "application/octet-stream",
+            "size": 1485
+          },
+          {
+            "id": "6d82664a-e81c-4961-9cc5-e4f6d4f72c0c",
+            "path": "outputs/companion-web.zip",
+            "sha256": "556f0b9a9fb3c12d9a51ffb30909d02709c0db46062558810db2312710072e2f",
+            "revision": 2,
+            "mediaType": "application/zip",
+            "size": 11353930
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ]
+}

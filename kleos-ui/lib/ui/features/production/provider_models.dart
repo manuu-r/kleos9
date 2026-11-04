@@ -6,7 +6,7 @@ import '../../../state/kleos_store.dart';
 import '../../../state/model_defaults.dart';
 import '../../../state/production_store.dart';
 import '../../core/widgets.dart';
-import 'production_app.dart' show ModelPolicyEditor;
+import 'model_policy_editor.dart' show ModelPolicyEditor;
 
 /// Model choices live with providers; the original services portal stays intact.
 class ProviderModels extends ConsumerStatefulWidget {
@@ -87,7 +87,7 @@ class _ProviderModelsState extends ConsumerState<ProviderModels> {
               onPressed: () => ref.invalidate(modelCatalogProvider)),
         ])),
         data: (models) => KResponsive(columns: 3, children: [
-          for (final provider in ['meta', 'modal', 'google'])
+          for (final provider in ['meta', 'modal'])
             KCard(
                 title: providerLabel(provider),
                 child: kColumn([

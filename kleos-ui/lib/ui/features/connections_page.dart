@@ -5,6 +5,8 @@ import '../../data/models/json.dart';
 import '../../state/kleos_store.dart';
 import '../core/widgets.dart';
 import 'production/engineering_tools.dart';
+import 'production/bambu_connection.dart';
+import 'production/rentahuman.dart';
 
 const _tabs = {
   'tools': 'Engineering tools',
@@ -45,7 +47,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   @override
   void didUpdateWidget(ConnectionsPage old) {
     super.didUpdateWidget(old);
-    if (old.connectId != widget.connectId) _schedule();
+    if (old.connectId != widget.connectId ||
+        old.controller.state['production'] != widget.controller.state['production'] ||
+        (old.controller.loading && !widget.controller.loading)) {
+      _schedule();
+    }
   }
 
   void _schedule() {
@@ -58,6 +64,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<void> _connect() async {
     if (dialogOpen) return;
+    if (widget.controller.state['production'] == true && widget.connectId == 'bambu') {
+      dialogOpen = true;
+      await showDialog<bool>(context: context, builder: (_) => const BambuConnectionDialog());
+      dialogOpen = false;
+      if (mounted) context.go('/connections?tab=printers');
+      return;
+    }
     final matches = asMaps(widget.controller.state['connectors']).where((c) =>
         c['id'] == widget.connectId &&
         c['linked'] != true &&
@@ -81,14 +94,19 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     final tab = _tabs.containsKey(widget.tab) ? widget.tab : 'tools';
     final list = asMaps(widget.controller.state['connectors'])
         .where((c) => _tabOf(c) == tab)
+        .where((c) => !(widget.controller.state['production'] == true && c['id'] == 'bambu' && c['production'] != true))
         .toList();
     final description = switch (tab) {
       'tools' =>
         'Kleos9 ships default generators and validators that work out of the box. Anyone can build a tool and plug it in; you choose which one runs for each lane.',
       'printers' =>
-        'Have a 3D printer? Connect it and Kleos9 can print parts at home, no order needed. Without one, prints are ordered from qualified providers.',
+        widget.controller.state['production'] == true
+          ? 'Set up real Bambu plate preparation and optional local status. Other demo printer drivers are labelled below.'
+          : 'Have a 3D printer? Connect it and Kleos9 can print parts at home, no order needed. Without one, prints are ordered from qualified providers.',
       'human' =>
-        "When the AI can't do something (fit checks, functional tests, assembly trials), jobs are posted to a linked platform such as RentAHuman, or to the hosted portal.",
+        widget.controller.state['production'] == true
+          ? 'Find people and prepare work for RentAHuman.ai. Hiring and payment happen on RentAHuman; simulated connectors remain separate.'
+          : "When the AI can't do something (fit checks, functional tests, assembly trials), jobs are posted to a linked platform such as RentAHuman, or to the hosted portal.",
       _ =>
         'Fabrication, PCB assembly, components and logistics. Work is routed to qualified services by measured performance.'
     };
@@ -104,16 +122,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               (value: entry.key, label: entry.value, icon: null)
           ],
           onSelected: (value) => context.go('/connections?tab=$value')),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-            child: kColumn([
+      LayoutBuilder(builder: (context, constraints) {
+        final heading = kColumn([
           Text(tab == 'printers' ? 'Your printers' : _tabs[tab]!,
               style: Theme.of(context).textTheme.headlineSmall),
           KMuted(description)
-        ], gap: 8)),
-        if (tab != 'human') ...[
-          const SizedBox(width: 16),
-          KButton(
+        ], gap: 8);
+        final action = tab == 'human' ? null : KButton(
               label: tab == 'tools'
                   ? 'Build a tool'
                   : tab == 'printers'
@@ -122,11 +137,23 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               compact: true,
               icon: Icons.north_east,
               onPressed: () => context.go(
-                  '/developer?kind=${tab == 'tools' ? 'tool' : tab == 'printers' ? 'printer' : 'service'}'))
-        ]
-      ]),
+                  '/developer?kind=${tab == 'tools' ? 'tool' : tab == 'printers' ? 'printer' : 'service'}'));
+        if (constraints.maxWidth < 600) {
+          return kColumn([heading, if (action != null) action], gap: 16);
+        }
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: heading),
+          if (action != null) ...[const SizedBox(width: 16), action],
+        ]);
+      }),
       if (tab == 'tools' && widget.controller.state['production'] == true)
         EngineeringTools(controller: widget.controller),
+      if (tab == 'human' && widget.controller.state['production'] == true)
+        const RentAHumanDirectory(),
+      if (tab == 'printers' && widget.controller.state['production'] == true) ...[
+        BambuConnectionCard(onSetup: () => context.go('/connections?tab=printers&connect=bambu')),
+        if (list.any((c) => c['simulation'] == true)) const KBadge('Demo printer drivers below', tone: 'sim'),
+      ],
       KResponsive(
           columns: 3,
           children: list
@@ -274,9 +301,8 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
             : widget.connector['kind'] == 'tool'
                 ? '0'
                 : '120');
-    final p = asMap(asMap(ProviderScope.containerOf(context)
-        .read(kleosProvider)
-        .state['printerProfiles'])[widget.connector['id']]);
+    final p = asMap(asMap(widget.controller.state['printerProfiles'])[
+        widget.connector['id']]);
     host = TextEditingController(text: '${p['host'] ?? ''}');
   }
 
@@ -309,7 +335,7 @@ class _ConnectorDialogState extends State<ConnectorDialog> {
         final run = asMap(asMap(controller.state['connectionRuns'])[c['id']]);
         final progress = (run['progress'] as num?)?.toInt() ?? 0;
         final profile =
-            asMap(asMap(widget.controller.state['printerProfiles'])[c['id']]);
+            asMap(asMap(controller.state['printerProfiles'])[c['id']]);
         const tests = [
           'Authenticate',
           'Discover capabilities',

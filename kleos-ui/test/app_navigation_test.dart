@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -10,6 +11,81 @@ import 'package:kleos_ui/main.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 
 void main() {
+  for (final size in [const Size(390, 844), const Size(1280, 900)]) {
+    testWidgets('outside clicks keep the current route at $size', (tester) async {
+      WidgetController.hitTestWarningShouldBeFatal = true;
+      addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+      final semantics = tester.ensureSemantics();
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final controller = TestKleos(ApiService(
+          baseUrl: 'http://local.test/api',
+          client: MockClient((_) async => http.Response(jsonEncode({
+                'revision': 0,
+                'state': {
+                  'projects': <dynamic>[],
+                  'connectors': <dynamic>[],
+                  'humanTasks': <dynamic>[]
+                },
+                'demo': {'speed': 1}
+              }), 200))));
+      addTearDown(controller.dispose);
+      await controller.refresh();
+      final router = controller.container.read(routerProvider);
+      await tester.pumpWidget(controller.scope(const KleosApp()));
+      await tester.pumpAndSettle();
+      for (final path in [
+        '/human-tasks', '/new', '/connections', '/connections?tab=services',
+        '/connections?tab=human', '/connections?tab=printers', '/provider',
+        '/demand', '/developer', '/agent-access',
+      ]) {
+        router.go(path);
+        await tester.pumpAndSettle();
+        // Web exposes semantics nodes as clickable DOM regions. A header
+        // action must never merge into a screen-sized node over the background.
+        void checkNode(SemanticsNode node) {
+          final data = node.getSemanticsData();
+          if (data.hasAction(SemanticsAction.tap)) {
+            expect(node.rect.height, lessThan(size.height / 2),
+                reason: 'Oversized tap target: ${data.label} (${node.rect})');
+          }
+          node.visitChildren((child) {
+            checkNode(child);
+            return true;
+          });
+        }
+        checkNode(tester.getSemantics(find.byType(Scaffold).first));
+        await tester.tapAt(Offset(size.width - 6, size.height / 2));
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.toString(), path);
+        await tester.tap(find.byTooltip('Ask Kleos9 or jump to a page').evaluate().isNotEmpty
+            ? find.byTooltip('Ask Kleos9 or jump to a page')
+            : find.widgetWithText(KButton, 'Ask Kleos9 or jump to…  ⌘K'));
+        await tester.pumpAndSettle();
+        await tester.tapAt(const Offset(4, 100));
+        await tester.pumpAndSettle();
+        expect(find.byType(Dialog), findsNothing);
+        expect(router.routeInformationProvider.value.uri.toString(), path);
+      }
+      for (final destination in {
+        'Tasks': '/human-tasks',
+        'Connectors': '/connections',
+        'Providers': '/provider',
+        'Developers': '/developer',
+        'Builds': '/',
+      }.entries) {
+        await tester.ensureVisible(find.text(destination.key).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(destination.key).first);
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.path, destination.value);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      semantics.dispose();
+    });
+  }
+
   testWidgets('actual app navigates from home to a build through the API',
       (tester) async {
     final semantics = tester.ensureSemantics();

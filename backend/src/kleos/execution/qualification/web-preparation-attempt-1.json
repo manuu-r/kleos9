@@ -1,0 +1,8 @@
+{
+  "qualified": false,
+  "phase": "offline fixture preparation",
+  "imageId": "sha256:7c5aedd853f6be70c0d629a90134297fdf94716213cf32b3e2a743339776ea8d",
+  "error": "PermissionError executing private Flutter SDK: Docker tmpfs default retained noexec",
+  "diagnostic": "Original Flutter and Dart files had mode 0755; /proc/mounts confirmed /tmp rw,nosuid,nodev,noexec",
+  "correction": "Explicit exec on the application-only hard-bounded tmpfs; other lanes unchanged"
+}

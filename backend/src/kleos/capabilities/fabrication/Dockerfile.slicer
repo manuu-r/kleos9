@@ -1,0 +1,12 @@
+# Reuse the pinned tool installation only; remove the prior application entirely.
+FROM kleos-local-slicer-base:0652f2d57ff9beb1346c91125152317c8f4c39aee14a09e8266077b905f103db@sha256:0652f2d57ff9beb1346c91125152317c8f4c39aee14a09e8266077b905f103db
+USER root
+RUN rm -rf /opt/kleos /app /workspace /srv/kleos /opt/kleos-native \
+    && find $(for d in /opt/venv /usr/local/lib /usr/lib; do [ -d "$d" ] && echo "$d"; done) \
+         -type d \( -name kleos -o -name 'kleos-*.dist-info' \) -prune -exec rm -rf '{}' + \
+    && mkdir -p /opt/kleos-slicer
+COPY native_slicer.py /opt/kleos-slicer/native_slicer.py
+RUN chmod 0555 /opt/kleos-slicer/native_slicer.py
+ENV PYTHONPATH="" PYTHONHOME=""
+LABEL kleos.slicer.protocol="kleos-slicer-v1"
+ENTRYPOINT ["/usr/bin/python3", "-I", "/opt/kleos-slicer/native_slicer.py"]

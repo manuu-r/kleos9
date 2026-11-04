@@ -1,0 +1,596 @@
+{
+  "schemaVersion": "kleos-pcb-check-qualification-v1",
+  "qualified": false,
+  "qualifiedBy": "pcb-checker-qualification-runner",
+  "imageId": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+  "protocol": "kleos-pcb-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "pcb.py": "155a4d916bc7cebd6c2a5aa8a1d52fb1fd94a01e678a47e040ffe7c47dd47b49",
+    "pcb_check.py": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f",
+    "pcb_process.py": "c299b3410aa5f8079e5b9bbf935bf63c99fd070a101020103425faa1d396eebe",
+    "Dockerfile.pcb": "b27a5ebf37f75225c321313bd2d68f241cc48bd992573271297c99e4efd639d2"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T20:34:42.298690+00:00",
+  "caseStatuses": {
+    "valid_board": "PASS",
+    "wrong_reference": "FAIL",
+    "wrong_net": "FAIL",
+    "moved_component": "FAIL",
+    "changed_outline": "FAIL",
+    "clearance_violation": "PASS"
+  },
+  "cases": [
+    {
+      "case": "valid_board",
+      "expected": "PASS",
+      "requestHash": "b1563613e7e9c19ab0d6a46dcbb525118661787795c85906bbc2da0883165c94",
+      "result": {
+        "status": "PASS",
+        "measurements": {
+          "referenceCount": 2,
+          "trackCount": 2,
+          "widthMm": 40.05,
+          "heightMm": 30.05,
+          "sourcePlacementPreserved": true,
+          "ruleViolationCounts": {
+            "erc": 0,
+            "drc": 0
+          },
+          "inputBindings": [
+            {
+              "path": "board.kicad_pcb",
+              "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474"
+            },
+            {
+              "path": "circuit.kicad_sch",
+              "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f"
+            },
+            {
+              "path": "fixture.kicad_sym",
+              "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac"
+            },
+            {
+              "path": "fp-lib-table",
+              "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66"
+            },
+            {
+              "path": "sym-lib-table",
+              "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437"
+            },
+            {
+              "path": "Fixture.pretty/TwoPin.kicad_mod",
+              "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273"
+            },
+            {
+              "path": "outputs/routed.kicad_pcb",
+              "sha256": "857f9dbd5931d86b10fe37bcf350305b2d25f10a355452bac961145f3bbcd332"
+            }
+          ],
+          "physicalAcceptance": false
+        },
+        "reason": "Independent two-layer board identity and ERC/DRC checks; no functional or manufacturing acceptance",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-290428ef296a4a64814758c31463920c",
+        "subjectHash": "49b6bfa44495ee0eeda784fdca991198ce7f1b0d76f616ab44a71d42cbfaba1d",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 2.429684582999471,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "wrong_reference",
+      "expected": "FAIL",
+      "requestHash": "4c030631d5d6941c3d32acf37b942ab7e6c20f6be59dbdbf34a6c73ec79de711",
+      "result": {
+        "status": "FAIL",
+        "reason": "Schematic or board differs from accepted references, values, footprints or pin nets",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-6d18d561702e4f5a855ff6ed84eec8f1",
+        "subjectHash": "4d7f2263030194ee6089b49d0da60f519161679613b26e25059238b86cb2409b",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 1.2795243750006193,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "wrong_net",
+      "expected": "FAIL",
+      "requestHash": "3ddda877c3c98180d12b4cb8ee4e6673b30c7e0e2777a93002696edc7fbd09e9",
+      "result": {
+        "status": "FAIL",
+        "reason": "Schematic or board differs from accepted references, values, footprints or pin nets",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-66268676948e4e4b9b6f575d71cfe239",
+        "subjectHash": "2b97adb8fd7dfedbfbfa3767309114d3bdec9d2a2629a75fb73cf5f9b65cbff7",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 1.280212665998988,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "moved_component",
+      "expected": "FAIL",
+      "requestHash": "d928aa8da32c87817b7ce79ff020e0d1709d53c29524a5b80c3bdd44133b44e7",
+      "result": {
+        "status": "FAIL",
+        "reason": "Routing changed source component/pad geometry or outline",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-88252f25293e4818823590aa20e2aa30",
+        "subjectHash": "9b0d65d0d2ba9a0bae3fa46302f2451dd443d31c7c173bafd0339a5a67448e36",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 1.4127306250011316,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "changed_outline",
+      "expected": "FAIL",
+      "requestHash": "fa2e95d9807aa8fe866d793f7785ddb0f803b49c9cbe4eea41d59fece16e55a8",
+      "result": {
+        "status": "FAIL",
+        "reason": "Routing changed source component/pad geometry or outline",
+        "measurements": {},
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-535a0df340924f58bfbf624cc25e8474",
+        "subjectHash": "fa520bfdc5b4272734831c6e783a5e072d5e4969f52d58337f5c735ffff9713e",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 1.232770459000676,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    },
+    {
+      "case": "clearance_violation",
+      "expected": "FAIL",
+      "requestHash": "17b1b6ec4e629417b7cfac6db09b2938e498dd1753b41cb0ef2bba66e6013f1e",
+      "result": {
+        "status": "PASS",
+        "measurements": {
+          "referenceCount": 2,
+          "trackCount": 3,
+          "widthMm": 40.05,
+          "heightMm": 30.05,
+          "sourcePlacementPreserved": true,
+          "ruleViolationCounts": {
+            "erc": 0,
+            "drc": 0
+          },
+          "inputBindings": [
+            {
+              "path": "board.kicad_pcb",
+              "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474"
+            },
+            {
+              "path": "circuit.kicad_sch",
+              "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f"
+            },
+            {
+              "path": "fixture.kicad_sym",
+              "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac"
+            },
+            {
+              "path": "fp-lib-table",
+              "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66"
+            },
+            {
+              "path": "sym-lib-table",
+              "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437"
+            },
+            {
+              "path": "Fixture.pretty/TwoPin.kicad_mod",
+              "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273"
+            },
+            {
+              "path": "outputs/routed.kicad_pcb",
+              "sha256": "28c2f520007ffffa0d999f006f8a44e999b2386829e6cf0d15ca5ea3e3215c18"
+            }
+          ],
+          "physicalAcceptance": false
+        },
+        "reason": "Independent two-layer board identity and ERC/DRC checks; no functional or manufacturing acceptance",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true,
+          "toolVersion": "9.0.8"
+        },
+        "protocol": "kleos-pcb-check-v1",
+        "executionId": "pcb-qual-6c4189d610f44c9182cdcf27c02341ca",
+        "subjectHash": "d08088a0b90a4f656e5f1c8bb6c729efeda0ade596e4ef3240c41876499a98c2",
+        "checkerSourceSha256": "9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f"
+      },
+      "elapsedSeconds": 2.400147915999696,
+      "capacityAfter": {
+        "poolId": "isolated-pcb-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "1a56412aca1279e7a23239c442a0f1d87db587e2ca5bfd85148563880deda436": {
+      "case": "valid_board",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "0950e27a86a48620f0df537d59b6d86e737206ca6959357cbe3b90a285984b74": {
+      "case": "wrong_reference",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "b2cda29ecf0f35ecd2060c03858cc2f9a6c58cb78d8b44e8aa3598e0462da98a": {
+      "case": "wrong_net",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "faf63e26f94082db02679e9d411b9ecb74d90b9992babc9daf6c8566b66f2870": {
+      "case": "moved_component",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "0733b232506deea3ea7a7a6e9cb4afd05b8aef282312c59d94345ecb9cad4702": {
+      "case": "changed_outline",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    },
+    "dcca2df66d9bfa1adb2ea8724b160b4757812d7c6c38982a0c228fd69fe9f375": {
+      "case": "clearance_violation",
+      "image": "sha256:1a93b0c2007a5f2319e9ec5aef24297a0eaeda5a7539da10a18894127d2bad18",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-pcb-checker/pcb_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/private/tmp/kleos-pcb-check-qualification-attempt-3/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "Straight outline, two copper layers and simple pads only",
+    "No fabrication, functional, physical, Gerber/drill or arbitrary-device acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureHash": "9dc466b909562a1683751e57cc16334d7c9aa0568294be58548729697b82b465",
+  "failure": {
+    "type": "AssertionError",
+    "message": "clearance_violation: {'status': 'PASS', 'measurements': {'referenceCount': 2, 'trackCount': 3, 'widthMm': 40.05, 'heightMm': 30.05, 'sourcePlacementPreserved': True, 'ruleViolationCounts': {'erc': 0, 'drc': 0}, 'inputBindings': [{'path': 'board.kicad_pcb', 'sha256': 'aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474'}, {'path': 'circuit.kicad_sch', 'sha256': '8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f'}, {'path': 'fixture.kicad_sym', 'sha256': '67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac'}, {'path': 'fp-lib-table', 'sha256': '6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66'}, {'path': 'sym-lib-table', 'sha256': '49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437'}, {'path': 'Fixture.pretty/TwoPin.kicad_mod', 'sha256': '10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273'}, {'path': 'outputs/routed.kicad_pcb', 'sha256': '28c2f520007ffffa0d999f006f8a44e999b2386829e6cf0d15ca5ea3e3215c18'}], 'physicalAcceptance': False}, 'reason': 'Independent two-layer board identity and ERC/DRC checks; no functional or manufacturing acceptance', 'isolation': {'uid': 10001, 'gid': 10001, 'noNewPrivileges': True, 'seccomp': True, 'capabilities': 0, 'internetSocketDenied': True, 'generatorCodeAbsent': True, 'credentialEnvironmentEmpty': True, 'toolVersion': '9.0.8'}, 'protocol': 'kleos-pcb-check-v1', 'executionId': 'pcb-qual-6c4189d610f44c9182cdcf27c02341ca', 'subjectHash': 'd08088a0b90a4f656e5f1c8bb6c729efeda0ade596e4ef3240c41876499a98c2', 'checkerSourceSha256': '9e3ee8fd0b376e1e9d60f8d6af67154518d66496a41fa22dda418025e3fbb61f'}"
+  },
+  "finishedAt": "2026-11-02T20:34:52.356387+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-pcb-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

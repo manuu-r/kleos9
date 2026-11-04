@@ -11,6 +11,7 @@ import 'package:kleos_ui/ui/core/concept_preview.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/project/stages.dart';
 import 'package:kleos_ui/ui/features/project/engineering_preview.dart';
+import 'navigation_audit.dart';
 
 class _Owner extends AccountController {
   @override
@@ -82,8 +83,8 @@ JsonMap _project(
 
 Future<ProviderContainer> _mount(
     WidgetTester tester, _Service service, JsonMap project, int stage,
-    {VoidCallback? onNext}) async {
-  tester.view.physicalSize = const Size(390, 844);
+    {VoidCallback? onNext, double width = 390}) async {
+  tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
   final container = ProviderContainer(overrides: [
     apiServiceProvider.overrideWithValue(service),
@@ -133,6 +134,25 @@ Future<ProviderContainer> _mount(
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    for (var stage = 0; stage < 10; stage++) {
+      testWidgets('production stage $stage has bounded click targets at $width',
+          (tester) async {
+        final semantics = tester.ensureSemantics();
+        await _mount(tester, _Service(), _project(stage: stage, state: {
+          'confirmed': true,
+          'proposal': {'summary': 'A compact workshop sensor'},
+        }), stage, width: width);
+        expect(tester.takeException(), isNull);
+        expectBoundedClickTargets(tester, screen: 'production stage $stage');
+        await tester.tapAt(Offset(width - 2, 500));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProjectStage), findsOneWidget);
+        semantics.dispose();
+      });
+    }
+  }
+
   for (final stage in [3, 4]) {
     testWidgets(
         'stage $stage uses the frozen approved concept instead of a changed draft',

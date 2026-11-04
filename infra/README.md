@@ -1,251 +1,116 @@
-# Kleos9 AWS deployment
+# Kleos9 AWS deployment (near-zero idle cost)
 
-This Terraform module provisions the us-east-1 deployment. It does not
-deploy by running tests. Public DNS may use Route53 or an external provider such
-as Cloudflare. An issued ACM certificate covering api.DOMAIN and jobs.DOMAIN is
-an input. Use encrypted remote Terraform
-state with locking; generated Qdrant credentials are sensitive state.
+This Terraform module provisions a deployment whose idle cost is roughly **$10/month**: storage,
+the stopped host's disk and the database's public IPv4. Everything that computes is billed only while it
+runs. Nothing here is applied by tests; `terraform test` uses mocked providers.
+
+The previous ECS/ALB/NAT/RDS/Qdrant stack lives in [legacy-ecs/](legacy-ecs/) with its original
+state key. It is kept only so the running legacy deployment can be destroyed after cutover.
+
+## What runs where
+
+| Component | AWS | Idle cost |
+|---|---|---|
+| Workbench (Flutter web) | S3 + CloudFront | ~$0 |
+| API (`kleos.cli serve`, including event streams) | Lambda container image + Lambda Web Adapter, Function URL in response-streaming mode, CloudFront for the hostname. Outside any VPC, so it reaches providers without a NAT | $0 |
+| Companion previews (`preview-serve`, opt-in) | Separate Lambda, role and hostname; reads only `preview_runtime_parameters` (no provider credentials or setup token) | $0 |
+| Workers (`worker`, optional `fabrication-worker`) and every Docker-based tool: native CAD/PCB/firmware/app jobs, checkers, simulation, slicer, MCP | One x86 EC2 **engineering host** with Docker. Started on demand; powers itself off after `host_idle_minutes` idle | ~$4.80 (60 GiB volume) |
+| PostgreSQL | Aurora Serverless v2, 0–`database_max_acu` ACU, pauses after `database_auto_pause_seconds`. Publicly reachable, TLS required | ~$4 (IPv4 + storage) |
+| Artifacts | S3 (`artifact_bucket`) | cents |
+| Native images | S3 archives in `toolchain_bucket` (cheaper than ECR), cached on the host volume | ~$0.70 |
+| Control image | ECR (Lambda requires it), last 10 kept | ~$0.05 |
+| Settings and credentials | SSM Parameter Store (standard tier) under `/<name>/runtime/` | $0 |
+| Spend alerting | AWS Budgets (`monthly_budget_usd`) | $0 |
+
+There is no NAT gateway, load balancer, VPC interface endpoint, customer-managed KMS key or
+Qdrant. Running costs are about $0.17/hour for the host (m6a.xlarge), $0.12 per ACU-hour for the database
+(0.5 ACU minimum while awake), and Lambda/CloudFront request charges. These are list-price estimates; confirm in Cost Explorer.
+
+Expect cold paths: the first API request after idle waits for Lambda start and the database resume
+(~15–20 s); the first job after idle waits for the host to boot (~1–2 min with a warm image cache).
+An open workbench tab polls events every second, which keeps the API and database active.
+
+### Host lifecycle
+
+1. The API calls `ec2:StartInstances` on `KLEOS_WAKE_INSTANCE_ID` after queuing work (a no-op if running).
+2. On every boot `kleos-host.service` loads `/<name>/runtime/*` from SSM, syncs qualification
+   evidence, loads any missing `images/<image-id-hex>.tar.zst` archive, pulls the control image named by
+   the `control_image_parameter` and starts each `host_worker_commands` container. Workers use host
+   networking (instance credentials under an IMDS hop limit of 1) and hold the Docker socket; native
+   jobs keep their own isolation (no network, read-only root, seccomp, UID 10001).
+3. `kleos-idle.timer` runs `kleos.cli idle-check` every minute. After `host_idle_minutes` idle results
+   the host arms the external-wait tick if waits are outstanding (exit 10), otherwise disarms it, and
+   powers off (instance stops; the volume and image cache remain).
+4. The tick is an EventBridge Scheduler schedule that starts the host every `external_wait_tick_minutes`
+   while armed. Each tick costs roughly one boot plus `host_idle_minutes` of host time.
+5. If idle-check is unavailable or failing, the host powers off after `host_max_session_minutes` uptime.
+
+Only the background host stops. The API stays on Lambda, so idle power-off never takes the site down.
+
+The worker shares a kernel with generated code. Native jobs are isolated by the backend's container
+policy, not by a separate VPC as in the legacy design.
+
+## Backend contract this infrastructure expects
+
+These are application changes; until they exist the matching function does not work.
+
+| Need | Contract |
+|---|---|
+| S3 artifact storage | `KLEOS_ARTIFACT_BUCKET` selects an S3 `BlobStore` keyed by content digest. Required: the API and host otherwise see different local disks |
+| SSM settings loader | At startup, before `Settings()`: load every parameter under `KLEOS_SSM_RUNTIME_PATH` (or only the names in `KLEOS_SSM_PARAMETERS` when set) into the environment without overriding existing variables; then sync `qualification/` from `KLEOS_TOOLCHAIN_BUCKET` to `/tmp/kleos/qualification` (Lambda). The host does both itself |
+| Host wake | After queuing an objective, check, slicing or native job, call `ec2:StartInstances` for `KLEOS_WAKE_INSTANCE_ID` |
+| Idle check | `python -m kleos.cli idle-check`: exit 0 idle, 10 idle with external waits outstanding, 1 busy (pending/running objectives, checks, slicing, native or MCP containers) |
+| Lambda packaging | `backend/Dockerfile` copies Lambda Web Adapter to `/opt/extensions/lambda-adapter`; boto3 in the locked dependencies |
+| Qualification paths | `qualificationReference` values in tool installations point under `/tmp/kleos/qualification/` (same path on Lambda and host) |
 
 ## Deployment sequence
 
-1. Build the control and native images using backend/docker. Push them to ECR and
-   record immutable digests. For first provisioning, create the ECR repositories
-   first or use an existing private ECR repository in the same account.
-2. Copy terraform.tfvars.example to terraform.tfvars, replace every placeholder,
-   and keep activate_services=false. Run terraform init, terraform plan and review
-   the resulting infrastructure before applying. The database has deletion
-   protection, encrypted storage, daily backups and a required final snapshot.
-3. Run the bootstrap task definition once in the private subnets with the trusted
-   security group. Its dedicated role alone can read the RDS admin secret and
-   write runtime configuration. It creates separate application, DBOS and
-   Conductor databases and login roles. Rerunning preserves existing passwords.
-   The task prints no credentials. Wait for successful task exit.
-4. Update the runtime JSON secret with the direct Meta key, the Gemini key (embeddings)
-   and, for Modal-hosted Muse Spark Open, KLEOS_MODAL_LLM_URL and KLEOS_MODAL_LLM_KEY
-   (empty strings are fine and leave Modal off) without changing other keys. Every key
-   listed in runtime_secret_keys must exist in the secret before tasks start. Never put credentials in Terraform variables.
-   Set the project and daily allowances; a zero allowance intentionally prevents
-   paid generation.
-5. Run the control task once with command ["alembic", "upgrade", "head"] using
-   private subnets and the trusted security group. Review migration logs.
-6. If using Conductor, obtain its production license, set a digest-pinned image
-   and operator SSO issuer/audience, and provide its license secret ARN. Set
-   activate_conductor=true while leaving activate_services=false. It uses
-   its own database role and an internal TLS listener. Register the application
-   through the authenticated self-hosted API from a VPC-connected operator
-   environment (for example, VPC CloudShell using the trusted security group)
-   and store its key in
-   KLEOS_CONDUCTOR_KEY. Conductor is optional until license setup; durable DBOS
-   execution still uses PostgreSQL. Its web console is not publicly deployed.
-7. Enable activate_services only after the above steps. Roll out versioned worker
-   deployments while old workflows drain. Measure the documented load targets
-   before expanding invite limits.
-8. Create the first owner. Open the app and use the "Set up Kleos9" form that the
-   sign-in page shows while no account exists. Its setup token is the Secrets Manager
-   secret named by the setup_token_secret output; read it in the AWS console. After
-   the owner exists the form disappears and the token no longer works. The owner then
-   uses the Admin page to create invite codes, change roles and reset passwords.
-   Accounts use email and password; there is no external identity provider. The
-   python -m kleos.cli create-invite and reset-password commands remain as a
-   fallback for operators with shell access.
+1. Build and push the control image to `control_repository`; record its digest.
+2. Copy `terraform.tfvars.example` to `terraform.tfvars`. The state key is `kleos9/serverless.tfstate`,
+   never the legacy key. Run `terraform init`, `terraform plan`, review, then apply. Add the
+   `certificate_validation_records` output to Cloudflare (DNS only) while apply waits.
+3. Create the application role/database in Aurora with the admin secret (`database_admin_secret_arn`)
+   and write SecureString parameters, for example:
+   `aws ssm put-parameter --type SecureString --name /kleos9/runtime/KLEOS_DATABASE_URL --value 'postgresql+psycopg://...?sslmode=require'`.
+   Required: `KLEOS_DATABASE_URL`, `KLEOS_SESSION_SECRET` (≥32 chars), `KLEOS_SETUP_TOKEN`. Optional:
+   `KLEOS_META_API_KEY`, `KLEOS_MODAL_API_KEY`, `KLEOS_MODAL_BASE_URL`, `KLEOS_NATIVE_TOOLS`, checker,
+   slicer, simulation and MCP installations, limits. Values must be single-line.
+4. Upload native images: `docker save <image-id> | zstd -T0 -19 > <image-id-hex>.tar.zst`, copy to
+   `s3://<toolchain_bucket>/images/`; copy qualification evidence to `s3://<toolchain_bucket>/qualification/`.
+5. Migrate from the host (Session Manager):
+   `docker run --rm --network host --env-file /run/kleos/runtime.env --env-file /etc/kleos/host.env <control image> migrate`.
+6. Set `control_image`, apply, then point `app`, `api` (and `preview`) at the `dns_targets` output
+   with DNS-only CNAMEs. CloudFront aliases are global: release them from the legacy distributions first,
+   or provision with temporary hostnames and switch.
+7. Create the first owner with the setup token.
 
-Task definitions reference every runtime secret JSON key at startup. Missing
-keys or a missing secret version cause ECS startup to fail before Python runs;
-the bootstrap creates all required keys, with empty values for disabled optional
-providers/connectors. Preserve these empty fields while editing credentials.
-For DigiKey configure KLEOS_DIGIKEY_CLIENT_ID and KLEOS_DIGIKEY_CLIENT_SECRET; for
-Modal configure MODAL_TOKEN_ID and MODAL_TOKEN_SECRET; KLEOS_WEBHOOK_SECRETS is a
-JSON string initially "{}". Optional integration setup does not grant native
-workers these secrets. After changing secrets, force a new ECS deployment so
-tasks receive the new values. Do not mark a provider available until qualification
-and an actual authenticated call succeed.
+## Releases (from an operator workstation)
 
-The public API rejects internal job routes. Native tasks reach a separate HTTPS
-load balancer and authenticate with a job-scoped credential. They run in subnets
-with no NAT route and have no AWS task role. VPC endpoints permit ECR/log delivery;
-the S3 gateway exists for ECR image layers. Generated processes run under a
-different UID from the supervisor and receive no callback or provider credentials.
-Tool output is always a candidate; only the authoritative quality service publishes.
+There are no CI/CD workflows; releases run locally with the operator's AWS credentials:
 
-All native tasks, including application builds, use a read-only root and a private
-writable `/tmp` volume. Application jobs copy their pinned Flutter/pub/Gradle
-working set there and scope Java home/temp writes to the job. Generated processes
-run as UID 10001 without root or an AWS role. CPU/memory profiles, process limits,
-deadlines and global/per-project admission are independently enforced. Local
-Docker application jobs use disposable disk scratch; Fargate uses task-local
-ephemeral storage. See [native capacity](native-capacity.md),
-[network hardening/migration](native-network.md) and the
-[Android toolchain](../backend/docker/android-toolchain.md).
+1. Build `backend/Dockerfile` for linux/amd64, push it to `control_repository` and record the digest.
+2. Run migrations on the host (step 5 above) when the release adds revisions.
+3. `aws lambda update-function-code --function-name <name>-api --image-uri <repo>@<digest>`
+   (and `<name>-preview` when enabled); wait with `aws lambda wait function-updated`.
+4. `aws ssm put-parameter --overwrite --name <control_image_parameter> --value <repo>@<digest>`. A
+   stopped host picks it up on next start; for a running host,
+   `aws ssm send-command --document-name AWS-RunShellScript --instance-ids <host_instance_id> --parameters 'commands=["systemctl restart kleos-host.service"]'`.
+5. Build the workbench (`flutter build web --release --dart-define=KLEOS_BACKEND=production
+   --dart-define=API_BASE_URL=https://<api_hostname>/api/v1`), `aws s3 sync` it to `frontend_bucket`
+   (upload `index.html` last with `Cache-Control: no-cache`), then invalidate `frontend_distribution_id`.
 
-Qdrant uses a private EC2 instance, encrypted persistent EBS, authenticated HTTP
-within the VPC and daily S3 snapshots. It is initially a single node; this is not
-an HA deployment. PostgreSQL is initially single-AZ unless database_multi_az=true.
-One NAT gateway is a deliberate initial cost/availability tradeoff. Add redundancy
-before requiring continuous availability.
+## Retiring the legacy stack
 
-## Operations and recovery
+After the new stack serves traffic and data is migrated, from `infra/legacy-ecs/` with the original
+inputs: `terraform init` (legacy state key), `terraform plan -destroy`, review. RDS has deletion
+protection and a required final snapshot; disable protection deliberately before destroying. Delete
+`legacy-ecs/` afterwards.
 
-Control and frontend releases use the automatic main-branch workflow and version-aware worker drain described
-in [DEPLOYMENT.md](../backend/docker/DEPLOYMENT.md). Terraform owns provisioning;
-the release workflow owns service task-definition revisions. Native tool images
-remain separately qualified and pinned through infrastructure inputs.
+## Checks
 
-CloudWatch has 30-day logs and alerts for API errors, stuck completion events,
-dead letters, RDS storage and EC2 health. Product alarms fire for a daily allowance
-of zero or less, any gate violation or reconciliation failure in a minute, and
-engineering queue age above five minutes for two periods. An absent worker
-heartbeat for three minutes also alerts after services are activated. Product
-metrics and heartbeats use the same Environment dimension as the runtime:
-environment must be staging or production (default staging). Demo mode stays on
-in either environment. Use separate AWS accounts for distinct deployments with
-the same environment label.
-
-The dashboard shows queue age, index/outbox backlog, allowance used/remaining,
-unknown and failed checks, pass percentage, repairs, safety events and heartbeats.
-Gauges come from authoritative records; the ledger and run inspector retain the
-underlying evidence. Tune alarm thresholds from staging measurements. OTLP traces
-flow through a local collector into X-Ray.
-Confirm SNS email subscriptions. API access logs are intentionally not enabled,
-to avoid recording signed URLs and token query parameters.
-
-Restore RDS to a new instance and update runtime secrets before restarting any
-workers. Restore S3 artifact versions; accepted artifacts have no automatic
-expiration. Redacted transcripts and Qdrant snapshots expire after 30 days.
-Rebuild retrieval from PostgreSQL/S3 or restore a Qdrant snapshot to compatible
-storage. Freeze connector dispatch during restore and reconcile durable external
-intents before resuming. Test restores and the 100-client/10-project load envelope
-in a separate staging account; Terraform validation does not prove runtime scale.
-
-Conductor configuration follows the
-[self-hosting documentation](https://docs.dbos.dev/conductor/self-hosting/hosting-conductor).
-All credentials, provider quotas, engineering tool qualifications and actual AWS
-permissions still require deployment-time checks. No cloud resources are created
-by the repository's unit tests.
-
-## Cloudflare DNS and the production deployment role
-
-Public DNS can stay on Cloudflare. Set public_zone_id="" to skip public Route53
-records (private VPC DNS remains on Route53). Use sibling app and api subdomains
-for cookie authentication. Request the backend ACM certificate in the deployment
-region for api.DOMAIN and jobs.DOMAIN, and copy its validation CNAMEs into Cloudflare
-with DNS only. The frontend certificate is managed by this module in us-east-1.
-When provisioning it, inspect ACM's validation records and add them to Cloudflare
-while Terraform waits for certificate validation. Keep validation records for renewal.
-Point app to frontend_dns_target and api to api_dns_target using DNS-only CNAMEs.
-The jobs hostname stays private and requires no public routing record.
-
-The role kleos9-production-github-deploy was created separately in account
-750420487076. Before the first full apply, use these inputs:
-
-```hcl
-name = "kleos9-production"
-environment = "production"
-github_environment = "production"
-github_oidc_provider_arn = "arn:aws:iam::750420487076:oidc-provider/token.actions.githubusercontent.com"
-public_zone_id = ""
+```bash
+terraform -chdir=infra fmt -check
+terraform -chdir=infra init -backend=false
+terraform -chdir=infra validate
+terraform -chdir=infra test
 ```
-
-After initializing encrypted remote state and supplying the remaining deployment
-inputs, import the existing role rather than recreating it:
-
-```sh
-terraform import aws_iam_role.github_deploy kleos9-production-github-deploy
-```
-
-Terraform then attaches the scoped release policy. The role has no deployment
-permissions until that policy is applied. Its creation trust policy is recorded in
-[github-production-trust.json](iam/github-production-trust.json).
-Create the GitHub production environment and restrict its deployment branches to
-main before enabling deployment permissions. Set AWS_DEPLOY_ROLE_ARN to
-arn:aws:iam::750420487076:role/kleos9-production-github-deploy and configure the other
-variables documented in backend/docker/DEPLOYMENT.md. Never create access keys for
-this role or place root credentials in GitHub.
-
-Production inputs for kleos9.com are recorded in production.tfvars.example.
-The ACM certificate requested for app.kleos9.com also covers api.kleos9.com and
-jobs.kleos9.com. After supplying complete inputs and initializing remote state,
-import it before planning, so Terraform owns renewal and preserves the certificate:
-
-```sh
-terraform import aws_acm_certificate.frontend arn:aws:acm:us-east-1:750420487076:certificate/49bca7a9-d159-4f0f-8756-634ea0e2fedc
-```
-
-As of certificate creation, it is pending validation. In Cloudflare add all three
-ACM CNAMEs with DNS only (grey cloud), retaining them for certificate renewals:
-
-| Name (within kleos9.com) | Target |
-|---|---|
-| _d57cfe347a8dc92b7868d95d813c561b.app | _d9934c326fe8f7f7575e0e1abb8e502f.wzccmgtwzk.acm-validations.aws |
-| _7bcf1ea31782bb827ce949ca59172bc7.api | _777f22c441d950673f3c86ca2cbc086a.wzccmgtwzk.acm-validations.aws |
-| _f455aa18a2187f127431f181a2117185.jobs | _79973871d546feae717e3856c12fe151.wzccmgtwzk.acm-validations.aws |
-
-These validate ownership; they do not route application traffic. Add the app and
-api routing CNAMEs only after their AWS endpoints are provisioned.
-
-The production stack uses encrypted S3 state in
-kleos9-tfstate-750420487076-us-east-1/kleos9/terraform.tfstate with native S3 lockfiles
-(Terraform >=1.10). Public endpoint targets are:
-
-- app.kleos9.com: d2efa1tqsh06nz.cloudfront.net (Cloudflare DNS-only CNAME)
-- api.kleos9.com: kleos9-production-api-1206920013.us-east-1.elb.amazonaws.com (DNS-only CNAME)
-
-Trusted private subnets use a separate S3 gateway endpoint that also permits
-read access to Amazon Linux package repositories. Native worker subnets retain
-the restrictive artifact/ECR endpoint. Qdrant provisioning waits for private routes
-and its trusted endpoint before installing Docker.
-
-Keep enable_github_deploy=false until the production GitHub environment has a
-main-only branch policy. Set it to true and apply only after that restriction is
-verified; the dedicated OIDC role otherwise has no release policy attached.
-
-## Current production deployment
-
-The kleos9-production stack is provisioned in account 750420487076, us-east-1.
-Database bootstrap and Alembic migrations succeeded. The production web bundle
-is published to the private frontend bucket. The initial six immutable ECR image
-references are recorded in production-images.json. Conductor is not activated;
-paid model generation remains disabled with zero project/daily allowances until
-provider credentials and approved allowances are configured.
-
-Verified through the AWS load balancer using the api.kleos9.com TLS hostname:
-health and database readiness return HTTP 200, first-owner setup is required,
-and public internal routes return HTTP 404. Qdrant reports HTTP 200 health.
-The CloudFront distribution serves the Flutter bundle with HTTP 200.
-
-Public Cloudflare app/api CNAMEs are configured. The GitHub production environment
-allows deployments from the main branch only and contains the seven deployment
-variables below. The dedicated GitHub OIDC role receives its release permissions
-with enable_github_deploy=true after this branch restriction is verified.
-AWS_DEPLOY_ROLE_ARN is arn:aws:iam::750420487076:role/kleos9-production-github-deploy;
-ECS_CLUSTER is arn:aws:ecs:us-east-1:750420487076:cluster/kleos9-production;
-CONTROL_ECR_REPOSITORY is 750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control;
-API_URL is https://api.kleos9.com; FRONTEND_BUCKET is
-kleos9-production-frontend-2d2857147b01fba8c793513c91; FRONTEND_DISTRIBUTION_ID is
-E3LRD5F7XEDJ82; AWS_REGION is us-east-1.
-
-After DNS is configured, open https://app.kleos9.com and use Set up Kleos9 for the
-first owner. Retrieve its one-time token from the AWS Secrets Manager console:
-kleos9-production/setup-token-784e0469580b874a970eaafc44. Do not commit the token.
-
-All three ECS services completed their initial rollout with one healthy replica
-each. The final provider-backed Terraform plan reported no changes.
-
-For this repository, github_oidc_subject_prefix is
-repo:manuu-r@13869998/kleos9@1438875917. Obtain the exact value using
-`gh api repos/manuu-r/kleos9/actions/oidc/customization/sub --jq .sub_claim_prefix`.
-Newer GitHub repositories include immutable IDs; name-only trust does not match.
-
-## Hosted simulation
-
-Set simulation_image to a digest from simulation_ecr_repository to enable the
-separate simulation ECS service. HTTPS paths /api/state, /api/commands, /api/demo/*
-and /api/health route to it; /api/v1 remains the real backend. No DNS changes
-are required. The simulator has a dedicated security group, no task role or
-runtime secrets, and a read-only filesystem. It can pull images and publish logs
-through private AWS endpoints; it cannot reach the production database.
-
-It is an explicitly shared public demo, runs one process/replica, and resets to
-seed data on reset or redeployment. GitHub release permissions cover its ECR
-repository and ECS service and may pass only the existing no-secret native
-execution role for it. The frontend exposes an explicit Simulated demo switch
-on New build so future real integrations can replace the reference flow gradually.

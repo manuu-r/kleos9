@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kleos_ui/data/models/json.dart';
 import 'support.dart';
+import 'navigation_audit.dart';
 import 'package:kleos_ui/data/services/api_service.dart';
 import 'package:kleos_ui/ui/core/app_shell.dart';
 import 'package:kleos_ui/ui/core/theme.dart';
@@ -68,8 +69,12 @@ void main() {
   }
   for (final width in [320.0, 390.0, 768.0, 1024.0, 1280.0]) {
     for (final path in [
+      '/',
       '/new',
       '/connections',
+      '/connections?tab=services',
+      '/connections?tab=human',
+      '/connections?tab=printers',
       '/human-tasks',
       '/provider',
       '/demand',
@@ -79,6 +84,7 @@ void main() {
       testWidgets(
           '$path renders its full native screen at ${width.toInt()}px without overflow',
           (tester) async {
+        final semantics = tester.ensureSemantics();
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -96,9 +102,12 @@ void main() {
                       'content-type': 'application/json; charset=utf-8'
                     }))));
         await controller.refresh();
-        Widget page() => switch (path) {
+        final uri = Uri.parse(path);
+        Widget page() => switch (uri.path) {
+              '/' => ProjectsPage(controller: controller.view),
               '/new' => NewBuildPage(controller: controller.view),
-              '/connections' => ConnectionsPage(controller: controller.view),
+              '/connections' => ConnectionsPage(controller: controller.view,
+                  tab: uri.queryParameters['tab'] ?? 'tools'),
               '/human-tasks' => HumanTasksPage(controller: controller.view),
               '/provider' => ProviderPage(controller: controller.view),
               '/demand' => DemandPage(controller: controller.view),
@@ -107,7 +116,7 @@ void main() {
             };
         final router = GoRouter(initialLocation: path, routes: [
           GoRoute(
-              path: path,
+              path: uri.path,
               builder: (context, route) =>
                   AppShell(uri: route.uri, child: AppPage(child: page())))
         ]);
@@ -123,7 +132,12 @@ void main() {
         )));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        expectBoundedClickTargets(tester, screen: '$path at $width');
+        await tester.tapAt(Offset(width - 2, 500));
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.toString(), path);
         await tester.pumpWidget(const SizedBox.shrink());
+        semantics.dispose();
         router.dispose();
         controller.dispose();
       });

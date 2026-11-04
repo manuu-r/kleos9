@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "kleos-export-check-qualification-v1",
+  "qualified": false,
+  "lane": "firmware",
+  "qualifiedBy": "export-checker-qualification-runner",
+  "imageId": "sha256:479a474120db8edb8970fc49634584ae27b79db6cda77d54150147fd9e8137d0",
+  "protocol": "kleos-export-check-v1",
+  "deployment": "local",
+  "sourceOverride": false,
+  "sourceHashes": {
+    "exports.py": "398d319ae96656295530b64a5808f7accf4c6e93f3ea0238e202db5a1d13ddde",
+    "export_check.py": "4449663aa7762ef697f5178e98a8cfdaccdbe8cad88cb3c86ad39e7b00ac5197",
+    "export_process.py": "7232f1b4646e7f9e58b7e5083c2a2a4421e3e6f029d2cd9f97cd60d4539cd8ab",
+    "Dockerfile.exports": "479c20fd72693c4d38c291b6b94fca43f018c383a41f46167b0f5083d614ab84"
+  },
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "resources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "scratchBytes": 268435456,
+    "pids": 64
+  },
+  "watchdogSeconds": 175,
+  "startedAt": "2026-11-02T21:17:04.425902+00:00",
+  "caseStatuses": {
+    "valid_firmware": "UNKNOWN"
+  },
+  "cases": [
+    {
+      "case": "valid_firmware",
+      "expected": "PASS",
+      "requestHash": "98d816cc7f0c55cf0d1078ab9c5d80ccdc99a742db39b4dc73c75a7d8e2bf987",
+      "result": {
+        "status": "UNKNOWN",
+        "reason": "Allocated ELF section type is not qualified",
+        "measurements": {},
+        "protocol": "kleos-export-check-v1",
+        "executionId": "export-qual-d1ffc961aa0a49e98c85811f28de2412",
+        "subjectHash": "7444da70588bf9220988796d83a9a70b82407a05e0aebfdd8646e2959c9e25db",
+        "lane": "firmware",
+        "isolation": {
+          "uid": 10001,
+          "gid": 10001,
+          "noNewPrivileges": true,
+          "seccomp": true,
+          "capabilities": 0,
+          "internetSocketDenied": true,
+          "generatorCodeAbsent": true,
+          "credentialEnvironmentEmpty": true
+        },
+        "checkerSourceSha256": "4449663aa7762ef697f5178e98a8cfdaccdbe8cad88cb3c86ad39e7b00ac5197"
+      },
+      "elapsedSeconds": 0.43099174999952083,
+      "capacityAfter": {
+        "poolId": "isolated-export-check-qualification",
+        "limits": {
+          "cpus": 4,
+          "memoryBytes": 6442450944,
+          "scratchBytes": 5368709120,
+          "maxJobs": 2
+        },
+        "jobs": 0,
+        "cpus": 0,
+        "memoryBytes": 0,
+        "scratchBytes": 0
+      }
+    }
+  ],
+  "containers": {
+    "07c79de02961df017d1b87e45ce65223769df9c34488bbe91ac05b41e0d07451": {
+      "case": "valid_firmware",
+      "image": "sha256:479a474120db8edb8970fc49634584ae27b79db6cda77d54150147fd9e8137d0",
+      "running": false,
+      "exitCode": 0,
+      "readonlyRootfs": true,
+      "readonlyInput": true,
+      "mountDestinations": [
+        "/input"
+      ],
+      "networkMode": "none",
+      "memoryBytes": 2147483648,
+      "memorySwap": 2147483648,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 64,
+      "tmpfs": {
+        "/tmp": "rw,nosuid,nodev,noexec,size=256m,mode=1777"
+      },
+      "user": "10001:10001",
+      "capDrop": [
+        "ALL"
+      ],
+      "capAdd": [],
+      "privileged": false,
+      "noNewPrivileges": true,
+      "seccompMatches": true,
+      "entrypoint": [
+        "/usr/bin/timeout",
+        "--signal=KILL",
+        "175",
+        "/usr/bin/python3",
+        "-I",
+        "/opt/kleos-export-checker/export_check.py"
+      ],
+      "credentialEnvironmentEmpty": true
+    }
+  },
+  "capacityLedger": "/Users/manu/Dev_stuff/kleos9/backend/.data/qualification/export-check-firmware-attempt-1/state.db",
+  "capacityScope": "This persistent fixture ledger only; no cross-database capacity claim",
+  "limitations": [
+    "Local Docker Desktop only",
+    "NRF52840 ELF/BIN or strict Flutter ZIP data integrity only",
+    "No source-build reproduction, firmware/app execution, security, functional or physical acceptance",
+    "Watchdog case substitutes a trusted sleep workload under the exact fixed kill wrapper; no source override"
+  ],
+  "fixtureFiles": {
+    "outputs/firmware.elf": {
+      "sha256": "40b947f43c17cca0f02493a137942dec331a8dd46dca5e7d70851436747a8d82",
+      "size": 630584
+    },
+    "outputs/firmware.bin": {
+      "sha256": "08c7e4096b9df38b4872f8422212232983a8d2a2cf7a2e9678dcfa231c9742c2",
+      "size": 19512
+    }
+  },
+  "fixtureHash": "5e59030b56ebb8f7335556720fac9f942f0708f1f6654bfdb03cd2d1318a4bab",
+  "failure": {
+    "type": "AssertionError",
+    "message": "valid_firmware: {'status': 'UNKNOWN', 'reason': 'Allocated ELF section type is not qualified', 'measurements': {}, 'protocol': 'kleos-export-check-v1', 'executionId': 'export-qual-d1ffc961aa0a49e98c85811f28de2412', 'subjectHash': '7444da70588bf9220988796d83a9a70b82407a05e0aebfdd8646e2959c9e25db', 'lane': 'firmware', 'isolation': {'uid': 10001, 'gid': 10001, 'noNewPrivileges': True, 'seccomp': True, 'capabilities': 0, 'internetSocketDenied': True, 'generatorCodeAbsent': True, 'credentialEnvironmentEmpty': True}, 'checkerSourceSha256': '4449663aa7762ef697f5178e98a8cfdaccdbe8cad88cb3c86ad39e7b00ac5197'}"
+  },
+  "finishedAt": "2026-11-02T21:17:04.862311+00:00",
+  "capacityFinal": {
+    "poolId": "isolated-export-check-qualification",
+    "limits": {
+      "cpus": 4,
+      "memoryBytes": 6442450944,
+      "scratchBytes": 5368709120,
+      "maxJobs": 2
+    },
+    "jobs": 0,
+    "cpus": 0,
+    "memoryBytes": 0,
+    "scratchBytes": 0
+  }
+}

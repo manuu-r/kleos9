@@ -1,0 +1,64 @@
+{
+  "protocol": "kleos-external-readonly-qualification-v1",
+  "provider": "rentahuman",
+  "providerVersion": "rest-read-2026-11-02",
+  "sourceHashes": {
+    "kleos.capabilities.external": "5b3712fec908aa8a180f17af2ed446e9f8bb6c7f20e3f4b8ffff100cb75807d1",
+    "kleos.capabilities.external_tools": "858f994a5cfec53ab83e12e820aaedbbb6a192794e20b60a052acb1d5244f2a2",
+    "kleos.api.external": "0d073f7b755c2b3fc9b6e8798581552989b5bf0d4c76b1e2a1b4d746d170ee11",
+    "kleos.capabilities.sourcing.digikey": "9f41adc4b07696b9252d540be289d95dfe3ca5203f136435f25720a0cb0c366e",
+    "kleos.capabilities.human_work.rentahuman": "ce3d4845b161515b2f9252d26dce4a91d75a97ac3946dc707d672db84667ddeb",
+    "kleos.infrastructure.external": "fe1b1259da98b232eeb2b1cc55ef49eea176fc6c60dde39319c5809643bc21b3"
+  },
+  "sourceHash": "1b43eddd507af36c773b8bc3bb5e683017315eae3df2ab46b9e1a535e6aa0045",
+  "qualificationScope": "read-only mocked HTTP schema fixtures",
+  "liveAccessVerified": false,
+  "requiredChecks": [
+    "principal_scope",
+    "project_scope",
+    "context_fence",
+    "credential_redaction",
+    "get_only",
+    "no_physical_actions",
+    "provider_errors_fail_closed",
+    "durable_observation",
+    "profile_allowlist",
+    "owned_job_read",
+    "poll_waits",
+    "no_hire_or_messages"
+  ],
+  "sourceOverride": false,
+  "testOnly": false,
+  "checks": {
+    "principal_scope": "PASS",
+    "project_scope": "PASS",
+    "context_fence": "PASS",
+    "credential_redaction": "PASS",
+    "get_only": "PASS",
+    "no_physical_actions": "PASS",
+    "provider_errors_fail_closed": "PASS",
+    "durable_observation": "PASS",
+    "profile_allowlist": "PASS",
+    "owned_job_read": "PASS",
+    "poll_waits": "PASS",
+    "no_hire_or_messages": "PASS"
+  },
+  "review": {
+    "independent": true,
+    "reviewer": "/root/rewrite_graph_design",
+    "reference": "backend/docs/external-readonly-review.md",
+    "reviewedAt": "2026-11-02T17:26:52.851607+00:00",
+    "sourceHash": "1b43eddd507af36c773b8bc3bb5e683017315eae3df2ab46b9e1a535e6aa0045"
+  },
+  "evidence": {
+    "tests": "tests/test_external_jobs.py tests/test_external_api.py tests/test_external_tools.py tests/test_external_runtime.py",
+    "passed": 104,
+    "http": "mocked",
+    "liveAccessVerified": false
+  },
+  "limitations": [
+    "Read-only mocked HTTP schema qualification only; live credentials and upstream access unverified.",
+    "No purchases, hiring, posting, messaging, payments or physical acceptance.",
+    "Inventory bounded by response size/count/type; no business upper inventory limit."
+  ]
+}

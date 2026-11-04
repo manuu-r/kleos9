@@ -13,17 +13,18 @@ import 'package:kleos_ui/data/services/production_api.dart';
 import 'package:kleos_ui/state/production_store.dart';
 import 'package:kleos_ui/ui/core/widgets.dart';
 import 'package:kleos_ui/ui/features/production/production_app.dart';
+import 'navigation_audit.dart';
 
 const choices = [
   ModelChoice('meta', 'muse-spark-1.3'),
   ModelChoice('modal', 'muse-spark-open'),
-  ModelChoice('google', 'gemini-3.8-flash')
+  ModelChoice('meta', 'muse-wonder-1.0')
 ];
 final testCatalog = ModelCatalog([
   for (final choice in choices)
     CatalogModel(
         choice,
-        choice.provider != 'meta',
+        choice.model != 'muse-spark-1.3',
         engineeringLanes.keys
             .where((lane) => choice.provider != 'modal' || lane != 'research')
             .toList()),
@@ -111,6 +112,52 @@ Widget scope(TestRepository repository, Widget page) =>
     ], child: MaterialApp(theme: kTheme(), home: Scaffold(body: page)));
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('authenticated routes keep background clicks inert at $width',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final repository = TestRepository(snapshot());
+      final api = ProductionApi(
+          client: MockClient((_) async => http.Response(
+              jsonEncode({'members': <Object>[], 'invites': <Object>[]}),
+              200)));
+      final container = ProviderContainer(overrides: [
+        productionRepositoryProvider.overrideWithValue(repository),
+        productionApiProvider.overrideWithValue(api),
+        accountProvider.overrideWith(TestAccount.new),
+        modelCatalogProvider.overrideWith((_) async => testCatalog),
+        runInspectorProvider('r').overrideWith((_) async => RunRecord(const {
+              'id': 'r',
+              'kind': 'project.generate',
+              'status': 'blocked',
+              'projectId': 'p',
+              'tasks': <Object>[],
+            })),
+      ]);
+      final router = container.read(productionRouterProvider);
+      router.go('/new');
+      await tester.pumpWidget(UncontrolledProviderScope(
+          container: container, child: const ProductionApp()));
+      for (final path in ['/new', '/projects/p', '/runs/r', '/admin']) {
+        router.go(path);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expectBoundedClickTargets(tester, screen: path);
+        await tester.tapAt(Offset(width - 2, 500));
+        await tester.pumpAndSettle();
+        expect(router.routeInformationProvider.value.uri.path, path);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+      repository.dispose();
+      api.close();
+      semantics.dispose();
+    });
+  }
+
   testWidgets(
       'phone workspace clears stale keyboard space but resizes for editing',
       (tester) async {
@@ -306,7 +353,7 @@ void main() {
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(7));
     for (final entry in [
       (0, 'Muse on Modal · muse-spark-open', 'modal'),
-      (1, 'Gemini · gemini-3.8-flash', 'google')
+      (1, 'Muse · muse-wonder-1.0', 'meta')
     ]) {
       final picker = find.byType(DropdownButtonFormField<String>).at(entry.$1);
       await tester.ensureVisible(picker);
@@ -369,6 +416,63 @@ void main() {
     expect(repository.commands.single['payload'],
         {'projectId': 'p', 'runId': 'r'});
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    repository.dispose();
+  });
+
+  testWidgets(
+      'a queued project whose objective is blocked offers retry, not a cancel that would conflict',
+      (tester) async {
+    final repository = TestRepository(snapshot(status: 'queued', runs: [
+      {
+        'id': 'r',
+        'kind': 'project.generate',
+        'status': 'blocked',
+        'blocker': 'plan_invalid'
+      }
+    ]));
+    await tester.pumpWidget(
+        scope(repository, const ProductionWorkspacePage(projectId: 'p')));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(KButton, 'Cancel run'), findsNothing);
+    final retry = find.widgetWithText(KButton, 'Retry last run');
+    await tester.scrollUntilVisible(retry, 200);
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+    expect(repository.commands.single['type'], 'project.retry');
+    await tester.pumpWidget(const SizedBox());
+    repository.dispose();
+  });
+
+  testWidgets(
+      'a pending interface proposal is reviewable and approved with its exact id and hash',
+      (tester) async {
+    final repository = TestRepository(snapshot(revision: 7, state: {
+      'confirmed': true,
+      'interfaceProposal': {
+        'id': 'run-1',
+        'hash': 'abc123',
+        'status': 'pending',
+        'candidate': {'summary': 'USB powered LED indicator'}
+      }
+    }));
+    await tester.pumpWidget(
+        scope(repository, const ProductionWorkspacePage(projectId: 'p')));
+    await tester.pumpAndSettle();
+    expect(find.text('USB powered LED indicator'), findsOneWidget);
+    final approve = find.widgetWithText(KButton, 'Approve interfaces');
+    await tester.scrollUntilVisible(approve, -200);
+    await tester.tap(approve);
+    await tester.pumpAndSettle();
+    expect(repository.commands.single, {
+      'type': 'project.approveInterfaces',
+      'payload': {
+        'projectId': 'p',
+        'proposalId': 'run-1',
+        'proposalHash': 'abc123'
+      },
+      'revision': 7
+    });
     await tester.pumpWidget(const SizedBox());
     repository.dispose();
   });
@@ -579,7 +683,7 @@ void main() {
     expect(find.byKey(const ValueKey('provider-preset-meta-muse-spark-1.3')),
         findsNothing);
     final preset =
-        find.byKey(const ValueKey('provider-preset-google-gemini-3.8-flash'));
+        find.byKey(const ValueKey('provider-preset-meta-muse-wonder-1.0'));
     await tester.ensureVisible(preset);
     await tester.tap(preset);
     await tester.pumpAndSettle();
@@ -594,7 +698,10 @@ void main() {
     expect(saved['revision'], 9);
     final policy = asMap(asMap(saved['payload'])['modelPolicy']);
     expect(policy.keys.toSet(), engineeringLanes.keys.toSet());
-    expect(policy.values.every((value) => asMap(value)['provider'] == 'google'),
+    expect(
+        policy.values.every((value) =>
+            asMap(value)['provider'] == 'meta' &&
+            asMap(value)['model'] == 'muse-wonder-1.0'),
         isTrue);
     await tester.pumpWidget(const SizedBox());
     repository.dispose();

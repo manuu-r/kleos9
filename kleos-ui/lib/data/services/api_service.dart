@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/json.dart';
+import 'api_routes.dart';
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.status});
@@ -65,7 +66,7 @@ class ApiService {
     }
   }
 
-  Future<JsonMap> load() => _request('/state');
+  Future<JsonMap> load() => _request(SimulationRoutes.state);
   Future<JsonMap> command(String type, JsonMap payload) async {
     final identity = jsonEncode([type, payload]);
     final key = _keys.putIfAbsent(
@@ -73,7 +74,7 @@ class ApiService {
         () =>
             '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(0x7fffffff)}');
     try {
-      final response = await _request('/commands',
+      final response = await _request(SimulationRoutes.commands,
           body: {'type': type, 'payload': payload}, key: key);
       _keys.remove(identity);
       return response;
@@ -85,9 +86,9 @@ class ApiService {
     }
   }
 
-  Future<JsonMap> reset() => _request('/demo/reset', body: {});
+  Future<JsonMap> reset() => _request(SimulationRoutes.demoReset, body: {});
   Future<JsonMap> setSpeed(double speed) =>
-      _request('/demo/speed', body: {'speed': speed});
+      _request(SimulationRoutes.demoSpeed, body: {'speed': speed});
   void close() {
     _closed = true;
     _client.close();

@@ -166,7 +166,12 @@ class AppShell extends ConsumerWidget {
                           icon: const Icon(Icons.arrow_back, size: 20),
                         )
                       else
-                        InkWell(
+                        // Keep the logo action out of the screen's semantics
+                        // node: on web that would make blank space clickable.
+                        Semantics(
+                          container: true,
+                          button: true,
+                          child: InkWell(
                             onTap: () => context.go('/'),
                             child: Padding(
                                 padding: EdgeInsets.only(
@@ -179,7 +184,7 @@ class AppShell extends ConsumerWidget {
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600))
-                                ]))),
+                                ])))),
                       if (mobile)
                         const Spacer()
                       else
@@ -486,6 +491,8 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
   Widget build(BuildContext context) {
     final controller = ref.watch(kleosProvider);
     final q = query.text.trim();
+    final simulated = controller.state['production'] != true ||
+        controller.state['simulationAvailable'] == true;
     final items = <({String group, String label, VoidCallback run})>[
       (
         group: 'Actions',
@@ -497,22 +504,24 @@ class _CommandMenuState extends ConsumerState<_CommandMenu> {
         label: 'Browse connectors',
         run: () => widget.onNavigate('/connections')
       ),
-      (
-        group: 'Actions',
-        label: 'Run simulations at ${controller.speed == 1 ? '4×' : '1×'}',
-        run: () {
-          controller.setSpeed(controller.speed == 1 ? 4 : 1);
-          Navigator.of(context).pop();
-        }
-      ),
-      (
-        group: 'Actions',
-        label: 'Reset demo',
-        run: () {
-          controller.resetDemo();
-          widget.onNavigate('/');
-        }
-      ),
+      if (simulated) ...[
+        (
+          group: 'Actions',
+          label: 'Run simulations at ${controller.speed == 1 ? '4×' : '1×'}',
+          run: () {
+            controller.setSpeed(controller.speed == 1 ? 4 : 1);
+            Navigator.of(context).pop();
+          }
+        ),
+        (
+          group: 'Actions',
+          label: 'Reset demo',
+          run: () {
+            controller.resetDemo();
+            widget.onNavigate('/');
+          }
+        ),
+      ],
       for (final p in asMaps(controller.state['projects']))
         (
           group: 'Projects',

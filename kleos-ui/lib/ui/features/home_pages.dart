@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/command_journal.dart';
+import '../../data/services/reference_images.dart';
+import '../core/reference_image_attachments.dart';
 import '../../state/production_store.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/json.dart';
@@ -425,16 +427,21 @@ class _HomeLink extends StatelessWidget {
       ], gap: 18)));
 }
 
-class NewBuildPage extends StatefulWidget {
+class NewBuildPage extends ConsumerStatefulWidget {
   const NewBuildPage({super.key, required this.controller});
   final KleosController controller;
   @override
-  State<NewBuildPage> createState() => _NewBuildPageState();
+  ConsumerState<NewBuildPage> createState() => _NewBuildPageState();
 }
 
-class _NewBuildPageState extends State<NewBuildPage> {
+class _NewBuildPageState extends ConsumerState<NewBuildPage> {
   final brief = TextEditingController();
   bool _simulate = false;
+  bool _starting = false;
+  bool _captureNeeded = false;
+  String? _createdProjectId;
+  String? _uploadError;
+  List<ReferenceImageDraft> _images = [];
   @override
   void dispose() {
     brief.dispose();
@@ -442,19 +449,57 @@ class _NewBuildPageState extends State<NewBuildPage> {
   }
 
   Future<void> start() async {
-    if (brief.text.trim().isEmpty ||
+    if ((brief.text.trim().isEmpty && (_simulate || _images.isEmpty)) ||
+        _starting ||
         widget.controller.isPending('project.create')) {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
-    final result = await widget.controller.execute('project.create', {
-      'brief': brief.text.trim(),
-      if (_simulate) 'simulation': true,
-      if (widget.controller.state['production'] == true && !_simulate)
-        'autoStart': true,
+    setState(() {
+      _starting = true;
+      _uploadError = null;
     });
-    if (mounted && result.ok) {
-      context.go('/projects/${result.result['projectId']}');
+    try {
+      final withImages = widget.controller.state['production'] == true &&
+          !_simulate &&
+          _images.isNotEmpty;
+      if (_createdProjectId == null) {
+        final result = await widget.controller.execute('project.create', {
+          'brief': brief.text.trim().isEmpty
+              ? 'Create a device concept from the attached reference images.'
+              : brief.text.trim(),
+          if (_simulate) 'simulation': true,
+          if (widget.controller.state['production'] == true && !_simulate)
+            'autoStart': !withImages,
+        });
+        if (!result.ok) return;
+        _createdProjectId = result.result['projectId'] as String;
+        _captureNeeded = withImages;
+      }
+      if (_captureNeeded) {
+        final repository = ref.read(productionRepositoryProvider);
+        final ids = <String>[];
+        for (final image in _images) {
+          ids.add(await image.upload(repository, _createdProjectId!));
+        }
+        final workspace = await repository.workspace(_createdProjectId!);
+        await repository.command(
+            'project.capture',
+            {
+              'projectId': _createdProjectId!,
+              'autoResume': true,
+              'referenceImageIds': ids
+            },
+            revision: workspace.project.revision);
+      }
+      if (mounted) context.go('/projects/$_createdProjectId');
+    } catch (error) {
+      if (mounted) {
+        setState(() => _uploadError =
+            'Images could not be sent. Your build and images are kept. Try Start build again.');
+      }
+    } finally {
+      if (mounted) setState(() => _starting = false);
     }
   }
 
@@ -480,28 +525,42 @@ class _NewBuildPageState extends State<NewBuildPage> {
                       subtitle: const Text(
                           'Use sample results to explore all stages.'),
                       value: _simulate,
-                      onChanged: widget.controller.isPending('project.create')
+                      onChanged: _starting ||
+                              _createdProjectId != null ||
+                              widget.controller.isPending('project.create')
                           ? null
                           : (value) => setState(() => _simulate = value)),
-                CallbackShortcuts(
-                    bindings: {
-                      const SingleActivator(LogicalKeyboardKey.enter,
-                          meta: true): start,
-                      const SingleActivator(LogicalKeyboardKey.enter,
-                          control: true): start
-                    },
-                    child: TextField(
-                        controller: brief,
-                        autofocus: true,
-                        minLines: 6,
-                        maxLines: 10,
-                        style: const TextStyle(fontSize: 15, height: 1.55),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                            labelText: 'Your request',
-                            contentPadding: EdgeInsets.all(16),
-                            hintText:
-                                'A desk air-quality monitor with a small screen…'))),
+                ReferenceImageAttachments(
+                    images: _images,
+                    enabled: !_starting,
+                    supported: widget.controller.state['production'] == true &&
+                        !_simulate,
+                    onChanged: (images) => setState(() => _images = images),
+                    input: CallbackShortcuts(
+                        bindings: {
+                          const SingleActivator(LogicalKeyboardKey.enter,
+                              meta: true): start,
+                          const SingleActivator(LogicalKeyboardKey.enter,
+                              control: true): start
+                        },
+                        child: TextField(
+                            controller: brief,
+                            enabled: !_starting && _createdProjectId == null,
+                            autofocus: true,
+                            minLines: 6,
+                            maxLines: 10,
+                            style: const TextStyle(fontSize: 15, height: 1.55),
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                                labelText: 'Your request',
+                                contentPadding: EdgeInsets.all(16),
+                                hintText:
+                                    'A desk air-quality monitor with a small screen…')))),
+                if (_uploadError != null)
+                  Semantics(
+                      liveRegion: true,
+                      child: Text(_uploadError!,
+                          style: const TextStyle(color: KColors.fail))),
                 LayoutBuilder(builder: (context, constraints) {
                   final help = KMuted(widget.controller.state['production'] ==
                               true &&
@@ -509,10 +568,16 @@ class _NewBuildPageState extends State<NewBuildPage> {
                       ? 'AI models are configured in Providers.'
                       : 'Scripted around an air-quality monitor in this prototype.');
                   final submit = KButton(
-                      label: _simulate ? 'Start demo build' : 'Start build',
+                      label: _starting
+                          ? 'Preparing build…'
+                          : _simulate
+                              ? 'Start demo build'
+                              : 'Start build',
                       primary: true,
                       icon: Icons.arrow_forward,
-                      onPressed: brief.text.trim().isEmpty ||
+                      onPressed: (brief.text.trim().isEmpty &&
+                                  (_simulate || _images.isEmpty)) ||
+                              _starting ||
                               widget.controller.isPending('project.create')
                           ? null
                           : start);

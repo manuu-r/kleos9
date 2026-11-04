@@ -1,20 +1,16 @@
-region          = "us-east-1"
-environment     = "staging"
-name            = "kleos9-demo"
-base_domain     = "engineering.example.com"
-public_zone_id  = "Z_REPLACE_ME"
-certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/REPLACE_ME"
-frontend_url    = "https://app.example.com"
-# Replace with the actual digest pushed to ECR. Never use this example as an image.
-control_image   = "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/kleos9-demo/control@sha256:0000000000000000000000000000000000000000000000000000000000000000"
-native_images   = {}
-engineering_tools = []
-activate_services  = false
-activate_conductor = false
-project_budget_usd = 0
-daily_budget_usd   = 0
-# Licensed Conductor: provide digest, license secret ARN and operator SSO details.
-conductor_image               = ""
-conductor_license_secret_arn  = ""
-conductor_oauth_issuer         = ""
-conductor_oauth_audience       = ""
+# Copy to terraform.tfvars (gitignored). Contains no credentials: those are SSM parameters.
+region = "us-east-1"
+name   = "kleos9" # must differ from the legacy kleos9-production stack while it exists
+
+# CloudFront aliases are globally unique. While the legacy stack still owns app/api.kleos9.com,
+# provision with temporary hostnames (for example app2/api2) and switch after cutover.
+app_hostname     = "app.kleos9.com"
+api_hostname     = "api.kleos9.com"
+preview_hostname = "preview.kleos9.com"
+
+# Leave empty for the first apply (storage, database, host only); set to a pushed digest to add the API.
+control_image = ""
+# control_image = "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9/control@sha256:..."
+
+alert_email        = ""
+monthly_budget_usd = 50

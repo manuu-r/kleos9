@@ -1,0 +1,250 @@
+{
+  "qualified": false,
+  "imageId": "sha256:655795afc640013ef6fc0c86f75bcbce478809e2cc46d482fc1de584128ae99c",
+  "protocol": "kleos-native-session-v2",
+  "lane": "pcb",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T15:49:20.260158+00:00",
+  "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
+  "circuitContract": {
+    "references": [
+      {
+        "reference": "J1",
+        "value": "Connector",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      },
+      {
+        "reference": "R1",
+        "value": "1k",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      }
+    ],
+    "conceptReferences": {
+      "power-connector": "J1"
+    },
+    "constraints": {
+      "maxWidthMm": 42,
+      "maxHeightMm": 32,
+      "minTrackWidthMm": 0.25,
+      "minClearanceMm": 0.2,
+      "copperLayers": [
+        "F.Cu",
+        "B.Cu"
+      ]
+    }
+  },
+  "circuitContractHash": "dcc5acce7fe5c62a1828b521cea75b1aceb8b79416b96942597cc7c4c156774c",
+  "checks": [
+    {
+      "action": "patch",
+      "path": "Fixture.pretty/TwoPin.kicad_mod",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "Fixture.pretty/TwoPin.kicad_mod",
+              "sha256": "10771dde9bfd5f0e58d5dc6cf32050d7fa865ac92db364bd7fa0fc7435b70273",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "board.kicad_pcb",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "board.kicad_pcb",
+              "sha256": "aefad0c4439f63028c530deb501c653b91cf997a2ff8b3f90d9283d0350d5474",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "board.kicad_prl",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "board.kicad_prl",
+              "sha256": "36feff389da83c0f055a78f2dd8638a8ed0c4e8ed99e3cc8b4d6dcb1acad2f62",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "board.kicad_pro",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "board.kicad_pro",
+              "sha256": "9c2a7f0eb9896769c964533e71fd6c358cec467eef3470d0df81b651e51f3616",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "circuit.kicad_sch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "circuit.kicad_sch",
+              "sha256": "8a984a32e52a6209ebeac67087978f3181a6f53391e1f7dd6238ee2960d9ed8f",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "fixture.kicad_sym",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "fixture.kicad_sym",
+              "sha256": "67c0904ecb16ad7e08c6a9c324fee7c892dda790c06fa274a8c1812d0c2887ac",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "fp-lib-table",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "fp-lib-table",
+              "sha256": "6291e5ed29fe4a5b4544b5aec2da1cccc09f6cd93fbcd2f1de085cb2d0386b66",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "patch",
+      "path": "sym-lib-table",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "sym-lib-table",
+              "sha256": "49fe7eda06c7069bd07ee9e9431688a87d92c48c2552d7345960fd2a5e323437",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "negativeChecks": [],
+  "containers": [
+    {
+      "image": "sha256:655795afc640013ef6fc0c86f75bcbce478809e2cc46d482fc1de584128ae99c",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "Two-layer passive circuit fixture only",
+    "No physical fabrication or acceptance"
+  ]
+}

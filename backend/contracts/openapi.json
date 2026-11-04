@@ -5,6 +5,1833 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/projects/{project_id}/reference-images": {
+      "post": {
+        "summary": "Upload",
+        "operationId": "upload_api_v1_projects__project_id__reference_images_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceImageUpload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceImageView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/reference-images/{image_id}/content": {
+      "get": {
+        "summary": "Content",
+        "operationId": "content_api_v1_projects__project_id__reference_images__image_id__content_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/agents": {
+      "get": {
+        "summary": "Agents",
+        "operationId": "agents_api_v1_projects__project_id__agents_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentsPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/external-jobs": {
+      "get": {
+        "summary": "Jobs",
+        "operationId": "jobs_api_v1_projects__project_id__external_jobs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 36
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalJobsPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/external-jobs/{job_id}": {
+      "get": {
+        "summary": "Job",
+        "operationId": "job_api_v1_projects__project_id__external_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalJobSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/external-jobs/{job_id}/events": {
+      "get": {
+        "summary": "Events",
+        "operationId": "events_api_v1_projects__project_id__external_jobs__job_id__events_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 36
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalJobEventsPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-jobs/{job_id}/submissions": {
+      "post": {
+        "summary": "Submit",
+        "operationId": "submit_api_v1_projects__project_id__human_jobs__job_id__submissions_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanSubmission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSubmissionAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-jobs/{job_id}/reviews": {
+      "post": {
+        "summary": "Review",
+        "operationId": "review_api_v1_projects__project_id__human_jobs__job_id__reviews_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanReviewAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local": {
+      "get": {
+        "summary": "State",
+        "operationId": "state_api_v1_printers_bambu_local_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Forget",
+        "operationId": "forget_api_v1_printers_bambu_local_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/discover": {
+      "post": {
+        "summary": "Discovery",
+        "operationId": "discovery_api_v1_printers_bambu_local_discover_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDiscoveryView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/certificate": {
+      "post": {
+        "summary": "Inspect",
+        "operationId": "inspect_api_v1_printers_bambu_local_certificate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuAddressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuCertificateView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/connect": {
+      "post": {
+        "summary": "Connect",
+        "operationId": "connect_api_v1_printers_bambu_local_connect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/refresh": {
+      "post": {
+        "summary": "Refresh",
+        "operationId": "refresh_api_v1_printers_bambu_local_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuLocalState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/test-prints": {
+      "post": {
+        "summary": "Create",
+        "operationId": "create_api_v1_printers_bambu_local_test_prints_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuTestPrintRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuTestPrintView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/test-prints/{ident}": {
+      "get": {
+        "summary": "Read",
+        "operationId": "read_api_v1_printers_bambu_local_test_prints__ident__get",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuTestPrintView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/test-prints/{ident}/source": {
+      "get": {
+        "summary": "Source",
+        "operationId": "source_api_v1_printers_bambu_local_test_prints__ident__source_get",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/local/test-prints/{ident}/plate": {
+      "get": {
+        "summary": "Plate",
+        "operationId": "plate_api_v1_printers_bambu_local_test_prints__ident__plate_get",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-dispatches": {
+      "post": {
+        "summary": "Create",
+        "operationId": "create_api_v1_projects__project_id__print_dispatches_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuDispatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Listing",
+        "operationId": "listing_api_v1_projects__project_id__print_dispatches_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchesView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-dispatches/{ident}": {
+      "get": {
+        "summary": "Get",
+        "operationId": "get_api_v1_projects__project_id__print_dispatches__ident__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-dispatches/{ident}/send": {
+      "post": {
+        "summary": "Send",
+        "operationId": "send_api_v1_projects__project_id__print_dispatches__ident__send_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-dispatches/{ident}/cancel": {
+      "post": {
+        "summary": "Cancel",
+        "operationId": "cancel_api_v1_projects__project_id__print_dispatches__ident__cancel_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-dispatches/{ident}/reconcile": {
+      "post": {
+        "summary": "Reconcile",
+        "operationId": "reconcile_api_v1_projects__project_id__print_dispatches__ident__reconcile_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BambuReconcileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuDispatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rentahuman/status": {
+      "get": {
+        "summary": "Human Service Status",
+        "operationId": "human_service_status_api_v1_rentahuman_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RentAHumanStatusView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rentahuman/humans": {
+      "get": {
+        "summary": "Search Humans",
+        "operationId": "search_humans_api_v1_rentahuman_humans_get",
+        "parameters": [
+          {
+            "name": "skill",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Skill"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "City"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "Country"
+            }
+          },
+          {
+            "name": "maxRate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 10000,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Maxrate"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanSearchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rentahuman/bounties": {
+      "get": {
+        "summary": "Own Human Bounties",
+        "operationId": "own_human_bounties_api_v1_rentahuman_bounties_get",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanBountiesView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts": {
+      "post": {
+        "summary": "Create Human Task",
+        "operationId": "create_human_task_api_v1_projects__project_id__human_task_drafts_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Human Task Drafts",
+        "operationId": "human_task_drafts_api_v1_projects__project_id__human_task_drafts_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}": {
+      "delete": {
+        "summary": "Cancel Human Draft",
+        "operationId": "cancel_human_draft_api_v1_projects__project_id__human_task_drafts__ident__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/preview": {
+      "post": {
+        "summary": "Preview Human Task",
+        "operationId": "preview_human_task_api_v1_projects__project_id__human_task_drafts__ident__preview_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/link": {
+      "post": {
+        "summary": "Link Human Task",
+        "operationId": "link_human_task_api_v1_projects__project_id__human_task_drafts__ident__link_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-task-drafts/{ident}/sync": {
+      "post": {
+        "summary": "Sync Human Task",
+        "operationId": "sync_human_task_api_v1_projects__project_id__human_task_drafts__ident__sync_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTaskDraftAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTaskDraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/bambu/catalog": {
+      "get": {
+        "summary": "Bambu Catalog",
+        "operationId": "bambu_catalog_api_v1_printers_bambu_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BambuCatalogView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations": {
+      "post": {
+        "summary": "Prepare Print",
+        "operationId": "prepare_print_api_v1_projects__project_id__print_preparations_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreparePrint"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Prints",
+        "operationId": "list_prints_api_v1_projects__project_id__print_preparations_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations/{ident}": {
+      "get": {
+        "summary": "Read Print",
+        "operationId": "read_print_api_v1_projects__project_id__print_preparations__ident__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel Print",
+        "operationId": "cancel_print_api_v1_projects__project_id__print_preparations__ident__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/print-preparations/{ident}/complete": {
+      "post": {
+        "summary": "Complete Print",
+        "operationId": "complete_print_api_v1_projects__project_id__print_preparations__ident__complete_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreparedPrint"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintPreparationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/connectors": {
       "get": {
         "summary": "Connectors",
@@ -1626,6 +3453,16 @@
               "type": "string",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "includeAgentState",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Includeagentstate"
+            }
           }
         ],
         "responses": {
@@ -1673,6 +3510,45 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/circuit-simulation": {
+      "get": {
+        "summary": "Circuit Simulation",
+        "operationId": "circuit_simulation_api_v1_projects__project_id__circuit_simulation_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitSimulationView"
+                }
               }
             }
           },
@@ -2691,6 +4567,317 @@
   },
   "components": {
     "schemas": {
+      "AgentPluginView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified"
+          },
+          "qualificationReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualificationreference"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "title": "Schemaversion"
+          },
+          "agentType": {
+            "type": "string",
+            "enum": [
+              "cad",
+              "pcb",
+              "firmwareApp",
+              "sourcing",
+              "printMonitor",
+              "humanTasks"
+            ],
+            "title": "Agenttype"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "supportedInputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supportedinputs"
+          },
+          "resultSchema": {
+            "type": "string",
+            "title": "Resultschema"
+          },
+          "operationModes": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "reproducible",
+                "generative"
+              ]
+            },
+            "type": "object",
+            "title": "Operationmodes"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "read_only",
+              "sandbox"
+            ],
+            "title": "Mode"
+          },
+          "qualificationFixtures": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Qualificationfixtures"
+          },
+          "supportsIdempotency": {
+            "type": "boolean",
+            "title": "Supportsidempotency"
+          },
+          "supportsCancellation": {
+            "type": "boolean",
+            "title": "Supportscancellation"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "title": "Isdefault"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "name",
+          "qualified",
+          "qualificationReference",
+          "limitations",
+          "schemaVersion",
+          "agentType",
+          "capabilities",
+          "supportedInputs",
+          "resultSchema",
+          "operationModes",
+          "mode",
+          "qualificationFixtures",
+          "supportsIdempotency",
+          "supportsCancellation",
+          "configured",
+          "isDefault"
+        ],
+        "title": "AgentPluginView",
+        "description": "Allowlisted capability metadata; never installation or credential data."
+      },
+      "AgentSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentType": {
+            "type": "string",
+            "title": "Agenttype"
+          },
+          "lifetime": {
+            "type": "string",
+            "title": "Lifetime"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "historical": {
+            "type": "boolean",
+            "title": "Historical"
+          },
+          "graph": {
+            "type": "string",
+            "title": "Graph"
+          },
+          "pluginId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pluginid"
+          },
+          "pluginVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pluginversion"
+          },
+          "generation": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation"
+          },
+          "currentNode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentnode"
+          },
+          "lastUsefulObservation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastusefulobservation"
+          },
+          "nextWakeAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextwakeat"
+          },
+          "deadline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline"
+          },
+          "remainingAllowanceUsd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remainingallowanceusd"
+          },
+          "blockerReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blockerreason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "agentType",
+          "lifetime",
+          "lifecycle",
+          "engineeringRevision",
+          "historical",
+          "graph"
+        ],
+        "title": "AgentSummary"
+      },
+      "AgentsPage": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSummary"
+            },
+            "type": "array",
+            "title": "Agents"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agents"
+        ],
+        "title": "AgentsPage"
+      },
       "ArtifactDownloadView": {
         "properties": {
           "url": {
@@ -2866,13 +5053,759 @@
         ],
         "title": "AttemptView"
       },
+      "BambuAddressRequest": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "maxLength": 15,
+            "title": "Address"
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "mqtt",
+              "ftps"
+            ],
+            "title": "Service",
+            "default": "mqtt"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address"
+        ],
+        "title": "BambuAddressRequest"
+      },
+      "BambuCatalogView": {
+        "properties": {
+          "studioVersion": {
+            "type": "string",
+            "title": "Studioversion"
+          },
+          "models": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "profiles": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "localPrintingEnabled": {
+            "type": "boolean",
+            "title": "Localprintingenabled",
+            "default": false
+          },
+          "directPrintModelIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Directprintmodelids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "studioVersion",
+          "models",
+          "profiles",
+          "limitations"
+        ],
+        "title": "BambuCatalogView"
+      },
+      "BambuCertificateView": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "certificateSha256": {
+            "type": "string",
+            "title": "Certificatesha256"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "mqtt",
+              "ftps"
+            ],
+            "title": "Service",
+            "default": "mqtt"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address",
+          "certificateSha256"
+        ],
+        "title": "BambuCertificateView"
+      },
+      "BambuConnectionRequest": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "maxLength": 15,
+            "title": "Address"
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "mqtt",
+              "ftps"
+            ],
+            "title": "Service",
+            "default": "mqtt"
+          },
+          "serial": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{6,64}$",
+            "title": "Serial"
+          },
+          "accessCode": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "format": "password",
+            "title": "Accesscode",
+            "writeOnly": true
+          },
+          "certificateSha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certificatesha256"
+          },
+          "certificateVerified": {
+            "type": "boolean",
+            "title": "Certificateverified",
+            "default": false
+          },
+          "modelId": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Modelid"
+          },
+          "firmwareVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firmwareversion"
+          },
+          "lanDeveloperMode": {
+            "type": "boolean",
+            "title": "Landevelopermode",
+            "default": false
+          },
+          "ftpsCertificateSha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ftpscertificatesha256"
+          },
+          "ftpsCertificateVerified": {
+            "type": "boolean",
+            "title": "Ftpscertificateverified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address",
+          "serial",
+          "accessCode",
+          "modelId"
+        ],
+        "title": "BambuConnectionRequest"
+      },
+      "BambuDiscoveredPrinter": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "serial": {
+            "type": "string",
+            "title": "Serial"
+          },
+          "modelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "firmwareVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firmwareversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "address",
+          "serial",
+          "name"
+        ],
+        "title": "BambuDiscoveredPrinter"
+      },
+      "BambuDiscoveryView": {
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/BambuDiscoveredPrinter"
+            },
+            "type": "array",
+            "title": "Devices"
+          },
+          "qualification": {
+            "type": "string",
+            "const": "unverified_lan_advertisement",
+            "title": "Qualification",
+            "default": "unverified_lan_advertisement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "devices"
+        ],
+        "title": "BambuDiscoveryView"
+      },
+      "BambuDispatchRequest": {
+        "properties": {
+          "preparationId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Preparationid"
+          },
+          "preparedSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preparedsha256"
+          },
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          },
+          "authorizePrint": {
+            "type": "boolean",
+            "title": "Authorizeprint"
+          },
+          "externalSpoolConfirmed": {
+            "type": "boolean",
+            "title": "Externalspoolconfirmed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preparationId",
+          "preparedSha256",
+          "expectedEngineeringRevision",
+          "authorizePrint",
+          "externalSpoolConfirmed"
+        ],
+        "title": "BambuDispatchRequest"
+      },
+      "BambuDispatchView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "projectId": {
+            "type": "string",
+            "title": "Projectid"
+          },
+          "preparationId": {
+            "type": "string",
+            "title": "Preparationid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "preparedSha256": {
+            "type": "string",
+            "title": "Preparedsha256"
+          },
+          "printerSerial": {
+            "type": "string",
+            "title": "Printerserial"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "preparationId",
+          "status",
+          "preparedSha256",
+          "printerSerial",
+          "filename",
+          "message"
+        ],
+        "title": "BambuDispatchView"
+      },
+      "BambuDispatchesView": {
+        "properties": {
+          "dispatches": {
+            "items": {
+              "$ref": "#/components/schemas/BambuDispatchView"
+            },
+            "type": "array",
+            "title": "Dispatches"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dispatches"
+        ],
+        "title": "BambuDispatchesView"
+      },
+      "BambuLocalState": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "paired": {
+            "type": "boolean",
+            "title": "Paired",
+            "default": false
+          },
+          "connected": {
+            "type": "boolean",
+            "title": "Connected",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "not_connected"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Local read-only connection is not configured"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial"
+          },
+          "modelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelid"
+          },
+          "observation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Observation"
+          },
+          "credentialsStored": {
+            "type": "boolean",
+            "title": "Credentialsstored",
+            "default": false
+          },
+          "expiresAfterSeconds": {
+            "type": "integer",
+            "title": "Expiresafterseconds",
+            "default": 1800
+          },
+          "firmwareVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firmwareversion"
+          },
+          "directPrinting": {
+            "type": "boolean",
+            "title": "Directprinting",
+            "default": false
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "BambuLocalState"
+      },
+      "BambuProfile": {
+        "properties": {
+          "printerModelId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Printermodelid"
+          },
+          "nozzleMm": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Nozzlemm"
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Material"
+          },
+          "filamentPreset": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filamentpreset"
+          },
+          "bedType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Cool Plate",
+                  "Engineering Plate",
+                  "High Temp Plate",
+                  "Textured PEI Plate",
+                  "Textured Cool Plate",
+                  "Supertack Plate"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bedtype"
+          },
+          "studioVersion": {
+            "type": "string",
+            "const": "2.8.2.61",
+            "title": "Studioversion",
+            "default": "2.8.2.61"
+          },
+          "slicer": {
+            "type": "string",
+            "enum": [
+              "bambu_studio",
+              "orca"
+            ],
+            "title": "Slicer",
+            "default": "bambu_studio"
+          },
+          "slicerVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slicerversion"
+          },
+          "bundleSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Bundlesha256"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][A-Za-z0-9._/:-]*@sha256:[a-f0-9]{64})$",
+            "title": "Image"
+          },
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "printerModelId",
+          "nozzleMm",
+          "material",
+          "bundleSha256",
+          "image"
+        ],
+        "title": "BambuProfile"
+      },
+      "BambuReconcileRequest": {
+        "properties": {
+          "confirmPrinterIdle": {
+            "type": "boolean",
+            "title": "Confirmprinteridle"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "finished",
+              "stopped"
+            ],
+            "title": "Outcome"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmPrinterIdle",
+          "outcome"
+        ],
+        "title": "BambuReconcileRequest"
+      },
+      "BambuTestPrintRequest": {
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Profileid"
+          },
+          "printerModelId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Printermodelid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profileId",
+          "printerModelId"
+        ],
+        "title": "BambuTestPrintRequest"
+      },
+      "BambuTestPrintView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "slicing",
+              "ready",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "printerModelId": {
+            "type": "string",
+            "title": "Printermodelid"
+          },
+          "profileId": {
+            "type": "string",
+            "title": "Profileid"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/BambuProfile"
+          },
+          "dimensionsMm": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Dimensionsmm"
+          },
+          "sourceSha256": {
+            "type": "string",
+            "title": "Sourcesha256"
+          },
+          "packageSha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagesha256"
+          },
+          "estimatedSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedseconds"
+          },
+          "filamentGrams": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filamentgrams"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "default": "kleos-test-tile.gcode.3mf"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "const": false,
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "printerModelId",
+          "profileId",
+          "profile",
+          "dimensionsMm",
+          "sourceSha256",
+          "message"
+        ],
+        "title": "BambuTestPrintView"
+      },
       "BridgeTelemetry": {
         "properties": {
           "kind": {
             "type": "string",
             "enum": [
               "octoprint",
-              "moonraker"
+              "moonraker",
+              "bambu"
             ],
             "title": "Kind"
           },
@@ -2894,6 +5827,19 @@
             "type": "string",
             "format": "date-time",
             "title": "Observedat"
+          },
+          "providerJobId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providerjobid"
           }
         },
         "additionalProperties": false,
@@ -3059,6 +6005,79 @@
         ],
         "title": "CheckResult"
       },
+      "CircuitSimulationView": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "artifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactid"
+          },
+          "artifactSha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactsha256"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "engineeringRevision",
+          "status",
+          "artifactId",
+          "artifactSha256",
+          "result",
+          "reason"
+        ],
+        "title": "CircuitSimulationView"
+      },
       "Command": {
         "properties": {
           "type": {
@@ -3094,6 +6113,28 @@
       },
       "CommandAccepted": {
         "properties": {
+          "jobId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jobid"
+          },
+          "agentInstanceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentinstanceid"
+          },
           "commandId": {
             "type": "string",
             "title": "Commandid"
@@ -3317,6 +6358,20 @@
             },
             "type": "object",
             "title": "Defaultpolicy"
+          },
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPluginView"
+            },
+            "type": "array",
+            "title": "Agents"
+          },
+          "defaultAgentPolicy": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EngineeringToolChoice"
+            },
+            "type": "object",
+            "title": "Defaultagentpolicy"
           }
         },
         "additionalProperties": false,
@@ -3542,6 +6597,191 @@
         ],
         "title": "EventView"
       },
+      "ExternalJobEventSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          },
+          "disposition": {
+            "type": "string",
+            "title": "Disposition"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat"
+          },
+          "receivedAt": {
+            "type": "string",
+            "title": "Receivedat"
+          },
+          "bodyHash": {
+            "type": "string",
+            "title": "Bodyhash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "jobId",
+          "disposition",
+          "engineeringRevision",
+          "observedAt",
+          "receivedAt",
+          "bodyHash"
+        ],
+        "title": "ExternalJobEventSummary"
+      },
+      "ExternalJobEventsPage": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalJobEventSummary"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "ExternalJobEventsPage"
+      },
+      "ExternalJobSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentInstanceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentinstanceid"
+          },
+          "agentType": {
+            "type": "string",
+            "title": "Agenttype"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "historical": {
+            "type": "boolean",
+            "title": "Historical"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "deadline": {
+            "type": "string",
+            "title": "Deadline"
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired"
+          },
+          "inputHash": {
+            "type": "string",
+            "title": "Inputhash"
+          },
+          "pluginId": {
+            "type": "string",
+            "title": "Pluginid"
+          },
+          "pluginVersion": {
+            "type": "string",
+            "title": "Pluginversion"
+          },
+          "remainingAllowanceUsd": {
+            "type": "number",
+            "title": "Remainingallowanceusd"
+          },
+          "settlementStatus": {
+            "type": "string",
+            "title": "Settlementstatus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "agentType",
+          "engineeringRevision",
+          "historical",
+          "lifecycle",
+          "state",
+          "deadline",
+          "expired",
+          "inputHash",
+          "pluginId",
+          "pluginVersion",
+          "remainingAllowanceUsd",
+          "settlementStatus"
+        ],
+        "title": "ExternalJobSummary"
+      },
+      "ExternalJobsPage": {
+        "properties": {
+          "externalJobs": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalJobSummary"
+            },
+            "type": "array",
+            "title": "Externaljobs"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "externalJobs"
+        ],
+        "title": "ExternalJobsPage"
+      },
       "GeneratedFile": {
         "properties": {
           "path": {
@@ -3588,6 +6828,554 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HumanBountiesView": {
+        "properties": {
+          "bounties": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Bounties"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bounties",
+          "hasMore",
+          "nextCursor"
+        ],
+        "title": "HumanBountiesView"
+      },
+      "HumanEvidenceFile": {
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Criterionid"
+          },
+          "artifactId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Artifactid"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "criterionId",
+          "artifactId",
+          "sha256"
+        ],
+        "title": "HumanEvidenceFile"
+      },
+      "HumanMeasurement": {
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Criterionid"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Unit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "criterionId",
+          "value",
+          "unit"
+        ],
+        "title": "HumanMeasurement"
+      },
+      "HumanReview": {
+        "properties": {
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          },
+          "submissionEventId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Submissioneventid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REVISION_REQUESTED",
+              "DISPUTED"
+            ],
+            "title": "Decision"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expectedEngineeringRevision",
+          "submissionEventId",
+          "decision"
+        ],
+        "title": "HumanReview"
+      },
+      "HumanReviewAccepted": {
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          },
+          "reviewId": {
+            "type": "string",
+            "title": "Reviewid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REVISION_REQUESTED",
+              "DISPUTED"
+            ],
+            "title": "Decision"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "const": false,
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "jobId",
+          "reviewId",
+          "decision"
+        ],
+        "title": "HumanReviewAccepted"
+      },
+      "HumanSearchView": {
+        "properties": {
+          "humans": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Humans"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "rentahuman.ai"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "humans",
+          "hasMore",
+          "nextCursor"
+        ],
+        "title": "HumanSearchView"
+      },
+      "HumanSubmission": {
+        "properties": {
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          },
+          "eventKey": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Eventkey"
+          },
+          "specimen": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Specimen"
+          },
+          "measurements": {
+            "items": {
+              "$ref": "#/components/schemas/HumanMeasurement"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Measurements"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/HumanEvidenceFile"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Files"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expectedEngineeringRevision",
+          "eventKey",
+          "specimen"
+        ],
+        "title": "HumanSubmission"
+      },
+      "HumanSubmissionAccepted": {
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          },
+          "eventId": {
+            "type": "string",
+            "title": "Eventid"
+          },
+          "disposition": {
+            "type": "string",
+            "title": "Disposition"
+          },
+          "evidenceKind": {
+            "type": "string",
+            "const": "synthetic",
+            "title": "Evidencekind"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "const": false,
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "jobId",
+          "eventId",
+          "disposition",
+          "evidenceKind"
+        ],
+        "title": "HumanSubmissionAccepted"
+      },
+      "HumanTaskDraftAction": {
+        "properties": {
+          "draftSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Draftsha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draftSha256"
+        ],
+        "title": "HumanTaskDraftAction"
+      },
+      "HumanTaskDraftRequest": {
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Releaseid"
+          },
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          },
+          "task": {
+            "$ref": "#/components/schemas/HumanTaskSpec"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "releaseId",
+          "expectedEngineeringRevision",
+          "task"
+        ],
+        "title": "HumanTaskDraftRequest"
+      },
+      "HumanTaskDraftView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "projectId": {
+            "type": "string",
+            "title": "Projectid"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "releaseId": {
+            "type": "string",
+            "title": "Releaseid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "draftSha256": {
+            "type": "string",
+            "title": "Draftsha256"
+          },
+          "task": {
+            "$ref": "#/components/schemas/HumanTaskSpec"
+          },
+          "preview": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Preview"
+          },
+          "observation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Observation"
+          },
+          "bountyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bountyid"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "title": "Physicalacceptance",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "engineeringRevision",
+          "releaseId",
+          "status",
+          "draftSha256",
+          "task",
+          "preview",
+          "observation",
+          "bountyId"
+        ],
+        "title": "HumanTaskDraftView"
+      },
+      "HumanTaskDraftsView": {
+        "properties": {
+          "drafts": {
+            "items": {
+              "$ref": "#/components/schemas/HumanTaskDraftView"
+            },
+            "type": "array",
+            "title": "Drafts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "drafts"
+        ],
+        "title": "HumanTaskDraftsView"
+      },
+      "HumanTaskLinkRequest": {
+        "properties": {
+          "draftSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Draftsha256"
+          },
+          "bountyId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,100}$",
+            "title": "Bountyid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draftSha256",
+          "bountyId"
+        ],
+        "title": "HumanTaskLinkRequest"
+      },
+      "HumanTaskLocation": {
+        "properties": {
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "City",
+            "default": ""
+          },
+          "country": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^([A-Z]{2})?$",
+            "title": "Country",
+            "default": ""
+          },
+          "isRemoteAllowed": {
+            "type": "boolean",
+            "title": "Isremoteallowed",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HumanTaskLocation"
+      },
+      "HumanTaskSpec": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 10,
+            "title": "Description"
+          },
+          "completionCriteria": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Completioncriteria"
+          },
+          "price": {
+            "type": "number",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Price"
+          },
+          "priceType": {
+            "type": "string",
+            "const": "fixed",
+            "title": "Pricetype",
+            "default": "fixed"
+          },
+          "estimatedHours": {
+            "type": "number",
+            "maximum": 168.0,
+            "minimum": 0.083,
+            "title": "Estimatedhours"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "labor-gigs",
+              "computer-gigs",
+              "creative-gigs"
+            ],
+            "title": "Category",
+            "default": "labor-gigs"
+          },
+          "skillsNeeded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Skillsneeded"
+          },
+          "evidenceTypes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "text",
+                "photo",
+                "video",
+                "link"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Evidencetypes"
+          },
+          "location": {
+            "$ref": "#/components/schemas/HumanTaskLocation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "completionCriteria",
+          "price",
+          "estimatedHours",
+          "evidenceTypes"
+        ],
+        "title": "HumanTaskSpec"
       },
       "InferenceRequest": {
         "properties": {
@@ -3833,8 +7621,7 @@
             "type": "string",
             "enum": [
               "meta",
-              "modal",
-              "google"
+              "modal"
             ],
             "title": "Provider"
           },
@@ -3964,6 +7751,180 @@
           "expectedEngineeringRevision"
         ],
         "title": "PortalObservation"
+      },
+      "PreparePrint": {
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Releaseid"
+          },
+          "artifactId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Artifactid"
+          },
+          "profileId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Profileid"
+          },
+          "expectedEngineeringRevision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedengineeringrevision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "releaseId",
+          "artifactId",
+          "profileId",
+          "expectedEngineeringRevision"
+        ],
+        "title": "PreparePrint"
+      },
+      "PreparedPrint": {
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Artifactid"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          },
+          "bundleSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Bundlesha256"
+          },
+          "measurements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Measurements"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "artifactId",
+          "sha256",
+          "bundleSha256"
+        ],
+        "title": "PreparedPrint"
+      },
+      "PrintPreparationView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "projectId": {
+            "type": "string",
+            "title": "Projectid"
+          },
+          "engineeringRevision": {
+            "type": "integer",
+            "title": "Engineeringrevision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "sourceArtifactId": {
+            "type": "string",
+            "title": "Sourceartifactid"
+          },
+          "sourceSha256": {
+            "type": "string",
+            "title": "Sourcesha256"
+          },
+          "profileId": {
+            "type": "string",
+            "title": "Profileid"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/BambuProfile"
+          },
+          "preparedArtifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparedartifactid"
+          },
+          "preparedSha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparedsha256"
+          },
+          "measurements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Measurements"
+          },
+          "physicalAcceptance": {
+            "type": "boolean",
+            "title": "Physicalacceptance",
+            "default": false
+          },
+          "automaticNativePrepared": {
+            "type": "boolean",
+            "title": "Automaticnativeprepared",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "engineeringRevision",
+          "status",
+          "sourceArtifactId",
+          "sourceSha256",
+          "profileId",
+          "profile",
+          "preparedArtifactId",
+          "preparedSha256",
+          "measurements"
+        ],
+        "title": "PrintPreparationView"
+      },
+      "PrintPreparationsView": {
+        "properties": {
+          "preparations": {
+            "items": {
+              "$ref": "#/components/schemas/PrintPreparationView"
+            },
+            "type": "array",
+            "title": "Preparations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preparations"
+        ],
+        "title": "PrintPreparationsView"
       },
       "ProjectAccessRequest": {
         "properties": {
@@ -4168,6 +8129,125 @@
         ],
         "title": "ReconciliationRequest"
       },
+      "ReferenceImageUpload": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "mediaType": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Mediatype"
+          },
+          "contentBase64": {
+            "type": "string",
+            "maxLength": 8388608,
+            "minLength": 1,
+            "title": "Contentbase64"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "mediaType",
+          "contentBase64"
+        ],
+        "title": "ReferenceImageUpload"
+      },
+      "ReferenceImageView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mediaType": {
+            "type": "string",
+            "title": "Mediatype"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "mediaType",
+          "sha256",
+          "size",
+          "width",
+          "height"
+        ],
+        "title": "ReferenceImageView"
+      },
+      "RentAHumanStatusView": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "rentahuman.ai"
+          },
+          "accountConfigured": {
+            "type": "boolean",
+            "title": "Accountconfigured"
+          },
+          "livePostingEnabled": {
+            "type": "boolean",
+            "title": "Livepostingenabled",
+            "default": false
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "setupUrl": {
+            "type": "string",
+            "title": "Setupurl",
+            "default": "https://rentahuman.ai/account/api-keys"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "accountConfigured",
+          "capabilities",
+          "limitations"
+        ],
+        "title": "RentAHumanStatusView"
+      },
       "RetrievalRequest": {
         "properties": {
           "query": {
@@ -4267,6 +8347,15 @@
           "createdAt": {
             "type": "string",
             "title": "Createdat"
+          },
+          "activity": {
+            "type": "array",
+            "title": "Activity",
+            "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "additionalProperties": false,
@@ -4330,6 +8419,15 @@
             },
             "type": "array",
             "title": "Tasks"
+          },
+          "activity": {
+            "type": "array",
+            "title": "Activity",
+            "description": "Latest public progress steps of this run: planning, model decisions, tool calls and their observed results. Display state only; never private reasoning, raw payloads or credentials.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "additionalProperties": false,
@@ -4619,6 +8717,20 @@
       },
       "WorkspaceView": {
         "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSummary"
+            },
+            "type": "array",
+            "title": "Agents"
+          },
+          "externalJobs": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalJobSummary"
+            },
+            "type": "array",
+            "title": "Externaljobs"
+          },
           "project": {
             "$ref": "#/components/schemas/ProjectView"
           },

@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/json.dart';
 import '../models/api.generated.dart';
 import '../models/production.dart';
+import 'api_routes.dart';
 import 'platform/http_client.dart';
 
 class ProductionApiException implements Exception {
@@ -18,6 +20,9 @@ class ProductionApiException implements Exception {
 }
 
 class ProductionApi {
+  static const _printerCheckInterrupted =
+      'Printer check interrupted. Refresh status to check whether it connected, or try again.';
+
   ProductionApi(
       {http.Client? client,
       String? baseUrl,
@@ -64,11 +69,206 @@ class ProductionApi {
       _request('GET', path, organizationId: organizationId);
   Future<JsonMap> engineeringPreview(String projectId,
           {String? organizationId}) =>
-      get('/projects/${Uri.encodeComponent(projectId)}/engineering-preview',
+      get(ApiRoutes.engineeringPreview(projectId),
           organizationId: organizationId);
+  Future<JsonMap> circuitSimulation(String projectId,
+          {String? organizationId}) async =>
+      ApiCircuitSimulationView.fromJson(await get(
+              ApiRoutes.circuitSimulation(projectId),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> bambuCatalog({String? organizationId}) async =>
+      ApiBambuCatalogView.fromJson(await get(ApiRoutes.bambuCatalog,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> rentAHumanStatus({String? organizationId}) async =>
+      ApiRentAHumanStatusView.fromJson(
+              await get(ApiRoutes.rentAHumanStatus, organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> bambuLocalState({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await get(ApiRoutes.bambuLocal,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> discoverLocalBambu({String? organizationId}) async =>
+      ApiBambuDiscoveryView.fromJson(await post(
+              ApiRoutes.bambuDiscover, const {},
+              organizationId: organizationId))
+          .toJson();
+
+  Future<JsonMap> bambuCertificate(JsonMap body,
+          {String? organizationId}) async =>
+      ApiBambuCertificateView.fromJson(await post(
+              ApiRoutes.bambuCertificate,
+              ApiBambuAddressRequest.fromJson(body).toJson(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> connectLocalBambu(JsonMap body,
+          {String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await _request(
+              'POST', ApiRoutes.bambuConnect,
+              body: ApiBambuConnectionRequest.fromJson(body).toJson(),
+              organizationId: organizationId,
+              timeout: const Duration(seconds: 60),
+              interruptionMessage: _printerCheckInterrupted))
+          .toJson();
+  Future<JsonMap> refreshLocalBambu({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await _request(
+              'POST', ApiRoutes.bambuRefresh,
+              body: const {},
+              organizationId: organizationId,
+              timeout: const Duration(seconds: 60),
+              interruptionMessage: _printerCheckInterrupted))
+          .toJson();
+  Future<JsonMap> forgetLocalBambu({String? organizationId}) async =>
+      ApiBambuLocalState.fromJson(await delete(ApiRoutes.bambuLocal,
+              organizationId: organizationId))
+          .toJson();
+
+  Future<JsonMap> prepareBambuTestPrint(JsonMap body,
+          {String? organizationId}) async =>
+      ApiBambuTestPrintView.fromJson(await _request(
+              'POST', ApiRoutes.bambuTestPrints,
+              body: ApiBambuTestPrintRequest.fromJson(body).toJson(),
+              organizationId: organizationId,
+              interruptionMessage:
+                  'The test slicing request was interrupted. Check the local backend and try again.'))
+          .toJson();
+
+  Future<JsonMap> bambuTestPrint(String id, {String? organizationId}) async =>
+      ApiBambuTestPrintView.fromJson(await get(
+              ApiRoutes.bambuTestPrint(id),
+              organizationId: organizationId))
+          .toJson();
+
+  Future<Uint8List> bambuTestPrintBytes(String id,
+      {required bool source,
+      required String checksum,
+      String? organizationId}) async {
+    if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(checksum)) {
+      throw const ProductionApiException(
+          'The test file has no verified checksum.');
+    }
+    final request = http.Request('GET',
+        uri(ApiRoutes.bambuTestPrintFile(id, source: source)));
+    request.headers.addAll(await headers(organizationId: organizationId));
+    final response =
+        await client.send(request).timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      throw ProductionApiException(
+          'The test file is unavailable. Prepare it again.',
+          status: response.statusCode);
+    }
+    const maxBytes = 16 * 1024 * 1024;
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk
+        in response.stream.timeout(const Duration(seconds: 30))) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw const ProductionApiException(
+            'The test file exceeds its download limit.');
+      }
+      bytes.add(chunk);
+    }
+    final result = bytes.takeBytes();
+    if (sha256.convert(result).toString() != checksum) {
+      throw const ProductionApiException(
+          'The test file failed its integrity check. Prepare it again.');
+    }
+    return result;
+  }
+
+  Future<JsonMap> rentAHumanSearch(Map<String, String> filters,
+          {String? organizationId}) async =>
+      ApiHumanSearchView.fromJson(await get(
+              Uri(path: ApiRoutes.rentAHumanHumans, queryParameters: filters)
+                  .toString(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> rentAHumanBounties(
+          {String? cursor, String? organizationId}) async =>
+      ApiHumanBountiesView.fromJson(await get(
+              Uri(
+                      path: ApiRoutes.rentAHumanBounties,
+                      queryParameters:
+                          cursor == null ? null : {'cursor': cursor})
+                  .toString(),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> humanTaskDrafts(String projectId,
+          {String? organizationId}) async =>
+      ApiHumanTaskDraftsView.fromJson(await get(
+              ApiRoutes.humanTaskDrafts(projectId),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> createHumanTaskDraft(String projectId, JsonMap body,
+          {required String key, String? organizationId}) async =>
+      ApiHumanTaskDraftView.fromJson(await post(
+              ApiRoutes.humanTaskDrafts(projectId),
+              ApiHumanTaskDraftRequest.fromJson(body).toJson(),
+              idempotencyKey: key,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> humanTaskAction(
+      String projectId, String id, String action, JsonMap body,
+      {String? organizationId}) async {
+    if (!const ['preview', 'link', 'sync'].contains(action)) {
+      throw ArgumentError('Unsupported task action');
+    }
+    final request = action == 'link'
+        ? ApiHumanTaskLinkRequest.fromJson(body).toJson()
+        : ApiHumanTaskDraftAction.fromJson(body).toJson();
+    return ApiHumanTaskDraftView.fromJson(await post(
+            ApiRoutes.humanTaskDraftAction(projectId, id, action),
+            request,
+            organizationId: organizationId))
+        .toJson();
+  }
+
+  Future<JsonMap> printPreparations(String projectId,
+          {String? organizationId}) async =>
+      ApiPrintPreparationsView.fromJson(await get(
+              ApiRoutes.printPreparations(projectId),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> prepareBambuPrint(String projectId, JsonMap body,
+          {required String key, String? organizationId}) async =>
+      ApiPrintPreparationView.fromJson(await post(
+              ApiRoutes.printPreparations(projectId),
+              ApiPreparePrint.fromJson(body).toJson(),
+              idempotencyKey: key,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> bambuDispatches(String projectId,
+          {String? organizationId}) async =>
+      ApiBambuDispatchesView.fromJson(await get(
+              ApiRoutes.printDispatches(projectId),
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> createBambuDispatch(String projectId, JsonMap body,
+          {required String key, String? organizationId}) async =>
+      ApiBambuDispatchView.fromJson(await post(
+              ApiRoutes.printDispatches(projectId),
+              ApiBambuDispatchRequest.fromJson(body).toJson(),
+              idempotencyKey: key,
+              organizationId: organizationId))
+          .toJson();
+  Future<JsonMap> bambuDispatchAction(
+      String projectId, String id, String action,
+      {JsonMap body = const {}, String? organizationId}) async {
+    if (!{'send', 'cancel', 'reconcile'}.contains(action)) {
+      throw ArgumentError.value(action, 'action');
+    }
+    return ApiBambuDispatchView.fromJson(await post(
+            ApiRoutes.printDispatchAction(projectId, id, action),
+            action == 'reconcile'
+                ? ApiBambuReconcileRequest.fromJson(body).toJson()
+                : const {},
+            organizationId: organizationId))
+        .toJson();
+  }
+
   Future<JsonMap> companionPreview(String projectId,
           {required String artifactId, String? organizationId}) =>
-      post('/projects/${Uri.encodeComponent(projectId)}/companion-preview',
+      post(ApiRoutes.companionPreview(projectId),
           {'artifactId': artifactId},
           organizationId: organizationId);
   Future<JsonMap> delete(String path, {String? organizationId}) =>
@@ -79,7 +279,12 @@ class ProductionApi {
           body: body, key: idempotencyKey, organizationId: organizationId);
 
   Future<JsonMap> _request(String method, String path,
-      {JsonMap? body, String? key, String? organizationId}) async {
+      {JsonMap? body,
+      String? key,
+      String? organizationId,
+      Duration timeout = const Duration(seconds: 20),
+      String interruptionMessage =
+          'Connection interrupted. Your request is saved and can be safely retried.'}) async {
     try {
       final request = http.Request(method, uri(path));
       request.headers.addAll(await headers(organizationId: organizationId));
@@ -89,8 +294,8 @@ class ProductionApi {
       }
       if (key != null) request.headers['Idempotency-Key'] = key;
       final response = await http.Response.fromStream(
-              await client.send(request).timeout(const Duration(seconds: 20)))
-          .timeout(const Duration(seconds: 20));
+              await client.send(request).timeout(timeout))
+          .timeout(timeout);
       final json = response.body.isEmpty
           ? <String, dynamic>{}
           : asMap(jsonDecode(response.body));
@@ -107,8 +312,7 @@ class ProductionApi {
       throw const ProductionApiException(
           'The server returned an unreadable response.');
     } catch (_) {
-      throw const ProductionApiException(
-          'Connection interrupted. Your request is saved and can be safely retried.');
+      throw ProductionApiException(interruptionMessage);
     }
   }
 
@@ -116,8 +320,8 @@ class ProductionApi {
       {String? organizationId, void Function()? onConnected}) async* {
     final streaming = streamClientFactory();
     try {
-      final request = http.Request('GET',
-          uri('/projects/${Uri.encodeComponent(projectId)}/events?after=$after'));
+      final request =
+          http.Request('GET', uri(ApiRoutes.projectEvents(projectId, after)));
       request.headers.addAll(await headers(organizationId: organizationId));
       request.headers['Accept'] = 'text/event-stream';
       final response =
@@ -141,9 +345,22 @@ class ProductionApi {
     }
   }
 
+  Future<Uint8List> referenceImageBytes(String projectId, String imageId,
+      {String? organizationId}) async {
+    final response = await client
+        .get(
+            uri(ApiRoutes.referenceImageContent(projectId, imageId)),
+            headers: await headers(organizationId: organizationId))
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      throw _failure('Reference image unavailable', response);
+    }
+    return response.bodyBytes;
+  }
+
   Future<Uint8List> artifactBytes(String id) async {
     final info = ApiArtifactDownloadView.fromJson(
-        await get('/artifacts/${Uri.encodeComponent(id)}/download'));
+        await get(ApiRoutes.artifactDownload(id)));
     final target = Uri.parse(info.url);
     final resolved =
         target.hasScheme ? target : Uri.parse(baseUrl).resolveUri(target);
@@ -153,8 +370,7 @@ class ProductionApi {
         .get(resolved, headers: sameOrigin ? await headers() : {})
         .timeout(const Duration(seconds: 60));
     if (response.statusCode != 200) {
-      throw ProductionApiException('Artifact download failed',
-          status: response.statusCode);
+      throw _failure('Artifact download failed', response);
     }
     if (sha256.convert(response.bodyBytes).toString() != info.sha256) {
       throw const ProductionApiException(
@@ -163,17 +379,26 @@ class ProductionApi {
     return response.bodyBytes;
   }
 
+  /// Keeps the caller's message but carries the server's structured error code when the body is JSON.
+  static ProductionApiException _failure(
+      String message, http.Response response) {
+    String? code;
+    try {
+      code = asMap(jsonDecode(response.body))['code'] as String?;
+    } catch (_) {/* Not a JSON error body (for example a proxy page). */}
+    return ProductionApiException(message,
+        status: response.statusCode, code: code);
+  }
+
   void close() => client.close();
 
   Future<Uint8List> releaseBytes(String id) async {
     final response = await client
-        .get(uri('/releases/${Uri.encodeComponent(id)}/download'),
+        .get(uri(ApiRoutes.releaseDownload(id)),
             headers: await headers())
         .timeout(const Duration(seconds: 60));
     if (response.statusCode != 200) {
-      throw ProductionApiException(
-          'The release package could not be downloaded.',
-          status: response.statusCode);
+      throw _failure('The release package could not be downloaded.', response);
     }
     return response.bodyBytes;
   }

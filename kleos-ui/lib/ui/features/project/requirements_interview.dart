@@ -19,6 +19,7 @@ class RequirementsInterview extends StatefulWidget {
       required this.onAnswer,
       required this.onReview,
       required this.onConfirm,
+      this.onAcceptAssumptions,
       this.autoResume = false,
       this.acceptWhileActive = false,
       this.updatePending = false});
@@ -28,6 +29,10 @@ class RequirementsInterview extends StatefulWidget {
   final Future<CommandResult> Function(
       String id, List<String> values, bool legacy) onAnswer;
   final Future<CommandResult> Function() onReview, onConfirm;
+
+  /// Accepts named critical constraints as placeholders to measure before PCB or case lock.
+  final Future<CommandResult> Function(List<String> constraintIds)?
+      onAcceptAssumptions;
   @override
   State<RequirementsInterview> createState() => _RequirementsInterviewState();
 }
@@ -424,6 +429,16 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
         (widget.clarification.isEmpty && saved.isNotEmpty);
     final ready = widget.clarification['readyToConfirm'] == true ||
         (widget.clarification.isEmpty && questions.isEmpty && saved.isEmpty);
+    final openQuestions = questions
+        .where((q) => q['resolved'] != true && q['required'] != false)
+        .isNotEmpty;
+    // Critical values the concept could not establish. They block confirmation until the user
+    // supplies them or explicitly accepts them as placeholders.
+    final placeholders = [
+      for (final c in asMaps(widget.proposal['constraints']))
+        if (c['critical'] == true && c['certainty'] == 'unknown') c
+    ];
+    final stuck = !ready && !needsReview && !openQuestions;
     return pColumn([
       Text(
           widget.confirmed
@@ -472,9 +487,29 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
                     : 'Your choices are saved. Let Kleos update the concept before you confirm.'
                 : ready
                     ? 'The concept is ready for your review.'
-                    : 'Complete the remaining questions before continuing.',
+                    : stuck
+                        ? placeholders.isNotEmpty
+                            ? 'A few critical values are still placeholders. Kleos will not invent them.'
+                            : 'Kleos has not marked this concept ready yet. Ask it to review your requirements.'
+                        : 'Complete the remaining questions before continuing.',
             muted: true),
+        if (stuck && placeholders.isNotEmpty) _placeholders(placeholders),
         if (needsReview && !widget.autoResume)
+          KButton(
+              label: saving ? 'Starting review…' : 'Review my requirements',
+              primary: true,
+              icon: Icons.auto_awesome_outlined,
+              onPressed: enabled ? () => _run(widget.onReview) : null),
+        if (stuck && placeholders.isNotEmpty && widget.onAcceptAssumptions != null)
+          KButton(
+              label: saving ? 'Accepting…' : 'Accept placeholders and continue',
+              primary: true,
+              icon: Icons.check,
+              onPressed: enabled
+                  ? () => _run(() => widget.onAcceptAssumptions!(
+                      [for (final c in placeholders) '${c['id']}']))
+                  : null),
+        if (stuck && placeholders.isEmpty)
           KButton(
               label: saving ? 'Starting review…' : 'Review my requirements',
               primary: true,
@@ -491,6 +526,29 @@ class _RequirementsInterviewState extends State<RequirementsInterview> {
         pCallout(Text(error!, style: const TextStyle(color: KColors.fail))),
     ], gap: 16);
   }
+
+  Widget _placeholders(List<JsonMap> items) => Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          color: KColors.accent.withValues(alpha: .06),
+          borderRadius: BorderRadius.circular(KRadius.control),
+          border: Border.all(color: KColors.accent.withValues(alpha: .28))),
+      child: pColumn([
+        for (final item in items)
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.straighten, size: 16, color: KColors.accent)),
+            const SizedBox(width: 10),
+            Expanded(child: pText(item['description'], small: true)),
+          ]),
+        pText(
+            'Accept them to continue with marked placeholders to measure before PCB or case lock, '
+            'or describe the exact parts in the chat to replace them.',
+            muted: true,
+            small: true),
+      ], gap: 10));
 
   @override
   Widget build(BuildContext context) {

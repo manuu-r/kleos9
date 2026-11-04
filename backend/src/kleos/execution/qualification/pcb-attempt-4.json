@@ -1,0 +1,85 @@
+{
+  "qualified": false,
+  "imageId": "sha256:5b718ecfbb742277b2704d96260e234bb411bf000c31444f96cc97cd88f47492",
+  "protocol": "kleos-native-session-v2",
+  "lane": "pcb",
+  "deployment": "local",
+  "sourceOverride": false,
+  "qualificationKind": "exact-image",
+  "networkPolicy": "docker-desktop-daemon-seccomp",
+  "daemonSeccompSha256": "5c9b970c08b543074d2adaa3ac061a7b159a9edf6bc10de6a67663fba706c444",
+  "finishedAt": "2026-11-02T15:40:23.685645+00:00",
+  "fixtureSourcesSha256": "cc9512c0c944410f90be9380688b9c2969a79e0275844d8984c4938d1e1d8ad9",
+  "circuitContract": {
+    "references": [
+      {
+        "reference": "J1",
+        "value": "Connector",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      },
+      {
+        "reference": "R1",
+        "value": "1k",
+        "footprint": "Fixture:TwoPin",
+        "pins": {
+          "1": "/NET_A",
+          "2": "/NET_B"
+        }
+      }
+    ],
+    "conceptReferences": {
+      "power-connector": "J1"
+    },
+    "constraints": {
+      "maxWidthMm": 42,
+      "maxHeightMm": 32,
+      "minTrackWidthMm": 0.25,
+      "minClearanceMm": 0.2,
+      "copperLayers": [
+        "F.Cu",
+        "B.Cu"
+      ]
+    }
+  },
+  "circuitContractHash": "dcc5acce7fe5c62a1828b521cea75b1aceb8b79416b96942597cc7c4c156774c",
+  "checks": [
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native command failed (5): You have run CvPcb for the first time using the new footprint library table method for finding footprints.\nCvPcb has either copied the default table or created an empty table in your home folder.\nYou must first configure the library table to include all footprint libraries not included with KiCad.\nSee the \"Footprint Library Table\" section of the CvPcb documentation for more information. Found 4 violations\nSaved ERC Report to outputs/erc.json\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "ERROR",
+            "details": {
+              "error": "Native command failed (5): You have run CvPcb for the first time using the new footprint library table method for finding footprints.\nCvPcb has either copied the default table or created an empty table in your home folder.\nYou must first configure the library table to include all footprint libraries not included with KiCad.\nSee the \"Footprint Library Table\" section of the CvPcb documentation for more information. Found 4 violations\nSaved ERC Report to outputs/erc.json\n",
+              "executionSucceeded": false,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "image": "sha256:5b718ecfbb742277b2704d96260e234bb411bf000c31444f96cc97cd88f47492",
+      "networkMode": "none",
+      "readonlyRootfs": true,
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "Two-layer passive circuit fixture only",
+    "No physical fabrication or acceptance"
+  ]
+}

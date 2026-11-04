@@ -1,0 +1,188 @@
+#!/bin/bash
+# Kleos9 engineering host, first boot. Rendered by Terraform; contains no credentials.
+# Installs Docker plus two units: kleos-host (every boot: load settings, images and start workers)
+# and kleos-idle.timer (every minute: power off after sustained idleness).
+set -euo pipefail
+
+dnf install -y docker zstd jq
+
+install -d -m 0755 /etc/docker /etc/kleos
+# Docker is installed but not yet started, so this takes effect on first start. Native job
+# containers use the local json-file driver with rotation; workers ship logs to CloudWatch.
+cat >/etc/docker/daemon.json <<'JSON'
+{"log-driver": "json-file", "log-opts": {"max-size": "10m", "max-file": "3"}}
+JSON
+
+cat >/etc/kleos/host.conf <<'CONF'
+NAME=${name}
+REGION=${region}
+SSM_RUNTIME_PATH=${ssm_runtime_path}
+CONTROL_IMAGE_PARAM=${control_image_param}
+TOOLCHAIN_BUCKET=${toolchain_bucket}
+LOG_GROUP=${log_group}
+WORKER_COMMANDS="${worker_commands}"
+IDLE_MINUTES=${idle_minutes}
+MAX_SESSION_MINUTES=${max_session_minutes}
+TICK_SCHEDULE=${tick_schedule}
+TICK_ROLE_ARN=${tick_role_arn}
+TICK_EXPRESSION="${tick_expression}"
+CONF
+
+# Structural, non-secret worker settings (docker --env-file format, no quoting).
+cat >/etc/kleos/host.env <<'ENV'
+${host_env}
+ENV
+chmod 0644 /etc/kleos/host.conf /etc/kleos/host.env
+
+cat >/usr/local/sbin/kleos-host-start <<'SCRIPT'
+#!/bin/bash
+# Every boot: fetch settings, ensure qualified images are cached, (re)start the worker containers.
+set -euo pipefail
+. /etc/kleos/host.conf
+export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION
+install -d -m 0700 /run/kleos
+umask 077
+rm -f /run/kleos/idle-count
+
+# Every parameter under the runtime path becomes KEY=VALUE. Names must look like environment
+# variables; multi-line values are rejected because docker --env-file cannot carry them.
+aws ssm get-parameters-by-path --path "$SSM_RUNTIME_PATH" --recursive --with-decryption --output json \
+  | jq -r '.Parameters[] | (.Name | split("/") | last) as $key
+      | if ($key | test("^[A-Z][A-Z0-9_]*$")) and (.Value | test("\n") | not) then "\($key)=\(.Value)" else empty end' \
+  > /run/kleos/runtime.env
+
+install -d -o 10001 -g 10001 -m 0750 /srv/kleos
+for dir in artifacts native checkers slicing simulation mcp qualification; do
+  install -d -o 10001 -g 10001 -m 0750 "/srv/kleos/$dir"
+done
+aws s3 sync --delete --only-show-errors "s3://$TOOLCHAIN_BUCKET/qualification/" /srv/kleos/qualification/
+chown -R 10001:10001 /srv/kleos/qualification
+
+# Archives are named images/<image-id-hex>.tar.zst; load only those missing from the cache.
+keys=$(aws s3api list-objects-v2 --bucket "$TOOLCHAIN_BUCKET" --prefix images/ --query 'Contents[].Key' --output text)
+for key in $keys; do
+  case "$key" in *.tar.zst) ;; *) continue ;; esac
+  id=$(basename "$key" .tar.zst)
+  if ! docker image inspect "sha256:$id" >/dev/null 2>&1; then
+    aws s3 cp --only-show-errors "s3://$TOOLCHAIN_BUCKET/$key" - | zstd -dc | docker load >/dev/null
+  fi
+done
+
+image=$(aws ssm get-parameter --name "$CONTROL_IMAGE_PARAM" --query Parameter.Value --output text)
+if [ "$image" = "unset" ]; then
+  echo "No control image configured at $CONTROL_IMAGE_PARAM; workers not started." >&2
+  exit 0
+fi
+registry=$(echo "$image" | cut -d/ -f1)
+aws ecr get-login-password | docker login --username AWS --password-stdin "$registry" >/dev/null
+docker pull --quiet "$image" >/dev/null
+socket_gid=$(stat -c %g /var/run/docker.sock)
+
+for command in $WORKER_COMMANDS; do
+  docker rm -f "kleos-$command" >/dev/null 2>&1 || true
+  # Host networking lets workers reach instance credentials under the IMDS hop limit of 1.
+  # Worker containers hold the Docker socket (trusted control plane); jobs never do.
+  docker run -d --name "kleos-$command" --restart on-failure:5 --init --network host \
+    --env-file /run/kleos/runtime.env --env-file /etc/kleos/host.env \
+    --group-add "$socket_gid" -v /var/run/docker.sock:/var/run/docker.sock -v /srv/kleos:/srv/kleos \
+    -v /srv/kleos/qualification:/tmp/kleos/qualification:ro \
+    --read-only --tmpfs /tmp:rw,noexec,nosuid,nodev,size=256m \
+    --cap-drop ALL --security-opt no-new-privileges:true \
+    --log-driver awslogs --log-opt awslogs-region="$REGION" --log-opt awslogs-group="$LOG_GROUP" \
+    --log-opt awslogs-stream="$command-$(date +%Y%m%d%H%M%S)" \
+    "$image" "$command" >/dev/null
+done
+SCRIPT
+
+cat >/usr/local/sbin/kleos-idle-check <<'SCRIPT'
+#!/bin/bash
+# Every minute. `kleos.cli idle-check` exit codes: 0 idle, 10 idle with external waits outstanding,
+# 1 busy. Anything else (command missing in this image, worker down) is "unknown": the host then
+# stays up until MAX_SESSION_MINUTES of uptime, so an unhealthy host cannot run indefinitely.
+set -uo pipefail
+. /etc/kleos/host.conf
+export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION
+counter=/run/kleos/idle-count
+first=$(echo $WORKER_COMMANDS | cut -d' ' -f1)
+
+docker exec "kleos-$first" python -m kleos.cli idle-check >/dev/null 2>&1
+code=$?
+case "$code" in
+  0|10)
+    count=$(( $(cat "$counter" 2>/dev/null || echo 0) + 1 ))
+    echo "$count" > "$counter"
+    [ "$count" -lt "$IDLE_MINUTES" ] && exit 0
+    ;;
+  1)
+    echo 0 > "$counter"
+    exit 0
+    ;;
+  *)
+    uptime_minutes=$(( $(cut -d. -f1 /proc/uptime) / 60 ))
+    [ "$uptime_minutes" -lt "$MAX_SESSION_MINUTES" ] && exit 0
+    echo "idle-check unavailable (exit $code); stopping after $uptime_minutes minutes" | systemd-cat -t kleos-idle
+    ;;
+esac
+
+# Arm the tick only when observations are outstanding; otherwise make sure it is off.
+state=DISABLED
+[ "$code" = 10 ] && state=ENABLED
+token=$(curl -s -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
+instance=$(curl -s -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/instance-id)
+target=$(jq -cn --arg role "$TICK_ROLE_ARN" --arg id "$instance" \
+  '{Arn: "arn:aws:scheduler:::aws-sdk:ec2:startInstances", RoleArn: $role, Input: ({InstanceIds: [$id]} | tojson)}')
+aws scheduler update-schedule --name "$TICK_SCHEDULE" --group-name default --state "$state" \
+  --schedule-expression "$TICK_EXPRESSION" --flexible-time-window Mode=OFF --target "$target" >/dev/null \
+  || echo "could not set the external-wait tick to $state" | systemd-cat -t kleos-idle
+
+echo "powering off (idle-check exit $code, tick $state)" | systemd-cat -t kleos-idle
+systemctl poweroff
+SCRIPT
+chmod 0755 /usr/local/sbin/kleos-host-start /usr/local/sbin/kleos-idle-check
+
+cat >/etc/systemd/system/kleos-host.service <<'UNIT'
+[Unit]
+Description=Kleos9 engineering host: settings, image cache and workers
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# First boot can load ~30 GiB of native images from S3.
+TimeoutStartSec=3600
+ExecStart=/usr/local/sbin/kleos-host-start
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat >/etc/systemd/system/kleos-idle.service <<'UNIT'
+[Unit]
+Description=Kleos9 engineering host idle check
+After=kleos-host.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kleos-idle-check
+UNIT
+
+cat >/etc/systemd/system/kleos-idle.timer <<'UNIT'
+[Unit]
+Description=Check Kleos9 engineering host idleness every minute
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now docker.service
+systemctl enable kleos-host.service kleos-idle.timer
+systemctl start --no-block kleos-host.service
+systemctl start kleos-idle.timer

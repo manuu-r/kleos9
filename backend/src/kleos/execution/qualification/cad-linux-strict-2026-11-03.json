@@ -1,0 +1,208 @@
+{
+  "qualified": true,
+  "imageId": "sha256:31729cee7be71109542d7cf4448151d8ef494ee8ec770d9e28ee8c8d9a8474cf",
+  "finishedAt": "2026-11-03T07:31:44.631225+00:00",
+  "fixtureSha256": "2e5906486a1130c2cacd2893127ee25c783474bcf9ece3c98132745277ba6e86",
+  "protocol": "kleos-native-session-v2",
+  "lane": "cad",
+  "sourceOverride": false,
+  "networkPolicy": "in-process-seccomp",
+  "parentImageId": "sha256:4765e4236200f30190dee984c5639f84fac1249c4a9135c153fdf2d3b26e79fa",
+  "scope": "exact-image CAD two-part fixture only",
+  "checks": [
+    {
+      "action": "patch",
+      "response": {
+        "summary": "Native patch completed",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.patch",
+            "status": "UNKNOWN",
+            "details": {
+              "buildRequired": true,
+              "path": "model.py",
+              "sha256": "2e5906486a1130c2cacd2893127ee25c783474bcf9ece3c98132745277ba6e86",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "build",
+      "response": {
+        "summary": "Native build completed; outputs are candidates",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.build",
+            "status": "UNKNOWN",
+            "details": {
+              "outputs": [
+                "outputs/base.step",
+                "outputs/base.stl",
+                "outputs/lid.step",
+                "outputs/lid.stl",
+                "outputs/parts.json"
+              ],
+              "summary": "Native build completed; outputs are candidates",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "analyze",
+      "response": {
+        "summary": "{\"parts\": [{\"id\": \"base\", \"volumeMm3\": 1485.7345175425614, \"sizeMm\": [24.0, 16.0, 4.0], \"valid\": true}, {\"id\": \"lid\", \"volumeMm3\": 768.0, \"sizeMm\": [24.0, 16.0, 2.0], \"valid\": true}]}\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.analyze",
+            "status": "UNKNOWN",
+            "details": {
+              "independent": false,
+              "summary": "{\"parts\": [{\"id\": \"base\", \"volumeMm3\": 1485.7345175425614, \"sizeMm\": [24.0, 16.0, 4.0], \"valid\": true}, {\"id\": \"lid\", \"volumeMm3\": 768.0, \"sizeMm\": [24.0, 16.0, 2.0], \"valid\": true}]}\n",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "render",
+      "response": {
+        "summary": "{\"renderedParts\": [\"base\", \"lid\"], \"projection\": \"isometric\", \"illustrative\": true}\n",
+        "artifacts": [],
+        "observations": [
+          {
+            "name": "native.render",
+            "status": "UNKNOWN",
+            "details": {
+              "independent": false,
+              "summary": "{\"renderedParts\": [\"base\", \"lid\"], \"projection\": \"isometric\", \"illustrative\": true}\n",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "action": "finish",
+      "response": {
+        "summary": "Native candidate files collected",
+        "artifacts": [
+          {
+            "id": "52531439-0da9-4d6d-a787-e7ad87e865e1",
+            "path": "model.py",
+            "sha256": "2e5906486a1130c2cacd2893127ee25c783474bcf9ece3c98132745277ba6e86",
+            "revision": 2,
+            "mediaType": "text/x-python",
+            "size": 1404
+          },
+          {
+            "id": "c49a8206-0b13-446f-9d59-a79dd417e7bd",
+            "path": "outputs/base.step",
+            "sha256": "5f96e643e49857367cb4b449b7b268187db0f65ea6fdfacddfab364677cf30a4",
+            "revision": 2,
+            "mediaType": "model/step",
+            "size": 19035
+          },
+          {
+            "id": "491f7ab4-2793-430b-8457-cc481887484d",
+            "path": "outputs/base.stl",
+            "sha256": "1a057e6464e1f91e96264a95809f84020755290b5467cb78e315b5aa8c5b4f32",
+            "revision": 2,
+            "mediaType": "model/stl",
+            "size": 26084
+          },
+          {
+            "id": "43fff557-da04-41ad-b105-ee5ab13fee58",
+            "path": "outputs/lid.step",
+            "sha256": "b609a6aed724d386323fe86db686c36b0dbfb48824a1cf830d4abd3a0407b003",
+            "revision": 2,
+            "mediaType": "model/step",
+            "size": 16946
+          },
+          {
+            "id": "ee9db459-8955-4e4d-bde1-f844800e3da2",
+            "path": "outputs/lid.stl",
+            "sha256": "27be4a1e63c65d6e2659da6c3043b574bba5f50c3c7a7b0c8478e1b0afa50edd",
+            "revision": 2,
+            "mediaType": "model/stl",
+            "size": 684
+          },
+          {
+            "id": "17f61d10-3d46-4c1b-b65d-a4ad499807c5",
+            "path": "outputs/parts.json",
+            "sha256": "d7fc38422edd574e918d152ecc1a516f75a527ff75be15e707f1d1b6755b7ce7",
+            "revision": 2,
+            "mediaType": "application/json",
+            "size": 120
+          },
+          {
+            "id": "0151027f-362a-445f-a3e9-d298014f9a35",
+            "path": "outputs/lid.svg",
+            "sha256": "7cd4c721950d03fadbbc7371e81c4db4a072de4cf450dfa8831104967814b47b",
+            "revision": 2,
+            "mediaType": "image/svg+xml",
+            "size": 1393
+          },
+          {
+            "id": "30a37e0e-95c0-4a28-af40-902f1a902c40",
+            "path": "outputs/base.svg",
+            "sha256": "303ef85a55004fc67d58b5bf59c70b2386bc51adaa14f08700976f4b0d96c421",
+            "revision": 2,
+            "mediaType": "image/svg+xml",
+            "size": 58132
+          }
+        ],
+        "observations": [
+          {
+            "name": "native.finish",
+            "status": "UNKNOWN",
+            "details": {
+              "checks": [],
+              "summary": "Native candidate files collected",
+              "executionSucceeded": true,
+              "candidateOnly": true
+            },
+            "independent": false
+          }
+        ],
+        "blockers": []
+      }
+    }
+  ],
+  "containers": [
+    {
+      "runtimeLogs": "",
+      "image": "sha256:31729cee7be71109542d7cf4448151d8ef494ee8ec770d9e28ee8c8d9a8474cf",
+      "status": "exited",
+      "readonlyRootfs": true,
+      "networkMode": "none",
+      "memory": 4294967296,
+      "nanoCpus": 2000000000,
+      "pidsLimit": 128
+    }
+  ],
+  "limitations": [
+    "No physical acceptance",
+    "No PCB/firmware/application qualification",
+    "No independent manufacturing or tolerancing validation"
+  ]
+}

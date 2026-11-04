@@ -1,0 +1,23 @@
+# Kleos9 production: public DNS remains on Cloudflare.
+region                   = "us-east-1"
+name                     = "kleos9-production"
+environment              = "production"
+base_domain              = "kleos9.com"
+frontend_url             = "https://app.kleos9.com"
+public_zone_id           = ""
+certificate_arn          = "arn:aws:acm:us-east-1:750420487076:certificate/49bca7a9-d159-4f0f-8756-634ea0e2fedc"
+github_repository        = "manuu-r/kleos9"
+github_environment       = "production"
+github_oidc_provider_arn = "arn:aws:iam::750420487076:oidc-provider/token.actions.githubusercontent.com"
+activate_services        = false
+# Supply real ECR digests after building and pushing; never use example digests.
+# control_image = "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/control@sha256:..."
+# native_images = { mechanics = "...@sha256:...", ... }
+# Provider calls stay disabled until runtime keys and budgets are configured.
+project_budget_usd = 0
+daily_budget_usd   = 0
+
+github_oidc_subject_prefix = "repo:manuu-r@13869998/kleos9@1438875917"
+
+# Optional hosted reference simulator (shared, in-memory demo).
+simulation_image = "750420487076.dkr.ecr.us-east-1.amazonaws.com/kleos9-production/simulation@sha256:31985eb1bd0efcb6afe4d9afb675e1c7571295cd00235285ae6fd2006ef3eabc"

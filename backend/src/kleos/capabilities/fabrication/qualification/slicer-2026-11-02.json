@@ -1,0 +1,111 @@
+{
+  "image": "sha256:2975faec4b5179e9d4c2752a390a33d10f4e9db98512e2bee0b2797b25e88ca7",
+  "sourceOverride": false,
+  "sourceSha256": "5ffc737a3e7c661093a0b8cab62cb0f828ecd42847cff0f7eaae57982b9b4dc5",
+  "fixture": "20mm closed cube triangulated OBJ",
+  "physicalAcceptance": false,
+  "profiles": {
+    "a1-mini-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "a43d98b86e6913c00fd56970f590b566783dcfe01d807fdaac320fcfd4394de4",
+      "packageSha256": "2677d2a4bc80fa38e3539cb629e57e339faebc3778692eb471a1209916bcd410",
+      "checks": {
+        "gcodeBytes": 427136,
+        "packageBytes": 63416,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.45
+    },
+    "a1-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "18b43fe7f4e75d9ac00da4bf03853041b598eb00ad86ea02362160884aa5dd56",
+      "packageSha256": "945301f58e466bc0b5b3e5b8abf76d5504622e71af9762c224dc037d8b4eddc9",
+      "checks": {
+        "gcodeBytes": 443858,
+        "packageBytes": 64581,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.48
+    },
+    "p1s-pla-04": {
+      "status": "PASS",
+      "bundleSha256": "dc3c0fc0c438162dfdd569f9717878554c27ba47a785ac2ad521b4e31f55a00c",
+      "packageSha256": "ef1424fc7a86bc609da14edd2909bd7dd1f6960511a73db14a6cfb0dcb4f76f6",
+      "checks": {
+        "gcodeBytes": 346572,
+        "packageBytes": 59287,
+        "plateCount": 1,
+        "archiveCheck": "PASS",
+        "physicalAcceptance": false
+      },
+      "measurements": {
+        "triangleCount": 12,
+        "removedFaces": 0,
+        "reorientedFaces": 0,
+        "volumeMm3": 8000.0,
+        "dimensionsMm": [
+          20.0,
+          20.0,
+          20.0
+        ],
+        "watertight": true,
+        "selfIntersections": "UNKNOWN",
+        "physicalAcceptance": false,
+        "isolation": {
+          "uid": 10001,
+          "effectiveCapabilities": 0,
+          "trustedControlWritable": false,
+          "socketPolicy": "unix-only",
+          "noNewPrivileges": true
+        }
+      },
+      "elapsedSeconds": 2.43
+    }
+  }
+}

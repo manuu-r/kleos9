@@ -32,6 +32,7 @@ class _KTapState extends State<KTap> {
   Widget build(BuildContext context) {
     final press = _down && !_still(context) && !widget.flat ? .975 : 1.0;
     return Semantics(
+        container: true,
         button: true,
         label: widget.semanticLabel,
         child: MouseRegion(
@@ -752,21 +753,22 @@ class _KTabStripState extends State<KTabStrip> {
     final tab = widget.tabs[i];
     final on = i == widget.selected;
     final enabled = tab.onTap != null;
+    void select() {
+      if (!on) KHaptics.select();
+      tab.onTap!();
+    }
     return Semantics(
+        container: true,
         button: true,
         selected: on,
         enabled: enabled,
         label: tab.label,
+        onTap: enabled ? select : null,
         child: ExcludeSemantics(
             child: KTap(
                 key: tab.tabKey,
                 flat: true,
-                onTap: !enabled
-                    ? null
-                    : () {
-                        if (!on) KHaptics.select();
-                        tab.onTap!();
-                      },
+                onTap: enabled ? select : null,
                 builder: (context, hovered) {
                   final ink = on
                       ? KColors.text
@@ -1359,19 +1361,23 @@ class KChip extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? dot;
   final String? semanticLabel;
+  void _select() {
+    KHaptics.select();
+    onTap!();
+  }
+
   @override
   Widget build(BuildContext context) => Semantics(
       label: semanticLabel ?? label,
+      container: true,
+      button: true,
+      enabled: onTap != null,
+      onTap: onTap == null ? null : _select,
       selected: selected,
       child: ExcludeSemantics(
           child: KTap(
               flat: true,
-              onTap: onTap == null
-                  ? null
-                  : () {
-                      KHaptics.select();
-                      onTap!();
-                    },
+              onTap: onTap == null ? null : _select,
               builder: (context, hovered) => AnimatedContainer(
                   duration: KMotion.base,
                   curve: KMotion.out,

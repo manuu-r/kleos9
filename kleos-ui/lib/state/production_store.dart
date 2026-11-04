@@ -108,30 +108,36 @@ class ProjectListState {
 }
 
 class ProjectsController extends AsyncNotifier<ProjectListState> {
+  int _generation = 0;
   @override
   Future<ProjectListState> build() async {
     final repository = ref.watch(productionRepositoryProvider);
+    _generation++;
+    ref.onDispose(() => _generation++);
     final result = await repository.projects();
     return ProjectListState(
         result.projects, result.nextCursor, await repository.journal.pending());
   }
 
   Future<void> refresh() async {
+    final generation = _generation;
     final repository = ref.read(productionRepositoryProvider);
     final result = await repository.projects();
-    if (ref.mounted) {
-      state = AsyncData(ProjectListState(result.projects, result.nextCursor,
-          await repository.journal.pending()));
+    final pending = await repository.journal.pending();
+    if (ref.mounted && generation == _generation) {
+      state = AsyncData(
+          ProjectListState(result.projects, result.nextCursor, pending));
     }
   }
 
   Future<void> nextPage() async {
+    final generation = _generation;
     final previous = state.asData?.value;
     if (previous?.nextCursor == null) return;
     final result = await ref
         .read(productionRepositoryProvider)
         .projects(after: previous!.nextCursor);
-    if (!ref.mounted) return;
+    if (!ref.mounted || generation != _generation) return;
     final byId = {
       for (final p in [...previous.projects, ...result.projects]) p.id: p
     };
@@ -175,6 +181,9 @@ class ProjectController extends AsyncNotifier<ProjectView> {
   StreamSubscription<ProjectEvent>? _subscription;
   Timer? _reconnect;
   Timer? _debounce;
+  Timer? _poll;
+  int _scopeGeneration = 0;
+  bool _stopped = false;
   AppLifecycleListener? _lifecycle;
   bool _foreground = true;
   bool _refreshing = false;
@@ -185,26 +194,43 @@ class ProjectController extends AsyncNotifier<ProjectView> {
   @override
   Future<ProjectView> build() async {
     final repository = ref.watch(productionRepositoryProvider);
+    final scope = ++_scopeGeneration;
+    _stopped = false;
+    _refreshing = false;
+    _refreshAgain = false;
     ref.onDispose(() {
+      _scopeGeneration++;
+      _poll?.cancel();
       _connectionGeneration++;
       _subscription?.cancel();
       _reconnect?.cancel();
       _debounce?.cancel();
       _lifecycle?.dispose();
     });
+    _foreground = WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _lifecycle = AppLifecycleListener(onStateChange: (value) {
       _foreground = value == AppLifecycleState.resumed;
-      if (_foreground) {
-        unawaited(refresh().then((_) => _connect()));
+      if (_foreground && !_stopped) {
+        _startPolling();
+        unawaited(refresh().then((_) {
+          if (scope == _scopeGeneration) _connect();
+        }));
       } else {
         _connectionGeneration++;
         _subscription?.cancel();
         _reconnect?.cancel();
+        _poll?.cancel();
+        _debounce?.cancel();
         _update((s) => s.copy(connected: false));
       }
     });
     final workspace = await repository.workspace(projectId);
+    if (!ref.mounted || scope != _scopeGeneration) {
+      return ProjectView(workspace);
+    }
     _cursor = workspace.eventCursor;
+    _startPolling();
     // Start after AsyncNotifier publishes its initial result.
     _reconnect = Timer(Duration.zero, _connect);
     return ProjectView(workspace);
@@ -216,8 +242,37 @@ class ProjectController extends AsyncNotifier<ProjectView> {
     if (current != null) state = AsyncData(update(current));
   }
 
+  void _startPolling() {
+    _poll?.cancel();
+    if (!_foreground || _stopped) return;
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (!ref.mounted || !_foreground || _stopped || _refreshing) return;
+      final scope = _scopeGeneration;
+      if (await refresh() &&
+          ref.mounted &&
+          scope == _scopeGeneration &&
+          !_stopped) {
+        final cursor = state.asData?.value.workspace.eventCursor ?? _cursor;
+        if (cursor > _cursor) {
+          _cursor = cursor;
+          _connect();
+        }
+      }
+    });
+  }
+
+  void _stop(Object error) {
+    _stopped = true;
+    _connectionGeneration++;
+    _subscription?.cancel();
+    _poll?.cancel();
+    _reconnect?.cancel();
+    _debounce?.cancel();
+    _update((s) => s.copy(connected: false, error: error.toString()));
+  }
+
   void _connect() {
-    if (!ref.mounted || !_foreground) return;
+    if (!ref.mounted || !_foreground || _stopped) return;
     _subscription?.cancel();
     final generation = ++_connectionGeneration;
     _subscription = ref
@@ -255,8 +310,7 @@ class ProjectController extends AsyncNotifier<ProjectView> {
           unawaited(_resync());
         } else if (error is ProductionApiException &&
             const {401, 403, 404}.contains(error.status)) {
-          _connectionGeneration++;
-          _update((s) => s.copy(error: error.message));
+          _stop(error);
           if (error.status == 401) ref.invalidate(accountProvider);
         } else {
           _scheduleReconnect(generation);
@@ -268,7 +322,10 @@ class ProjectController extends AsyncNotifier<ProjectView> {
   }
 
   void _scheduleReconnect(int generation) {
-    if (!ref.mounted || !_foreground || generation != _connectionGeneration) {
+    if (!ref.mounted ||
+        !_foreground ||
+        _stopped ||
+        generation != _connectionGeneration) {
       return;
     }
     _update((s) => s.copy(connected: false));
@@ -277,11 +334,12 @@ class ProjectController extends AsyncNotifier<ProjectView> {
   }
 
   Future<void> _resync() async {
+    final scope = _scopeGeneration;
     _connectionGeneration++;
     unawaited(_subscription?.cancel());
     _subscription = null;
     final recovered = await refresh();
-    if (!ref.mounted) return;
+    if (!ref.mounted || scope != _scopeGeneration || _stopped) return;
     if (!recovered) {
       _scheduleReconnect(_connectionGeneration);
       return;
@@ -291,6 +349,8 @@ class ProjectController extends AsyncNotifier<ProjectView> {
   }
 
   Future<bool> refresh() async {
+    if (!ref.mounted || _stopped) return false;
+    final scope = _scopeGeneration;
     if (_refreshing) {
       _refreshAgain = true;
       return false;
@@ -299,22 +359,34 @@ class ProjectController extends AsyncNotifier<ProjectView> {
     try {
       final latest =
           await ref.read(productionRepositoryProvider).workspace(projectId);
-      _update((s) => s.copy(workspace: latest));
+      if (!ref.mounted || scope != _scopeGeneration || _stopped) return false;
+      _update((s) => latest.project.revision < s.workspace.project.revision
+          ? s
+          : s.copy(workspace: latest));
       return true;
     } catch (error) {
-      _update((s) => s.copy(error: error.toString()));
+      if (!ref.mounted || scope != _scopeGeneration) return false;
+      if (error is ProductionApiException &&
+          const {401, 403, 404, 410}.contains(error.status)) {
+        _stop(error);
+      } else {
+        _update((s) => s.copy(error: error.toString()));
+      }
       return false;
     } finally {
-      _refreshing = false;
-      if (_refreshAgain && ref.mounted) {
-        _refreshAgain = false;
-        unawaited(refresh());
+      if (scope == _scopeGeneration) {
+        _refreshing = false;
+        if (_refreshAgain && ref.mounted) {
+          _refreshAgain = false;
+          unawaited(refresh());
+        }
       }
     }
   }
 
   Future<AcceptedCommand?> execute(String type,
       [JsonMap payload = const {}]) async {
+    final scope = _scopeGeneration;
     final current = state.asData?.value;
     if (current == null || current.busy) return null;
     _update((s) => s.copy(busy: true, clearError: true));
@@ -324,17 +396,21 @@ class ProjectController extends AsyncNotifier<ProjectView> {
             {'projectId': projectId, ...payload},
             revision: current.workspace.project.revision,
           );
+      if (!ref.mounted || scope != _scopeGeneration) return null;
       await refresh();
-      if (ref.mounted) ref.invalidate(productionProjectsProvider);
+      if (ref.mounted && scope == _scopeGeneration) {
+        ref.invalidate(productionProjectsProvider);
+      }
       return result;
     } catch (error) {
+      if (!ref.mounted || scope != _scopeGeneration) return null;
       _update((s) => s.copy(error: error.toString()));
       if (error is ProductionApiException && error.status == 409) {
         await refresh();
       }
       return null;
     } finally {
-      _update((s) => s.copy(busy: false));
+      if (scope == _scopeGeneration) _update((s) => s.copy(busy: false));
     }
   }
 }
